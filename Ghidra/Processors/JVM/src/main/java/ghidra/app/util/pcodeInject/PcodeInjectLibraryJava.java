@@ -156,7 +156,7 @@ public class PcodeInjectLibraryJava extends PcodeInjectLibrary {
 	* This method is called by DecompileCallback.getPcodeInject.
 	*/
 	public InjectPayload getPayload(int type, String name, Program program, String context) {
-		if (type == InjectPayload.CALLMECHANISM_TYPE) {
+		if (type == InjectPayload.CALLMECHANISM_TYPE && name.indexOf("inject_uponentry") != -1) {
 			return paramPayload;
 		}
 
