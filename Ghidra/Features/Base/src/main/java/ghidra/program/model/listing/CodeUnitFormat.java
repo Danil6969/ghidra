@@ -967,12 +967,14 @@ public class CodeUnitFormat {
 			if (op.getOpcode() == PcodeOp.INT_ADD) {
 				Varnode[] inputs = op.getInputs();
 				Register reg = null;
-				if (inputs[0].isConstant() && equals(inputs[0], scalar)) {
-					reg = findRegister(inputs[1], regIndexMap);
+				try {
+					if (inputs[0].isConstant() && equals(inputs[0], scalar)) {
+						reg = findRegister(inputs[1], regIndexMap);
+					} else if (inputs[1].isConstant() && equals(inputs[1], scalar)) {
+						reg = findRegister(inputs[0], regIndexMap);
+					}
 				}
-				else if (inputs[1].isConstant() && equals(inputs[1], scalar)) {
-					reg = findRegister(inputs[0], regIndexMap);
-				}
+				catch (IllegalArgumentException e) {}
 				if (reg != null) {
 					return reg;
 				}
