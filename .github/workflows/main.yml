@@ -1,0 +1,68 @@
+name: Build distributions and container images
+on: push
+jobs:
+  build_distribution:
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+
+      - name: Install Java 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: '11'
+          java-package: jdk
+          architecture: x64
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/build.gradle', '**/settings.gradle') }}
+          restore-keys: ${{ runner.os }}-gradle
+
+      - name: Cache Ghidra dependency repository
+        run: |
+          gradle --init-script gradle/support/fetchDependencies.gradle init
+
+      - name: Install dependencies [${{ matrix.os }}]
+        uses: crazy-max/ghaction-chocolatey@v1
+        with:
+          args: install -y winflexbison
+        if: ${{ matrix.os == 'windows-latest' }}
+
+      - name: Fix win_flex.exe and win_bison.exe command names
+        run: |
+          Rename-Item (Get-Command win_flex).Path flex.exe
+          Rename-Item (Get-Command win_bison).Path bison.exe
+        if: ${{ matrix.os == 'windows-latest' }}
+
+      - name: Build Ghidra
+        run: |
+          gradle buildGhidra
+        env:
+          GRADLE_OPTS: -Dorg.gradle.parallel=true -Dorg.gradle.caching=true -Dorg.gradle.daemon=false
+
+      - name: Unpack archive for out of tree extension builds
+        shell: pwsh
+        run: |
+          Expand-Archive -Path build/dist/*.zip -DestinationPath exploded
+
+      - name: Repack Ghidra archive with additions
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "${{ github.workspace }}/exploded/ghidra_9.3_DEV" -DestinationPath ghidra.zip
+          mkdir -p public/builds/
+          cp ghidra.zip ghidra-${{ matrix.os }}.zip
+
+      - name: Archive distribution
+        uses: actions/upload-artifact@v2
+        with:
+          name: ghidra-distribution-${{ matrix.os }}
+          path: ghidra.zip
