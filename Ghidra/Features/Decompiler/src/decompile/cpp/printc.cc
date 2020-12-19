@@ -364,6 +364,77 @@ void PrintC::opFunc(const PcodeOp *op)
     pushAtom(Atom("",blanktoken,EmitXml::no_color));
 }
 
+void PrintC::opArrFunc(const PcodeOp *op)
+{
+  pushOp(&function_call,op);
+  string nm = op->getOpcode()->getOperatorName(op);
+  pushAtom(Atom(nm,optoken,EmitXml::no_color,op));
+  bool outArr = op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY;
+  bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() != TYPE_ARRAY;
+  ostringstream s;
+  string name = "TOARR";
+  if (outArr)
+    pushOp(&comma,op);
+  if (op->numInput() == 2) {
+    bool in1Arr = (op->getIn(1)->getHigh()->getType()->getMetatype() != TYPE_ARRAY) && (nm.substr(0,6) == "CONCAT");
+    pushOp(&comma,op);
+    if (in0Arr || in1Arr) {
+      if (in0Arr) {
+        pushOp(&function_call,op);
+        s << name << op->getIn(0)->getSize();
+        pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+        s.str("");
+        pushOp(&comma,op);
+        pushVnImplied(op->getIn(0),op,mods);
+        pushType(op->getIn(0)->getHigh()->getType());
+      }
+      else {
+        pushVnImplied(op->getIn(0),op,mods);
+      }
+      if (in1Arr) {
+        pushOp(&function_call,op);
+        s << name << op->getIn(1)->getSize();
+        pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+        pushOp(&comma,op);
+        pushVnImplied(op->getIn(1),op,mods);
+        pushType(op->getIn(1)->getHigh()->getType());
+      }
+      else {
+        pushVnImplied(op->getIn(1),op,mods);
+      }
+    }
+    else {
+      pushVnImplied(op->getIn(1),op,mods);
+      pushVnImplied(op->getIn(0),op,mods);
+    }
+  }
+  else {
+    if (in0Arr) {
+      pushOp(&function_call,op);
+      s << name << op->getIn(0)->getSize();
+      pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+      pushOp(&comma,op);
+      pushVnImplied(op->getIn(0),op,mods);
+      pushType(op->getIn(0)->getHigh()->getType());
+    }
+    else {
+      pushVnImplied(op->getIn(0),op,mods);
+    }
+  }
+  if (outArr)
+    pushType(op->getOut()->getHigh()->getType());
+}
+
+void PrintC::opConv(const PcodeOp *op)
+
+{
+  pushOp(&function_call,op);
+  pushAtom(Atom("CONVERT",optoken,EmitXml::no_color,op));
+  pushOp(&comma,op);
+  pushVnImplied(op->getIn(0),op,mods);
+  pushType(op->getOut()->getHigh()->getType());
+}
+
 /// The syntax represents the given op using a standard c-language cast.  The data-type
 /// being cast to is obtained from the output variable of the op. The input expression is
 /// also recursively pushed.
@@ -371,11 +442,15 @@ void PrintC::opFunc(const PcodeOp *op)
 void PrintC::opTypeCast(const PcodeOp *op)
 
 {
-  if (!option_nocasts) {
-    pushOp(&typecast,op);
+  if (!option_nocasts && op->getOut()->getHigh()->getType()->getName() != op->getIn(0)->getHigh()->getType()->getName()) {
+    pushOp(&function_call,op);
+    pushAtom(Atom("CAST",optoken,EmitXml::no_color,op));
+    pushOp(&comma,op);
+    pushVnImplied(op->getIn(0),op,mods);
     pushType(op->getOut()->getHigh()->getType());
   }
-  pushVnImplied(op->getIn(0),op,mods);
+  else
+    pushVnImplied(op->getIn(0),op,mods);
 }
 
 /// The syntax represents the given op using a function with one input,
@@ -679,10 +754,10 @@ void PrintC::opIntZext(const PcodeOp *op,const PcodeOp *readOp)
     if (option_hide_exts && castStrategy->isExtensionCastImplied(op,readOp))
       opHiddenFunc(op);
     else
-      opTypeCast(op);
+      opConv(op);
   }
   else
-    opFunc(op);
+    opArrFunc(op);
 }
 
 void PrintC::opIntSext(const PcodeOp *op,const PcodeOp *readOp)
@@ -692,10 +767,10 @@ void PrintC::opIntSext(const PcodeOp *op,const PcodeOp *readOp)
     if (option_hide_exts && castStrategy->isExtensionCastImplied(op,readOp))
       opHiddenFunc(op);
     else
-      opTypeCast(op);
+      opConv(op);
   }
   else
-    opFunc(op);
+    opArrFunc(op);
 }
 
 /// Print the BOOL_NEGATE but check for opportunities to flip the next operator instead
@@ -722,9 +797,9 @@ void PrintC::opSubpiece(const PcodeOp *op)
   if (castStrategy->isSubpieceCast(op->getOut()->getHigh()->getType(),
 				   op->getIn(0)->getHigh()->getType(),
 				   (uint4)op->getIn(1)->getOffset()))
-    opTypeCast(op);
+    opConv(op);
   else
-    opFunc(op);
+    opArrFunc(op);
 }
 
 void PrintC::opPtradd(const PcodeOp *op)
@@ -1714,6 +1789,7 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
   //                       globalstruct.(arrayfield[0])
   vector<PartialSymbolEntry> stack;
   Datatype *finalcast = (Datatype *)0;
+  bool skipBase = false;
   
   Datatype *ct = sym->getType();
 
@@ -1761,19 +1837,34 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       succeeded = true;
     }
     if (!succeeded) {		// Subtype was not good
-      stack.push_back(PartialSymbolEntry());
-      PartialSymbolEntry &entry(stack.back());
-      entry.token = &object_member;
+      pushOp(&function_call,op);
       ostringstream s;
-      if (sz == 0)
-	sz = ct->getSize() - off;
-      // Special notation for subpiece which is neither
-      // array entry nor struct field
-      s << '_' << dec << off << '_' << sz << '_';
-      entry.fieldname = s.str();
-      entry.field = (const TypeField *)0;
-      entry.hilite = EmitXml::no_color;
+      s << "SUB" << sym->getType()->getSize() << '_' << sz;
+      pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+      s.str("");
+      pushOp(&comma,op);
+      if (sym->getType()->getMetatype() != TYPE_ARRAY) {
+        pushOp(&function_call,op);
+        s << "TOARR" << sym->getType()->getSize();
+        pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+        s.str("");
+        pushOp(&comma,op);
+        pushSymbol(sym,vn,op);
+        pushType(sym->getType());
+      }
+       else {
+        pushSymbol(sym,vn,op);
+      }
+      s << off;
+      if (outtype->getMetatype() == TYPE_ARRAY)
+        pushAtom(Atom(s.str(),vartoken,EmitXml::const_color,op,vn));
+      else {
+        pushOp(&comma,op);
+        pushAtom(Atom(s.str(),vartoken,EmitXml::const_color,op,vn));
+        pushType(outtype);
+      }
       ct = (Datatype *)0;
+      skipBase = true;
     }
   }
 
@@ -1784,7 +1875,8 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
   // Push these on the RPN stack in reverse order
   for(int4 i=stack.size()-1;i>=0;--i)
     pushOp(stack[i].token,op);
-  pushSymbol(sym,vn,op);	// Push base symbol name
+  if (!skipBase)
+    pushSymbol(sym,vn,op);	// Push base symbol name
   for(int4 i=0;i<stack.size();++i) {
     const TypeField *field = stack[i].field;
     if (field == (const TypeField *)0)
