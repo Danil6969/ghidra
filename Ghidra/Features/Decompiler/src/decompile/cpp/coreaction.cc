@@ -5048,7 +5048,7 @@ void ActionDatabase::universalAction(Architecture *conf)
 	conf->extra_pool_rules.clear(); // Rules are now absorbed into universal
       }
       actstackstall->addAction( actprop );
-      actstackstall->addAction( new ActionLaneDivide("base") );
+      // actstackstall->addAction( new ActionLaneDivide("base") );
       actstackstall->addAction( new ActionMultiCse("analysis") );
       actstackstall->addAction( new ActionShadowVar("analysis") );
       actstackstall->addAction( new ActionDeindirect("deindirect") );
