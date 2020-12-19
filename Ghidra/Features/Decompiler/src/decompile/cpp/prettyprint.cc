@@ -658,13 +658,13 @@ void EmitPrettyPrint::print(const TokenSplit &tok)
     indentstack.pop_back();
     break;
   case TokenSplit::tokenstring:
-    if (tok.getSize() > spaceremain)
+    if ((tok.getSize() > spaceremain)&&(maxlinesize != 0))
       overflow();
     tok.print(lowlevel);
     spaceremain -= tok.getSize();
     break;
   case TokenSplit::tokenbreak:
-    if (tok.getSize() > spaceremain) {
+    if ((tok.getSize() > spaceremain)&&(maxlinesize != 0)) {
       if (tok.getTag() == TokenSplit::line_t) // Absolute indent
 	spaceremain = maxlinesize - tok.getIndentBump();
       else {			// relative indent
@@ -785,7 +785,7 @@ void EmitPrettyPrint::scan(void)
   case TokenSplit::tokenstring:
     if (!scanqueue.empty()) {
       rightotal += tok.getSize();
-      while(rightotal-leftotal > spaceremain) {
+      while((rightotal-leftotal > spaceremain)&&(maxlinesize != 0)) {
 	TokenSplit &ref( tokqueue.ref( scanqueue.popbottom() ) );
 	ref.setSize(999999);
 	advanceleft();
@@ -1211,7 +1211,7 @@ void EmitPrettyPrint::setXML(bool val)
 void EmitPrettyPrint::setMaxLineSize(int4 val)
 
 {
-  if ((val<20)||(val>10000))
+  if (((val<20)||(val>10000))&&(val!=0))
     throw LowlevelError("Bad maximum line size");
   maxlinesize = val;
   scanqueue.setMax(3*val);
