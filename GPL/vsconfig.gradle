@@ -21,6 +21,9 @@ def configureVisualStudio() {
 		rootProject.ext.VISUAL_STUDIO_SDK_VERSION_DEFAULT = ""
 		rootProject.ext.VISUAL_STUDIO_SDK_VERSION_OVERRIDE = ""
 		rootProject.ext.VISUAL_STUDIO_VCVARS_CMD = ""
+		//def str1 = rootProject.ext.VISUAL_STUDIO_INSTALL_DIR
+		//def str2 = "${str1}\\VC\\Auxiliary\\Build\\vcvarsall.bat"
+		//def str3 = "\"${str2}\" x86_amd64"
 	
 		// Use vswhere.exe to search for latest Visual Studio installation 
 		println "Searching for latest Visual Studio and required components..."
@@ -29,7 +32,7 @@ def configureVisualStudio() {
 			println "Visual Studio not found!"
 			return
 		}
-		def vswhereOutput = "${vswherePath} -latest -format json".execute().text.trim()
+		def vswhereOutput = "${vswherePath} -products * -latest -format json".execute().text.trim()
 		def vswhereJson = new groovy.json.JsonSlurper().parseText(vswhereOutput);
 		if (vswhereJson.isEmpty()) {
 			println "Visual Studio not found!"
