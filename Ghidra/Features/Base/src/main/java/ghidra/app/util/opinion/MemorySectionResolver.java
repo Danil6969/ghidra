@@ -607,8 +607,13 @@ public abstract class MemorySectionResolver {
 					conflictGapEnd = expectedRangeStart.previous();
 				}
 
-				Address rangeStartAddr =
-					fileRange.rangeStartAddress.add(filePos - fileRange.rangeStartFileOffset);
+				Address rangeStartAddr;
+				try {
+					rangeStartAddr = fileRange.rangeStartAddress.add(filePos - fileRange.rangeStartFileOffset);
+				}
+				catch (AddressOutOfBoundsException e) {
+					rangeStartAddr = fileRange.rangeStartAddress;
+				}
 
 				// Ignore use of overlay and compare physical address for match to avoid duplication
 				if (!expectedRangeStart.getPhysicalAddress().equals(
