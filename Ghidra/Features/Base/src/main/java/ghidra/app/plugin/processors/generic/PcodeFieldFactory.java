@@ -15,8 +15,10 @@
  */
 package ghidra.app.plugin.processors.generic;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import docking.widgets.fieldpanel.field.*;
@@ -30,7 +32,10 @@ import ghidra.app.util.viewer.options.OptionsGui;
 import ghidra.app.util.viewer.proxy.ProxyObj;
 import ghidra.framework.options.Options;
 import ghidra.framework.options.ToolOptions;
+import ghidra.pcode.utils.InjectionUtils;
+import ghidra.program.model.lang.ConstantPool;
 import ghidra.program.model.listing.*;
+import ghidra.program.model.pcode.PcodeOp;
 import ghidra.program.util.PcodeFieldLocation;
 import ghidra.program.util.ProgramLocation;
 
@@ -87,8 +92,14 @@ public class PcodeFieldFactory extends FieldFactory {
 
 		ArrayList<TextFieldElement> elements = new ArrayList<>();
 
+		PcodeOp[] arr = instr.getPcode(true);
+		arr = processPcodeInject1(arr, instr);
+		arr = processPcodeInject2(arr, instr);
+		arr = processPcodeInject3(arr, instr);
+
+		addCpoolRefInfo(arr, instr);
 		List<AttributedString> pcodeListing =
-			formatter.toAttributedStrings(instr.getProgram(), instr.getPcode(true));
+			formatter.toAttributedStrings(instr, arr);
 		int lineCnt = pcodeListing.size();
 		for (int i = 0; i < lineCnt; i++) {
 			elements.add(new TextFieldElement(pcodeListing.get(i), i, 0));
@@ -130,7 +141,7 @@ public class PcodeFieldFactory extends FieldFactory {
 		Program program = instr.getProgram();
 
 		List<AttributedString> attributedStrings =
-			formatter.toAttributedStrings(program, instr.getPcode(true));
+			formatter.toAttributedStrings(instr, instr.getPcode(true));
 		List<String> strings = new ArrayList<>(attributedStrings.size());
 		for (AttributedString attributedString : attributedStrings) {
 			strings.add(attributedString.getText());
@@ -193,4 +204,133 @@ public class PcodeFieldFactory extends FieldFactory {
 		formatter.setOptions(maxDisplayLines, displayRaw);
 	}
 
+	private PcodeOp[] processPcodeInject1(PcodeOp[] mainPcode, Instruction instr) {
+		//3)CALLMECHANISM : uponentry
+		formatter.removeComments(instr.getAddress(), "of uponentry injection");
+		PcodeOp[] injectionPcode = InjectionUtils.getEntryPcodeOps(instr);
+		if (injectionPcode != null) {
+			PcodeOp[] arr = new PcodeOp[injectionPcode.length + mainPcode.length];
+			formatter.addComment(instr.getAddress(), 0, "start of uponentry injection");
+			System.arraycopy(injectionPcode, 0, arr, 0, injectionPcode.length);
+			formatter.addComment(instr.getAddress(), injectionPcode.length, "end of uponentry injection");
+			System.arraycopy(mainPcode, 0, arr, injectionPcode.length, mainPcode.length);
+			return arr;
+		}
+		return mainPcode;
+	}
+
+	private PcodeOp[] processPcodeInject2(PcodeOp[] mainPcode, Instruction instr) {
+		//3)CALLMECHANISM : uponreturn
+		formatter.removeComments(instr.getAddress(), "of uponreturn injection");
+		PcodeOp[] arr;
+		for (int i = 0; i < mainPcode.length; i++) {
+			PcodeOp[] injectionPcode = InjectionUtils.getReturnPcodeOps(instr, mainPcode[i]);
+			if (injectionPcode != null) {
+				arr = mainPcode;
+				mainPcode = new PcodeOp[arr.length + injectionPcode.length];
+				System.arraycopy(arr, 0, mainPcode, 0, i + 1);
+				formatter.addComment(instr.getAddress(), i + 1, "start of uponreturn injection");
+				System.arraycopy(injectionPcode, 0, mainPcode, i + 1, injectionPcode.length);
+				formatter.addComment(instr.getAddress(), i + 1 + injectionPcode.length, "end of uponreturn injection");
+				System.arraycopy(arr, i + 1, mainPcode, i + 1 + injectionPcode.length, arr.length - i - 1);
+			}
+		}
+		return mainPcode;
+	}
+
+	private PcodeOp[] processPcodeInject3(PcodeOp[] mainPcode, Instruction instr) {
+		//2)CALLOTHERFIXUP_TYPE
+		formatter.removeComments(instr.getAddress(), "of callother implementation");
+		PcodeOp[] arr;
+		for (int i = 0; i < mainPcode.length; i++) {
+			PcodeOp[] injectionPcode = InjectionUtils.getCallotherPcodeOps(instr, mainPcode[i]);
+			if (injectionPcode != null) {
+				arr = mainPcode;
+				mainPcode = new PcodeOp[arr.length + injectionPcode.length];
+				System.arraycopy(arr, 0, mainPcode, 0, i + 1);
+				formatter.addComment(instr.getAddress(), i + 1, "start of callother implementation");
+				System.arraycopy(injectionPcode, 0, mainPcode, i + 1, injectionPcode.length);
+				formatter.addComment(instr.getAddress(), i + 1 + injectionPcode.length, "end of callother implementation");
+				System.arraycopy(arr, i + 1, mainPcode, i + 1 + injectionPcode.length, arr.length - i - 1);
+			}
+		}
+		return mainPcode;
+	}
+
+	private void addCpoolRefInfo(PcodeOp[] mainPcode, Instruction instr) {
+		formatter.removeComments(instr.getAddress(), "CPOOL");
+		Program program = instr.getProgram();
+		ConstantPool cpool;
+		try {
+			cpool = program.getCompilerSpec().getPcodeInjectLibrary().getConstantPool(program);
+		} catch (IOException e) {
+			cpool = null;
+		}
+		PcodeOp op;
+		for (int i = 0; i < mainPcode.length; i++) {
+			op = mainPcode[i];
+			if (op.getOpcode() == PcodeOp.CPOOLREF && cpool != null) {
+				long[] refs = new long[op.getInputs().length - 1];
+				for (int j = 1; j < op.getInputs().length; j++)
+					refs[j - 1] = op.getInput(j).getOffset();
+				ConstantPool.Record rec = cpool.getRecord(refs);
+				formatter.addComment(instr.getAddress(), i + 1, getCpoolComment(rec));
+			}
+		}
+	}
+
+	private String getCpoolComment(ConstantPool.Record record) {
+		String EOL = System.getProperty("line.separator");
+		StringBuilder sb = new StringBuilder();
+		sb.append("CPOOL tag: ");
+		sb.append(resolveTagStr(record.tag));
+		sb.append(EOL);
+		if (record.token != null) {
+			sb.append("CPOOL token: ");
+			sb.append(record.token);
+			sb.append(EOL);
+		}
+		if (record.value != 0) {
+			sb.append("CPOOL value: ");
+			sb.append(record.value);
+			sb.append(EOL);
+		}
+		if (record.byteData != null) {
+			sb.append("CPOOL byteData: ");
+			sb.append(Arrays.toString(record.byteData));
+			sb.append(EOL);
+		}
+		if (record.type != null) {
+			sb.append("CPOOL type: ");
+			sb.append(record.type);
+			sb.append(EOL);
+		}
+		if (record.isConstructor) {
+			sb.append("CPOOL has isConstructor flag");
+		}
+		return sb.toString();
+	}
+
+	private String resolveTagStr(int type) {
+		switch (type) {
+			case ConstantPool.PRIMITIVE:
+				return "primitive";
+			case ConstantPool.STRING_LITERAL:
+				return "string";
+			case ConstantPool.CLASS_REFERENCE:
+				return "classref";
+			case ConstantPool.POINTER_METHOD:
+				return "method";
+			case ConstantPool.POINTER_FIELD:
+				return "field";
+			case ConstantPool.ARRAY_LENGTH:
+				return "arraylength";
+			case ConstantPool.INSTANCE_OF:
+				return "instanceof";
+			case ConstantPool.CHECK_CAST:
+				return "checkcast";
+			default:
+				return "unknown";
+		}
+	}
 }
