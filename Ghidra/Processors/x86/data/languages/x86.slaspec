@@ -3,6 +3,7 @@
 @include "avx_manual.sinc"
 @include "avx2.sinc"
 @include "avx2_manual.sinc"
+@include "evex.sinc"
 @include "adx.sinc"
 @include "clwb.sinc"
 @include "pclmulqdq.sinc"
