@@ -16,13 +16,22 @@
 package ghidra.app.emulator;
 
 import ghidra.app.emulator.memory.EmulatorLoadData;
+import ghidra.pcode.memstate.ManagedMemory;
 import ghidra.pcode.memstate.MemoryFaultHandler;
 import ghidra.program.model.lang.Language;
+import ghidra.program.model.lang.ConstantPool;
 import ghidra.program.model.lang.Register;
+import ghidra.program.model.listing.Program;
 
 public interface EmulatorConfiguration {
 
 	Language getLanguage();
+
+	ConstantPool getConstantPool();
+
+	ManagedMemory getManagedMemory();
+
+	Program getProgram();
 
 	EmulatorLoadData getLoadData();
 
