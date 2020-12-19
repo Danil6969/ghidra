@@ -4,6 +4,7 @@
 @include "avx_manual.sinc"
 @include "avx2.sinc"
 @include "avx2_manual.sinc"
+@include "evex.sinc"
 @include "rdrand.sinc"
 @include "rdseed.sinc"
 @include "sgx.sinc"
