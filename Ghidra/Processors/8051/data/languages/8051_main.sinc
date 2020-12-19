@@ -758,7 +758,7 @@ Rel16:   relAddr is rel16		     [ relAddr=inst_next+rel16; ] { export *:1 relAdd
 :JB  BitAddr,Rel8 is $(GROUP1) & ophi=2 & oplo=0; BitAddr & sfrbit & BitByteAddr; Rel8	 { if (((BitByteAddr>>sfrbit)&1) == 1:1) goto Rel8; }
 :JBC BitAddr,Rel8 is $(GROUP1) & ophi=1 & oplo=0; BitAddr & sfrbit & BitByteAddr; Rel8	 {  tmp:1 = 1<<sfrbit; if ((BitByteAddr & tmp)==0) goto inst_next; BitByteAddr = BitByteAddr & ~tmp; goto Rel8; }
 @endif
-:JC  Rel8  is $(GROUP1) & ophi=4 & oplo=0; Rel8						 { if ($(CY) != 0) goto Rel8; }
+:JC  Rel8  is $(GROUP1) & ophi=4 & oplo=0; Rel8						 { if ($(CY)) goto Rel8; }
 :JMP ADPTR is $(GROUP1) & ophi=7 & oplo=3 & ADPTR					 { goto [ADPTR]; }
 
 :JNB BitAddr,Rel8 is $(GROUP1) & ophi=3 & oplo=0; BitAddr & bitaddr57=7 & sfrbit3=0 & sfrbit & BitByteAddr; Rel8  { if (((BitByteAddr>>sfrbit)&1)==0:1) goto Rel8; }
@@ -894,10 +894,10 @@ pc:3 = 0; pop24(pc); return[pc];
 
 :SJMP Rel8        is $(GROUP1) & ophi=8 & oplo=0; Rel8			{ goto Rel8; }
 
-:SUBB Areg,rn     is $(GROUP2) & ophi=9 & rnfill=1 & rn & Areg				{  tmp : 1 = rn+$(CY); subflags(ACC,tmp); ACC = ACC - tmp; }
-:SUBB Areg,Direct is $(GROUP1) & ophi=9 & oplo=5 & Areg; Direct	{  tmp:1 = Direct+$(CY); subflags(ACC,tmp); ACC = ACC - tmp; }
-:SUBB Areg,Ri     is $(GROUP2) & ophi=9 & Areg & rifill=3 & Ri				{  local tmp = Ri+$(CY); subflags(ACC,tmp); ACC = ACC - tmp; }
-:SUBB Areg,Data   is $(GROUP1) & ophi=9 & oplo=4 & Areg; Data	{ tmp:1 = Data+$(CY); subflags(ACC,tmp); ACC = ACC - tmp; }
+:SUBB Areg,rn     is $(GROUP2) & ophi=9 & rnfill=1 & rn & Areg				{  tmp:1 = $(CY) & 1; tmp = rn + tmp; subflags(ACC,tmp); ACC = ACC - tmp; }
+:SUBB Areg,Direct is $(GROUP1) & ophi=9 & oplo=5 & Areg; Direct	{  tmp:1 = $(CY) & 1; tmp = Direct + tmp; subflags(ACC,tmp); ACC = ACC - tmp; }
+:SUBB Areg,Ri     is $(GROUP2) & ophi=9 & Areg & rifill=3 & Ri				{  tmp:1 = $(CY) & 1; tmp = Ri + tmp; subflags(ACC,tmp); ACC = ACC - tmp; }
+:SUBB Areg,Data   is $(GROUP1) & ophi=9 & oplo=4 & Areg; Data	{ tmp:1 = $(CY) & 1; tmp = Data + tmp; subflags(ACC,tmp); ACC = ACC - tmp; }
 
 :SWAP  Areg       is $(GROUP1) & ophi=12 & oplo=4 & Areg		{ ACC = (ACC>>4) | (ACC<<4); }
 
