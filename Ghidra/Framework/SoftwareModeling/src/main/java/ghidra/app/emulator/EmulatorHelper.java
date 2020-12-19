@@ -25,6 +25,7 @@ import ghidra.app.emulator.state.RegisterState;
 import ghidra.framework.store.LockException;
 import ghidra.pcode.emulate.BreakCallBack;
 import ghidra.pcode.emulate.EmulateExecutionState;
+import ghidra.pcode.memstate.ManagedMemory;
 import ghidra.pcode.memstate.MemoryFaultHandler;
 import ghidra.pcode.memstate.MemoryState;
 import ghidra.program.model.address.*;
@@ -45,6 +46,9 @@ public class EmulatorHelper implements MemoryFaultHandler, EmulatorConfiguration
 
 	private Register stackPtrReg;
 	private AddressSpace stackMemorySpace;
+
+	private ConstantPool cpool;
+	private ManagedMemory managedMemory;
 
 	private String lastError;
 	private MemoryWriteTracker memoryWriteTracker;
@@ -67,6 +71,14 @@ public class EmulatorHelper implements MemoryFaultHandler, EmulatorConfiguration
 
 		stackPtrReg = program.getCompilerSpec().getStackPointer();
 		stackMemorySpace = program.getCompilerSpec().getStackBaseSpace();
+
+		try {
+			cpool = program.getCompilerSpec().getPcodeInjectLibrary().getConstantPool(program);
+		}
+		catch (IOException e){}
+
+		if (cpool != null)
+			managedMemory = new ManagedMemory(cpool);
 
 		emulator = new Emulator(this);
 
@@ -109,6 +121,17 @@ public class EmulatorHelper implements MemoryFaultHandler, EmulatorConfiguration
 		return program.getLanguage();
 	}
 
+	@Override
+	public ConstantPool getConstantPool() {
+		return cpool;
+	}
+
+	@Override
+	public ManagedMemory getManagedMemory() {
+		return managedMemory;
+	}
+
+	@Override
 	public Program getProgram() {
 		return program;
 	}
@@ -305,6 +328,14 @@ public class EmulatorHelper implements MemoryFaultHandler, EmulatorConfiguration
 		long offset = readRegister(stackPtrReg).longValue() + relativeOffset;
 		byte[] bytes = converter.getBytes(value, size);
 		writeMemory(stackMemorySpace.getAddress(offset), bytes);
+	}
+
+	public long getFieldPointer(long objectPointer, String token, int size) throws InsufficientBytesException {
+		return managedMemory.getFieldPointer(objectPointer, token, size);
+	}
+
+	public void setManagedHeapAddress(Address rangeStart, int byteSize) throws AddressOverflowException {
+		managedMemory.constructMallocMgr(rangeStart, byteSize);
 	}
 
 	/**
