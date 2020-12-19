@@ -24,10 +24,12 @@ import docking.widgets.fieldpanel.field.CompositeAttributedString;
 import ghidra.app.plugin.processors.sleigh.SleighLanguage;
 import ghidra.app.plugin.processors.sleigh.template.*;
 import ghidra.app.util.viewer.options.OptionsGui;
+import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressFactory;
 import ghidra.program.model.address.AddressSpace;
 import ghidra.program.model.lang.Language;
 import ghidra.program.model.lang.Register;
+import ghidra.program.model.listing.Instruction;
 import ghidra.program.model.listing.Program;
 import ghidra.program.model.pcode.PcodeOp;
 import ghidra.program.model.pcode.Varnode;
@@ -46,6 +48,8 @@ public class PcodeFormatter {
 	private Color registerColor = OptionsGui.REGISTERS.getDefaultColor();
 	private Color scalarColor = OptionsGui.CONSTANT.getDefaultColor();
 	private Color localColor = OptionsGui.LABELS_LOCAL.getDefaultColor();
+
+	private HashMap<String, String> comments = new HashMap();
 
 	AttributedString SPACE;
 	AttributedString EQUALS;
@@ -116,41 +120,53 @@ public class PcodeFormatter {
 	 * Format an array of PcodeOp objects as a multi-line String
 	 * @return pcode listing as a String
 	 */
-	public String toString(Program program, PcodeOp[] pcodeOps) {
-		return toString(program, getPcodeOpTemplates(program.getAddressFactory(), pcodeOps));
+	public String toString(Instruction instr, PcodeOp[] pcodeOps) {
+		return toString(instr, getPcodeOpTemplates(instr.getProgram().getAddressFactory(), pcodeOps));
 	}
 
 	/**
 	 * Format an array of PcodeOp objects as a two-dimensional list of AttributedString objects.
 	 * The returned list contains a separate element for each row of the pcode listing.
-	 * @param program
+	 * @param instr
 	 * @param pcodeOps
 	 * @return pcode listing as a two-dimensional list of AttributedString objects
 	 */
-	public List<AttributedString> toAttributedStrings(Program program, PcodeOp[] pcodeOps) {
-		return toAttributedStrings(program,
-			getPcodeOpTemplates(program.getAddressFactory(), pcodeOps));
+	public List<AttributedString> toAttributedStrings(Instruction instr, PcodeOp[] pcodeOps) {
+		return toAttributedStrings(instr,
+			getPcodeOpTemplates(instr.getProgram().getAddressFactory(), pcodeOps));
 	}
 
 	/**
 	 * Format an array of pcode OpTpl objects as a multi-line String
-	 * @param program
+	 * @param instr
 	 * @param pcodeOpTemplates
 	 * @return pcode listing as a String
 	 */
-	public String toString(Program program, OpTpl[] pcodeOpTemplates) {
+	public String toString(Instruction instr, OpTpl[] pcodeOpTemplates) {
 
 		boolean indent = hasLabel(pcodeOpTemplates);
 		StringBuffer buf = new StringBuffer();
+		String comment;
 		for (int i = 0; i < pcodeOpTemplates.length; i++) {
 			if (maxDisplayLines > 0 && i >= maxDisplayLines) {
 				break;
 			}
-			AttributedString line = formatOpTpl(program, pcodeOpTemplates[i], indent);
+			AttributedString line = formatOpTpl(instr.getProgram(), pcodeOpTemplates[i], indent);
 			if (buf.length() != 0) {
 				buf.append(EOL);
 			}
+			comment = comments.get(instr.getAddress() + ";" + i).replace(EOL, EOL + "//");
+			if (comment != null) {
+				buf.append("//" + comment);
+				buf.append(EOL);
+			}
 			buf.append(line.toString());
+		}
+		comment = comments.get(instr.getAddress() + ";" + pcodeOpTemplates.length)
+			.replace(EOL, EOL + "//");
+		if (comment != null) {
+			buf.append(EOL);
+			buf.append("//" + comment);
 		}
 		return buf.toString();
 	}
@@ -158,23 +174,58 @@ public class PcodeFormatter {
 	/**
 	 * Format an array of pcode OpTpl objects as a list of AttributedString objects.
 	 * The returned list contains a separate element for each row of the pcode listing.
-	 * @param program
+	 * @param instr
 	 * @param pcodeOpTemplates
 	 * @return pcode listing as a two-dimensional list of AttributedString objects
 	 */
-	public List<AttributedString> toAttributedStrings(Program program, OpTpl[] pcodeOpTemplates) {
+	public List<AttributedString> toAttributedStrings(Instruction instr, OpTpl[] pcodeOpTemplates) {
 
 		boolean indent = hasLabel(pcodeOpTemplates);
 
 		ArrayList<AttributedString> list = new ArrayList<AttributedString>();
+		String comment;
 		for (int i = 0; i < pcodeOpTemplates.length; i++) {
 			if (maxDisplayLines > 0 && i >= maxDisplayLines) {
 				break;
 			}
-			list.add(formatOpTpl(program, pcodeOpTemplates[i], indent));
+			comment = comments.get(instr.getAddress() + ";" + i);
+			if (comment != null) {
+				String[] strings = comment.split(EOL);
+				for (int j = 0; j < strings.length; j++)
+					list.add(new AttributedString("//" + strings[j], Color.BLACK, metrics));
+			}
+			list.add(formatOpTpl(instr.getProgram(), pcodeOpTemplates[i], indent));
+		}
+		comment = comments.get(instr.getAddress() + ";" + pcodeOpTemplates.length);
+		if (comment != null) {
+			String[] strings = comment.split(EOL);
+			for (int j = 0; j < strings.length; j++)
+				list.add(new AttributedString("//" + strings[j], Color.BLACK, metrics));
 		}
 		return list;
 
+	}
+
+	/**
+	 * Add several comments as a multi-line string but without EOL at the end
+	 * @param addr
+	 * @param at
+	 * @param comment
+	 */
+	public void addComment (Address addr, int at, String comment) {
+		comments.put(addr + ";" + at, comment);
+	}
+
+	public void removeComments(Address addr, String str) {
+		Set<Map.Entry<String, String>> entries = comments.entrySet();
+		List<String> garbage = new ArrayList();
+		for (Map.Entry<String, String> entry : entries) {
+			if ((entry.getKey()).contains(addr + ";") && (entry.getValue()).contains(str))
+				garbage.add(entry.getKey());
+		}
+		for (String key : garbage) {
+			comments.remove(key);
+		}
 	}
 
 	private AttributedString formatOpTpl(Program program, OpTpl op, boolean indent) {
