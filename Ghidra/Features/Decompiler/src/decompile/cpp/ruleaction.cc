@@ -3163,6 +3163,8 @@ int4 RuleSignShift::applyOp(PcodeOp *op,Funcdata &data)
   val = constVn->getOffset();
   Varnode *inVn = op->getIn(0);
   if (val != 8*inVn->getSize() -1) return 0;
+  if (inVn->getSize() == 1) return 0; // No uchar/byte to char/sbyte conversion allowed as right
+  // part of signed comparison may contain constant which still will be unsigned character literal
   if (inVn->isFree()) return 0;
 
   bool doConversion = false;
@@ -4601,6 +4603,7 @@ int4 RuleSubZext::applyOp(PcodeOp *op,Funcdata &data)
   uintb val;
 
   subvn = op->getIn(0);
+  if (subvn->getSize() > 8) return 0; // No array masking is allowed
   if (!subvn->isWritten()) return 0;
   subop = subvn->getDef();
   if (subop->code() == CPUI_SUBPIECE) {
@@ -6470,6 +6473,7 @@ void RuleSubRight::getOpList(vector<uint4> &oplist) const
 int4 RuleSubRight::applyOp(PcodeOp *op,Funcdata &data)
 
 {
+  if (op->getIn(0)->getSize() > 8) return 0; // No array shifts are allowed
   int4 c = op->getIn(1)->getOffset();
   if (c==0) return 0;		// SUBPIECE is not least sig
   Varnode *a = op->getIn(0);
@@ -7530,7 +7534,7 @@ int4 RuleSubvarSubpiece::applyOp(PcodeOp *op,Funcdata &data)
   mask <<= 8*((int4)op->getIn(1)->getOffset());
   bool aggressive = outvn->isPtrFlow();
   if (!aggressive) {
-    if ((vn->getConsume() & mask) != vn->getConsume()) return 0;
+    if (mask != vn->getConsume()) return 0;
     if (op->getOut()->hasNoDescend()) return 0;
   }
   bool big = false;
