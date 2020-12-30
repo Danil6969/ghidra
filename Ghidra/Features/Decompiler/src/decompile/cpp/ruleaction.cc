@@ -1729,6 +1729,7 @@ int4 RuleAndCompare::applyOp(PcodeOp *op,Funcdata &data)
     return 0;
   }
 
+  if (basevn->getSize() > 8) return 0; // No array masking is allowed
   if (baseconst == calc_mask(andvn->getSize())) return 0;	// Degenerate AND
   if (basevn->isFree()) return 0;
 
