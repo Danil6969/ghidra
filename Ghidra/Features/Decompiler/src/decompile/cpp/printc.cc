@@ -364,19 +364,31 @@ void PrintC::opFunc(const PcodeOp *op)
     pushAtom(Atom("",blanktoken,EmitXml::no_color));
 }
 
+bool PrintC::isArrFunc(const Varnode *vn)
+{
+  const PcodeOp *op = vn->getDef();
+  if (op == (PcodeOp *)0) return false;
+  uint4 opc = op->code();
+  if (opc == CPUI_INT_ZEXT) return true;
+  if (opc == CPUI_INT_SEXT) return true;
+  if (opc == CPUI_PIECE) return true;
+  if (opc == CPUI_SUBPIECE) return true;
+  return false;
+}
+
 void PrintC::opArrFunc(const PcodeOp *op)
 {
   pushOp(&function_call,op);
   string nm = op->getOpcode()->getOperatorName(op);
   pushAtom(Atom(nm,optoken,EmitXml::no_color,op));
-  bool outArr = op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY;
-  bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() != TYPE_ARRAY;
+  bool outArr = op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY && !isArrFunc(op->getOut());
+  bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() != TYPE_ARRAY && !isArrFunc(op->getIn(0));
   ostringstream s;
   string name = "TOARR";
   if (outArr)
     pushOp(&comma,op);
   if (op->numInput() == 2) {
-    bool in1Arr = (op->getIn(1)->getHigh()->getType()->getMetatype() != TYPE_ARRAY) && (nm.substr(0,6) == "CONCAT");
+    bool in1Arr = (op->getIn(1)->getHigh()->getType()->getMetatype() != TYPE_ARRAY) && !isArrFunc(op->getIn(1)) && (nm.substr(0,6) == "CONCAT");
     pushOp(&comma,op);
     if (in0Arr || in1Arr) {
       if (in0Arr) {
