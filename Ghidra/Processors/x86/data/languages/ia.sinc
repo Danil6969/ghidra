@@ -226,12 +226,15 @@ define register offset=0x1600 size=4   [
   xmmTmp2_Da  xmmTmp2_Db  xmmTmp2_Dc  xmmTmp2_Dd
 ];
 
-define register offset=0x1700 size=64  [ zmmTmp1 zmmTmp2 ];
+define register offset=0x1700 size=64  [ zmmTmp1 zmmTmp2 zmmOut zmmRes ];
 
-define register offset=0x1780 size=8   [ k0 k1 k2 k3 k4 k5 k6 k7 ];
+define register offset=0x1800 size=8   [ k0 k1 k2 k3 k4 k5 k6 k7 ];
 
 # Define context bits
 define register offset=0x2000 size=8   contextreg;
+
+# Define fpu exception flags
+define register offset=0x2010 size=1   [ IE DE ZE OE UE PE B ];
 
 #
 #
@@ -1253,6 +1256,14 @@ macro packeflags(tmp) {
                 | (0x00080000 * zext(VIF&1)) | (0x00040000 * zext(AC&1));
 }
 
+macro unpackFSW(tmp) {
+  
+}
+
+macro packFSW(tmp) {
+  tmp = (zext(ZE)<<2) | (zext(C0)<<8) | (zext(C1)<<9) | (zext(C2)<<10) | (zext(C3)<<14);
+}
+
 macro addflags(op1,op2) {
  CF = carry(op1,op2);
  OF = scarry(op1,op2);
@@ -1458,8 +1469,6 @@ macro fcom(val) {
     C2 = nan(ST0) || nan(val);
     C0 = C2 | ( ST0 f< val  ); 
     C3 = C2 | ( ST0 f== val );
-
-    FPUStatusWord = (zext(C0)<<8) | (zext(C1)<<9) | (zext(C2)<<10) | (zext(C3)<<14);
 }
 
 macro fcomi(val) {
@@ -1470,8 +1479,7 @@ macro fcomi(val) {
     OF = 0;
     AF = 0;
     SF = 0;
-	
-    FPUStatusWord = FPUStatusWord & 0xfdff;  # Clear C1
+
     C1 = 0;
 }
 
@@ -4074,8 +4082,31 @@ define pcodeop exp;
 
 :FCHS           is vexMode=0 & byte=0xD9; byte=0xE0                 { ST0 = f- ST0; }
 
-:FCLEX          is vexMode=0 & byte=0x9B; byte=0xDB; byte=0xE2      { FPUStatusWord[0,8] = 0; FPUStatusWord[15,1] = 0; }
-:FNCLEX         is vexMode=0 & byte=0xDB; byte=0xE2                 { FPUStatusWord[0,8] = 0; FPUStatusWord[15,1] = 0; } 
+:FCLEX          is vexMode=0 & byte=0x9B; byte=0xDB; byte=0xE2
+{
+  IE = 0;
+  DE = 0;
+  ZE = 0;
+  OE = 0;
+  UE = 0;
+  PE = 0;
+  #StF = 0;
+  #ESum = 0;
+  B = 0;
+}
+
+:FNCLEX         is vexMode=0 & byte=0xDB; byte=0xE2
+{
+  IE = 0;
+  DE = 0;
+  ZE = 0;
+  OE = 0;
+  UE = 0;
+  PE = 0;
+  #StF = 0;
+  #ESum = 0;
+  B = 0;
+} 
 
 :FCMOVB ST0, freg   is vexMode=0 & byte=0xDA; frow=12 & fpage=0 & freg & ST0        { if ( !CF ) goto inst_next; ST0 = freg; }   
 :FCMOVE ST0, freg   is vexMode=0 & byte=0xDA; frow=12 & fpage=1 & freg & ST0        { if ( !ZF ) goto inst_next; ST0 = freg; }   
@@ -4167,13 +4198,13 @@ define pcodeop cos;
 # Be careful that you don't clobber freg during fpushv, need a tmp to hold the value
 :FLD freg       is vexMode=0 & byte=0xD9; frow=12 & fpage=0 & freg          { tmp:10 = freg; fpushv(tmp); }                     
                                                                       
-:FLD1           is vexMode=0 & byte=0xD9; byte=0xE8                 { one:4 = 1; tmp:10 = int2float(one); fpushv(tmp); }  
+:FLD1		is vexMode=0 & byte=0xD9; byte=0xE8			{ src:8 = 0x3ff0000000000000; tmp:10 = float2float(src); fpushv(tmp); }  
 :FLDL2T		is vexMode=0 & byte=0xD9; byte=0xE9			{ src:8 = 0x400a934f0979a371; tmp:10 = float2float(src); fpushv(tmp); }
 :FLDL2E		is vexMode=0 & byte=0xD9; byte=0xEA			{ src:8 = 0x3ff71547652b82fe; tmp:10 = float2float(src); fpushv(tmp); }
 :FLDPI		is vexMode=0 & byte=0xD9; byte=0xEB			{ src:8 = 0x400921fb54442d18; tmp:10 = float2float(src); fpushv(tmp); }
 :FLDLG2		is vexMode=0 & byte=0xD9; byte=0xEC			{ src:8 = 0x3fd34413509f79ff; tmp:10 = float2float(src); fpushv(tmp); }
 :FLDLN2		is vexMode=0 & byte=0xD9; byte=0xED			{ src:8 = 0x3fe62e42fefa39ef; tmp:10 = float2float(src); fpushv(tmp); }
-:FLDZ		is vexMode=0 & byte=0xD9; byte=0xEE			{ zero:4 = 0; tmp:10 = int2float(zero); fpushv(tmp); }
+:FLDZ		is vexMode=0 & byte=0xD9; byte=0xEE			{ src:8 = 0x0000000000000000; tmp:10 = float2float(src); fpushv(tmp); }
 
 :FLDCW m16      is vexMode=0 & byte=0xD9; (mod != 0b11 & reg_opcode=5) ... & m16            { FPUControlWord = m16; }
 
@@ -4320,8 +4351,8 @@ define pcodeop sin;
   *:2  (Mem + 18) = FPULastInstructionOpcode;
 }
 
-:FSTSW m16      is vexMode=0 & byte=0x9B; byte=0xDD; reg_opcode=7 ... & m16     { m16 = FPUStatusWord; }
-:FSTSW AX       is vexMode=0 & byte=0x9B; byte=0xDF; byte=0xE0 & AX         { AX = FPUStatusWord; }
+:FSTSW m16      is vexMode=0 & byte=0x9B; byte=0xDD; reg_opcode=7 ... & m16     { packFSW(FPUStatusWord); m16 = FPUStatusWord; }
+:FSTSW AX       is vexMode=0 & byte=0x9B; byte=0xDF; byte=0xE0 & AX         { packFSW(FPUStatusWord); AX = FPUStatusWord; }
 :FNSTSW m16     is vexMode=0 & byte=0xDD; reg_opcode=7 ... & m16            { m16 = FPUStatusWord; }
 :FNSTSW AX      is vexMode=0 & byte=0xDF; byte=0xE0 & AX                { AX = FPUStatusWord; }
 
@@ -4467,7 +4498,16 @@ define pcodeop getexp;
 :FXTRACT        is vexMode=0 & byte=0xD9; byte=0xF4                 { significand:10 = getsig(ST0); exponent:10 = getexp(ST0); ST0 = exponent; fpushv(significand); }
 
 define pcodeop log;
-:FYL2X          is vexMode=0 & byte=0xD9; byte=0xF1                 { local log2st0 = log(ST0); ST1 = ST1 f* log2st0; fpop(); }
+:FYL2X          is vexMode=0 & byte=0xD9; byte=0xF1
+{
+	zero:8 = 0x8000000000000000;
+	ZE = ST0 f== float2float(zero);
+	zero = 0;
+	ZE = ZE || (ST0 f== float2float(zero));
+	local log2st0 = log(ST0);
+	ST1 = ST1 f* log2st0;
+	fpop();
+}
 :FYL2XP1        is vexMode=0 & byte=0xD9; byte=0xF9                 { one:4 = 1; tmp:10 = int2float(one); log2st0:10 = log(ST0 f+ tmp); ST1 = ST1 f* log2st0; fpop(); }
 
 
@@ -6833,39 +6873,39 @@ define pcodeop pshufb;
 :PSHUFB         XmmReg1, m128     is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0x38; byte=0x00; XmmReg1 ... & m128              { XmmReg1=pshufb(XmmReg1,m128); }
 :PSHUFB         XmmReg1, XmmReg2 is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0x38; byte=0x00; xmmmod = 3 & XmmReg1 & XmmReg2 { XmmReg1=pshufb(XmmReg1,XmmReg2); }
 
-# determine the total shift required by the bit fields in a shuffle opcode
-Order0: order0	is imm8 [ order0 = (( imm8       & 0x3) << 5); ] { export *[const]:1 order0; } 
-Order1: order1	is imm8 [ order1 = (((imm8 >> 2) & 0x3) << 5); ] { export *[const]:1 order1; } 
-Order2: order2	is imm8 [ order2 = (((imm8 >> 4) & 0x3) << 5); ] { export *[const]:1 order2; } 
-Order3: order3	is imm8 [ order3 = (((imm8 >> 6) & 0x3) << 5); ] { export *[const]:1 order3; } 
+# determine the total shift required by the bit fields in a dword shuffle opcode
+OrderD0: order0	is imm8 [ order0 = (( imm8       & 0x3) << 5); ] { export *[const]:1 order0; } 
+OrderD1: order1	is imm8 [ order1 = (((imm8 >> 2) & 0x3) << 5); ] { export *[const]:1 order1; } 
+OrderD2: order2	is imm8 [ order2 = (((imm8 >> 4) & 0x3) << 5); ] { export *[const]:1 order2; } 
+OrderD3: order3	is imm8 [ order3 = (((imm8 >> 6) & 0x3) << 5); ] { export *[const]:1 order3; } 
 
-:PSHUFD         XmmReg1, m128, imm8     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x70; (m128 & XmmReg1 ...); imm8 & Order0 & Order1 & Order2 & Order3
+:PSHUFD         XmmReg1, m128, imm8     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x70; (m128 & XmmReg1 ...); imm8 & OrderD0 & OrderD1 & OrderD2 & OrderD3
 {
-    shifted:16 = m128 >> Order0;   
+    shifted:16 = m128 >> OrderD0;   
     XmmReg1[0,32] = shifted:4;
     
-    shifted = m128 >> Order1;   
+    shifted = m128 >> OrderD1;   
     XmmReg1[32,32] = shifted:4;
 
-    shifted = m128 >> Order2;   
+    shifted = m128 >> OrderD2;   
     XmmReg1[64,32] = shifted:4;
 
-    shifted = m128 >> Order3;   
+    shifted = m128 >> OrderD3;   
     XmmReg1[96,32] = shifted:4;
 }
 
-:PSHUFD         XmmReg1, XmmReg2, imm8  is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x70; xmmmod=3 & XmmReg1 & XmmReg2 ; imm8 & Order0 & Order1 & Order2 & Order3
+:PSHUFD         XmmReg1, XmmReg2, imm8  is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x70; xmmmod=3 & XmmReg1 & XmmReg2 ; imm8 & OrderD0 & OrderD1 & OrderD2 & OrderD3
 {
-    shifted:16 = XmmReg2 >> Order0;   
+    shifted:16 = XmmReg2 >> OrderD0;   
     XmmReg1[0,32] = shifted:4;
     
-    shifted = XmmReg2 >> Order1;   
+    shifted = XmmReg2 >> OrderD1;   
     XmmReg1[32,32] = shifted:4;
 
-    shifted = XmmReg2 >> Order2;   
+    shifted = XmmReg2 >> OrderD2;   
     XmmReg1[64,32] = shifted:4;
 
-    shifted = XmmReg2 >> Order3;   
+    shifted = XmmReg2 >> OrderD3;   
     XmmReg1[96,32] = shifted:4;
 }
 
@@ -7663,46 +7703,46 @@ define pcodeop rsqrtss;
 :RSQRTSS         XmmReg1, m32      is vexMode=0 &  $(PRE_F3) & byte=0x0F; byte=0x52; XmmReg1 ... & m32 { XmmReg1 = rsqrtss(XmmReg1, m32); }
 :RSQRTSS         XmmReg1, XmmReg2 is vexMode=0 &  $(PRE_F3) & byte=0x0F; byte=0x52; xmmmod = 3 & XmmReg1 & XmmReg2 { XmmReg1 = rsqrtss(XmmReg1, XmmReg2); }
 
-# determine the total shift required by the bit fields in a double shuffle opcode
-OrderD0: order0	is imm8 [ order0 = (( imm8       & 0x1) << 6); ] { export *[const]:1 order0; } 
-OrderD1: order1	is imm8 [ order1 = (((imm8 >> 1) & 0x1) << 6); ] { export *[const]:1 order1; } 
+# determine the total shift required by the bit fields in a qword shuffle opcode
+OrderQ0: order0	is imm8 [ order0 = (( imm8       & 0x1) << 6); ] { export *[const]:1 order0; } 
+OrderQ1: order1	is imm8 [ order1 = (((imm8 >> 1) & 0x1) << 6); ] { export *[const]:1 order1; } 
 
-:SHUFPD          XmmReg1, m128, imm8     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0xC6; XmmReg1 ... & m128; imm8 & OrderD0 & OrderD1
+:SHUFPD          XmmReg1, m128, imm8     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0xC6; XmmReg1 ... & m128; imm8 & OrderQ0 & OrderQ1
 {
-    shifted:16 = XmmReg1 >> OrderD0;   
+    shifted:16 = XmmReg1 >> OrderQ0;   
     tempA:8 = shifted:8;
 
-    shifted = m128 >> OrderD1;   
+    shifted = m128 >> OrderQ1;   
     tempB:8 = shifted:8;
 
     XmmReg1[0,64] = tempA;
     XmmReg1[64,64] = tempB;
 }
 
-:SHUFPD          XmmReg1, XmmReg2, imm8  is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0xC6; xmmmod=3 & XmmReg1 & XmmReg2; imm8 & OrderD0 & OrderD1
+:SHUFPD          XmmReg1, XmmReg2, imm8  is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0xC6; xmmmod=3 & XmmReg1 & XmmReg2; imm8 & OrderQ0 & OrderQ1
 {
-    shifted:16 = XmmReg1 >> OrderD0;   
+    shifted:16 = XmmReg1 >> OrderQ0;   
     tempA:8 = shifted:8;
 
-    shifted = XmmReg2 >> OrderD1;   
+    shifted = XmmReg2 >> OrderQ1;   
     tempB:8 = shifted:8;
 
     XmmReg1[0,64] = tempA;
     XmmReg1[64,64] = tempB;
 }
 
-:SHUFPS  XmmReg1, m128, imm8  is vexMode=0 & mandover=0 & byte=0x0F; byte=0xC6; (m128 & XmmReg1 ...); imm8 & Order0 & Order1 & Order2 & Order3
+:SHUFPS  XmmReg1, m128, imm8  is vexMode=0 & mandover=0 & byte=0x0F; byte=0xC6; (m128 & XmmReg1 ...); imm8 & OrderD0 & OrderD1 & OrderD2 & OrderD3
 {
-    shifted:16 = XmmReg1 >> Order0;   
+    shifted:16 = XmmReg1 >> OrderD0;   
     tempA:4 = shifted:4;
     
-    shifted = XmmReg1 >> Order1;   
+    shifted = XmmReg1 >> OrderD1;   
     tempB:4 = shifted:4;
 
-    shifted = m128 >> Order2;   
+    shifted = m128 >> OrderD2;   
     tempC:4 = shifted:4;
 
-    shifted = m128 >> Order3;   
+    shifted = m128 >> OrderD3;   
     tempD:4 = shifted:4;
 
     XmmReg1[0,32] = tempA;
@@ -7711,18 +7751,18 @@ OrderD1: order1	is imm8 [ order1 = (((imm8 >> 1) & 0x1) << 6); ] { export *[cons
     XmmReg1[96,32] = tempD;
 }
 
-:SHUFPS  XmmReg1, XmmReg2, imm8  is vexMode=0 & mandover=0 & byte=0x0F; byte=0xC6; xmmmod=3 & XmmReg1 & XmmReg2; imm8 & Order0 & Order1 & Order2 & Order3
+:SHUFPS  XmmReg1, XmmReg2, imm8  is vexMode=0 & mandover=0 & byte=0x0F; byte=0xC6; xmmmod=3 & XmmReg1 & XmmReg2; imm8 & OrderD0 & OrderD1 & OrderD2 & OrderD3
 {
-    shifted:16 = XmmReg1 >> Order0;   
+    shifted:16 = XmmReg1 >> OrderD0;   
     tempA:4 = shifted:4;
     
-    shifted = XmmReg1 >> Order1;   
+    shifted = XmmReg1 >> OrderD1;   
     tempB:4 = shifted:4;
 
-    shifted = XmmReg2 >> Order2;   
+    shifted = XmmReg2 >> OrderD2;   
     tempC:4 = shifted:4;
 
-    shifted = XmmReg2 >> Order3;   
+    shifted = XmmReg2 >> OrderD3;   
     tempD:4 = shifted:4;
     
     XmmReg1[0,32] = tempA;
