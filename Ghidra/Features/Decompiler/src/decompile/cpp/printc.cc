@@ -381,7 +381,11 @@ void PrintC::opArrFunc(const PcodeOp *op)
   pushOp(&function_call,op);
   string nm = op->getOpcode()->getOperatorName(op);
   pushAtom(Atom(nm,optoken,EmitXml::no_color,op));
-  bool outArr = op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY && !isArrFunc(op->getOut());
+  bool outArr = op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY;
+  PcodeOp *lone = op->getOut()->loneDescend();
+  if (lone != (PcodeOp *)0) {
+    outArr = outArr && !isArrFunc(lone->getOut());
+  }
   bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() != TYPE_ARRAY && !isArrFunc(op->getIn(0));
   ostringstream s;
   string name = "TOARR";
