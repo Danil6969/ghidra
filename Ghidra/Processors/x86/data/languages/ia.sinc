@@ -1261,7 +1261,7 @@ macro unpackFSW(tmp) {
 }
 
 macro packFSW(tmp) {
-  tmp = (zext(ZE)<<2) | (zext(C0)<<8) | (zext(C1)<<9) | (zext(C2)<<10) | (zext(C3)<<14);
+  tmp = (zext(DE)<<1) | (zext(ZE)<<2) | (zext(C0)<<8) | (zext(C1)<<9) | (zext(C2)<<10) | (zext(C3)<<14);
 }
 
 macro addflags(op1,op2) {
@@ -1461,6 +1461,15 @@ macro fpopv(val) {
 	ST4 = ST5;
 	ST5 = ST6;
 	ST6 = ST7;
+}
+
+macro setDE2() {
+	exponent:2 = ST0(8);
+	exponent = exponent & 0x7FFF;
+	DE = exponent == 0;
+	exponent = ST1(8);
+	exponent = exponent & 0x7FFF;
+	DE = DE || exponent == 0;
 }
 
 macro fcom(val) {
@@ -4500,6 +4509,7 @@ define pcodeop getexp;
 define pcodeop log;
 :FYL2X          is vexMode=0 & byte=0xD9; byte=0xF1
 {
+	setDE2();
 	zero:8 = 0x8000000000000000;
 	ZE = ST0 f== float2float(zero);
 	zero = 0;
@@ -4508,6 +4518,7 @@ define pcodeop log;
 	ST1 = ST1 f* log2st0;
 	fpop();
 }
+
 :FYL2XP1        is vexMode=0 & byte=0xD9; byte=0xF9                 { one:4 = 1; tmp:10 = int2float(one); log2st0:10 = log(ST0 f+ tmp); ST1 = ST1 f* log2st0; fpop(); }
 
 
