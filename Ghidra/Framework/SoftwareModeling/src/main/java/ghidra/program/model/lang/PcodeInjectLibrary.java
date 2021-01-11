@@ -160,7 +160,7 @@ public class PcodeInjectLibrary {
 		ConstTpl c = v.getOffset();
 		long offset = c.getReal();
 		if (offset >= uniqueBase) {
-			uniqueBase = offset + 16;
+			uniqueBase = offset + 64;
 		}
 	}
 
