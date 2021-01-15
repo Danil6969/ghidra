@@ -1853,7 +1853,9 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       succeeded = true;
     }
     if (!succeeded) {		// Subtype was not good
-      pushOp(&function_call,op);
+      stack.push_back(PartialSymbolEntry());
+      PartialSymbolEntry &entry(stack.back());
+      entry.token = &object_member;
       ostringstream s;
       s << "SUB" << sym->getType()->getSize() << '_' << sz;
       pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
