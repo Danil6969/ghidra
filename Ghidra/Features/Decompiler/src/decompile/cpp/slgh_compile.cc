@@ -82,7 +82,7 @@ void SectionVector::append(ConstructTpl *rtl,SymbolScope *scope)
 
 {
   while(named.size() <= nextindex)
-    named.emplace_back();
+    named.push_back(RtlPair());
   named[ nextindex ] = RtlPair(rtl,scope);
 }
 
@@ -2700,7 +2700,7 @@ void SleighCompile::checkUniqueAllocation(void)
 void SleighCompile::pushWith(SubtableSymbol *ss,PatternEquation *pateq,vector<ContextChange *> *contvec)
 
 {
-  withstack.emplace_back();
+  withstack.push_back(WithBlock());
   withstack.back().set(ss,pateq,contvec);
 }
 

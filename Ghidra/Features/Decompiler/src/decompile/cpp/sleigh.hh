@@ -53,7 +53,7 @@ public:
     return expandPool(size);
   }
   PcodeData *allocateInstruction(void) {
-    issued.emplace_back();
+    issued.push_back(PcodeData());
     PcodeData *res = &issued.back();
     res->outvar = (VarnodeData *)0;
     res->invar = (VarnodeData *)0;

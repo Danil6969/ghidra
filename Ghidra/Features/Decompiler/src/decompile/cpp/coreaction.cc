@@ -4532,7 +4532,7 @@ void ActionInferTypes::propagateOneType(TypeFactory *typegrp,Varnode *vn)
   PropagationState *ptr;
   vector<PropagationState> state;
 
-  state.emplace_back(vn);
+  state.push_back(PropagationState(vn));
   vn->setMark();
 
   while(!state.empty()) {
@@ -4545,7 +4545,7 @@ void ActionInferTypes::propagateOneType(TypeFactory *typegrp,Varnode *vn)
       if (propagateTypeEdge(typegrp,ptr->op,ptr->inslot,ptr->slot)) {
 	vn = (ptr->slot==-1) ? ptr->op->getOut() : ptr->op->getIn(ptr->slot);
 	ptr->step();		// Make sure to step before push_back
-	state.emplace_back(vn);
+	state.push_back(PropagationState(vn));
 	vn->setMark();
       }
       else

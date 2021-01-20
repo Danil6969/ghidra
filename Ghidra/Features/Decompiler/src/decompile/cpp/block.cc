@@ -73,11 +73,11 @@ void FlowBlock::addInEdge(FlowBlock *b,uint4 lab)
 void FlowBlock::restoreNextInEdge(const Element *el,BlockMap &resolver)
 
 {
-  intothis.emplace_back();
+  intothis.push_back(BlockEdge());
   BlockEdge &inedge(intothis.back());
   inedge.restoreXml(el,resolver);
   while(inedge.point->outofthis.size() <= inedge.reverse_index)
-    inedge.point->outofthis.emplace_back();
+    inedge.point->outofthis.push_back(BlockEdge());
   BlockEdge &outedge(inedge.point->outofthis[inedge.reverse_index]);
   outedge.label = 0;
   outedge.point = this;
@@ -3271,7 +3271,7 @@ BlockSwitch::BlockSwitch(FlowBlock *ind)
 void BlockSwitch::addCase(FlowBlock *switchbl,FlowBlock *bl,uint4 gt)
 
 {
-  caseblocks.emplace_back();
+  caseblocks.push_back(CaseOrder());
   CaseOrder &curcase( caseblocks.back() );
   const FlowBlock *basicbl = bl->getFrontLeaf()->subBlock(0);
   curcase.block = bl;

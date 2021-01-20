@@ -142,7 +142,7 @@ void PrintLanguage::pushOp(const OpToken *tok,const PcodeOp *op)
     else
       id = emit->openGroup();
   }
-  revpol.emplace_back();
+  revpol.push_back(ReversePolish());
   revpol.back().tok = tok;
   revpol.back().visited = 0;
   revpol.back().paren = paren;

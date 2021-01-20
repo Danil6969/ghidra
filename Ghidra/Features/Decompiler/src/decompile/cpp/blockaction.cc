@@ -729,7 +729,7 @@ TraceDAG::BlockTrace *TraceDAG::selectBadEdge(void)
     if ((*aiter)->isTerminal()) continue;
     if (((*aiter)->top->top == (FlowBlock *)0)&&((*aiter)->bottom==(FlowBlock *)0))
       continue;	// Never remove virtual edges
-    badedgelist.emplace_back();
+    badedgelist.push_back(BadEdgeScore());
     BadEdgeScore &score( badedgelist.back() );
     score.trace = *aiter;
     score.exitproto = score.trace->destnode;
@@ -1125,7 +1125,7 @@ void CollapseStructure::labelLoops(vector<LoopBody *> &looporder)
     for(int4 j=0;j<sizein;++j) {
       if (bl->isBackEdgeIn(j)) { // back-edge coming in must be from the bottom of a loop
 	FlowBlock *loopbottom = bl->getIn(j);
-	loopbody.emplace_back(bl);
+	loopbody.push_back(LoopBody(bl));
 	LoopBody &curbody( loopbody.back() );
 	curbody.addTail(loopbottom);
 	looporder.push_back( & curbody );

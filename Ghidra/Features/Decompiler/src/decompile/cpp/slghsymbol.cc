@@ -1803,7 +1803,7 @@ TokenPattern *Constructor::buildPattern(ostream &s)
 	  }
 				// We should also check that recursion is rightmost extreme
 	  recursion = true;
-	  oppattern.emplace_back();
+	  oppattern.push_back(TokenPattern());
 	}
 	else
 	  oppattern.push_back(*subsym->buildPattern(s));

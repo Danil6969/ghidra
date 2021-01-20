@@ -1817,7 +1817,7 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       const TypeField *field;
       field = ((TypeStruct *)ct)->getField(off,sz,&off);
       if (field != (const TypeField *)0) {
-	stack.emplace_back();
+	stack.push_back(PartialSymbolEntry());
 	PartialSymbolEntry &entry( stack.back() );
 	entry.token = &object_member;
 	entry.field = field;
@@ -1832,7 +1832,7 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       int4 el;
       Datatype *arrayof = ((TypeArray *)ct)->getSubEntry(off,sz,&off,&el);
       if (arrayof != (Datatype *)0) {
-	stack.emplace_back();
+	stack.push_back(PartialSymbolEntry());
 	PartialSymbolEntry &entry( stack.back() );
 	entry.token = &subscript;
 	ostringstream s;

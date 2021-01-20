@@ -811,7 +811,7 @@ void Heritage::generateLoadGuard(StackNode &node,PcodeOp *op,AddrSpace *spc)
 
 {
   if (!op->usesSpacebasePtr()) {
-    loadGuard.emplace_back();
+    loadGuard.push_back(LoadGuard());
     loadGuard.back().set(op,spc,node.offset);
     fd->opMarkSpacebasePtr(op);
   }
@@ -828,7 +828,7 @@ void Heritage::generateStoreGuard(StackNode &node,PcodeOp *op,AddrSpace *spc)
 
 {
   if (!op->usesSpacebasePtr()) {
-    storeGuard.emplace_back();
+    storeGuard.push_back(LoadGuard());
     storeGuard.back().set(op,spc,node.offset);
     fd->opMarkSpacebasePtr(op);
   }
