@@ -584,8 +584,8 @@ VarnodeTpl *PcodeCompile::buildTruncatedVarnode(VarnodeTpl *basevn,uint4 bitoffs
   if ((bitoffset % 8) != 0) return (VarnodeTpl *)0;
   if ((numbits % 8) != 0) return (VarnodeTpl *)0;
 
-  if (basevn->getSpace().isUniqueSpace()) // Do we really want to prevent truncated uniques??
-    return (VarnodeTpl *)0;
+  // if (basevn->getSpace().isUniqueSpace()) // Do we really want to prevent truncated uniques??
+    // return (VarnodeTpl *)0;
 
   ConstTpl::const_type offset_type = basevn->getOffset().getType();
   if ((offset_type != ConstTpl::real)&&(offset_type != ConstTpl::handle))
@@ -706,7 +706,7 @@ ExprTree *PcodeCompile::createBitRange(SpecificSymbol *sym,uint4 bitoffset,uint4
 
   if (errmsg.size()==0) {
     VarnodeTpl *truncvn = buildTruncatedVarnode(vn,bitoffset,numbits);
-    if (truncvn != (VarnodeTpl *)0) { // If we are able to construct a simple truncated varnode
+    if (truncvn != (VarnodeTpl *)0 && !vn->getSpace().isUniqueSpace()) { // If we are able to construct a simple truncated varnode
       ExprTree *res = new ExprTree(truncvn); // Return just the varnode as an expression
       delete vn;
       return res;
