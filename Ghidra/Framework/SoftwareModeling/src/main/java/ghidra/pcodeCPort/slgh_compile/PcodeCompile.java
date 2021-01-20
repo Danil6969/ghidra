@@ -475,9 +475,9 @@ public abstract class PcodeCompile {
 			return null;
 		}
 
-		if (basevn.getSpace().isUniqueSpace()) {
+		/* if (basevn.getSpace().isUniqueSpace()) {
 			return null;
-		}
+		} */
 
 		const_type offset_type = basevn.getOffset().getType();
 		if ((offset_type != const_type.real) && (offset_type != const_type.handle)) {
@@ -628,7 +628,7 @@ public abstract class PcodeCompile {
 
 		if (errmsg.length() == 0) {
 			VarnodeTpl truncvn = buildTruncatedVarnode(location, vn, bitoffset, numbits);
-			if (truncvn != null) {		// If we are able to construct a simple truncated varnode
+			if (truncvn != null && !vn.getSpace().isUniqueSpace()) {		// If we are able to construct a simple truncated varnode
 				ExprTree res = new ExprTree(location, truncvn);		// Return just the varnode as an expression
 				return res;
 			}
