@@ -384,15 +384,17 @@ void PrintC::opArrFunc(const PcodeOp *op)
   bool outArr = op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY;
   PcodeOp *lone = op->getOut()->loneDescend();
   if (lone != (PcodeOp *)0) {
-    outArr = outArr && !isArrFunc(lone->getOut());
+    outArr = outArr && !(isArrFunc(lone->getOut()) && op->getOut()->isImplied());
   }
-  bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() != TYPE_ARRAY && !isArrFunc(op->getIn(0));
+  bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() != TYPE_ARRAY;
+  in0Arr = in0Arr && !(isArrFunc(op->getIn(0)) && op->getIn(0)->isImplied());
   ostringstream s;
   string name = "TOARR";
   if (outArr)
     pushOp(&comma,op);
   if (op->numInput() == 2) {
-    bool in1Arr = (op->getIn(1)->getHigh()->getType()->getMetatype() != TYPE_ARRAY) && !isArrFunc(op->getIn(1)) && (nm.substr(0,6) == "CONCAT");
+    bool in1Arr = (op->getIn(1)->getHigh()->getType()->getMetatype() != TYPE_ARRAY) && (nm.substr(0,6) == "CONCAT");
+    in1Arr = in1Arr && !(isArrFunc(op->getIn(1)) && op->getIn(1)->isImplied());
     pushOp(&comma,op);
     if (in0Arr || in1Arr) {
       if (in0Arr) {
