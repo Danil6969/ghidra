@@ -293,6 +293,20 @@ void JumpAssistOp::restoreXml(const Element *el)
   useropindex = base->getIndex();	// Get the index from the core userop
 }
 
+PureOp::PureOp(Architecture *g)
+  : UserPcodeOp(g,"",0)
+{
+
+}
+
+void PureOp::restoreXml(const Element *el)
+
+{
+  name = el->getAttributeValue("name");
+  UserPcodeOp *base = glb->userops.getOp(name);
+  useropindex = base->getIndex();
+}
+
 UserOpManage::UserOpManage(void)
 
 {
@@ -485,6 +499,23 @@ void UserOpManage::parseJumpAssist(const Element *el,Architecture *glb)
 
 {
   JumpAssistOp *op = new JumpAssistOp(glb);
+  try {
+    op->restoreXml(el);
+    registerOp(op);
+  } catch(LowlevelError &err) {
+    delete op;
+    throw err;
+  }
+}
+
+/// Create a PureOp description object based on the XML description
+/// and register it with \b this manager.
+/// \param el is the root \<pureop> element
+/// \param glb is the owning Architecture
+void UserOpManage::parsePureOp(const Element *el,Architecture *glb)
+
+{
+  PureOp *op = new PureOp(glb);
   try {
     op->restoreXml(el);
     registerOp(op);
