@@ -3359,7 +3359,7 @@ bool ActionDeadCode::neverConsumed(Varnode *vn,Funcdata &data)
     data.opSetInput(op,data.newConstant(vn->getSize(),0),slot);
   }
   op = vn->getDef();
-  if (op->isCall())
+  if (op->isCall() && !op->isPureCall())
     data.opUnsetOutput(op); // For calls just get rid of output
   else
     data.opDestroy(op);	// Otherwise completely remove the op
@@ -3618,7 +3618,7 @@ int4 ActionDeadCode::apply(Funcdata &data)
       if (!vacflag) {		// Not even vacuously consumed
 	op = vn->getDef();
 	changecount += 1;
-	if (op->isCall())
+	if (op->isCall() && !op->isPureCall())
 	  data.opUnsetOutput(op); // For calls just get rid of output
 	else
 	  data.opDestroy(op);	// Otherwise completely remove the op
