@@ -110,6 +110,15 @@ int4 PcodeOp::getRepeatSlot(const Varnode *vn,int4 firstSlot,list<PcodeOp *>::co
   return -1;
 }
 
+bool PcodeOp::isPureCall(void) const
+
+{
+  Architecture *glb = parent->getFuncdata()->getArch();
+  int4 index = getIn(0)->getOffset();
+  PureOp *userop = dynamic_cast<PureOp *>(glb->userops.getOp(index));
+  return userop != (PureOp *)0;
+}
+
 /// Can this be collapsed to a copy op, i.e. are all inputs constants
 /// \return \b true if this op can be callapsed
 bool PcodeOp::isCollapsible(void) const
