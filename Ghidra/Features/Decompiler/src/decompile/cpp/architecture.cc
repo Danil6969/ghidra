@@ -1112,6 +1112,8 @@ void Architecture::parseProcessorConfig(DocumentStorage &store)
       context->restoreFromSpec(*iter,this);
     else if (elname == "jumpassist")
       userops.parseJumpAssist(*iter, this);
+    else if (elname == "pureop")
+      userops.parsePureOp(*iter,this);
     else if (elname == "segmentop")
       userops.parseSegmentOp(*iter,this);
     else if (elname == "register_data") {
