@@ -240,6 +240,12 @@ public:
   virtual void restoreXml(const Element *el);
 };
 
+class PureOp : public UserPcodeOp {
+public:
+  PureOp(Architecture *g);
+  virtual void restoreXml(const Element *el);
+};
+
 /// \brief Manager/container for description objects (UserPcodeOp) of user defined p-code ops
 ///
 /// The description objects are referenced by the CALLOTHER constant id, (or by name during initialization).
@@ -285,6 +291,7 @@ public:
   void parseVolatile(const Element *el,Architecture *glb);			///< Parse a \<volatile> XML tag
   void parseCallOtherFixup(const Element *el,Architecture *glb);		///< Parse a \<callotherfixup> XML tag
   void parseJumpAssist(const Element *el,Architecture *glb);			///< Parse a \<jumpassist> XML tag
+  void parsePureOp(const Element *el,Architecture *glb);			///< Parse a \<pureop> XML tag
   void manualCallOtherFixup(const string &useropname,const string &outname,
 			    const vector<string> &inname,const string &snippet,Architecture *glb);
 };
