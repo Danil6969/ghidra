@@ -155,11 +155,11 @@
             </oneOrMore>
           </element>
         </optional>
-        <optional>
+        <zeroOrMore>
           <element name="pureop">
             <attribute name="name"/>
           </element>
-        </optional>
+        </zeroOrMore>
       </interleave>
     </element>
   </start>
