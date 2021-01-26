@@ -446,11 +446,11 @@ void PrintC::opArrFunc(const PcodeOp *op)
 void PrintC::opConv(const PcodeOp *op)
 
 {
-  pushOp(&function_call,op);
-  pushAtom(Atom("CONVERT",optoken,EmitXml::no_color,op));
-  pushOp(&comma,op);
+  if (!option_nocasts) {
+    pushOp(&typecast,op);
+    pushType(op->getOut()->getHigh()->getType());
+  }
   pushVnImplied(op->getIn(0),op,mods);
-  pushType(op->getOut()->getHigh()->getType());
 }
 
 /// The syntax represents the given op using a standard c-language cast.  The data-type
