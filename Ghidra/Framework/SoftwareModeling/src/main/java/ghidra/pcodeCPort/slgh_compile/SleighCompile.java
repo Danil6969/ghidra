@@ -689,7 +689,7 @@ public class SleighCompile extends SleighBase {
 	long getUniqueAddr() {
 		entry("getUniqueAddr");
 		long base = getUniqueBase();
-		setUniqueBase(base + 64); // Should be maximum size of a unique
+		setUniqueBase(base + 16); // Should be maximum size of a unique
 		return base;
 	}
 
