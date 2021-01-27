@@ -664,7 +664,7 @@ public class SleighLanguage implements Language {
 			element = parser.start("properties", "segmented_address", "segmentop", "programcounter",
 				"data_space", "inferptrbounds", "context_data", "volatile", "jumpassist",
 				"incidentalcopy",
-				"register_data", "default_symbols", "default_memory_blocks", "pureop");
+				"register_data", "default_symbols", "default_memory_blocks");
 			if (element.getName().equals("properties")) {
 				while (!parser.peek().isEnd()) {
 					XmlElement next = parser.start("property");
