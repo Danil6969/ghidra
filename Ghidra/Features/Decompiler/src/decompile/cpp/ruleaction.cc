@@ -9090,6 +9090,11 @@ int4 RulePiecePathology::applyOp(PcodeOp *op,Funcdata &data)
   return tracePathologyForward(op, data);
 }
 
+/// \class RuleXorSwap
+/// \brief Simplify limited chains of XOR operations
+///
+/// `V = (a ^ b) ^ a => V = b`
+/// `V = a ^ (b ^ a) => V = b`
 void RuleXorSwap::getOpList(vector<uint4> &oplist) const
 
 {
