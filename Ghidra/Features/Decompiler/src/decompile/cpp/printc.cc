@@ -462,10 +462,23 @@ void PrintC::opTypeCast(const PcodeOp *op)
 {
   if (!option_nocasts && op->getOut()->getHigh()->getType()->getName() != op->getIn(0)->getHigh()->getType()->getName()) {
     pushOp(&function_call,op);
-    pushAtom(Atom("CAST",optoken,EmitXml::no_color,op));
+    bool outArr = op->getOut()->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
+    bool inArr  = op->getIn(0)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
+    if (inArr && !outArr)
+        pushAtom(Atom("CASTARR",optoken,EmitXml::no_color,op)); // cast with dereference
+    else if (!inArr && outArr) {
+        ostringstream s;
+        s << "TOARR" << op->getOut()->getSize();
+        pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op)); // cast with array allocation on stack
+    }
+    else
+        pushAtom(Atom("CAST",optoken,EmitXml::no_color,op)); // just reinterpret with same bytes in memory but replaced type
     pushOp(&comma,op);
     pushVnImplied(op->getIn(0),op,mods);
-    pushType(op->getOut()->getHigh()->getType());
+    if (!inArr && outArr)
+        pushType(op->getIn(0)->getHigh()->getType()); // TOARR prints input type
+    else
+        pushType(op->getOut()->getHigh()->getType()); // anything else prints output type
   }
   else
     pushVnImplied(op->getIn(0),op,mods);
