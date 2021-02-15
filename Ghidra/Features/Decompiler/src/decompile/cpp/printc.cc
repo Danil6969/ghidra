@@ -380,8 +380,10 @@ void PrintC::opArrFunc(const PcodeOp *op)
 {
   pushOp(&function_call,op);
   string nm = op->getOpcode()->getOperatorName(op);
-  pushAtom(Atom(nm,optoken,EmitXml::no_color,op));
   bool outArr = op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY;
+  if (outArr)
+    nm = nm + "T";
+  pushAtom(Atom(nm,optoken,EmitXml::no_color,op));
   PcodeOp *lone = op->getOut()->loneDescend();
   if (lone != (PcodeOp *)0) {
     outArr = outArr && !(isArrFunc(lone->getOut()) && op->getOut()->isImplied());
@@ -2284,12 +2286,28 @@ bool PrintC::emitInplaceOp(const PcodeOp *op)
   return true;
 }
 
+bool PrintC::emitArrCopy(const PcodeOp *op)
+
+{
+  if (op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY) return false;
+  ostringstream s;
+  s << "COPY" << op->getOut()->getSize();
+  pushOp(&function_call,op);
+  pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+  pushOp(&comma,op);
+  pushVnLHS(op->getOut(),op);
+  op->getOpcode()->push(this,op,(PcodeOp *)0);
+  recurse();
+  return true;
+}
+
 void PrintC::emitExpression(const PcodeOp *op)
    
 {
   const Varnode *outvn = op->getOut();
   if (outvn != (Varnode *)0) {
     if (option_inplace_ops && emitInplaceOp(op)) return;
+    if (emitArrCopy(op)) return;
     pushOp(&assignment,op);
     pushVnLHS(outvn,op);
   }
