@@ -525,7 +525,15 @@ void PrintC::opStore(const PcodeOp *op)
   // We assume the STORE is a statement
   bool usearray = checkArrayDeref(op->getIn(1));
   uint4 m = mods;
-  pushOp(&assignment,op);	// This is an assignment
+  if (op->getIn(2)->getHigh()->getType()->getMetatype() != TYPE_ARRAY)
+    pushOp(&assignment,op);	// This is an assignment
+  else {
+    ostringstream s;
+    s << "COPY" << op->getIn(2)->getSize();
+    pushOp(&function_call,op);
+    pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+    pushOp(&comma,op);
+  }
   if (usearray && (!isSet(force_pointer)))
     m |= print_store_value;
   else if (op->getIn(2)->getHigh()->getType()->getMetatype() != TYPE_ARRAY)
