@@ -381,13 +381,13 @@ void PrintC::opArrFunc(const PcodeOp *op)
   pushOp(&function_call,op);
   string nm = op->getOpcode()->getOperatorName(op);
   bool outArr = op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY;
-  if (outArr)
-    nm = nm + "T";
-  pushAtom(Atom(nm,optoken,EmitXml::no_color,op));
   PcodeOp *lone = op->getOut()->loneDescend();
   if (lone != (PcodeOp *)0) {
     outArr = outArr && !(isArrFunc(lone->getOut()) && op->getOut()->isImplied());
   }
+  if (outArr)
+    nm = nm + "T";
+  pushAtom(Atom(nm,optoken,EmitXml::no_color,op));
   bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() != TYPE_ARRAY;
   in0Arr = in0Arr && !(isArrFunc(op->getIn(0)) && op->getIn(0)->isImplied());
   ostringstream s;
