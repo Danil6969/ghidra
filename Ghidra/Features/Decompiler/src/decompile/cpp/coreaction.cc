@@ -2614,6 +2614,12 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
     desccount += 1;
     if (desccount > maxref) return -1; // Must not exceed max descendants
   }
+  if (def->code()==CPUI_PIECE) {
+    for(iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
+      PcodeOp *op = *iter;
+      if (op->code()==CPUI_PIECE) return -1;
+    }
+  }
   
   return desccount;
 }
