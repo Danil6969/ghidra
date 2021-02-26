@@ -280,7 +280,7 @@ public:
   virtual void opFloatDiv(const PcodeOp *op) { opBinary(&divide,op); }
   virtual void opFloatMult(const PcodeOp *op) { opBinary(&multiply,op); }
   virtual void opFloatSub(const PcodeOp *op) { opBinary(&binary_minus,op); }
-  virtual void opFloatNeg(const PcodeOp *op) { opUnary(&unary_minus,op); }
+  virtual void opFloatNeg(const PcodeOp *op);
   virtual void opFloatAbs(const PcodeOp *op) { opFunc(op); }
   virtual void opFloatSqrt(const PcodeOp *op) { opFunc(op); }
   virtual void opFloatInt2Float(const PcodeOp *op) { opConv(op); }
