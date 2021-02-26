@@ -828,6 +828,13 @@ void PrintC::opBoolNegate(const PcodeOp *op)
   }
 }
 
+void PrintC::opFloatNeg(const PcodeOp *op)
+
+{
+  pushOp(&hidden,op);
+  opUnary(&unary_minus,op);
+}
+
 void PrintC::opSubpiece(const PcodeOp *op)
 
 {
