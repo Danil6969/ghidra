@@ -123,7 +123,7 @@ public strictfp class FloatFormat {
 			frac_pos = 0;
 			frac_size = 64;
 			bias = 16383;
-			jbitimplied = true;
+			jbitimplied = false;
 			displayContext = new MathContext(18, RoundingMode.HALF_EVEN);
 		}
 		else if (size == 12) { // For the Motorola 68000, extended precision, in which bits 80 to 63 are always 0.
@@ -414,7 +414,11 @@ public strictfp class FloatFormat {
 		if (jbitimplied) {
 			frac = frac.setBit(frac_size);
 		}
-		return new BigFloat(frac_size, exp_size, FloatKind.FINITE, sign, frac, exp - bias);
+		BigFloat bf = new BigFloat(frac_size, exp_size, FloatKind.FINITE, sign, frac, exp - bias);
+		if (!jbitimplied) {
+			bf.clearImplied();
+		}
+		return bf;
 	}
 
 	// Convert host's double into floating point encoding if size <= 8
