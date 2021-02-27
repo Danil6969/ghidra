@@ -4285,9 +4285,28 @@ define pcodeop fldenv;
 define pcodeop atan;
 :FPATAN		is vexMode=0 & byte=0xD9; byte=0xF3			{ ST1 = atan(ST1 f/ ST0); fpop(); }
 
-:FPREM          is vexMode=0 & byte=0xD9; byte=0xF8                 { local tmp = ST0 f/ ST1; tmp = tmp f* ST1; ST0 = ST0 f- tmp; }
+:FPREM          is vexMode=0 & byte=0xD9; byte=0xF8
+{
+  local tmp = ST0 f/ ST1;
+  if (tmp f< float2float(0:4)) goto <ceil>;
+    tmp = floor(tmp);
+    goto <floor>;
+  <ceil>
+    tmp = ceil(tmp);
+  <floor>
+  tmp = tmp f* ST1;
+  ST0 = ST0 f- tmp;
+  C2 = ST0 >= ST1;
+}
 
-:FPREM1         is vexMode=0 & byte=0xD9; byte=0xF5                 { local tmp = ST0 f/ ST1; tmp = tmp f* ST1; ST0 = ST0 f- tmp; }
+:FPREM1         is vexMode=0 & byte=0xD9; byte=0xF5
+{
+  local tmp = ST0 f/ ST1;
+  tmp = round(tmp);
+  tmp = tmp f* ST1;
+  ST0 = ST0 f- tmp;
+  C2 = ST0 >= ST1;
+}
 
 define pcodeop tan;
 :FPTAN		is vexMode=0 & byte=0xD9; byte=0xF2			{ ST0 = tan(ST0); one:4 = 1; tmp:10 = int2float(one); fpushv(tmp); }
