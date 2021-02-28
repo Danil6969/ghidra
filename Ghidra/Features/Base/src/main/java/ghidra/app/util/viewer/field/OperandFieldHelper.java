@@ -369,8 +369,22 @@ abstract class OperandFieldHelper extends FieldFactory {
 			isUnderlined(data, 0, dataValueRepresentation.isPrimaryReferenceHidden());
 		ColorStyleAttributes attributes = dataValueRepresentation.hasError() ? badRefAttributes
 				: getAttributesForData(data, value);
+		String str = dataValueRepresentation.toString();
+		if (data.getBaseDataType() instanceof AbstractFloatDataType) {
+			try {
+				byte[] bytes = data.getBytes();
+				byte b;
+				if (data.isBigEndian())
+					b = bytes[0];
+				else
+					b = bytes[bytes.length - 1];
+				b = (byte) (b & 0x80);
+				if ((b & 0x80) != 0 && str.charAt(0) != '-')
+					str = "-" + str;
+			} catch (MemoryAccessException e) {}
+		}
 		AttributedString as =
-			new AttributedString(dataValueRepresentation.toString(), attributes.colorAttribute,
+			new AttributedString(str, attributes.colorAttribute,
 				getMetrics(attributes.styleAttribute), underline, underlineColor);
 		FieldElement field = new OperandFieldElement(as, 0, 0, 0);
 
