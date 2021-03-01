@@ -4294,18 +4294,40 @@ define pcodeop atan;
   <ceil>
     tmp = ceil(tmp);
   <floor>
+  local q = abs(tmp);
   tmp = tmp f* ST1;
   ST0 = ST0 f- tmp;
-  C2 = ST0 >= ST1;
+  C2 = ST0 f>= ST1;
+  if (C2) goto inst_next;
+  local eight = float2float(0x41000000:4); #8.0
+  tmp = q f/ eight;
+  tmp = floor(tmp);
+  tmp = tmp f* eight;
+  q = q f- tmp;
+  local i = trunc(q);
+  C1 = i & 1;
+  C3 = i >> 1 & 1;
+  C0 = i >> 2 & 1;
 }
 
 :FPREM1         is vexMode=0 & byte=0xD9; byte=0xF5
 {
   local tmp = ST0 f/ ST1;
   tmp = round(tmp);
+  local q = abs(tmp);
   tmp = tmp f* ST1;
   ST0 = ST0 f- tmp;
-  C2 = ST0 >= ST1;
+  C2 = ST0 f>= ST1;
+  if (C2) goto inst_next;
+  local eight = float2float(0x41000000:4); #8.0
+  tmp = q f/ eight;
+  tmp = floor(tmp);
+  tmp = tmp f* eight;
+  q = q f- tmp;
+  local i = trunc(q);
+  C1 = i & 1;
+  C3 = i >> 1 & 1;
+  C0 = i >> 2 & 1;
 }
 
 define pcodeop tan;
