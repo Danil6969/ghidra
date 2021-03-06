@@ -1900,7 +1900,7 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
         pushSymbol(sym,vn,op);
       }
       s << off;
-      if (outtype->getMetatype() == TYPE_ARRAY)
+      if ((outtype == (Datatype *)0) || outtype->getMetatype() == TYPE_ARRAY)
         pushAtom(Atom(s.str(),vartoken,EmitXml::const_color,op,vn));
       else {
         pushOp(&comma,op);
