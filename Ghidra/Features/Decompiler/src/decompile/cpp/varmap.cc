@@ -284,25 +284,6 @@ void ScopeLocal::collectNameRecs(void)
 {
   nameRecommend.clear();	// Clear out any old name recommendations
   dynRecommend.clear();
-
-  SymbolNameTree::iterator iter = nametree.begin();
-  while(iter!=nametree.end()) {
-    Symbol *sym = *iter++;
-    if (sym->isNameLocked()&&(!sym->isTypeLocked())) {
-      if (sym->isThisPointer()) {		// If there is a "this" pointer
-	Datatype *dt = sym->getType();
-	if (dt->getMetatype() == TYPE_PTR) {
-	  if (((TypePointer *)dt)->getPtrTo()->getMetatype() == TYPE_STRUCT) {
-	    // If the "this" pointer points to a class, try to preserve the data-type
-	    // even though the symbol is not preserved.
-	    SymbolEntry *entry = sym->getFirstWholeMap();
-	    typeRecommend.push_back(TypeRecommend(entry->getAddr(),dt));
-	  }
-	}
-      }
-      addRecommendName(sym);	// This deletes the symbol
-    }
-  }
 }
 
 /// This resets the discovery process for new local variables mapped to the scope's address space.
