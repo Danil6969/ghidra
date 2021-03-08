@@ -2008,8 +2008,6 @@ void ScopeInternal::clearUnlockedCategory(int4 cat)
 	  }
 	}
       }
-      else
-	removeSymbol(sym);
     }
   }
 }
