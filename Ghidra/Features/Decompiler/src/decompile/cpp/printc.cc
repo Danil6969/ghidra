@@ -1882,25 +1882,24 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
     }
     if (!succeeded) {		// Subtype was not good
       pushOp(&function_call,op);
+      if (outtype == (Datatype *)0 && op->getOpcode()->getOpcode() == CPUI_COPY)
+        outtype = op->getIn(0)->getType();
+      bool outArr = true;
+      if (outtype != (Datatype *)0)
+        outArr = outtype->getMetatype() == TYPE_ARRAY;
       ostringstream s;
       s << "SUB" << sym->getType()->getSize() << '_' << sz;
+      if (!outArr)
+        s << "T";
       pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
       s.str("");
       pushOp(&comma,op);
       if (sym->getType()->getMetatype() != TYPE_ARRAY) {
-        pushOp(&function_call,op);
-        s << "TOARR" << sym->getType()->getSize();
-        pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
-        s.str("");
-        pushOp(&comma,op);
-        pushSymbol(sym,vn,op);
-        pushType(sym->getType());
+        pushOp(&addressof,op);
       }
-       else {
-        pushSymbol(sym,vn,op);
-      }
+      pushSymbol(sym,vn,op);
       s << off;
-      if ((outtype == (Datatype *)0) || outtype->getMetatype() == TYPE_ARRAY)
+      if (outArr)
         pushAtom(Atom(s.str(),vartoken,EmitXml::const_color,op,vn));
       else {
         pushOp(&comma,op);
