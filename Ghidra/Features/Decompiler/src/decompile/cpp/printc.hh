@@ -161,7 +161,6 @@ protected:
   void emitCommentFuncHeader(const Funcdata *fd);	///< Emit comments in the given function's header
   void emitForLoop(const BlockWhileDo *bl);		///< Emit block as a \e for loop
   void opFunc(const PcodeOp *op);			///< Push a \e functional expression based on the given p-code op to the RPN stack
-  bool isArrFunc(const Varnode *vn);
   void opArrFunc(const PcodeOp *op);
   void opConv(const PcodeOp *op);
   void opTypeCast(const PcodeOp *op);			///< Push the given p-code op using type-cast syntax to the RPN stack
