@@ -364,42 +364,22 @@ void PrintC::opFunc(const PcodeOp *op)
     pushAtom(Atom("",blanktoken,EmitXml::no_color));
 }
 
-bool PrintC::isArrFunc(const Varnode *vn)
-{
-  const PcodeOp *op = vn->getDef();
-  if (op == (PcodeOp *)0) return false;
-  uint4 opc = op->code();
-  if (opc == CPUI_INT_ZEXT) return true;
-  if (opc == CPUI_INT_SEXT) return true;
-  if (opc == CPUI_PIECE) return true;
-  if (opc == CPUI_SUBPIECE) return true;
-  return false;
-}
-
 void PrintC::opArrFunc(const PcodeOp *op)
+
 {
   pushOp(&function_call,op);
   string nm = op->getOpcode()->getOperatorName(op);
   bool outArr = op->getOut()->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
-  PcodeOp *lone = op->getOut()->loneDescend();
-  if (lone != (PcodeOp *)0) // check if output is only used once
-    outArr = outArr || (isArrFunc(lone->getOut()) && op->getOut()->isImplied());
   if (!outArr)
     nm = nm + "T";
   pushAtom(Atom(nm,optoken,EmitXml::no_color,op));
   bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
-  lone = op->getIn(0)->loneDescend();
-  if (lone == op) // check if input 0 is only used here
-    in0Arr = in0Arr || (isArrFunc(op->getIn(0)) && op->getIn(0)->isImplied());
   ostringstream s;
   string name = "TOARR";
   if (!outArr)
     pushOp(&comma,op);
   if (op->numInput() == 2) {
     bool in1Arr = (op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY) || (nm.substr(0,3) == "SUB");
-    lone = op->getIn(1)->loneDescend();
-    if (lone == op) // check if input 1 is only used here
-      in1Arr = in1Arr || (isArrFunc(op->getIn(1)) && op->getIn(1)->isImplied());
     pushOp(&comma,op);
     if (in0Arr) {
       pushOp(&hidden,op);
