@@ -677,10 +677,102 @@ void PrintC::opCallind(const PcodeOp *op)
   }
 }
 
+void PrintC::opInsertInd(const PcodeOp *op)
+
+{
+  ostringstream s;
+  s << "INSERTIND" << op->getIn(1)->getSize() << "_" << op->getIn(2)->getSize();
+  bool outArr = op->getOut()->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
+  if (!outArr)
+    s << "T";
+  string nm = s.str();
+  s.str("");
+  pushOp(&function_call, op);
+  pushAtom(Atom(nm, optoken, EmitXml::no_color, op));
+  pushOp(&comma, op);
+  pushOp(&comma, op);
+  bool in1Arr = op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
+  bool in2Arr = op->getIn(2)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
+  string name = "TOARR";
+  if (in1Arr) {
+    pushOp(&hidden, op);
+    pushVnImplied(op->getIn(1), op, mods);
+  }
+  else {
+    pushOp(&function_call, op);
+    s << name << op->getIn(1)->getSize();
+    pushAtom(Atom(s.str(), optoken, EmitXml::no_color, op));
+    pushOp(&comma, op);
+    pushVnImplied(op->getIn(1), op, mods);
+    pushType(op->getIn(1)->getHigh()->getType());
+  }
+  if (in2Arr) {
+    pushOp(&hidden, op);
+    pushVnImplied(op->getIn(2), op, mods);
+  }
+  else {
+    pushOp(&function_call,op);
+    s << name << op->getIn(2)->getSize();
+    pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+    pushOp(&comma,op);
+    pushVnImplied(op->getIn(2),op,mods);
+    pushType(op->getIn(2)->getHigh()->getType());
+  }
+  if (!outArr)
+    pushOp(&comma,op);
+  pushOp(&hidden, op);
+  pushVnImplied(op->getIn(3), op, mods);
+  if (!outArr)
+    pushType(op->getOut()->getHigh()->getType());
+}
+
+void PrintC::opExtractInd(const PcodeOp *op)
+
+{
+  ostringstream s;
+  s << "EXTRACTIND" << op->getIn(1)->getSize() << "_" << op->getOut()->getSize();
+  bool outArr = op->getOut()->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
+  if (!outArr)
+    s << "T";
+  string nm = s.str();
+  s.str("");
+  pushOp(&function_call, op);
+  pushAtom(Atom(nm, optoken, EmitXml::no_color, op));
+  pushOp(&comma, op);
+  bool in1Arr = op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
+  string name = "TOARR";
+  if (in1Arr) {
+    pushOp(&hidden, op);
+    pushVnImplied(op->getIn(1), op, mods);
+  }
+  else {
+    pushOp(&function_call, op);
+    s << name << op->getIn(1)->getSize();
+    pushAtom(Atom(s.str(), optoken, EmitXml::no_color, op));
+    pushOp(&comma, op);
+    pushVnImplied(op->getIn(1), op, mods);
+    pushType(op->getIn(1)->getHigh()->getType());
+  }
+  if (!outArr)
+    pushOp(&comma,op);
+  pushOp(&hidden, op);
+  pushVnImplied(op->getIn(2), op, mods);
+  if (!outArr)
+    pushType(op->getOut()->getHigh()->getType());
+}
+
 void PrintC::opCallother(const PcodeOp *op)
 
 {
   string nm = op->getOpcode()->getOperatorName(op);
+  if (nm == "insertind") {
+    opInsertInd(op);
+    return;
+  }
+  if (nm == "extractind") {
+    opExtractInd(op);
+    return;
+  }
   pushOp(&function_call,op);
   pushAtom(Atom(nm,optoken,EmitXml::funcname_color,op));
   if (op->numInput() > 1) {
