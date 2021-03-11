@@ -380,56 +380,59 @@ void PrintC::opArrFunc(const PcodeOp *op)
 {
   pushOp(&function_call,op);
   string nm = op->getOpcode()->getOperatorName(op);
-  bool outArr = op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY;
+  bool outArr = op->getOut()->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
   PcodeOp *lone = op->getOut()->loneDescend();
-  if (lone != (PcodeOp *)0) {
-    outArr = outArr && !(isArrFunc(lone->getOut()) && op->getOut()->isImplied());
-  }
-  if (outArr)
+  if (lone != (PcodeOp *)0) // check if output is only used once
+    outArr = outArr || (isArrFunc(lone->getOut()) && op->getOut()->isImplied());
+  if (!outArr)
     nm = nm + "T";
   pushAtom(Atom(nm,optoken,EmitXml::no_color,op));
-  bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() != TYPE_ARRAY;
-  in0Arr = in0Arr && !(isArrFunc(op->getIn(0)) && op->getIn(0)->isImplied());
+  bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
+  lone = op->getIn(0)->loneDescend();
+  if (lone == op) // check if input 0 is only used here
+    in0Arr = in0Arr || (isArrFunc(op->getIn(0)) && op->getIn(0)->isImplied());
   ostringstream s;
   string name = "TOARR";
-  if (outArr)
+  if (!outArr)
     pushOp(&comma,op);
   if (op->numInput() == 2) {
-    bool in1Arr = (op->getIn(1)->getHigh()->getType()->getMetatype() != TYPE_ARRAY) && (nm.substr(0,6) == "CONCAT");
-    in1Arr = in1Arr && !(isArrFunc(op->getIn(1)) && op->getIn(1)->isImplied());
+    bool in1Arr = (op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY) || (nm.substr(0,3) == "SUB");
+    lone = op->getIn(1)->loneDescend();
+    if (lone == op) // check if input 1 is only used here
+      in1Arr = in1Arr || (isArrFunc(op->getIn(1)) && op->getIn(1)->isImplied());
     pushOp(&comma,op);
-    if (in0Arr || in1Arr) {
-      if (in0Arr) {
-        pushOp(&function_call,op);
-        s << name << op->getIn(0)->getSize();
-        pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
-        s.str("");
-        pushOp(&comma,op);
-        pushVnImplied(op->getIn(0),op,mods);
-        pushType(op->getIn(0)->getHigh()->getType());
-      }
-      else {
-        pushVnImplied(op->getIn(0),op,mods);
-      }
-      if (in1Arr) {
-        pushOp(&function_call,op);
-        s << name << op->getIn(1)->getSize();
-        pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
-        pushOp(&comma,op);
-        pushVnImplied(op->getIn(1),op,mods);
-        pushType(op->getIn(1)->getHigh()->getType());
-      }
-      else {
-        pushVnImplied(op->getIn(1),op,mods);
-      }
+    if (in0Arr) {
+      pushOp(&hidden,op);
+      pushVnImplied(op->getIn(0),op,mods);
     }
     else {
-      pushVnImplied(op->getIn(1),op,mods);
+      pushOp(&function_call,op);
+      s << name << op->getIn(0)->getSize();
+      pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+      s.str("");
+      pushOp(&comma,op);
       pushVnImplied(op->getIn(0),op,mods);
+      pushType(op->getIn(0)->getHigh()->getType());
+    }
+    if (in1Arr) {
+      pushOp(&hidden,op);
+      pushVnImplied(op->getIn(1),op,mods);
+    }
+    else {
+      pushOp(&function_call,op);
+      s << name << op->getIn(1)->getSize();
+      pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+      pushOp(&comma,op);
+      pushVnImplied(op->getIn(1),op,mods);
+      pushType(op->getIn(1)->getHigh()->getType());
     }
   }
   else {
     if (in0Arr) {
+      pushOp(&hidden,op);
+      pushVnImplied(op->getIn(0),op,mods);
+    }
+    else {
       pushOp(&function_call,op);
       s << name << op->getIn(0)->getSize();
       pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
@@ -437,11 +440,8 @@ void PrintC::opArrFunc(const PcodeOp *op)
       pushVnImplied(op->getIn(0),op,mods);
       pushType(op->getIn(0)->getHigh()->getType());
     }
-    else {
-      pushVnImplied(op->getIn(0),op,mods);
-    }
   }
-  if (outArr)
+  if (!outArr)
     pushType(op->getOut()->getHigh()->getType());
 }
 
