@@ -2549,6 +2549,22 @@ int4 ActionNameVars::apply(Funcdata &data)
   return 0;
 }
 
+bool ActionMarkExplicit::isArrFunc(PcodeOp *op)
+
+{
+  uint4 opc = op->code();
+  if (opc == CPUI_INT_ZEXT) return true;
+  if (opc == CPUI_INT_SEXT) return true;
+  if (opc == CPUI_PIECE) return true;
+  if (opc == CPUI_SUBPIECE) return true;
+  if (opc == CPUI_CALLOTHER) {
+    string nm = op->getOpcode()->getOperatorName(op);
+    if (nm == "insertind") return true;
+    if (nm == "extractind") return true;
+  }
+  return false;
+}
+
 /// If the given Varnode is defined by CPUI_NEW, return -2 indicating it should be explicit
 /// and that it needs special printing.
 /// \param vn is the given Varnode
@@ -2614,10 +2630,10 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
     desccount += 1;
     if (desccount > maxref) return -1; // Must not exceed max descendants
   }
-  if (def->code()==CPUI_PIECE) {
+  if (isArrFunc(def)) {
     for(iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
       PcodeOp *op = *iter;
-      if (op->code()==CPUI_PIECE) return -1;
+      if (isArrFunc(op)) return -1;
     }
   }
   
