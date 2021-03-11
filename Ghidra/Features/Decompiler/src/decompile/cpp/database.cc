@@ -2008,6 +2008,8 @@ void ScopeInternal::clearUnlockedCategory(int4 cat)
 	  }
 	}
       }
+      else if (sym->getName().substr(0,7) == "$$undef")
+	removeSymbol(sym);
     }
   }
 }
