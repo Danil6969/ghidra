@@ -295,13 +295,10 @@ public strictfp class FloatFormat {
 	}
 
 	public BigFloat getBigFloat(BigDecimal b) {
-		BigDecimal div = new BigDecimal(BigInteger.valueOf(5).pow(2 * b.scale()));
-		BigInteger unscaled = b.divide(div, 2 * b.scale(), BigDecimal.ROUND_HALF_EVEN).unscaledValue();
-		int sz = frac_size;
-		if (!jbitimplied)
-			sz--;
-		BigFloat bf = new BigFloat(sz, exp_size, FloatKind.FINITE, b.signum(), unscaled.shiftLeft(sz - 3 * b.scale()), b.scale());
-		return bf;
+		b = b.stripTrailingZeros();
+		BigFloat bf = BigFloat.valueOf(frac_size, exp_size, b.unscaledValue());
+		BigFloat div = BigFloat.valueOf(frac_size, exp_size, BigInteger.TEN.pow(b.scale()));
+		bf.div(div);
 	}
 
 	/**
@@ -469,7 +466,7 @@ public strictfp class FloatFormat {
 				fraction = roundToLeadBit(value.unscaled, n); // XXX round into normal case?
 			}
 		}
-		else {
+		else { // only possible on extended formats (more than 8 bytes sized)
 			throw new AssertionError("Unexpected jbitimplied==false");
 		}
 		if (exp >= maxexponent) {
@@ -529,7 +526,29 @@ public strictfp class FloatFormat {
 			}
 		}
 		else {
-			throw new AssertionError("Unexpected jbitimplied==false");
+			int lb_unscaled = leadBit(value.unscaled);
+			if (value.scale - value.fracbits + lb_unscaled >= 1 - bias) {
+				// normal case
+				exp = value.scale - value.fracbits + lb_unscaled + bias;
+				fraction = roundToLeadBit(value.unscaled, frac_size);
+				// if carry..
+				if (leadBit(fraction) > frac_size) {
+					fraction = fraction.shiftRight(1);
+					exp += 1;
+				}
+				fraction = fraction.shiftRight(1);
+			}
+			else {
+				// subnormal
+				exp = 0;
+				int n = value.scale - value.fracbits + lb_unscaled - 1 + bias + frac_size;
+				if (n < 0) {
+					// XXX is it possible to round up to a non-zero in this situation?
+					return getBigZeroEncoding(value.sign < 0);
+				}
+				fraction = roundToLeadBit(value.unscaled, n);
+				fraction = fraction.shiftRight(1);
+			}
 		}
 		if (exp >= maxexponent) {
 			return getBigInfinityEncoding(value.sign < 0);
