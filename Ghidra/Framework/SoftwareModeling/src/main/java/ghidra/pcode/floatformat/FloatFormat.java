@@ -294,6 +294,16 @@ public strictfp class FloatFormat {
 			bf.unscaled.shiftLeft(frac_size - bf.fracbits), bf.scale);
 	}
 
+	public BigFloat getBigFloat(BigDecimal b) {
+		BigDecimal div = new BigDecimal(BigInteger.valueOf(5).pow(2 * b.scale()));
+		BigInteger unscaled = b.divide(div, 2 * b.scale(), BigDecimal.ROUND_HALF_EVEN).unscaledValue();
+		int sz = frac_size;
+		if (!jbitimplied)
+			sz--;
+		BigFloat bf = new BigFloat(sz, exp_size, FloatKind.FINITE, b.signum(), unscaled.shiftLeft(sz - 3 * b.scale()), b.scale());
+		return bf;
+	}
+
 	/**
 	 * Decode {@code encoding} to a BigFloat using this format.
 	 * 
@@ -392,29 +402,27 @@ public strictfp class FloatFormat {
 		int sign = sgn ? -1 : 1;
 		BigInteger frac = extractFractionalCode(encoding);
 		int exp = extractExponentCode(encoding);
+		int sz = frac_size;
+		if (!jbitimplied)
+			sz--;
 		if (exp == 0) { // subnormals
 			if (frac.signum() == 0) {
-				return BigFloat.zero(frac_size, exp_size, sign);
+				return BigFloat.zero(sz, exp_size, sign);
 			}
-			return new BigFloat(frac_size, exp_size, FloatKind.FINITE, sign, frac, 1 - bias);
+			return new BigFloat(sz, exp_size, FloatKind.FINITE, sign, frac, 1 - bias);
 		}
 		else if (exp == maxexponent) {
 			if (frac.signum() == 0) { // Floating point infinity
-				return new BigFloat(frac_size, exp_size, FloatKind.INFINITE, sign, BigInteger.ZERO,
+				return new BigFloat(sz, exp_size, FloatKind.INFINITE, sign, BigInteger.ZERO,
 					maxexponent);
 			}
-			return new BigFloat(frac_size, exp_size, FloatKind.QUIET_NAN, sign, BigInteger.ZERO,
+			return new BigFloat(sz, exp_size, FloatKind.QUIET_NAN, sign, BigInteger.ZERO,
 				maxexponent);
 		}
 
-		if (jbitimplied) {
+		if (jbitimplied)
 			frac = frac.setBit(frac_size);
-		}
-		BigFloat bf = new BigFloat(frac_size, exp_size, FloatKind.FINITE, sign, frac, exp - bias);
-		if (!jbitimplied) {
-			bf.clearImplied();
-		}
-		return bf;
+		return new BigFloat(sz, exp_size, FloatKind.FINITE, sign, frac, exp - bias);
 	}
 
 	// Convert host's double into floating point encoding if size <= 8
