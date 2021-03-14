@@ -47,8 +47,6 @@ public strictfp class BigFloat implements Comparable<BigFloat> {
 	BigInteger unscaled;
 	int scale;
 
-	boolean implied;
-
 	/**
 	 * Construct a BigFloat.  If kind is FINITE, the value is <code>sign*unscaled*2^(scale-fracbits)</code>
 	 * 
@@ -67,7 +65,6 @@ public strictfp class BigFloat implements Comparable<BigFloat> {
 		this.sign = sign;
 		this.unscaled = unscaled;
 		this.scale = scale;
-		this.implied = true;
 
 		this.maxScale = (1 << (expbits - 1)) - 1;
 		this.minScale = 1 - this.maxScale;
@@ -140,10 +137,6 @@ public strictfp class BigFloat implements Comparable<BigFloat> {
 				break;
 		}
 		return true;
-	}
-
-	public void clearImplied() {
-		implied = false;
 	}
 
 	/**
@@ -302,9 +295,6 @@ public strictfp class BigFloat implements Comparable<BigFloat> {
 			case FINITE:
 				// sign * unscaled * 2^(scale-fracbits)
 				int iscale = scale - fracbits;
-				if (!implied) {
-					iscale++;
-				}
 				BigDecimal x;
 				if (iscale >= 0) {
 					x = new BigDecimal(unscaled.shiftLeft(iscale));
