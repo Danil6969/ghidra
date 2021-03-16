@@ -498,6 +498,8 @@ public class Emulate {
 		}
 		else if (behave instanceof BinaryOpBehavior) {
 			BinaryOpBehavior binaryBehave = (BinaryOpBehavior) behave;
+			if (binaryBehave instanceof OpBehaviorSubpiece && getLanguage().isBigEndian())
+				((OpBehaviorSubpiece) binaryBehave).setBEmode();
 			Varnode in1var = op.getInput(0);
 			Varnode outvar = op.getOutput();
 			if (in1var.getSize() > 8 || outvar.getSize() > 8) {
