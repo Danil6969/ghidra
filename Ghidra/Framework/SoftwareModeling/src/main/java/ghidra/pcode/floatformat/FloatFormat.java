@@ -299,6 +299,7 @@ public strictfp class FloatFormat {
 		BigFloat bf = BigFloat.valueOf(frac_size, exp_size, b.unscaledValue());
 		BigFloat div = BigFloat.valueOf(frac_size, exp_size, BigInteger.TEN.pow(b.scale()));
 		bf.div(div);
+		return bf;
 	}
 
 	/**
