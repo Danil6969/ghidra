@@ -65,7 +65,10 @@ public strictfp class FloatFormat {
 	 * @return a BigDecimal rounded according to this format's displayContext
 	 */
 	public BigDecimal round(BigFloat bigFloat) {
-		return bigFloat.toBigDecimal().stripTrailingZeros();
+		BigDecimal bigDecimal = bigFloat.toBigDecimal();
+		if (bigDecimal == null)
+			return null;
+		return bigDecimal.stripTrailingZeros();
 	}
 
 	// Set format for given size according to IEEE 754 standards
