@@ -23,30 +23,18 @@ import java.math.BigInteger;
 
 public class OpBehaviorSubpiece extends BinaryOpBehavior {
 
-	private boolean isBigEndian = false;
-
 	public OpBehaviorSubpiece() {
 		super(PcodeOp.SUBPIECE);
 	}
 
-	public void setBEmode() {
-		isBigEndian = true;
-	}
-
 	@Override
 	public long evaluateBinary(int sizeout, int sizein, long in1, long in2) {
-		long off = in2;
-		if (isBigEndian)
-			off = sizeout - sizein - in2;
-		long res = (in1 >>> (off * 8)) & Utils.calc_mask(sizeout);
+		long res = (in1 >>> (in2 * 8)) & Utils.calc_mask(sizeout);
 		return res;
 	}
 
 	@Override
 	public BigInteger evaluateBinary(int sizeout, int sizein, BigInteger in1, BigInteger in2) {
-		BigInteger off = in2;
-		if (isBigEndian)
-			off = BigInteger.valueOf(sizeout).subtract(BigInteger.valueOf(sizein)).subtract(in2);
 		// must eliminate sign extension bits produced by BigInteger.shiftRight
 		int signbit = (sizein * 8) - 1;
 		BigInteger res = in1;
@@ -55,7 +43,7 @@ public class OpBehaviorSubpiece extends BinaryOpBehavior {
 			res = res.and(Utils.calc_bigmask(sizein));
 			res = res.clearBit(signbit);
 		}
-		int shift = off.intValue() * 8;
+		int shift = in2.intValue() * 8;
 		res = res.shiftRight(shift);
 		signbit -= shift;
 		if (negative && signbit >= 0) {
