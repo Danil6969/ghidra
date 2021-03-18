@@ -1960,7 +1960,7 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       if (outtype != (Datatype *)0)
         outArr = outtype->getMetatype() == TYPE_ARRAY;
       ostringstream s;
-      s << "SUB" << sym->getType()->getSize() << '_' << sz;
+      s << "PARTIAL";
       if (!outArr)
         s << "T";
       pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
