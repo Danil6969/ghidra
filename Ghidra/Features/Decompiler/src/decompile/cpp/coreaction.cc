@@ -2553,8 +2553,10 @@ bool ActionMarkExplicit::isArrFunc(PcodeOp *op)
 
 {
   uint4 opc = op->code();
-  if (opc == CPUI_INT_ZEXT) return true;
-  if (opc == CPUI_INT_SEXT) return true;
+  if (opc == CPUI_INT_ZEXT && op->getOut()->getSize() >= 8)
+      return true;
+  if (opc == CPUI_INT_SEXT && op->getOut()->getSize() >= 8)
+      return true;
   if (opc == CPUI_PIECE) return true;
   if (opc == CPUI_SUBPIECE) return true;
   if (opc == CPUI_CALLOTHER) {
