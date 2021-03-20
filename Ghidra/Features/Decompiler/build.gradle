@@ -549,12 +549,20 @@ model {
 			else if (b.toolChain in Clang) {
 				b.cppCompiler.args "-std=c++11"
 				b.cppCompiler.args "-Wall"
-				b.cppCompiler.args "-O2"			// for DEBUG, comment this line out
+				b.cppCompiler.args "-O3"			// for DEBUG, comment this line out
 				// b.cppCompiler.args "-g"			// for DEBUG, uncomment	this line
+				// b.cppCompiler.args "-fno-limit-debug-info"	// for DEBUG, uncomment	this line
 				b.cppCompiler.args "-Wno-sign-compare"
 				b.cppCompiler.args "-w"
 				if (b.targetPlatform.operatingSystem.linux) {
 //					b.linker.args "-static"
+				}
+				if (b.targetPlatform.operatingSystem.windows) {
+					b.cppCompiler.define "_WINDOWS"
+					b.cppCompiler.define "_WIN32"
+					if (b.targetPlatform.name == "win64") {
+						b.cppCompiler.define "_WIN64"
+					}
 				}
 			}
 		}
