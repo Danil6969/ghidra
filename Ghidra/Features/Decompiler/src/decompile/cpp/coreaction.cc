@@ -2553,9 +2553,9 @@ bool ActionMarkExplicit::isArrFunc(PcodeOp *op)
 
 {
   uint4 opc = op->code();
-  if (opc == CPUI_INT_ZEXT && op->getOut()->getSize() >= 8)
+  if (opc == CPUI_INT_ZEXT)
       return true;
-  if (opc == CPUI_INT_SEXT && op->getOut()->getSize() >= 8)
+  if (opc == CPUI_INT_SEXT)
       return true;
   if (opc == CPUI_PIECE) return true;
   if (opc == CPUI_SUBPIECE) return true;
@@ -2632,11 +2632,9 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
     desccount += 1;
     if (desccount > maxref) return -1; // Must not exceed max descendants
   }
-  if (isArrFunc(def)) {
-    for(iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
-      PcodeOp *op = *iter;
-      if (isArrFunc(op)) return -1;
-    }
+  for(iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
+    PcodeOp *op = *iter;
+    if (isArrFunc(op)) return -1;
   }
   
   return desccount;
