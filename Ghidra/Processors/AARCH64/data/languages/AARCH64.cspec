@@ -25,7 +25,7 @@
   
   <global>
     <range space="ram"/>
-    <range space="register"  first="0x3000" last="0x3fff"/>
+    <!-- range space="register"  first="0x3000" last="0x3fff" -->
   </global>
   
   <stackpointer register="sp" space="ram"/>
