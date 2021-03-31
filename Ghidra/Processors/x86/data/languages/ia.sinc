@@ -6999,21 +6999,21 @@ OrderD3: order3	is imm8 [ order3 = (((imm8 >> 6) & 0x3) << 5); ] { export *[cons
     XmmReg1[96,32] = shifted:4;
 }
 
-:PSHUFD         XmmReg1, XmmReg2, imm8  is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x70; xmmmod=3 & XmmReg1 & XmmReg2 ; imm8 & Order0 & Order1 & Order2 & Order3
+:PSHUFD         XmmReg1, XmmReg2, imm8  is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x70; xmmmod=3 & XmmReg1 & XmmReg2 ; imm8 & OrderD0 & OrderD1 & OrderD2 & OrderD3
 {
     #in case XmmReg1 and XmmReg2 are the same register
     local original_XmmReg2:16 = XmmReg2;
     
-    shifted:16 = original_XmmReg2 >> Order0;   
+    shifted:16 = original_XmmReg2 >> OrderD0;   
     XmmReg1[0,32] = shifted:4;
     
-    shifted = original_XmmReg2 >> Order1;   
+    shifted = original_XmmReg2 >> OrderD1;   
     XmmReg1[32,32] = shifted:4;
 
-    shifted = original_XmmReg2 >> Order2;   
+    shifted = original_XmmReg2 >> OrderD2;   
     XmmReg1[64,32] = shifted:4;
 
-    shifted = original_XmmReg2 >> Order3;   
+    shifted = original_XmmReg2 >> OrderD3;   
     XmmReg1[96,32] = shifted:4;
 }
 
