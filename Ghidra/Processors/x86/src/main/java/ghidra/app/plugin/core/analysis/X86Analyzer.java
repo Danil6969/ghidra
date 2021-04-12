@@ -56,7 +56,7 @@ public class X86Analyzer extends ConstantPropagationAnalyzer {
 		(byte) 0x17, (byte) 0x72, (byte) 0xb1, (byte) 0xfe, (byte) 0x3f,
 	};
 
-	private void updateFPUConstants(Program program) { //, long offest, byte[] arr, String name
+	private void updateFPUConstants(Program program) {
 		if (program.getMemory().getBlock("FPUConsts") != null) return;
 		try {
 			AddressSpace spc = program.getAddressFactory().getAddressSpace("FPUConsts");
