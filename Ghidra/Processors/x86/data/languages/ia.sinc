@@ -4251,11 +4251,11 @@ define pcodeop cos;
 :FLD freg       is vexMode=0 & byte=0xD9; frow=12 & fpage=0 & freg          { tmp:10 = freg; fpushv(tmp); }                     
                                                                       
 :FLD1		is vexMode=0 & byte=0xD9; byte=0xE8			{ src:8 = 0x3ff0000000000000; tmp:10 = float2float(src); fpushv(tmp); }  
-:FLDL2T		is vexMode=0 & byte=0xD9; byte=0xE9			{ src:8 = 0x400a934f0979a371; tmp:10 = float2float(src); fpushv(tmp); }
-:FLDL2E		is vexMode=0 & byte=0xD9; byte=0xEA			{ src:8 = 0x3ff71547652b82fe; tmp:10 = float2float(src); fpushv(tmp); }
-:FLDPI		is vexMode=0 & byte=0xD9; byte=0xEB			{ src:8 = 0x400921fb54442d18; tmp:10 = float2float(src); fpushv(tmp); }
-:FLDLG2		is vexMode=0 & byte=0xD9; byte=0xEC			{ src:8 = 0x3fd34413509f79ff; tmp:10 = float2float(src); fpushv(tmp); }
-:FLDLN2		is vexMode=0 & byte=0xD9; byte=0xED			{ src:8 = 0x3fe62e42fefa39ef; tmp:10 = float2float(src); fpushv(tmp); }
+:FLDL2T		is vexMode=0 & byte=0xD9; byte=0xE9			{ tmp:10 = *[FPUConsts]:10  0:$(SIZE); fpushv(tmp); }
+:FLDL2E		is vexMode=0 & byte=0xD9; byte=0xEA			{ tmp:10 = *[FPUConsts]:10 10:$(SIZE); fpushv(tmp); }
+:FLDPI		is vexMode=0 & byte=0xD9; byte=0xEB			{ tmp:10 = *[FPUConsts]:10 20:$(SIZE); fpushv(tmp); }
+:FLDLG2		is vexMode=0 & byte=0xD9; byte=0xEC			{ tmp:10 = *[FPUConsts]:10 30:$(SIZE); fpushv(tmp); }
+:FLDLN2		is vexMode=0 & byte=0xD9; byte=0xED			{ tmp:10 = *[FPUConsts]:10 40:$(SIZE); fpushv(tmp); }
 :FLDZ		is vexMode=0 & byte=0xD9; byte=0xEE			{ src:8 = 0x0000000000000000; tmp:10 = float2float(src); fpushv(tmp); }
 
 :FLDCW m16      is vexMode=0 & byte=0xD9; (mod != 0b11 & reg_opcode=5) ... & m16            { FPUControlWord = m16; }
