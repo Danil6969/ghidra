@@ -11,6 +11,7 @@
 define endian=little;
 
 define space ram type=ram_space size=$(SIZE) default;
+define space FPUConsts type=ram_space size=$(SIZE);
 define space register type=register_space size=4;
 
 # General purpose registers
