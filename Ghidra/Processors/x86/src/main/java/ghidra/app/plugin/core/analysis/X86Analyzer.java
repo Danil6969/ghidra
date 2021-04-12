@@ -88,24 +88,6 @@ public class X86Analyzer extends ConstantPropagationAnalyzer {
 		} catch (Exception e) {}
 	}
 
-	private void processFLD(Instruction instr) {
-		if (instr.getMnemonicString().equals("FLDL2T")) {
-			updateFPUConstants(instr.getProgram());
-		}
-		if (instr.getMnemonicString().equals("FLDL2E")) {
-			updateFPUConstants(instr.getProgram());
-		}
-		if (instr.getMnemonicString().equals("FLDPI")) {
-			updateFPUConstants(instr.getProgram());
-		}
-		if (instr.getMnemonicString().equals("FLDLG2")) {
-			updateFPUConstants(instr.getProgram());
-		}
-		if (instr.getMnemonicString().equals("FLDLN2")) {
-			updateFPUConstants(instr.getProgram());
-		}
-	}
-
 	@Override
 	public boolean canAnalyze(Program program) {
 		return program.getLanguage().getProcessor().equals(
@@ -139,7 +121,21 @@ public class X86Analyzer extends ConstantPropagationAnalyzer {
 						}
 					}
 				}
-				processFLD(instr);
+				if (instr.getMnemonicString().equals("FLDL2T")) {
+					updateFPUConstants(instr.getProgram());
+				}
+				if (instr.getMnemonicString().equals("FLDL2E")) {
+					updateFPUConstants(instr.getProgram());
+				}
+				if (instr.getMnemonicString().equals("FLDPI")) {
+					updateFPUConstants(instr.getProgram());
+				}
+				if (instr.getMnemonicString().equals("FLDLG2")) {
+					updateFPUConstants(instr.getProgram());
+				}
+				if (instr.getMnemonicString().equals("FLDLN2")) {
+					updateFPUConstants(instr.getProgram());
+				}
 				return false;
 			}
 
