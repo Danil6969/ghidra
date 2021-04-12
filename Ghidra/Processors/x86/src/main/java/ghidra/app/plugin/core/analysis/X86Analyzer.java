@@ -15,9 +15,14 @@
  */
 package ghidra.app.plugin.core.analysis;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.math.BigInteger;
 
+import ghidra.app.util.MemoryBlockUtils;
+import ghidra.app.util.importer.MessageLog;
 import ghidra.program.model.address.*;
+import ghidra.program.model.data.Float10DataType;
 import ghidra.program.model.lang.Processor;
 import ghidra.program.model.lang.Register;
 import ghidra.program.model.listing.Instruction;
@@ -34,6 +39,69 @@ public class X86Analyzer extends ConstantPropagationAnalyzer {
 
 	public X86Analyzer() {
 		super(PROCESSOR_NAME);
+	}
+
+	private final byte[] INITARRAY = new byte[] {
+		(byte) 0xfe, (byte) 0x8a, (byte) 0x1b, (byte) 0xcd, (byte) 0x4b, // L2T bytes
+		(byte) 0x78, (byte) 0x9a, (byte) 0xd4, (byte) 0x00, (byte) 0x40,
+		(byte) 0xbb, (byte) 0xf0, (byte) 0x17, (byte) 0x5c, (byte) 0x29, // L2E bytes
+		(byte) 0x3b, (byte) 0xaa, (byte) 0xb8, (byte) 0xff, (byte) 0x3f,
+		(byte) 0x34, (byte) 0xc2, (byte) 0x68, (byte) 0x21, (byte) 0xa2, //  PI bytes
+		(byte) 0xda, (byte) 0x0f, (byte) 0xc9, (byte) 0x00, (byte) 0x40,
+		(byte) 0x98, (byte) 0xf7, (byte) 0xcf, (byte) 0xfb, (byte) 0x84, // LG2 bytes
+		(byte) 0x9a, (byte) 0x20, (byte) 0x9a, (byte) 0xfd, (byte) 0x3f,
+		(byte) 0xab, (byte) 0x79, (byte) 0xcf, (byte) 0xd1, (byte) 0xf7, // LN2 bytes
+		(byte) 0x17, (byte) 0x72, (byte) 0xb1, (byte) 0xfe, (byte) 0x3f,
+	};
+
+	private void updateFPUConstants(Program program) { //, long offest, byte[] arr, String name
+		if (program.getMemory().getBlock("FPUConsts") != null) return;
+		try {
+			AddressSpace spc = program.getAddressFactory().getAddressSpace("FPUConsts");
+			Address start = spc.getAddress(0);
+			InputStream in = new ByteArrayInputStream(INITARRAY);
+			MemoryBlockUtils.createInitializedBlock(program, false, "FPUConsts", start, in, 50, "", "", true, false, false, new MessageLog(), TaskMonitor.DUMMY);
+		} catch (AddressOverflowException e) {
+			return;
+		}
+		try {
+			Listing listing = program.getListing();
+			SymbolTable symbolTable = program.getSymbolTable();
+			AddressSpace spc = program.getAddressFactory().getAddressSpace("FPUConsts");
+			Address addr = spc.getAddress(0);
+			listing.createData(addr, Float10DataType.dataType);
+			symbolTable.createLabel(addr, "L2T", SourceType.ANALYSIS);
+			addr = addr.add(10);
+			listing.createData(addr, Float10DataType.dataType);
+			symbolTable.createLabel(addr, "L2E", SourceType.ANALYSIS);
+			addr = addr.add(10);
+			listing.createData(addr, Float10DataType.dataType);
+			symbolTable.createLabel(addr, "PI" , SourceType.ANALYSIS);
+			addr = addr.add(10);
+			listing.createData(addr, Float10DataType.dataType);
+			symbolTable.createLabel(addr, "LG2", SourceType.ANALYSIS);
+			addr = addr.add(10);
+			listing.createData(addr, Float10DataType.dataType);
+			symbolTable.createLabel(addr, "LN2", SourceType.ANALYSIS);
+		} catch (Exception e) {}
+	}
+
+	private void processFLD(Instruction instr) {
+		if (instr.getMnemonicString().equals("FLDL2T")) {
+			updateFPUConstants(instr.getProgram());
+		}
+		if (instr.getMnemonicString().equals("FLDL2E")) {
+			updateFPUConstants(instr.getProgram());
+		}
+		if (instr.getMnemonicString().equals("FLDPI")) {
+			updateFPUConstants(instr.getProgram());
+		}
+		if (instr.getMnemonicString().equals("FLDLG2")) {
+			updateFPUConstants(instr.getProgram());
+		}
+		if (instr.getMnemonicString().equals("FLDLN2")) {
+			updateFPUConstants(instr.getProgram());
+		}
 	}
 
 	@Override
@@ -69,6 +137,7 @@ public class X86Analyzer extends ConstantPropagationAnalyzer {
 						}
 					}
 				}
+				processFLD(instr);
 				return false;
 			}
 
