@@ -25,6 +25,7 @@
 
   <global>
     <range space="ram"/>
+    <range space="FPUConsts"/>
   </global>
   <stackpointer register="RSP" space="ram"/>
   <default_proto>
