@@ -51,7 +51,7 @@ public class SleighInstructionDecoder implements InstructionDecoder {
 			lastMsg = msg;
 		};
 		disassembler =
-			Disassembler.getDisassembler(language, addrFactory, TaskMonitor.DUMMY, listener);
+			Disassembler.getDisassembler(null, language, addrFactory, TaskMonitor.DUMMY, listener);
 	}
 
 	@Override
