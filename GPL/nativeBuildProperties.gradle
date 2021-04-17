@@ -29,11 +29,6 @@ model {
 		}
 		clang(Clang) {
 			path "C:\\msys64\\mingw64\\bin"
-			eachPlatform {
-				cppCompiler.withArguments { args ->
-					args << "-D _WINDOWS -D _WIN64"
-				}
-			}
 		}
 	}*/
 	// define the platforms that we support in ghidra
