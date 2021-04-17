@@ -729,9 +729,38 @@ string TypeOpCallother::getOperatorName(const PcodeOp *op) const
   return res.str();
 }
 
+bool TypeOpCallother::isFloatFunc(const PcodeOp *op) const
+
+{
+  string nm = TypeOpCallother::getOperatorName(op);
+  // Generic transcendental functions
+  if (nm.substr(0,3) == "exp") return true;
+  if (nm.substr(0,3) == "log") return true;
+  // Trigonometric functions
+  if (nm.substr(0,3) == "sin") return true;
+  if (nm.substr(0,3) == "cos") return true;
+  if (nm.substr(0,3) == "tan") return true;
+  // Inverse trigonometric functions
+  if (nm.substr(0,4) == "asin") return true;
+  if (nm.substr(0,4) == "acos") return true;
+  if (nm.substr(0,4) == "atan") return true;
+  // Hyperbolic functions
+  if (nm.substr(0,4) == "sinh") return true;
+  if (nm.substr(0,4) == "cosh") return true;
+  if (nm.substr(0,4) == "tanh") return true;
+  // Special trigonometric functions (may add more of these in future)
+  if (nm.substr(0,5) == "atan2") return true;
+  return false;
+}
+
 Datatype *TypeOpCallother::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
+  if (TypeOpCallother::isFloatFunc(op)) {
+    Datatype *res = tlst->getBase(op->getIn(slot)->getSize(), TYPE_FLOAT);
+    if (res != (Datatype *)0)
+      return res;
+  }
   if (!op->doesSpecialPropagation())
     return TypeOp::getInputLocal(op,slot);
   Architecture *glb = tlst->getArch();
@@ -753,6 +782,11 @@ Datatype *TypeOpCallother::getInputLocal(const PcodeOp *op,int4 slot) const
 Datatype *TypeOpCallother::getOutputLocal(const PcodeOp *op) const
 
 {
+  if (TypeOpCallother::isFloatFunc(op)) {
+    Datatype *res = tlst->getBase(op->getOut()->getSize(), TYPE_FLOAT);
+    if (res != (Datatype *)0)
+      return res;
+  }
   if (!op->doesSpecialPropagation())
     return TypeOp::getOutputLocal(op);
   Architecture *glb = tlst->getArch();
