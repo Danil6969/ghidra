@@ -542,6 +542,16 @@ model {
 					b.cppCompiler.define "LINUX"
 					b.cppCompiler.define "_LINUX"
 				}
+				if (b.targetPlatform.operatingSystem.windows) {
+					b.cppCompiler.define "WINDOWS"
+					b.cppCompiler.define "_WINDOWS"
+					b.cppCompiler.define "WIN32"
+					b.cppCompiler.define "_WIN32"
+					if (b.targetPlatform.name == "win64") {
+						b.cppCompiler.define "WIN64"
+						b.cppCompiler.define "_WIN64"
+					}
+				}
 			}
 		 	else if (b.toolChain in VisualCpp) {
 				b.cppCompiler.args "/EHsc"
@@ -573,9 +583,12 @@ model {
 //					b.linker.args "-static"
 				}
 				if (b.targetPlatform.operatingSystem.windows) {
+					b.cppCompiler.define "WINDOWS"
 					b.cppCompiler.define "_WINDOWS"
+					b.cppCompiler.define "WIN32"
 					b.cppCompiler.define "_WIN32"
 					if (b.targetPlatform.name == "win64") {
+						b.cppCompiler.define "WIN64"
 						b.cppCompiler.define "_WIN64"
 					}
 				}
