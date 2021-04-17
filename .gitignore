@@ -3,7 +3,7 @@ ghidra.repos.config
 
 # Misc files produced while executing application
 repositories/
-flatRepo/
+dependencies/
 Ghidra/.ghidraSvrKeys
 wrapper.log*
 
@@ -84,4 +84,6 @@ gradle/wrapper
 gradlew
 gradlew.*
 
-
+# Ignore logs and core dumps
+*.log
+core.*
