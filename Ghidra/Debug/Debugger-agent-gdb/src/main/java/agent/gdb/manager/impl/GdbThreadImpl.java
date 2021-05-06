@@ -26,7 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import com.google.common.collect.RangeSet;
 
 import agent.gdb.manager.*;
-import agent.gdb.manager.GdbManager.ExecSuffix;
+import agent.gdb.manager.GdbManager.StepCmd;
 import agent.gdb.manager.breakpoint.GdbBreakpointInfo;
 import agent.gdb.manager.breakpoint.GdbBreakpointType;
 import agent.gdb.manager.impl.cmd.*;
@@ -128,7 +128,7 @@ public class GdbThreadImpl implements GdbThread {
 	protected <T> CompletableFuture<T> execute(AbstractGdbCommand<T> cmd) {
 		switch (cmd.getInterpreter()) {
 			case CLI:
-				return setActive().thenCombine(manager.execute(cmd), (__, v) -> v);
+				return setActive(true).thenCombine(manager.execute(cmd), (__, v) -> v);
 			case MI2:
 				return manager.execute(cmd);
 			default:
@@ -137,9 +137,9 @@ public class GdbThreadImpl implements GdbThread {
 	}
 
 	@Override
-	public CompletableFuture<Void> setActive() {
+	public CompletableFuture<Void> setActive(boolean internal) {
 		// Bypass the select-me-first logic
-		return manager.execute(new GdbSetActiveThreadCommand(manager, id, null));
+		return manager.execute(new GdbSetActiveThreadCommand(manager, id, null, internal));
 	}
 
 	@Override
@@ -249,7 +249,7 @@ public class GdbThreadImpl implements GdbThread {
 	}
 
 	@Override
-	public CompletableFuture<Void> step(ExecSuffix suffix) {
+	public CompletableFuture<Void> step(StepCmd suffix) {
 		return execute(new GdbStepCommand(manager, id, suffix));
 	}
 

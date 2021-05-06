@@ -30,6 +30,7 @@ public interface GadpClientTargetObject extends SpiTargetObject {
 	@Override
 	GadpClient getModel();
 
+	@Override
 	DelegateGadpClientTargetObject getDelegate();
 
 	@GadpEventHandler(Gadp.EventNotification.EvtCase.MODEL_OBJECT_EVENT)
@@ -41,7 +42,7 @@ public interface GadpClientTargetObject extends SpiTargetObject {
 	@GadpEventHandler(Gadp.EventNotification.EvtCase.OBJECT_INVALIDATE_EVENT)
 	default void handleObjectInvalidateEvent(Gadp.EventNotification notification) {
 		Gadp.ObjectInvalidateEvent evt = notification.getObjectInvalidateEvent();
-		getDelegate().doInvalidate(this, evt.getReason());
+		getDelegate().invalidateSubtree(this, evt.getReason());
 	}
 
 	@GadpEventHandler(Gadp.EventNotification.EvtCase.CACHE_INVALIDATE_EVENT)

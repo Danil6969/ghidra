@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import agent.gdb.manager.GdbManager.ExecSuffix;
+import agent.gdb.manager.GdbManager.StepCmd;
 import agent.gdb.manager.impl.GdbMemoryMapping;
 
 /**
@@ -152,9 +152,10 @@ public interface GdbInferior extends GdbMemoryOperations {
 	 * will apply to this inferior. Commands issued from this handle are always executed with this
 	 * inferior in focus, so it is rare to invoke his method directly.
 	 * 
+	 * @param internal true to prevent announcement of the change
 	 * @return a future that completes when GDB has executed the command
 	 */
-	CompletableFuture<Void> setActive();
+	CompletableFuture<Void> setActive(boolean internal);
 
 	/**
 	 * Specify a binary image for execution and debug symbols
@@ -262,7 +263,7 @@ public interface GdbInferior extends GdbMemoryOperations {
 	 *
 	 * @return a future that completes once the inferior has stepped
 	 */
-	CompletableFuture<Void> step(ExecSuffix suffix);
+	CompletableFuture<Void> step(StepCmd suffix);
 
 	/**
 	 * Evaluate an expression

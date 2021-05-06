@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 import com.google.common.collect.RangeSet;
 
 import agent.gdb.manager.*;
-import agent.gdb.manager.GdbManager.ExecSuffix;
+import agent.gdb.manager.GdbManager.StepCmd;
 import agent.gdb.manager.impl.cmd.*;
 import ghidra.async.AsyncLazyValue;
 import ghidra.lifecycle.Internal;
@@ -208,7 +208,7 @@ public class GdbInferiorImpl implements GdbInferior {
 		 * longer be current for the actual command execution. NB: The select command will cancel
 		 * itself if this inferior is already current.
 		 */
-		return setActive().thenCombine(manager.execute(cmd), (s, e) -> e);
+		return setActive(true).thenCombine(manager.execute(cmd), (s, e) -> e);
 	}
 
 	@Override
@@ -347,8 +347,8 @@ public class GdbInferiorImpl implements GdbInferior {
 	}
 
 	@Override
-	public CompletableFuture<Void> setActive() {
-		return manager.setActiveInferior(this);
+	public CompletableFuture<Void> setActive(boolean internal) {
+		return manager.setActiveInferior(this, internal);
 	}
 
 	@Override
@@ -394,7 +394,7 @@ public class GdbInferiorImpl implements GdbInferior {
 	}
 
 	@Override
-	public CompletableFuture<Void> step(ExecSuffix suffix) {
+	public CompletableFuture<Void> step(StepCmd suffix) {
 		return execute(new GdbStepCommand(manager, null, suffix));
 	}
 

@@ -21,10 +21,12 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import agent.gdb.ffi.linux.Pty;
 import agent.gdb.manager.breakpoint.GdbBreakpointInfo;
 import agent.gdb.manager.breakpoint.GdbBreakpointInsertions;
 import agent.gdb.manager.impl.GdbManagerImpl;
+import agent.gdb.pty.PtyFactory;
+import agent.gdb.pty.linux.LinuxPty;
+import agent.gdb.pty.linux.LinuxPtyFactory;
 
 /**
  * The controlling side of a GDB session, using GDB/MI, usually via a pseudo-terminal
@@ -38,35 +40,34 @@ public interface GdbManager extends AutoCloseable, GdbBreakpointInsertions {
 	public static final String DEFAULT_GDB_CMD = "/usr/bin/gdb";
 
 	/**
-	 * Possible values for {@link GdbThread#step(ExecSuffix)}
+	 * Possible values for {@link GdbThread#step(StepCmd)}
 	 */
-	public enum ExecSuffix {
-		/** Equivalent to {@code finish} in the CLI */
+	public enum StepCmd {
 		FINISH("finish"),
-		/** Equivalent to {@code next} in the CLI */
 		NEXT("next"),
-		/** Equivalent to {@code nexti} in the CLI */
-		NEXT_INSTRUCTION("next-instruction"),
-		/** Equivalent to {@code return} in the CLI */
+		NEXTI("nexti", "next-instruction"),
 		RETURN("return"),
-		/** Equivalent to {@code step} in the CLI */
 		STEP("step"),
-		/** Equivalent to {@code stepi} in the CLI */
-		STEP_INSTRUCTION("step-instruction"),
-		/** Equivalent to {@code until} in the CLI */
+		STEPI("stepi", "step-instruction"),
 		UNTIL("until"),
 		/** User-defined */
-		EXTENDED("until"),;
+		EXTENDED("echo extended-step?", "???"),;
 
-		final String str;
+		public final String mi2;
+		public final String cli;
 
-		ExecSuffix(String str) {
-			this.str = str;
+		StepCmd(String cli, String execSuffix) {
+			this.cli = cli;
+			this.mi2 = "-exec-" + execSuffix;
+		}
+
+		StepCmd(String cli) {
+			this(cli, cli);
 		}
 
 		@Override
 		public String toString() {
-			return str;
+			return mi2;
 		}
 	}
 
@@ -85,7 +86,8 @@ public interface GdbManager extends AutoCloseable, GdbBreakpointInsertions {
 	 */
 	public static void main(String[] args)
 			throws InterruptedException, ExecutionException, IOException {
-		try (GdbManager mgr = newInstance()) {
+		// TODO: Choose factory by host OS
+		try (GdbManager mgr = newInstance(new LinuxPtyFactory())) {
 			mgr.start(DEFAULT_GDB_CMD, args);
 			mgr.runRC().get();
 			mgr.consoleLoop();
@@ -101,8 +103,8 @@ public interface GdbManager extends AutoCloseable, GdbBreakpointInsertions {
 	 * 
 	 * @return the manager
 	 */
-	public static GdbManager newInstance() {
-		return new GdbManagerImpl();
+	public static GdbManager newInstance(PtyFactory ptyFactory) {
+		return new GdbManagerImpl(ptyFactory);
 	}
 
 	/**
@@ -203,7 +205,8 @@ public interface GdbManager extends AutoCloseable, GdbBreakpointInsertions {
 	 * Note: depending on the target, its output may not be communicated via this listener. Local
 	 * targets, e.g., tend to just print output to GDB's controlling TTY. See
 	 * {@link GdbInferior#setTty(String)} for a means to more reliably interact with a target's
-	 * input and output. See also {@link Pty} for a means to easily acquire a new TTY from Java.
+	 * input and output. See also {@link LinuxPty} for a means to easily acquire a new TTY from
+	 * Java.
 	 * 
 	 * @param listener the listener to add
 	 */
@@ -301,11 +304,22 @@ public interface GdbManager extends AutoCloseable, GdbBreakpointInsertions {
 	 * 
 	 * <p>
 	 * This may be useful if the manager's command queue is stalled because an inferior is running.
+	 * If this doesn't clear the stall, try {@link #cancelCurrentCommand()}.
 	 * 
 	 * @throws IOException if an I/O error occurs
 	 * @throws InterruptedException
 	 */
 	void sendInterruptNow() throws IOException;
+
+	/**
+	 * Cancel the current command
+	 * 
+	 * <p>
+	 * Occasionally, a command gets stalled up waiting for an event, which for other reasons, will
+	 * no longer occur. This will free up the queue for other commands to (hopefully) be processed.
+	 * If {@link #sendInterruptNow()} doesn't clear the stall, try this.
+	 */
+	void cancelCurrentCommand();
 
 	/**
 	 * Get the state of the GDB session
@@ -507,6 +521,14 @@ public interface GdbManager extends AutoCloseable, GdbBreakpointInsertions {
 	 * Get the name of the mi2 pty for this GDB session
 	 * 
 	 * @return the filename
+	 * @throws IOException if the filename could not be determined
 	 */
-	String getMi2PtyName();
+	String getMi2PtyName() throws IOException;
+
+	/**
+	 * Get a description for the pty for this GDB session
+	 * 
+	 * @return the description
+	 */
+	String getPtyDescription();
 }
