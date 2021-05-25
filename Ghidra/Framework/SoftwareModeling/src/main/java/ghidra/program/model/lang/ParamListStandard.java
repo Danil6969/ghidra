@@ -16,6 +16,7 @@
 package ghidra.program.model.lang;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import ghidra.app.plugin.processors.sleigh.VarnodeData;
 import ghidra.program.model.address.Address;
@@ -56,6 +57,42 @@ public class ParamListStandard implements ParamList {
 		return -1;
 	}
 
+	private ArrayList<Varnode> collectUsedVarnodes(int[] status) {
+		ArrayList<Varnode> usedVarnodes = new ArrayList<Varnode>();
+		for (ParamEntry element : entry) {
+			int grp = element.getGroup();
+			if (status[grp] >= 0) continue;
+			AddressSpace spc = element.getSpace();
+			if (spc.getType() == AddressSpace.TYPE_JOIN) {
+				Varnode[] pieces = element.getJoinRecord();
+				usedVarnodes.addAll(Arrays.asList(pieces));
+			}
+			else {
+				Address addr = spc.getAddress(element.getAddressBase());
+				int sz = element.getSize();
+				usedVarnodes.add(new Varnode(addr, sz));
+			}
+		}
+		return usedVarnodes;
+	}
+
+	private boolean overlapsTakenUpVarnodes(ArrayList<Varnode> takenUpVarnodes,
+			ParamEntry element) {
+		AddressSpace spc = element.getSpace();
+		Varnode[] varnodes;
+		if (spc.getType() == AddressSpace.TYPE_JOIN)
+			varnodes = element.getJoinRecord();
+		else
+			varnodes = new Varnode[] {
+				new Varnode(spc.getAddress(element.getAddressBase()), element.getSize())
+			};
+		for (Varnode varnode1 : varnodes)
+			for (Varnode varnode2 : takenUpVarnodes)
+				if (varnode1.intersects(varnode2))
+					return true;
+		return false;
+	}
+
 	/**
 	 * Assign next available memory chunk to type
 	 * @param tp type being assigned storage
@@ -74,10 +111,14 @@ public class ParamListStandard implements ParamList {
 		int sz = tp.getLength();
 		if (sz == 0)
 			return VariableStorage.UNASSIGNED_STORAGE;
+		// Collect varnodes from groups that have '-1' status
+		ArrayList<Varnode> takenUpVarnodes = collectUsedVarnodes(status);
 		for (ParamEntry element : entry) {
 			int grp = element.getGroup();
 			if (status[grp] < 0)
 				continue;
+			if (!takenUpVarnodes.isEmpty() && overlapsTakenUpVarnodes(takenUpVarnodes, element))
+				continue;		// Prevent the decompiler from "Overlapping input varnodes" error
 			if ((element.getType() != ParamEntry.TYPE_UNKNOWN) &&
 				(ParamEntry.getMetatype(tp) != element.getType()))
 				continue;		// Wrong type
