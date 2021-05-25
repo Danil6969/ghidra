@@ -500,6 +500,64 @@ int4 ParamListStandard::characterizeAsParam(const Address &loc,int4 size) const
   return res;
 }
 
+void ParamListStandard::collectUsedVarnodes(vector<Varnode> &res,vector<int4> &status) const
+
+{
+  list<ParamEntry>::const_iterator iter;
+  for(iter=entry.begin();iter!=entry.end();++iter) {
+    const ParamEntry &curEntry( *iter );
+    int4 grp = curEntry.getGroup();
+    if (status[grp]>=0) continue;
+    AddrSpace *spc = curEntry.getSpace();
+    if (spc->getType() == IPTR_JOIN) {
+      JoinRecord *joinrec = curEntry.getJoinRecord();
+      for(int4 i=0;i<joinrec->numPieces();++i) {
+        VarnodeData vndata = joinrec->getPiece(i);
+        uint4 size = vndata.size;
+        uintb offset = vndata.offset;
+        AddrSpace *space = vndata.space;
+        res.push_back(Varnode(size,Address(space,offset),(Datatype *)0));
+      }
+    }
+    else {
+      uint4 size = curEntry.getSize();
+      uintb offset = curEntry.getBase();
+      res.push_back(Varnode(size,Address(spc,offset),(Datatype *)0));
+    }
+  }
+}
+
+bool ParamListStandard::overlapsTakenUpVarnodes(vector<Varnode> &takenUpVarnodes,const ParamEntry &curEntry) const
+
+{
+  AddrSpace *spc = curEntry.getSpace();
+  vector<Varnode> varnodes;
+  if (spc->getType() == IPTR_JOIN) {
+    JoinRecord *joinrec = curEntry.getJoinRecord();
+    for(int4 i=0;i<joinrec->numPieces();++i) {
+      VarnodeData vndata = joinrec->getPiece(i);
+      uint4 size = vndata.size;
+      uintb offset = vndata.offset;
+      AddrSpace *space = vndata.space;
+      varnodes.push_back(Varnode(size,Address(space,offset),(Datatype *)0));
+    }
+  }
+  else {
+    uint4 size = curEntry.getSize();
+    uintb offset = curEntry.getBase();
+    varnodes.push_back(Varnode(size,Address(spc,offset),(Datatype *)0));
+  }
+  vector<Varnode>::const_iterator iter1;
+  for(iter1=varnodes.begin();iter1!=varnodes.end();++iter1) {
+    vector<Varnode>::const_iterator iter2;
+    for(iter2=takenUpVarnodes.begin();iter2!=takenUpVarnodes.end();++iter2) {
+      if ((*iter1).intersects(*iter2))
+        return true;
+    }
+  }
+  return false;
+}
+
 /// Given the next data-type and the status of previously allocated slots,
 /// select the storage location for the parameter.  The status array is
 /// indexed by \e group: a positive value indicates how many \e slots have been allocated
@@ -510,11 +568,14 @@ int4 ParamListStandard::characterizeAsParam(const Address &loc,int4 size) const
 Address ParamListStandard::assignAddress(const Datatype *tp,vector<int4> &status) const
 
 {
+  vector<Varnode> takenUpVarnodes;
+  collectUsedVarnodes(takenUpVarnodes,status);
   list<ParamEntry>::const_iterator iter;
   for(iter=entry.begin();iter!=entry.end();++iter) {
     const ParamEntry &curEntry( *iter );
     int4 grp = curEntry.getGroup();
     if (status[grp]<0) continue;
+    if (!takenUpVarnodes.empty() && overlapsTakenUpVarnodes(takenUpVarnodes,curEntry)) continue;
     if ((curEntry.getType() != TYPE_UNKNOWN)&&
 	tp->getMetatype() != curEntry.getType())
       continue;			// Wrong type
