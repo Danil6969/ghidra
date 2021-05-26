@@ -893,8 +893,16 @@ Symbol *Funcdata::handleSymbolConflict(SymbolEntry *entry,Varnode *vn)
     }
     ++iter;
   }
-  vn->setSymbolEntry(entry);
-  return entry->getSymbol();
+
+  bool cannotBuildDynamicSymbol = vn->isTypeLock()||vn->isNameLock(); // Exclude exception causing cases
+  if (otherHigh == (HighVariable *)0 || cannotBuildDynamicSymbol) { // Use default solution for these ^^^
+    vn->setSymbolEntry(entry);
+    return entry->getSymbol();
+  }
+
+  // If we reach here, we have a conflicting variable
+  buildDynamicSymbol(vn);
+  return vn->getSymbolEntry()->getSymbol();
 }
 
 /// \brief Update properties (and the data-type) for a set of Varnodes associated with one Symbol
