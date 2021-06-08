@@ -128,8 +128,9 @@ public class ParamListStandard implements ParamList {
 			if (status[grp] < 0) {
 				continue;
 			}
-			if (!takenUpVarnodes.isEmpty() && overlapsTakenUpVarnodes(takenUpVarnodes, element))
+			if (!takenUpVarnodes.isEmpty() && overlapsTakenUpVarnodes(takenUpVarnodes, element)) {
 				continue;		// Prevent the decompiler from "Overlapping input varnodes" error
+			}
 			if ((element.getType() != ParamEntry.TYPE_UNKNOWN) &&
 				(ParamEntry.getMetatype(tp) != element.getType())) {
 				continue;		// Wrong type
