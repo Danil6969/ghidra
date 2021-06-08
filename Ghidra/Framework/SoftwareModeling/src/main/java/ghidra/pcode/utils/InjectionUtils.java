@@ -49,7 +49,7 @@ public class InjectionUtils {
 			String injectionName = callingConvention.getName() + "@@inject_uponentry";
 
 			PcodeInjectLibrary snippetLibrary = program.getCompilerSpec().getPcodeInjectLibrary();
-			InjectPayload payload = snippetLibrary.getPayload(InjectPayload.CALLMECHANISM_TYPE, injectionName, program, null);
+			InjectPayload payload = snippetLibrary.getPayload(InjectPayload.CALLMECHANISM_TYPE, injectionName);
 			if (payload == null) {
 				return null;
 			}
@@ -104,7 +104,7 @@ public class InjectionUtils {
 		if (nm != null) {
 			PcodeInjectLibrary snippetLibrary = program.getCompilerSpec().getPcodeInjectLibrary();
 			String injectionName = nm + "@@inject_uponreturn";
-			InjectPayload payload = snippetLibrary.getPayload(InjectPayload.CALLMECHANISM_TYPE, injectionName, program, null);
+			InjectPayload payload = snippetLibrary.getPayload(InjectPayload.CALLMECHANISM_TYPE, injectionName);
 			if (payload == null) {
 				return null;
 			}
@@ -138,7 +138,7 @@ public class InjectionUtils {
 			}
 			sb.append("</input>\n</context>\n");
 			String context = sb.toString();
-			InjectPayload payload = snippetLibrary.getPayload(InjectPayload.CALLOTHERFIXUP_TYPE, injectionName, program, context);
+			InjectPayload payload = snippetLibrary.getPayload(InjectPayload.CALLOTHERFIXUP_TYPE, injectionName);
 			if (payload == null) {
 				return null;
 			}
