@@ -5663,8 +5663,8 @@ define pcodeop minps;
 
 :MOVD         mmxreg, rm32   is vexMode=0 &  mandover=0 & byte=0x0F; byte=0x6E; rm32 & mmxreg ...                    { mmxreg = zext(rm32); }
 :MOVD         rm32, mmxreg   is vexMode=0 &  mandover=0 & byte=0x0F; byte=0x7E; rm32 & check_rm32_dest ... & mmxreg ...                    { rm32 = mmxreg(0); build check_rm32_dest; }
-:MOVD         XmmReg1, rm32   is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0x6E; rm32 & XmmReg1 ...         { XmmReg1 = zext(rm32); }
-:MOVD         rm32, XmmReg1   is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0x7E; rm32 & check_rm32_dest ... & XmmReg1 ...         { rm32 = XmmReg1(0); build check_rm32_dest; }
+:MOVD         XmmReg, rm32   is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0x6E; rm32 & XmmReg ...         { XmmReg = zext(rm32); }
+:MOVD         rm32, XmmReg   is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0x7E; rm32 & check_rm32_dest ... & XmmReg ...         { rm32 = XmmReg(0); build check_rm32_dest; }
 @ifdef IA64
 :MOVQ         mmxreg, rm64   is vexMode=0 &  opsize=2 & mandover=0 & byte=0x0F; byte=0x6E; rm64 & mmxreg ...         { mmxreg = rm64; }
 :MOVQ         rm64, mmxreg   is vexMode=0 &  opsize=2 & mandover=0 & byte=0x0F; byte=0x7E; rm64 & mmxreg ...         { rm64 = mmxreg; }
