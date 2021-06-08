@@ -82,7 +82,11 @@ define register offset=0x1084 size=4   [ MXCSR ];
 define register offset=0x1090 size=2   [ FPUControlWord FPUStatusWord FPUTagWord
                                          FPULastInstructionOpcode ];
 define register offset=0x1098 size=4   [ FPUDataPointer FPUInstructionPointer ];
-                                         
+                                         # Define fpu exception flags
+define register offset=0x10a0 size=1   [ IE DE ZE OE UE PE StF ESum TOP B ];
+
+define register offset=0x10aa size=1   [ FPUAllocationByte ];
+
 
 #
 # YMM0 - YMM7    - available in 32 bit mode
@@ -227,7 +231,7 @@ define register offset=0x1600 size=4   [
   xmmTmp2_Da  xmmTmp2_Db  xmmTmp2_Dc  xmmTmp2_Dd
 ];
 
-define register offset=0x1700 size=64  [ zmmTmp1 zmmTmp2 zmmOut zmmRes ];
+define register offset=0x1700 size=64  [ zmmOut zmmRes zmmTmp1 zmmTmp2 ];
 
 define register offset=0x1800 size=8   [ k0 k1 k2 k3 k4 k5 k6 k7 ];
 
@@ -1449,6 +1453,7 @@ macro fdec() {
 	ST2 = ST1;
 	ST1 = ST0;
 	ST0 = tmp;
+	FPUAllocationByte = (FPUAllocationByte << 1) || (FPUAllocationByte >> 7);
 	TOP = TOP - 1;
 }
 
@@ -1462,6 +1467,7 @@ macro finc() {
 	ST5 = ST6;
 	ST6 = ST7;
 	ST7 = tmp;
+	FPUAllocationByte = (FPUAllocationByte >> 1) || (FPUAllocationByte << 7);
 	TOP = TOP + 1;
 }
 
@@ -1473,10 +1479,11 @@ macro fpop() {
 	ST4 = ST5;
 	ST5 = ST6;
 	ST6 = ST7;
+	FPUAllocationByte = FPUAllocationByte >> 1;
 	TOP = TOP + 1;
 }
 
- macro fpushv(val) {
+macro fpushv(val) {
 	ST7 = ST6;
 	ST6 = ST5;
 	ST5 = ST4;
@@ -1485,6 +1492,7 @@ macro fpop() {
 	ST2 = ST1;
 	ST1 = ST0;
 	ST0 = val;
+	FPUAllocationByte = FPUAllocationByte << 1 || 1;
 	TOP = TOP - 1;
 }
 
@@ -1497,6 +1505,10 @@ macro fpopv(val) {
 	ST4 = ST5;
 	ST5 = ST6;
 	ST6 = ST7;
+	if ((FPUAllocationByte & 1) != 0) goto <skip>;
+		StF = 1;
+	<skip>
+	FPUAllocationByte = FPUAllocationByte >> 1;
 	TOP = TOP + 1;
 }
 
@@ -1512,7 +1524,7 @@ macro setDE_ST0ST1() {
 macro setZE_ST0() {
 	zero:8 = 0x8000000000000000;
 	ZE = ST0 f== float2float(zero);
-	zero = 0;
+	zero = 0x0000000000000000;
 	ZE = ZE || (ST0 f== float2float(zero));
 }
 
@@ -4154,8 +4166,8 @@ define pcodeop exp;
   OE = 0;
   UE = 0;
   PE = 0;
-  #StF = 0;
-  #ESum = 0;
+  StF = 0;
+  ESum = 0;
   B = 0;
 }
 
@@ -4167,8 +4179,8 @@ define pcodeop exp;
   OE = 0;
   UE = 0;
   PE = 0;
-  #StF = 0;
-  #ESum = 0;
+  StF = 0;
+  ESum = 0;
   B = 0;
 } 
 
@@ -4226,9 +4238,9 @@ define pcodeop cos;
 :FICOMP spec_m16    is vexMode=0 & byte=0xDE; (mod != 0b11 & reg_opcode=3) ... & spec_m16            { local tmp = int2float(spec_m16); fcom(tmp); fpop(); }  
 :FICOMP spec_m32    is vexMode=0 & byte=0xDA; reg_opcode=3 ... & spec_m32            { local tmp = int2float(spec_m32); fcom(tmp); fpop(); }  
                                                                   
-:FILD spec_m16      is vexMode=0 & byte=0xDF; reg_opcode=0 ... & spec_m16            { fdec(); ST0 = int2float(spec_m16); }         
-:FILD spec_m32      is vexMode=0 & byte=0xDB; reg_opcode=0 ... & spec_m32            { fdec(); ST0 = int2float(spec_m32); }         
-:FILD spec_m64      is vexMode=0 & byte=0xDF; reg_opcode=5 ... & spec_m64            { fdec(); ST0 = int2float(spec_m64); }         
+:FILD spec_m16      is vexMode=0 & byte=0xDF; reg_opcode=0 ... & spec_m16            { fpushv(int2float(spec_m16)); }         
+:FILD spec_m32      is vexMode=0 & byte=0xDB; reg_opcode=0 ... & spec_m32            { fpushv(int2float(spec_m32)); }         
+:FILD spec_m64      is vexMode=0 & byte=0xDF; reg_opcode=5 ... & spec_m64            { fpushv(int2float(spec_m64)); }         
                                                                   
 :FINCSTP            is vexMode=0 & byte=0xD9; byte=0xF7                 { finc(); }                                   
 
@@ -4236,13 +4248,10 @@ define pcodeop cos;
                                           FPUStatusWord = 0x0000;         
                                           unpackFSW(FPUStatusWord);
                                           FPUTagWord = 0xffff;            
+                                          FPUAllocationByte = 0x00;
                                           FPUDataPointer = 0x00000000;        
                                           FPUInstructionPointer = 0x00000000;     
-                                          FPULastInstructionOpcode = 0x0000;  
-                                          C0 = 0;                 
-                                          C1 = 0;                 
-                                          C2 = 0;                 
-                                          C3 = 0; }                           
+                                          FPULastInstructionOpcode = 0x0000; }                           
 
 :FNINIT         is vexMode=0 & byte=0xDB; byte=0xE3                 { }
 
@@ -4256,14 +4265,14 @@ define pcodeop cos;
 :FISTTP spec_m32     is vexMode=0 & byte=0xDB; reg_opcode=1 ... & spec_m32            { spec_m32 = trunc(ST0); fpop(); }                 
 :FISTTP spec_m64     is vexMode=0 & byte=0xDD; reg_opcode=1 ... & spec_m64            { spec_m64 = trunc(ST0); fpop(); }                 
                                                                       
-:FLD spec_m32        is vexMode=0 & byte=0xD9; (mod != 0b11 & reg_opcode=0) ... & spec_m32            { fdec(); ST0 = float2float(spec_m32); }           
-:FLD spec_m64        is vexMode=0 & byte=0xDD; reg_opcode=0 ... & spec_m64            { fdec(); ST0 = float2float(spec_m64);}            
+:FLD spec_m32        is vexMode=0 & byte=0xD9; (mod != 0b11 & reg_opcode=0) ... & spec_m32            { fpushv(float2float(spec_m32)); }           
+:FLD spec_m64        is vexMode=0 & byte=0xDD; reg_opcode=0 ... & spec_m64            { fpushv(float2float(spec_m64));}            
 :FLD spec_m80        is vexMode=0 & byte=0xDB; reg_opcode=5 ... & spec_m80            { fpushv(spec_m80); }                      
 
 # Be careful that you don't clobber freg during fpushv, need a tmp to hold the value
 :FLD freg       is vexMode=0 & byte=0xD9; frow=12 & fpage=0 & freg          { tmp:10 = freg; fpushv(tmp); }                     
                                                                       
-:FLD1		is vexMode=0 & byte=0xD9; byte=0xE8			{ src:8 = 0x3ff0000000000000; tmp:10 = float2float(src); fpushv(tmp); }  
+:FLD1		is vexMode=0 & byte=0xD9; byte=0xE8			{ src:8 = 0x3ff0000000000000; tmp:10 = float2float(src); fpushv(tmp); }
 :FLDL2T		is vexMode=0 & byte=0xD9; byte=0xE9			{ tmp:10 = *[FPUConsts]:10  0:$(SIZE); fpushv(tmp); }
 :FLDL2E		is vexMode=0 & byte=0xD9; byte=0xEA			{ tmp:10 = *[FPUConsts]:10 10:$(SIZE); fpushv(tmp); }
 :FLDPI		is vexMode=0 & byte=0xD9; byte=0xEB			{ tmp:10 = *[FPUConsts]:10 20:$(SIZE); fpushv(tmp); }
@@ -4278,6 +4287,7 @@ define pcodeop fldenv;
 {
   FPUControlWord           = *:2 (Mem);
   FPUStatusWord            = *:2 (Mem +  4);
+  unpackFSW(FPUStatusWord);
   FPUTagWord               = *:2 (Mem +  8);
   FPUDataPointer           = *:4 (Mem + 20);
   FPUInstructionPointer    = *:4 (Mem + 12);
@@ -4295,8 +4305,8 @@ define pcodeop fldenv;
 
 :FNOP           is vexMode=0 & byte=0xD9; byte=0xD0                 { }
 
-define pcodeop atan;
-:FPATAN		is vexMode=0 & byte=0xD9; byte=0xF3			{ ST1 = atan(ST1 f/ ST0); fpop(); }
+define pcodeop atan2;
+:FPATAN		is vexMode=0 & byte=0xD9; byte=0xF3			{ ST1 = atan2(ST1,ST0); fpop(); }
 
 :FPREM          is vexMode=0 & byte=0xD9; byte=0xF8
 {
@@ -4352,6 +4362,7 @@ define pcodeop tan;
 {
   FPUControlWord           = *:2  (Mem);
   FPUStatusWord            = *:2  (Mem +  4);
+  unpackFSW(FPUStatusWord);
   FPUTagWord               = *:2  (Mem +  8);
   FPUDataPointer           = *:4  (Mem + 20);
   FPUInstructionPointer    = *:4  (Mem + 12);
@@ -4390,6 +4401,7 @@ define pcodeop tan;
   FPUStatusWord = 0x0000;
   unpackFSW(FPUStatusWord);
   FPUTagWord = 0xffff;
+  FPUAllocationByte = 0x00;
   FPUDataPointer = 0x00000000;
   FPUInstructionPointer = 0x00000000;
   FPULastInstructionOpcode = 0x0000;
@@ -4418,6 +4430,7 @@ define pcodeop tan;
   FPUStatusWord = 0x0000;
   unpackFSW(FPUStatusWord);
   FPUTagWord = 0xffff;
+  FPUAllocationByte = 0x00;
   FPUDataPointer = 0x00000000;
   FPUInstructionPointer = 0x00000000;
   FPULastInstructionOpcode = 0x0000;
@@ -4436,7 +4449,7 @@ define pcodeop sin;
 :FSTP spec_m32  is vexMode=0 & byte=0xD9; (mod != 0b11 & reg_opcode=3) ... & spec_m32            { spec_m32 = float2float(ST0); fpop(); } 
 :FSTP spec_m64  is vexMode=0 & byte=0xDD; reg_opcode=3 ... & spec_m64            { spec_m64 = float2float(ST0); fpop(); } 
 :FSTP spec_m80  is vexMode=0 & byte=0xDB; reg_opcode=7 ... & spec_m80            { fpopv(spec_m80); }             
-:FSTP freg      is vexMode=0 & byte=0xDD; frow=13 & fpage=1 & freg          { fpopv(freg); }                    
+:FSTP freg      is vexMode=0 & byte=0xDD; frow=13 & fpage=1 & freg & col         { FPUAllocationByte = FPUAllocationByte || ((FPUAllocationByte & 1) << col); fpopv(freg); }                    
 
 :FSTCW m16      is vexMode=0 & byte=0x9B; byte=0xD9; (mod != 0b11 & reg_opcode=7) ... & m16     { m16 = FPUControlWord; }
 :FNSTCW m16     is vexMode=0 & byte=0xD9; (mod != 0b11 & reg_opcode=7) ... & m16            { m16 = FPUControlWord; }
@@ -4566,6 +4579,7 @@ define pcodeop sin;
 # not saved in the same spacing as the actual processor
   FPUControlWord           = *:2  (Mem);
   FPUStatusWord            = *:2  (Mem +  4);
+  unpackFSW(FPUStatusWord);
   FPUTagWord               = *:2  (Mem +  8);
   FPUInstructionPointer    = *:4  (Mem + 12);
   FPULastInstructionOpcode = *:2  (Mem + 18);
