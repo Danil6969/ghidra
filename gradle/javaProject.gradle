@@ -131,6 +131,7 @@ configurations {
 	integrationTestImplementation.extendsFrom testImplementation
 	integrationTestRuntimeOnly.extendsFrom testRuntimeOnly, integrationTestImplementation
 	pcodeTestImplementation.extendsFrom implementation
+	scriptsCompile.extendsFrom implementation
 	testArtifacts.extendsFrom testRuntimeOnly
 	integrationTestArtifacts.extendsFrom integrationTestRuntimeOnly
 	screenShotsImplementation.extendsFrom integrationTestImplemenation
