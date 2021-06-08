@@ -114,136 +114,141 @@ ZmmFilterQ: "{"kreg"}" is kreg {
 	kout[15,1] = vexVVVV_ZmmReg[480,32] s> ZmmReg2[480,32];
 }
 
+define pcodeop extractind;
+define pcodeop insertind;
+
 :VPCOMPRESSD ZmmReg2_m512 "{"kreg"}", ZmmReg1 is $(EVEX_NONE) & $(EVEX_L512) & $(PRE_66) & $(VEX_0F38) & $(VEX_W0) & kreg; byte=0x8B; ZmmReg1 ... & ZmmReg2_m512
 {
-	zmmTmp1 = ZmmReg1;
-	zmmTmp2 = ZmmReg2_m512;
+	zmmTmp1 = ZmmReg2_m512;
 	i:4 = 0;
 	j:4 = 0;
 	<loop>
-		if ((kreg >> i & 1) == 0) goto <skipall>;
-			if (j != 0) goto <skip0>;
-				zmmTmp2[0,32] = zmmTmp1:4;
-			<skip0>
-			if (j != 1) goto <skip1>;
-				zmmTmp2[32,32] = zmmTmp1:4;
-			<skip1>
-			if (j != 2) goto <skip2>;
-				zmmTmp2[64,32] = zmmTmp1:4;
-			<skip2>
-			if (j != 3) goto <skip3>;
-				zmmTmp2[96,32] = zmmTmp1:4;
-			<skip3>
-			if (j != 4) goto <skip4>;
-				zmmTmp2[128,32] = zmmTmp1:4;
-			<skip4>
-			if (j != 5) goto <skip5>;
-				zmmTmp2[160,32] = zmmTmp1:4;
-			<skip5>
-			if (j != 6) goto <skip6>;
-				zmmTmp2[192,32] = zmmTmp1:4;
-			<skip6>
-			if (j != 7) goto <skip7>;
-				zmmTmp2[224,32] = zmmTmp1:4;
-			<skip7>
-			if (j != 8) goto <skip8>;
-				zmmTmp2[256,32] = zmmTmp1:4;
-			<skip8>
-			if (j != 9) goto <skip9>;
-				zmmTmp2[288,32] = zmmTmp1:4;
-			<skip9>
-			if (j != 10) goto <skip10>;
-				zmmTmp2[320,32] = zmmTmp1:4;
-			<skip10>
-			if (j != 11) goto <skip11>;
-				zmmTmp2[352,32] = zmmTmp1:4;
-			<skip11>
-			if (j != 12) goto <skip12>;
-				zmmTmp2[384,32] = zmmTmp1:4;
-			<skip12>
-			if (j != 13) goto <skip13>;
-				zmmTmp2[416,32] = zmmTmp1:4;
-			<skip13>
-			if (j != 14) goto <skip14>;
-				zmmTmp2[448,32] = zmmTmp1:4;
-			<skip14>
-			if (j != 15) goto <skip15>;
-				zmmTmp2[480,32] = zmmTmp1:4;
-			<skip15>
+	if (i >= 16) goto <loop_end>;
+		if ((kreg >> i & 1) == 0) goto <skip>;
+			n:4 = extractind(ZmmReg1,i*4);
+			zmmTmp1 = insertind(zmmTmp1,n,j*4);
 			j = j + 1;
-		<skipall>
-		tmp:60 = zmmTmp1(4);
-		zmmTmp1 = zext(tmp);
+		<skip>
 		i = i + 1;
-	if (i < 16) goto <loop>;
-	ZmmReg2_m512 = zmmTmp2;
+	goto <loop>;
+	<loop_end>
+	ZmmReg2_m512 = zmmTmp1;
 }
 
 :VPERMD ZmmReg1, vexVVVV_ZmmReg, ZmmReg2_m512 is $(EVEX_NONE) & $(EVEX_L512) & $(PRE_66) & $(VEX_0F38) & $(VEX_W0) & vexVVVV_ZmmReg & kreg=0; byte=0x36; ZmmReg1 ... & ZmmReg2_m512
 {
-	zmmTmp1 = vexVVVV_ZmmReg;
-	zmmTmp2 = ZmmReg2_m512;
-	ZmmReg1 = zext(0:1);
+	zmmTmp1 = zext(0:4);
 	i:4 = 0;
-	j:4 = 0;
-	n:4 = 0;
 	<loop>
-		j = zmmTmp1[0,32] & 0xF;
-		if (j != 0) goto <skip0>;
-			n = zmmTmp2[0,32];
-		<skip0>
-		if (j != 1) goto <skip1>;
-			n = zmmTmp2[32,32];
-		<skip1>
-		if (j != 2) goto <skip2>;
-			n = zmmTmp2[64,32];
-		<skip2>
-		if (j != 3) goto <skip3>;
-			n = zmmTmp2[96,32];
-		<skip3>
-		if (j != 4) goto <skip4>;
-			n = zmmTmp2[128,32];
-		<skip4>
-		if (j != 5) goto <skip5>;
-			n = zmmTmp2[160,32];
-		<skip5>
-		if (j != 6) goto <skip6>;
-			n = zmmTmp2[192,32];
-		<skip6>
-		if (j != 7) goto <skip7>;
-			n = zmmTmp2[224,32];
-		<skip7>
-		if (j != 8) goto <skip8>;
-			n = zmmTmp2[256,32];
-		<skip8>
-		if (j != 9) goto <skip9>;
-			n = zmmTmp2[288,32];
-		<skip9>
-		if (j != 10) goto <skip10>;
-			n = zmmTmp2[320,32];
-		<skip10>
-		if (j != 11) goto <skip11>;
-			n = zmmTmp2[352,32];
-		<skip11>
-		if (j != 12) goto <skip12>;
-			n = zmmTmp2[384,32];
-		<skip12>
-		if (j != 13) goto <skip13>;
-			n = zmmTmp2[416,32];
-		<skip13>
-		if (j != 14) goto <skip14>;
-			n = zmmTmp2[448,32];
-		<skip14>
-		if (j != 15) goto <skip15>;
-			n = zmmTmp2[480,32];
-		<skip15>
-		tmp:60 = ZmmReg1(4);
-		ZmmReg1[0,480] = tmp;
-		ZmmReg1[480,32] = n;
-		tmp = zmmTmp1(4);
-		zmmTmp1 = zext(tmp);
+	if (i >= 16) goto <loop_end>;
+		j:4 = extractind(vexVVVV_ZmmReg,i*4) & 0xF;
+		n:4 = extractind(ZmmReg2_m512,j*4);
+		zmmTmp1 = insertind(zmmTmp1,n,i*4);
 		i = i + 1;
-	if (i < 16) goto <loop>;
+	goto <loop>;
+	<loop_end>
+	ZmmReg1 = zmmTmp1;
+}
+
+:VPMINSD ZmmReg1, vexVVVV_ZmmReg, ZmmReg2_m512 is $(EVEX_NONE) & $(EVEX_L512) & $(PRE_66) & $(VEX_0F38) & $(VEX_W0) & vexVVVV_ZmmReg; byte=0x39; ZmmReg1 ... & ZmmReg2_m512
+{
+	zmmTmp1 = ZmmReg2_m512;
+	if (vexVVVV_ZmmReg[0,32] s>= zmmTmp1[0,32]) goto <skip0>;
+		ZmmReg1[0,32] = vexVVVV_ZmmReg[0,32];
+		goto <end0>;
+	<skip0>
+		ZmmReg1[0,32] = zmmTmp1[0,32];
+	<end0>
+	if (vexVVVV_ZmmReg[32,32] s>= zmmTmp1[32,32]) goto <skip1>;
+		ZmmReg1[32,32] = vexVVVV_ZmmReg[32,32];
+		goto <end1>;
+	<skip1>
+		ZmmReg1[32,32] = zmmTmp1[32,32];
+	<end1>
+	if (vexVVVV_ZmmReg[64,32] s>= zmmTmp1[64,32]) goto <skip2>;
+		ZmmReg1[64,32] = vexVVVV_ZmmReg[64,32];
+		goto <end2>;
+	<skip2>
+		ZmmReg1[64,32] = zmmTmp1[64,32];
+	<end2>
+	if (vexVVVV_ZmmReg[96,32] s>= zmmTmp1[96,32]) goto <skip3>;
+		ZmmReg1[96,32] = vexVVVV_ZmmReg[96,32];
+		goto <end3>;
+	<skip3>
+		ZmmReg1[96,32] = zmmTmp1[96,32];
+	<end3>
+	if (vexVVVV_ZmmReg[128,32] s>= zmmTmp1[128,32]) goto <skip4>;
+		ZmmReg1[128,32] = vexVVVV_ZmmReg[128,32];
+		goto <end4>;
+	<skip4>
+		ZmmReg1[128,32] = zmmTmp1[128,32];
+	<end4>
+	if (vexVVVV_ZmmReg[160,32] s>= zmmTmp1[160,32]) goto <skip5>;
+		ZmmReg1[160,32] = vexVVVV_ZmmReg[160,32];
+		goto <end5>;
+	<skip5>
+		ZmmReg1[160,32] = zmmTmp1[160,32];
+	<end5>
+	if (vexVVVV_ZmmReg[192,32] s>= zmmTmp1[192,32]) goto <skip6>;
+		ZmmReg1[192,32] = vexVVVV_ZmmReg[192,32];
+		goto <end6>;
+	<skip6>
+		ZmmReg1[192,32] = zmmTmp1[192,32];
+	<end6>
+	if (vexVVVV_ZmmReg[224,32] s>= zmmTmp1[224,32]) goto <skip7>;
+		ZmmReg1[224,32] = vexVVVV_ZmmReg[224,32];
+		goto <end7>;
+	<skip7>
+		ZmmReg1[224,32] = zmmTmp1[224,32];
+	<end7>
+	if (vexVVVV_ZmmReg[256,32] s>= zmmTmp1[256,32]) goto <skip8>;
+		ZmmReg1[256,32] = vexVVVV_ZmmReg[256,32];
+		goto <end8>;
+	<skip8>
+		ZmmReg1[256,32] = zmmTmp1[256,32];
+	<end8>
+	if (vexVVVV_ZmmReg[288,32] s>= zmmTmp1[288,32]) goto <skip9>;
+		ZmmReg1[288,32] = vexVVVV_ZmmReg[288,32];
+		goto <end9>;
+	<skip9>
+		ZmmReg1[288,32] = zmmTmp1[288,32];
+	<end9>
+	if (vexVVVV_ZmmReg[320,32] s>= zmmTmp1[320,32]) goto <skip10>;
+		ZmmReg1[320,32] = vexVVVV_ZmmReg[320,32];
+		goto <end10>;
+	<skip10>
+		ZmmReg1[320,32] = zmmTmp1[320,32];
+	<end10>
+	if (vexVVVV_ZmmReg[352,32] s>= zmmTmp1[352,32]) goto <skip11>;
+		ZmmReg1[352,32] = vexVVVV_ZmmReg[352,32];
+		goto <end11>;
+	<skip11>
+		ZmmReg1[352,32] = zmmTmp1[352,32];
+	<end11>
+	if (vexVVVV_ZmmReg[384,32] s>= zmmTmp1[384,32]) goto <skip12>;
+		ZmmReg1[384,32] = vexVVVV_ZmmReg[384,32];
+		goto <end12>;
+	<skip12>
+		ZmmReg1[384,32] = zmmTmp1[384,32];
+	<end12>
+	if (vexVVVV_ZmmReg[416,32] s>= zmmTmp1[416,32]) goto <skip13>;
+		ZmmReg1[416,32] = vexVVVV_ZmmReg[416,32];
+		goto <end13>;
+	<skip13>
+		ZmmReg1[416,32] = zmmTmp1[416,32];
+	<end13>
+	if (vexVVVV_ZmmReg[448,32] s>= zmmTmp1[448,32]) goto <skip14>;
+		ZmmReg1[448,32] = vexVVVV_ZmmReg[448,32];
+		goto <end14>;
+	<skip14>
+		ZmmReg1[448,32] = zmmTmp1[448,32];
+	<end14>
+	if (vexVVVV_ZmmReg[480,32] s>= zmmTmp1[480,32]) goto <skip15>;
+		ZmmReg1[480,32] = vexVVVV_ZmmReg[480,32];
+		goto <end15>;
+	<skip15>
+		ZmmReg1[480,32] = zmmTmp1[480,32];
+	<end15>
 }
 
 :VPSHUFD ZmmReg1, ZmmReg2_m512, imm8 is $(EVEX_NONE) & $(EVEX_L512) & $(PRE_66) & $(VEX_0F) & $(VEX_W0); byte=0x70; ZmmReg1 ... & ZmmReg2_m512; imm8 & OrderD0 & OrderD1 & OrderD2 & OrderD3
@@ -297,4 +302,30 @@ ZmmFilterQ: "{"kreg"}" is kreg {
 
 	zmmTmp2 = (zmmTmp1 >> 384) >> OrderD3;
 	ZmmReg1[480,32] = zmmTmp2:4;
+}
+
+:VPTERNLOGD ZmmReg1, vexVVVV_ZmmReg, ZmmReg2_m512, imm8 is $(EVEX_NONE) & $(EVEX_L512) & $(PRE_66) & $(VEX_0F3A) & $(VEX_W0) & vexVVVV_ZmmReg; byte=0x25; ZmmReg1 ... & ZmmReg2_m512; imm8
+{
+	zmmTmp1 = ZmmReg1;
+	i:4 = 0;
+	<loop1>
+	if (i >= 16) goto <loop1_end>;
+		j:4 = 0;
+		n:4 = 0;
+		a:4 = extractind(ZmmReg1,i*4);
+		b:4 = extractind(vexVVVV_ZmmReg,i*4);
+		c:4 = extractind(ZmmReg2_m512,i*4);
+		<loop2>
+		if (j >= 32) goto <loop2_end>;
+			k:4 = ((a >> j & 1) << 2) + ((b >> j & 1) << 1) + (c >> j & 1);
+			d:4 = (imm8 >> k) & 1;
+			n = n | (d << j);
+			j = j + 1;
+		goto <loop2>;
+		<loop2_end>
+		zmmTmp1 = insertind(zmmTmp1,n,i*4);
+		i = i + 1;
+	goto <loop1>;
+	<loop1_end>
+	ZmmReg1 = zmmTmp1;
 }
