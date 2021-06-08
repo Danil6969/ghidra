@@ -38,7 +38,7 @@ public class PcodeInjectLibraryDex extends PcodeInjectLibrary {
 
 	@Override
 	public InjectPayload allocateInject(String sourceName, String name, int tp) {
-		if (tp == InjectPayload.CALLMECHANISM_TYPE) {
+		if (tp == InjectPayload.CALLMECHANISM_TYPE && name.indexOf("inject_uponentry") != -1) {
 			return new InjectPayloadDexParameters(name, sourceName);
 		}
 		else if (tp == InjectPayload.CALLOTHERFIXUP_TYPE && name.equals("moveRangeToIV")) {
