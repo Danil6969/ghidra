@@ -21,8 +21,7 @@ import java.util.*;
 
 import ghidra.app.plugin.core.debug.service.model.interfaces.ManagedStackRecorder;
 import ghidra.app.plugin.core.debug.service.model.interfaces.ManagedThreadRecorder;
-import ghidra.dbg.AnnotatedDebuggerAttributeListener;
-import ghidra.dbg.DebuggerObjectModel;
+import ghidra.dbg.*;
 import ghidra.dbg.error.DebuggerMemoryAccessException;
 import ghidra.dbg.target.*;
 import ghidra.dbg.target.TargetEventScope.TargetEventType;
@@ -37,6 +36,7 @@ import ghidra.trace.model.memory.TraceMemoryState;
 import ghidra.trace.model.modules.TraceModule;
 import ghidra.util.Msg;
 import ghidra.util.TimedMsg;
+import ghidra.util.datastruct.PrivatelyQueuedListener;
 import ghidra.util.exception.DuplicateNameException;
 
 public class TraceEventListener extends AnnotatedDebuggerAttributeListener {
@@ -48,10 +48,15 @@ public class TraceEventListener extends AnnotatedDebuggerAttributeListener {
 
 	private boolean valid = true;
 	protected final DebuggerCallbackReorderer reorderer = new DebuggerCallbackReorderer(this);
+	protected final PrivatelyQueuedListener<DebuggerModelListener> queue;
 
 	public TraceEventListener(TraceObjectManager collection) {
 		super(MethodHandles.lookup());
 		this.recorder = collection.getRecorder();
+
+		this.queue = new PrivatelyQueuedListener<>(DebuggerModelListener.class,
+			recorder.privateQueue, reorderer);
+
 		this.target = recorder.getTarget();
 		this.trace = recorder.getTrace();
 		this.memoryManager = trace.getMemoryManager();
@@ -59,7 +64,7 @@ public class TraceEventListener extends AnnotatedDebuggerAttributeListener {
 
 	public void init() {
 		DebuggerObjectModel model = target.getModel();
-		model.addModelListener(reorderer, true);
+		model.addModelListener(queue.in, true);
 	}
 
 	private boolean successor(TargetObject ref) {
@@ -114,7 +119,7 @@ public class TraceEventListener extends AnnotatedDebuggerAttributeListener {
 		if (!valid) {
 			return;
 		}
-		TimedMsg.info(this, "Event: " + type + " thread=" + eventThread + " description=" +
+		TimedMsg.debug(this, "Event: " + type + " thread=" + eventThread + " description=" +
 			description + " params=" + parameters);
 		// Just use this to step the snaps. Creation/destruction still handled in add/remove
 		if (eventThread == null) {
@@ -157,7 +162,7 @@ public class TraceEventListener extends AnnotatedDebuggerAttributeListener {
 		if (!valid) {
 			return;
 		}
-		TimedMsg.info(this, "State " + state + " for " + stateful);
+		TimedMsg.debug(this, "State " + state + " for " + stateful);
 		TargetObject x = recorder.objectManager.findThreadOrProcess(stateful);
 		if (x != null) {
 			if (x == target && state == TargetExecutionState.TERMINATED) {
@@ -199,7 +204,7 @@ public class TraceEventListener extends AnnotatedDebuggerAttributeListener {
 		}
 		Address traceAddr = recorder.getMemoryMapper().targetToTrace(address);
 		long snap = recorder.getSnap();
-		TimedMsg.info(this, "Memory updated: " + address + " (" + data.length + ")");
+		TimedMsg.debug(this, "Memory updated: " + address + " (" + data.length + ")");
 		String path = memory.getJoinedPath(".");
 		recorder.parTx.execute("Memory observed: " + path, () -> {
 			memoryManager.putBytes(snap, traceAddr, ByteBuffer.wrap(data));

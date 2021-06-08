@@ -924,7 +924,8 @@ public class Disassembler implements DisassemblerConflictHandler {
 
 				disassemblerContext.flowToAddress(addr);
 
-				MemBuffer instrMemBuffer = new WrappedMemBuffer(blockMemBuffer, DISASSEMBLE_MEMORY_CACHE_SIZE,
+				MemBuffer instrMemBuffer =
+					new WrappedMemBuffer(blockMemBuffer, DISASSEMBLE_MEMORY_CACHE_SIZE,
 						(int) addr.subtract(blockMemBuffer.getAddress()));
 
 				adjustPreParseContext(instrMemBuffer);
@@ -973,8 +974,8 @@ public class Disassembler implements DisassemblerConflictHandler {
 								// delay slots assumed to always fall-through - queue next addr
 								disassemblerContext.copyToFutureFlowState(addr);
 								if (disassemblerQueue != null) {
-									disassemblerQueue.queueDelaySlotFallthrough(
-										existingBlockStartInstr);
+									disassemblerQueue
+											.queueDelaySlotFallthrough(existingBlockStartInstr);
 								}
 								return;
 							}
@@ -1358,8 +1359,8 @@ public class Disassembler implements DisassemblerConflictHandler {
 			return false;
 		}
 		PcodeInjectLibrary pcodeInjectLibrary = program.getCompilerSpec().getPcodeInjectLibrary();
-		InjectPayload callFixup = pcodeInjectLibrary.getPayload(InjectPayload.CALLFIXUP_TYPE,
-			callFixupStr, program, null);
+		InjectPayload callFixup =
+			pcodeInjectLibrary.getPayload(InjectPayload.CALLFIXUP_TYPE, callFixupStr);
 		if (callFixup == null) {
 			return false;
 		}

@@ -34,14 +34,16 @@ import docking.ActionContext;
 import docking.WindowPosition;
 import docking.action.*;
 import docking.widgets.filechooser.GhidraFileChooser;
-import docking.widgets.table.*;
+import docking.widgets.table.CustomToStringCellRenderer;
 import docking.widgets.table.DefaultEnumeratedColumnTableModel.EnumeratedTableColumn;
+import docking.widgets.table.TableFilter;
 import ghidra.app.plugin.core.debug.DebuggerPluginPackage;
 import ghidra.app.plugin.core.debug.gui.DebuggerResources;
 import ghidra.app.plugin.core.debug.gui.DebuggerResources.*;
 import ghidra.app.plugin.core.debug.service.modules.MapModulesBackgroundCommand;
 import ghidra.app.plugin.core.debug.service.modules.MapSectionsBackgroundCommand;
 import ghidra.app.plugin.core.debug.utils.BackgroundUtils;
+import ghidra.app.plugin.core.debug.utils.DebouncedRowWrappedEnumeratedColumnTableModel;
 import ghidra.app.services.*;
 import ghidra.app.services.DebuggerStaticMappingService.*;
 import ghidra.async.AsyncUtils;
@@ -64,6 +66,7 @@ import ghidra.trace.model.TraceDomainObjectListener;
 import ghidra.trace.model.modules.*;
 import ghidra.util.HelpLocation;
 import ghidra.util.Msg;
+import ghidra.util.database.ObjectKey;
 import ghidra.util.datastruct.CollectionChangeListener;
 import ghidra.util.table.GhidraTable;
 import ghidra.util.table.GhidraTableFilterPanel;
@@ -198,6 +201,25 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		return sections.iterator().next();
 	}
 
+	protected static class ModuleTableModel
+			extends DebouncedRowWrappedEnumeratedColumnTableModel< //
+					ModuleTableColumns, ObjectKey, ModuleRow, TraceModule> {
+
+		public ModuleTableModel() {
+			super("Modules", ModuleTableColumns.class, TraceModule::getObjectKey, ModuleRow::new);
+		}
+	}
+
+	protected static class SectionTableModel
+			extends DebouncedRowWrappedEnumeratedColumnTableModel< //
+					SectionTableColumns, ObjectKey, SectionRow, TraceSection> {
+
+		public SectionTableModel() {
+			super("Sections", SectionTableColumns.class, TraceSection::getObjectKey,
+				SectionRow::new);
+		}
+	}
+
 	protected static Set<TraceModule> getSelectedModules(ActionContext context) {
 		if (context instanceof DebuggerModuleActionContext) {
 			DebuggerModuleActionContext ctx = (DebuggerModuleActionContext) context;
@@ -253,54 +275,39 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		}
 
 		private void moduleAdded(TraceModule module) {
-			moduleMap.computeIfAbsent(module, m -> {
-				ModuleRow mr = new ModuleRow(m);
-				moduleTableModel.add(mr);
-				return mr;
-			});/**
-				 * NOTE: No need to add sections here. A TraceModule is created empty, so when each
-				 * section is added, we'll get the call.
-				 */
+			moduleTableModel.addItem(module);
+			/**
+			 * NOTE: No need to add sections here. A TraceModule is created empty, so when each
+			 * section is added, we'll get the call.
+			 */
 		}
 
 		private void moduleChanged(TraceModule module) {
-			moduleTableModel.notifyUpdated(moduleMap.get(module));
+			moduleTableModel.updateItem(module);
 			sectionTableModel.fireTableDataChanged(); // Because module name in section row
 		}
 
 		private void moduleDeleted(TraceModule module) {
-			ModuleRow mr = moduleMap.remove(module);
-			if (mr != null) {
-				moduleTableModel.delete(mr);
-			}
+			moduleTableModel.deleteItem(module);
 			// NOTE: module.getSections() will be empty, now
-			for (Iterator<Entry<TraceSection, SectionRow>> it = sectionMap.entrySet().iterator(); it
-					.hasNext();) {
-				Entry<TraceSection, SectionRow> ent = it.next();
-				if (ent.getKey().getModule() == module) {
-					it.remove();
-					sectionTableModel.delete(ent.getValue());
-				}
-			}
+			sectionTableModel.deleteAllItems(sectionTableModel.getMap()
+					.values()
+					.stream()
+					.filter(r -> r.getModule() == module)
+					.map(r -> r.getSection())
+					.collect(Collectors.toList()));
 		}
 
 		private void sectionAdded(TraceSection section) {
-			sectionMap.computeIfAbsent(section, s -> {
-				SectionRow sr = new SectionRow(s);
-				sectionTableModel.add(sr);
-				return sr;
-			});
+			sectionTableModel.addItem(section);
 		}
 
 		private void sectionChanged(TraceSection section) {
-			sectionTableModel.notifyUpdated(sectionMap.get(section));
+			sectionTableModel.updateItem(section);
 		}
 
 		private void sectionDeleted(TraceSection section) {
-			SectionRow sr = sectionMap.remove(section);
-			if (sr != null) {
-				sectionTableModel.delete(sr);
-			}
+			sectionTableModel.deleteItem(section);
 		}
 	}
 
@@ -447,19 +454,11 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 				return;
 			}
 			Set<TraceModule> modules = getSelectedModules(myActionContext);
-			if (modules.size() != 1) {
+			if (modules == null || modules.size() != 1) {
 				return;
 			}
 			TraceModule mod = modules.iterator().next();
-			GhidraFileChooser chooser = new GhidraFileChooser(getComponent());
-			chooser.setSelectedFile(new File(mod.getName()));
-			File file = chooser.getSelectedFile();
-			if (file == null) { // Perhaps cancelled
-				return;
-			}
-			Project activeProject = Objects.requireNonNull(AppInfo.getActiveProject());
-			DomainFolder root = activeProject.getProjectData().getRootFolder();
-			importerService.importFile(root, file);
+			importModuleFromFileSystem(mod);
 		}
 
 		@Override
@@ -501,6 +500,8 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	@AutoServiceConsumed
 	private DebuggerListingService listingService;
 	@AutoServiceConsumed
+	private DebuggerConsoleService consoleService;
+	@AutoServiceConsumed
 	ProgramManager programManager;
 	@AutoServiceConsumed
 	private GoToService goToService;
@@ -516,15 +517,11 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	private final RecordersChangedListener recordersChangedListener =
 		new RecordersChangedListener();
 
-	protected final Map<TraceModule, ModuleRow> moduleMap = new HashMap<>();
-	protected final EnumeratedColumnTableModel<ModuleRow> moduleTableModel =
-		new DefaultEnumeratedColumnTableModel<>("Modules", ModuleTableColumns.class);
+	protected final ModuleTableModel moduleTableModel = new ModuleTableModel();
 	protected GhidraTable moduleTable;
 	private GhidraTableFilterPanel<ModuleRow> moduleFilterPanel;
 
-	protected final Map<TraceSection, SectionRow> sectionMap = new HashMap<>();
-	protected final EnumeratedColumnTableModel<SectionRow> sectionTableModel =
-		new DefaultEnumeratedColumnTableModel<>("Sections", SectionTableColumns.class);
+	protected final SectionTableModel sectionTableModel = new SectionTableModel();
 	protected GhidraTable sectionTable;
 	protected GhidraTableFilterPanel<SectionRow> sectionFilterPanel;
 	private final SectionsBySelectedModulesTableFilter filterSectionsBySelectedModules =
@@ -547,6 +544,9 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	DockingAction actionMapSections;
 	DockingAction actionMapSectionTo;
 	DockingAction actionMapSectionsTo;
+
+	DockingAction actionImportMissingModule;
+	DockingAction actionMapMissingModule;
 
 	SelectAddressesAction actionSelectAddresses;
 	CaptureTypesAction actionCaptureTypes;
@@ -577,6 +577,18 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		createActions();
 	}
 
+	private void importModuleFromFileSystem(TraceModule module) {
+		GhidraFileChooser chooser = new GhidraFileChooser(getComponent());
+		chooser.setSelectedFile(new File(module.getName()));
+		File file = chooser.getSelectedFile();
+		if (file == null) { // Perhaps cancelled
+			return;
+		}
+		Project activeProject = Objects.requireNonNull(AppInfo.getActiveProject());
+		DomainFolder root = activeProject.getProjectData().getRootFolder();
+		importerService.importFile(root, file);
+	}
+
 	@AutoServiceConsumed
 	private void setModelService(DebuggerModelService modelService) {
 		if (this.modelService != null) {
@@ -589,6 +601,29 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		contextChanged();
 	}
 
+	@AutoServiceConsumed
+	private void setConsoleService(DebuggerConsoleService consoleService) {
+		if (consoleService != null) {
+			if (actionImportMissingModule != null) {
+				consoleService.addResolutionAction(actionImportMissingModule);
+			}
+			if (actionMapMissingModule != null) {
+				consoleService.addResolutionAction(actionMapMissingModule);
+			}
+		}
+	}
+
+	protected void dispose() {
+		if (consoleService != null) {
+			if (actionImportMissingModule != null) {
+				consoleService.removeResolutionAction(actionImportMissingModule);
+			}
+			if (actionMapMissingModule != null) {
+				consoleService.removeResolutionAction(actionMapMissingModule);
+			}
+		}
+	}
+
 	@Override
 	public ActionContext getActionContext(MouseEvent event) {
 		if (myActionContext == null) {
@@ -598,22 +633,16 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	}
 
 	private void loadModules() {
-		moduleMap.clear();
 		moduleTableModel.clear();
-
-		sectionMap.clear();
 		sectionTableModel.clear();
 
 		if (currentTrace == null) {
 			return;
 		}
+
 		TraceModuleManager moduleManager = currentTrace.getModuleManager();
-		for (TraceModule module : moduleManager.getAllModules()) {
-			moduleTableModel.add(moduleMap.computeIfAbsent(module, ModuleRow::new));
-			for (TraceSection section : module.getSections()) {
-				sectionTableModel.add(sectionMap.computeIfAbsent(section, SectionRow::new));
-			}
-		}
+		moduleTableModel.addAllItems(moduleManager.getAllModules());
+		sectionTableModel.addAllItems(moduleManager.getAllSections());
 	}
 
 	protected void buildMainPanel() {
@@ -746,6 +775,15 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 				.onAction(this::activatedMapSectionsTo)
 				.buildAndInstallLocal(this);
 
+		actionImportMissingModule = ImportMissingModuleAction.builder(plugin)
+				.withContext(DebuggerMissingModuleActionContext.class)
+				.onAction(this::activatedImportMissingModule)
+				.build();
+		actionMapMissingModule = MapMissingModuleAction.builder(plugin)
+				.withContext(DebuggerMissingModuleActionContext.class)
+				.onAction(this::activatedMapMissingModule)
+				.build();
+
 		actionSelectAddresses = new SelectAddressesAction();
 		actionCaptureTypes = new CaptureTypesAction();
 		actionCaptureSymbols = new CaptureSymbolsAction();
@@ -778,6 +816,9 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 
 	private boolean isContextSectionsOfOneModule(ActionContext ignored) {
 		Set<TraceSection> sel = getSelectedSections(myActionContext);
+		if (sel == null || sel.isEmpty()) {
+			return false;
+		}
 		return sel.stream().map(TraceSection::getModule).distinct().count() == 1;
 	}
 
@@ -819,6 +860,19 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 			return;
 		}
 		mapSectionTo(sel.iterator().next());
+	}
+
+	private void activatedImportMissingModule(DebuggerMissingModuleActionContext context) {
+		if (importerService == null) {
+			Msg.error(this, "Import service is not present");
+		}
+		importModuleFromFileSystem(context.getModule());
+		consoleService.removeFromLog(context); // TODO: Should remove when mapping is created
+	}
+
+	private void activatedMapMissingModule(DebuggerMissingModuleActionContext context) {
+		mapModuleTo(context.getModule());
+		consoleService.removeFromLog(context); // TODO: Should remove when mapping is created
 	}
 
 	private void toggledFilter(ActionContext ignored) {
@@ -918,12 +972,19 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	}
 
 	protected void promptModuleProposal(Collection<ModuleMapEntry> proposal) {
+		if (proposal.isEmpty()) {
+			Msg.showInfo(this, getComponent(), "Map Modules",
+				"Could not formulate a proposal for any selected module." +
+					" You may need to import and/or open the destination images first.");
+			return;
+		}
 		Collection<ModuleMapEntry> adjusted =
 			moduleProposalDialog.adjustCollection(getTool(), proposal);
-		if (adjusted != null && staticMappingService != null) {
-			tool.executeBackgroundCommand(
-				new MapModulesBackgroundCommand(staticMappingService, adjusted), currentTrace);
+		if (adjusted == null || staticMappingService == null) {
+			return;
 		}
+		tool.executeBackgroundCommand(
+			new MapModulesBackgroundCommand(staticMappingService, adjusted), currentTrace);
 	}
 
 	protected void mapModules(Set<TraceModule> modules) {
@@ -950,12 +1011,19 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	}
 
 	protected void promptSectionProposal(Collection<SectionMapEntry> proposal) {
+		if (proposal.isEmpty()) {
+			Msg.showInfo(this, getComponent(), "Map Sections",
+				"Could not formulate a proposal for any selected section." +
+					" You may need to import and/or open the destination images first.");
+			return;
+		}
 		Collection<SectionMapEntry> adjusted =
 			sectionProposalDialog.adjustCollection(getTool(), proposal);
-		if (adjusted != null && staticMappingService != null) {
-			tool.executeBackgroundCommand(
-				new MapSectionsBackgroundCommand(staticMappingService, adjusted), currentTrace);
+		if (adjusted == null || staticMappingService == null) {
+			return;
 		}
+		tool.executeBackgroundCommand(
+			new MapSectionsBackgroundCommand(staticMappingService, adjusted), currentTrace);
 	}
 
 	protected void mapSections(Set<TraceSection> sections) {
@@ -1092,13 +1160,13 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	}
 
 	public void setSelectedModules(Set<TraceModule> sel) {
-		DebuggerResources.setSelectedRows(sel, moduleMap, moduleTable, moduleTableModel,
-			moduleFilterPanel);
+		DebuggerResources.setSelectedRows(sel, moduleTableModel::getRow, moduleTable,
+			moduleTableModel, moduleFilterPanel);
 	}
 
 	public void setSelectedSections(Set<TraceSection> sel) {
-		DebuggerResources.setSelectedRows(sel, sectionMap, sectionTable, sectionTableModel,
-			sectionFilterPanel);
+		DebuggerResources.setSelectedRows(sel, sectionTableModel::getRow, sectionTable,
+			sectionTableModel, sectionFilterPanel);
 	}
 
 	private DataTreeDialog getProgramChooserDialog() {

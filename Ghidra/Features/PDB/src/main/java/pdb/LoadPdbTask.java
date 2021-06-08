@@ -19,23 +19,18 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
-import docking.DockingWindowManager;
-import docking.widgets.OptionDialog;
-import docking.widgets.dialogs.MultiLineMessageDialog;
 import ghidra.app.plugin.core.analysis.*;
 import ghidra.app.plugin.core.datamgr.archive.DuplicateIdException;
 import ghidra.app.services.DataTypeManagerService;
 import ghidra.app.util.bin.format.pdb.PdbException;
 import ghidra.app.util.bin.format.pdb.PdbParser;
-import ghidra.app.util.bin.format.pdb2.pdbreader.*;
+import ghidra.app.util.bin.format.pdb2.pdbreader.AbstractPdb;
+import ghidra.app.util.bin.format.pdb2.pdbreader.PdbReaderOptions;
 import ghidra.app.util.importer.MessageLog;
-import ghidra.app.util.pdb.PdbLocator;
-import ghidra.app.util.pdb.PdbProgramAttributes;
 import ghidra.app.util.pdb.pdbapplicator.*;
 import ghidra.framework.options.Options;
 import ghidra.program.model.address.AddressSetView;
 import ghidra.program.model.listing.Program;
-import ghidra.util.Msg;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.*;
 
@@ -44,20 +39,22 @@ class LoadPdbTask extends Task {
 	private DataTypeManagerService service;
 	private final Program program;
 	private final boolean useMsDiaParser;
-	private final PdbApplicatorRestrictions restrictions; // PDB Universal Parser only
+	private final PdbApplicatorControl control; // PDB Universal Parser only
+	private String resultMessages;
+	private Exception resultException;
 
-	LoadPdbTask(Program program, File pdbFile, boolean useMsDiaParser,
-			PdbApplicatorRestrictions restrictions, DataTypeManagerService service) {
+	LoadPdbTask(Program program, File pdbFile, boolean useMsDiaParser, PdbApplicatorControl control,
+			DataTypeManagerService service) {
 		super("Load PDB", true, false, true, true);
 		this.program = program;
 		this.pdbFile = pdbFile;
 		this.useMsDiaParser = useMsDiaParser;
-		this.restrictions = restrictions;
+		this.control = control;
 		this.service = service;
 	}
 
 	@Override
-	public void run(final TaskMonitor monitor) {
+	public void run(TaskMonitor monitor) {
 
 		WrappingTaskMonitor wrappedMonitor = new WrappingTaskMonitor(monitor) {
 			@Override
@@ -97,44 +94,32 @@ class LoadPdbTask extends Task {
 		};
 
 		try {
-			AutoAnalysisManager.getAnalysisManager(program)
-					.scheduleWorker(worker, null, true, wrappedMonitor);
-			if (log.hasMessages()) {
-				MultiLineMessageDialog dialog = new MultiLineMessageDialog("Load PDB File",
-					"There were warnings/errors loading the PDB file.", log.toString(),
-					MultiLineMessageDialog.WARNING_MESSAGE, false);
-				DockingWindowManager.showDialog(null, dialog);
-			}
+			AutoAnalysisManager.getAnalysisManager(program).scheduleWorker(worker, null, true,
+				wrappedMonitor);
 		}
-		catch (InterruptedException | CancelledException e1) {
+		catch (InterruptedException | CancelledException e) {
 			// ignore
 		}
 		catch (InvocationTargetException e) {
-			String message;
-
-			Throwable t = e.getCause();
-
-			if (t == null) {
-				message = "Unknown cause";
-			}
-			else {
-				message = t.getMessage();
-
-				if (message == null) {
-					message = t.toString();
-				}
-			}
-
-			message = "Error processing PDB file:  " + pdbFile + ".\n" + message;
-
-			Msg.showError(getClass(), null, "Load PDB Failed", message, t);
+			resultException = e;
+		}
+		if (log.hasMessages()) {
+			resultMessages = log.toString();
 		}
 
 	}
 
+	String getResultMessages() {
+		return resultMessages;
+	}
+
+	Exception getResultException() {
+		return resultException;
+	}
+
 	private boolean parseWithMsDiaParser(MessageLog log, TaskMonitor monitor)
 			throws IOException, CancelledException {
-		PdbParser parser = new PdbParser(pdbFile, program, service, true, monitor);
+		PdbParser parser = new PdbParser(pdbFile, program, service, true, true, monitor);
 		try {
 			parser.parse();
 			parser.openDataTypeArchives();
@@ -147,9 +132,6 @@ class LoadPdbTask extends Task {
 		return false;
 	}
 
-	// NOTE: OptionDialog will not display an empty line 
-	private static final String BLANK_LINE = " \n";
-
 	private boolean parseWithNewParser(MessageLog log, TaskMonitor monitor)
 			throws IOException, CancelledException {
 
@@ -157,34 +139,10 @@ class LoadPdbTask extends Task {
 
 		PdbApplicatorOptions pdbApplicatorOptions = new PdbApplicatorOptions();
 
-		pdbApplicatorOptions.setRestrictions(restrictions);
+		pdbApplicatorOptions.setProcessingControl(control);
 
-		PdbProgramAttributes programAttributes = new PdbProgramAttributes(program);
-
-		try (AbstractPdb pdb = ghidra.app.util.bin.format.pdb2.pdbreader.PdbParser
-				.parse(pdbFile.getAbsolutePath(), pdbReaderOptions, monitor)) {
-
-			PdbIdentifiers identifiers = pdb.getIdentifiers();
-			if (!PdbLocator.verifyPdbSignature(programAttributes, identifiers)) {
-
-				StringBuilder builder = new StringBuilder();
-				builder.append("Selected PDB does not match program's PDB specification!\n");
-				builder.append(BLANK_LINE);
-				builder.append("Program's PDB specification:\n");
-				builder.append(PdbLocator.formatPdbIdentifiers(programAttributes));
-				builder.append(BLANK_LINE);
-				builder.append("Selected PDB file specification:\n");
-				builder.append(
-					PdbLocator.formatPdbIdentifiers(pdbFile.getAbsolutePath(), identifiers));
-				builder.append(BLANK_LINE);
-				builder.append("Do you wish to force load this PDB?");
-
-				if (OptionDialog.YES_OPTION != OptionDialog.showYesNoDialog(null,
-					"Confirm PDB Load", builder.toString())) {
-					return false;
-				}
-			}
-
+		try (AbstractPdb pdb = ghidra.app.util.bin.format.pdb2.pdbreader.PdbParser.parse(
+			pdbFile.getAbsolutePath(), pdbReaderOptions, monitor)) {
 			monitor.setMessage("PDB: Parsing " + pdbFile + "...");
 			pdb.deserialize(monitor);
 			PdbApplicator applicator = new PdbApplicator(pdbFile.getAbsolutePath(), pdb);

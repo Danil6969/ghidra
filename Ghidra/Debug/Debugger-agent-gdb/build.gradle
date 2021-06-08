@@ -23,12 +23,14 @@ apply plugin: 'eclipse'
 eclipse.project.name = 'Debug Debugger-agent-gdb'
 
 dependencies {
-	compile project(':Framework-AsyncComm')
-	compile project(':Framework-Debugging')
-	compile project(':Debugger-gadp')
-	compile 'org.python:jython-standalone:2.7.1'
+	api project(':Framework-AsyncComm')
+	api project(':Framework-Debugging')
+	api project(':Debugger-gadp')
+	api 'org.python:jython-standalone:2.7.1'
 
-	testCompile project(path: ':Debugger-gadp', configuration: 'testArtifacts')
+	testImplementation project(path: ':Framework-AsyncComm', configuration: 'testArtifacts')
+	testImplementation project(path: ':Framework-Debugging', configuration: 'testArtifacts')
+	testImplementation project(path: ':Debugger-gadp', configuration: 'testArtifacts')
 }
 
 def boolean filterJar(File jarfile) {
@@ -49,8 +51,9 @@ jar {
 }
 
 task configureNodepJar {
+	dependsOn(configurations.default)
 	doLast {
-		configurations.runtime.files.forEach {
+		configurations.default.files.forEach {
 			if (filterJar(it)) {
 				nodepJar.from(zipTree(it))
 			}
@@ -69,6 +72,11 @@ task nodepJar(type: Jar) {
 	}
 
 	from(zipTree(jar.archivePath))
+	// TODO: This kind of stinks. I could probably apply some judicious excludes
+	// images I don't care.
+	// I probably must include duplicate LICENSE files, so that all are included
+	// IDK why the duplicate OSGi framework classes, but I probably don't care.
+	duplicatesStrategy = 'include'
 }
 
 task executableJar {

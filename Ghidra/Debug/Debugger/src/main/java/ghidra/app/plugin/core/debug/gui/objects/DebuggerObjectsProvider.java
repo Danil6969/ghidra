@@ -68,6 +68,7 @@ import ghidra.program.model.listing.Program;
 import ghidra.trace.model.Trace;
 import ghidra.trace.model.thread.TraceThread;
 import ghidra.util.*;
+import ghidra.util.datastruct.PrivatelyQueuedListener;
 import ghidra.util.table.GhidraTable;
 import resources.ResourceManager;
 
@@ -1168,11 +1169,11 @@ public class DebuggerObjectsProvider extends ComponentProviderAdapter
 	new ActionBuilder("Step Last", plugin.getName())
 		.keyBinding("ALT F8")
 		.toolBarGroup(DebuggerResources.GROUP_CONTROL, "C" + groupTargetIndex)
-		.toolBarIcon(AbstractStepFinishAction.ICON)
+		.toolBarIcon(AbstractStepLastAction.ICON)
 		.popupMenuPath("&Step Last")
 		.popupMenuGroup(DebuggerResources.GROUP_CONTROL, "C" + groupTargetIndex)
-		.popupMenuIcon(AbstractStepFinishAction.ICON)
-		.helpLocation(AbstractStepFinishAction.help(plugin))
+		.popupMenuIcon(AbstractStepLastAction.ICON)
+		.helpLocation(AbstractStepLastAction.help(plugin))
 		//.withContext(ObjectActionContext.class)
 		.enabledWhen(ctx -> 
 			isInstance(ctx, TargetSteppable.class) && isStopped(ctx))
@@ -1523,6 +1524,9 @@ public class DebuggerObjectsProvider extends ComponentProviderAdapter
 
 	class MyObjectListener extends AnnotatedDebuggerAttributeListener {
 		protected final DebuggerCallbackReorderer reorderer = new DebuggerCallbackReorderer(this);
+		protected final PrivatelyQueuedListener<DebuggerModelListener> queue =
+			new PrivatelyQueuedListener<>(DebuggerModelListener.class, "ObjectsProvider-EventQueue",
+				reorderer);
 
 		public MyObjectListener() {
 			super(MethodHandles.lookup());
@@ -1618,6 +1622,7 @@ public class DebuggerObjectsProvider extends ComponentProviderAdapter
 				if (visibleChange) {
 					container.propagateProvider(DebuggerObjectsProvider.this);
 					update(container);
+					getComponent().repaint();
 				}
 			}
 		}
@@ -1641,6 +1646,7 @@ public class DebuggerObjectsProvider extends ComponentProviderAdapter
 				if (visibleChange) {
 					container.propagateProvider(DebuggerObjectsProvider.this);
 					update(container);
+					getComponent().repaint();
 				}
 			}
 			if (parent != null && isAutorecord() &&
@@ -1768,7 +1774,7 @@ public class DebuggerObjectsProvider extends ComponentProviderAdapter
 	}
 
 	public DebuggerModelListener getListener() {
-		return listener.reorderer;
+		return listener.queue.in;
 	}
 
 }
