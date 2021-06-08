@@ -845,6 +845,10 @@ public class SleighLanguage implements Language {
 				XmlElement subel = parser.start();
 				parser.end(subel);
 			}
+			else if (elName.equals("pureop")) {
+				XmlElement subel = parser.start();
+				parser.end(subel);
+			}
 			else {
 				throw new XmlParseException("Unknown pspec tag: " + elName);
 			}
