@@ -82,9 +82,7 @@ define register offset=0x1084 size=4   [ MXCSR ];
 define register offset=0x1090 size=2   [ FPUControlWord FPUStatusWord FPUTagWord
                                          FPULastInstructionOpcode ];
 define register offset=0x1098 size=4   [ FPUDataPointer FPUInstructionPointer ];
-                                         # Define fpu exception flags
-define register offset=0x10a0 size=1   [ IE DE ZE OE UE PE StF ESum TOP B ];
-
+define register offset=0x10a0 size=1   [ IE DE ZE OE UE PE StF ESum TOP B ]; # Define fpu exception flags
 define register offset=0x10aa size=1   [ FPUAllocationByte ];
 
 
@@ -237,9 +235,6 @@ define register offset=0x1800 size=8   [ k0 k1 k2 k3 k4 k5 k6 k7 ];
 
 # Define context bits
 define register offset=0x2000 size=8   contextreg;
-
-# Define fpu exception flags
-define register offset=0x2010 size=1   [ IE DE ZE OE UE PE StF ESum TOP B ];
 
 #
 #
