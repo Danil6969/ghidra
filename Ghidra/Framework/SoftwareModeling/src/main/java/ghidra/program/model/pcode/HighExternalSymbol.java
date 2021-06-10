@@ -30,6 +30,7 @@ import ghidra.util.xml.SpecXmlUtils;
 public class HighExternalSymbol extends HighSymbol {
 
 	private Address resolveAddress;		// The location of the Function object
+	private PcodeDataTypeManager dtmanage;
 
 	/**
 	 * Construct the external reference symbol given a name, the symbol Address, and a
@@ -40,9 +41,10 @@ public class HighExternalSymbol extends HighSymbol {
 	 * @param dtmanage is a PcodeDataTypeManager for facilitating XML marshaling
 	 */
 	public HighExternalSymbol(String nm, Address addr, Address resolveAddr,
-			PcodeDataTypeManager dtmanage) {
-		super(0, nm, DataType.DEFAULT, true, true, dtmanage);
+			PcodeDataTypeManager dtmanage, DataType dt) {
+		super(0, nm, dt, true, true, dtmanage);
 		resolveAddress = resolveAddr;
+		this.dtmanage = dtmanage;
 		VariableStorage store;
 		try {
 			store = new VariableStorage(getProgram(), addr, 1);
@@ -58,10 +60,11 @@ public class HighExternalSymbol extends HighSymbol {
 	public void saveXML(StringBuilder buf) {
 		buf.append("<externrefsymbol");
 		if ((name != null) && (name.length() > 0)) { // Give the symbol a name if we can
-			SpecXmlUtils.xmlEscapeAttribute(buf, "name", name + "_exref");
+			SpecXmlUtils.xmlEscapeAttribute(buf, "name", "&" + name); // Indicate this is a pointer to the external variable
 		}
 		buf.append(">\n");
 		AddressXML.buildXML(buf, resolveAddress);
+		if (type != null && !type.equals(DataType.DEFAULT)) buf.append(dtmanage.buildTypeRef(type, getSize()));
 		buf.append("</externrefsymbol>\n");
 	}
 }
