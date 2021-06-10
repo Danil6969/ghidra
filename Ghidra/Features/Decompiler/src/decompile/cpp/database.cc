@@ -734,14 +734,16 @@ void ExternRefSymbol::buildNameType(void)
 
 {
   TypeFactory *typegrp = scope->getArch()->types;
-  type = typegrp->getTypeCode();
-  type = typegrp->getTypePointer(refaddr.getAddrSize(),type,refaddr.getSpace()->getWordSize());
+  if (type == (Datatype *)0) {		// If a type was not already provided
+    type = typegrp->getTypeCode();	// Give the reference a type of pointer
+    type = typegrp->getTypePointer(refaddr.getAddrSize(),type,refaddr.getSpace()->getWordSize());
+  }
   if (name.size() == 0) {	// If a name was not already provided
     ostringstream s;		// Give the reference a unique name
     s << refaddr.getShortcut();
     refaddr.printRaw(s);
-    name = s.str();
-    name += "_exref"; // Indicate this is an external reference variable
+    name = "&"; // Indicate this is a pointer to the external variable
+    name += s.str();
   }
   flags |= Varnode::externref | Varnode::typelock;
 }
@@ -779,6 +781,10 @@ void ExternRefSymbol::restoreXml(const Element *el)
 
   iter = list.begin();
   refaddr = Address::restoreXml(*iter,scope->getArch());
+  type = (Datatype *)0;	// Type is null
+  ++iter;
+  if (iter != list.end())
+    type = scope->getArch()->types->restoreXmlType(*iter); // Unless we see it explicitly
   buildNameType();
 }
 
