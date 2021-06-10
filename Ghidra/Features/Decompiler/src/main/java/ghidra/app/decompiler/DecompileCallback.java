@@ -1193,7 +1193,11 @@ public class DecompileCallback {
 		// the address of the reference to hang the function on, and make
 		// no attempt to get a realistic linked address.  This works because
 		// we never read bytes or look up code units at the address.
-		HighSymbol externSymbol = new HighExternalSymbol(ref.getLabel(), addr, addr, dtmanage);
+		Data data = listing.getDefinedDataAt(addr);
+		DataType dt = null;
+		if (data != null) dt = data.getDataType();
+		if (dt == null) dt = DataType.DEFAULT;
+		HighSymbol externSymbol = new HighExternalSymbol(ref.getLabel(), addr, addr, dtmanage, dt);
 		return buildResult(externSymbol, null);
 	}
 
