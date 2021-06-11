@@ -551,8 +551,7 @@ bool ParamListStandard::overlapsTakenUpVarnodes(vector<Varnode> &takenUpVarnodes
   for(iter1=varnodes.begin();iter1!=varnodes.end();++iter1) {
     vector<Varnode>::const_iterator iter2;
     for(iter2=takenUpVarnodes.begin();iter2!=takenUpVarnodes.end();++iter2) {
-      if ((*iter1).intersects(*iter2))
-        return true;
+      if ((*iter1).intersects(*iter2)) return true;
     }
   }
   return false;
@@ -639,6 +638,19 @@ void ParamListStandard::assignMap(const vector<Datatype *> &proto,bool isinput,T
   }
 }
 
+bool ParamListStandard::overlapsTakenUpVarnodes(vector<Varnode> &takenUpVarnodes,Address &loc,int4 size) const
+
+{
+  AddrSpace *space = loc.getSpace();
+  uintb offset = loc.getOffset();
+  Varnode vn(size,Address(space,offset),(Datatype *)0);
+  vector<Varnode>::const_iterator iter;
+  for(iter=takenUpVarnodes.begin();iter!=takenUpVarnodes.end();++iter) {
+    if (vn.intersects(*iter)) return true;
+  }
+  return false;
+}
+
 /// Given a set of \b trials (putative Varnode parameters) as ParamTrial objects,
 /// associate each trial with a model ParamEntry within \b this list. Trials for
 /// for which there are no matching entries are marked as unused. Any holes
@@ -651,6 +663,7 @@ void ParamListStandard::buildTrialMap(ParamActive *active) const
   bool seenfloattrial = false;
   bool seeninttrial = false;
 
+  vector<Varnode> takenUpVarnodes;
   for(int4 i=0;i<active->getNumTrials();++i) {
     ParamTrial &paramtrial(active->getTrial(i));
     const ParamEntry *entrySlot = findEntry(paramtrial.getAddress(),paramtrial.getSize());
@@ -674,6 +687,14 @@ void ParamListStandard::buildTrialMap(ParamActive *active) const
       if (lastentry == (const ParamEntry *)0)
 	hitlist[grp] = entrySlot; // This is the first hit for this group
     }
+
+    AddrSpace *spc = paramtrial.getAddress().getSpace();
+    if (spc->getType() == IPTR_JOIN) throw LowlevelError("Unexpected join while excluding unallowed parameters");
+    // Add new varnode to takenUpVarnodes list
+    uint4 size = paramtrial.getSize();
+    uintb offset = paramtrial.getOffset();
+    uintb off = paramtrial.getAddress().getOffset();
+    takenUpVarnodes.push_back(Varnode(size,Address(spc,off),(Datatype *)0));
   }
 
   // Created unreferenced (unref) ParamTrial for any group that we don't have a representive for
@@ -696,6 +717,12 @@ void ParamListStandard::buildTrialMap(ParamActive *active) const
       int4 nextslot = 0;
       Address addr = curentry->getAddrBySlot(nextslot,sz);
       int4 trialpos = active->getNumTrials();
+      bool overlaps;
+      if (curentry->getSpace()->getType() == IPTR_JOIN)
+        overlaps = overlapsTakenUpVarnodes(takenUpVarnodes,*curentry);
+      else
+        overlaps = overlapsTakenUpVarnodes(takenUpVarnodes,addr,sz);
+      if (overlaps) continue;
       active->registerTrial(addr,sz);
       ParamTrial &paramtrial(active->getTrial(trialpos));
       paramtrial.markUnref();
