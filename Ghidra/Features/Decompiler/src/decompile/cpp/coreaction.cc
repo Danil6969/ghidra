@@ -2634,7 +2634,9 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
   }
   for(iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
     PcodeOp *op = *iter;
+    uint4 opc = op->code();
     if (isArrFunc(op)) return -1;
+    if ((opc == CPUI_CALL || opc == CPUI_CALLIND || opc == CPUI_CALLOTHER) && isArrFunc(def)) return -1;
   }
   
   return desccount;
