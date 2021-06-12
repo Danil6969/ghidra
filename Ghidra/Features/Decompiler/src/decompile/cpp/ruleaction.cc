@@ -4530,6 +4530,7 @@ int4 RuleConcatZero::applyOp(PcodeOp *op,Funcdata &data)
 {
   if (!op->getIn(1)->isConstant()) return 0;
   if (op->getIn(1)->getOffset() != 0) return 0;
+  if (op->getOut()->getSize() > 8) return 0; // No array shifts are allowed
 
   int4 sa = 8*op->getIn(1)->getSize();
   Varnode *highvn = op->getIn(0);
