@@ -1027,6 +1027,18 @@ TypeOpIntAdd::TypeOpIntAdd(TypeFactory *t)
   behave = new OpBehaviorIntAdd();
 }
 
+Datatype *TypeOpIntAdd::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
+}
+
+Datatype *TypeOpIntAdd::getOutputLocal(const PcodeOp *op) const
+
+{
+  return tlst->getBaseNoChar(op->getOut()->getSize(),TYPE_INT);
+}
+
 Datatype *TypeOpIntAdd::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
 
 {
@@ -1039,6 +1051,18 @@ TypeOpIntSub::TypeOpIntSub(TypeFactory *t)
   opflags = PcodeOp::binary;
   addlflags = inherits_sign;
   behave = new OpBehaviorIntSub();
+}
+
+Datatype *TypeOpIntSub::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
+}
+
+Datatype *TypeOpIntSub::getOutputLocal(const PcodeOp *op) const
+
+{
+  return tlst->getBaseNoChar(op->getOut()->getSize(),TYPE_INT);
 }
 
 Datatype *TypeOpIntSub::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
