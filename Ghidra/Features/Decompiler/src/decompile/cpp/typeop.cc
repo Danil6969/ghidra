@@ -1197,9 +1197,13 @@ TypeOpIntLeft::TypeOpIntLeft(TypeFactory *t)
 Datatype *TypeOpIntLeft::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
-  if (slot==1)
-    return tlst->getBaseNoChar(op->getIn(1)->getSize(),TYPE_INT);
-  return TypeOpBinary::getInputLocal(op,slot);
+  return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
+}
+
+Datatype *TypeOpIntLeft::getOutputLocal(const PcodeOp *op) const
+
+{
+  return tlst->getBaseNoChar(op->getOut()->getSize(),TYPE_INT);
 }
 
 Datatype *TypeOpIntLeft::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
@@ -1222,9 +1226,13 @@ TypeOpIntRight::TypeOpIntRight(TypeFactory *t)
 Datatype *TypeOpIntRight::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
-  if (slot==1)
-    return tlst->getBaseNoChar(op->getIn(1)->getSize(),TYPE_INT);
-  return TypeOpBinary::getInputLocal(op,slot);
+  return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
+}
+
+Datatype *TypeOpIntRight::getOutputLocal(const PcodeOp *op) const
+
+{
+  return tlst->getBaseNoChar(op->getOut()->getSize(),TYPE_INT);
 }
 
 Datatype *TypeOpIntRight::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
