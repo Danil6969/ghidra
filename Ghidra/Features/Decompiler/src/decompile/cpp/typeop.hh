@@ -320,7 +320,6 @@ class TypeOpIntSless : public TypeOpBinary {
 public:
   TypeOpIntSless(TypeFactory *t);			///< Constructor
   virtual void push(PrintLanguage *lng,const PcodeOp *op,const PcodeOp *readOp) const { lng->opIntSless(op); }
-  virtual Datatype *getInputLocal(const PcodeOp *op,int4 slot) const;
   virtual Datatype *getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const;
 };
 
@@ -329,7 +328,6 @@ class TypeOpIntSlessEqual : public TypeOpBinary {
 public:
   TypeOpIntSlessEqual(TypeFactory *t);			///< Constructor
   virtual void push(PrintLanguage *lng,const PcodeOp *op,const PcodeOp *readOp) const { lng->opIntSlessEqual(op); }
-  virtual Datatype *getInputLocal(const PcodeOp *op,int4 slot) const;
   virtual Datatype *getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const;
 };
 
