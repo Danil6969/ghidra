@@ -3164,8 +3164,6 @@ int4 RuleSignShift::applyOp(PcodeOp *op,Funcdata &data)
   val = constVn->getOffset();
   Varnode *inVn = op->getIn(0);
   if (val != 8*inVn->getSize() -1) return 0;
-  if (inVn->getSize() == 1) return 0; // No uchar/byte to char/sbyte conversion allowed as right
-  // part of signed comparison may contain constant which still will be unsigned character literal
   if (inVn->isFree()) return 0;
 
   bool doConversion = false;
