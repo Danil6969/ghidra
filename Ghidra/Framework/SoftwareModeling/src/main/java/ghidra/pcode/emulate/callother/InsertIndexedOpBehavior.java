@@ -54,10 +54,7 @@ public class InsertIndexedOpBehavior implements OpBehaviorOther {
 			throw new LowlevelError("CALLOTHER: Insert Indexed op emulator has encountered a too big index value");
 		}
 
-		int off = (int) memoryState.getValue(in3);
-		if (emu.getLanguage().isBigEndian())
-			off = in1.getSize() - in2.getSize() - off;
-		int shift = off * 8;
+		int shift = (int) memoryState.getValue(in3) * 8;
 		if (in1.getSize() > 8 || in2.getSize() > 8 || out.getSize() > 8) {
 			BigInteger mask = Utils.calc_bigmask(in2.getSize()).shiftLeft(shift);
 			mask = Utils.calc_bigmask(in1.getSize()).andNot(mask);
