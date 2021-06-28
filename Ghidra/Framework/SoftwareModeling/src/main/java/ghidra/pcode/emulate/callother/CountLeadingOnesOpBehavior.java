@@ -20,6 +20,8 @@ import ghidra.pcode.memstate.MemoryState;
 import ghidra.pcodeCPort.error.LowlevelError;
 import ghidra.program.model.pcode.Varnode;
 
+import java.math.BigInteger;
+
 public class CountLeadingOnesOpBehavior implements OpBehaviorOther {
 
 	@Override
@@ -34,24 +36,29 @@ public class CountLeadingOnesOpBehavior implements OpBehaviorOther {
 				"CALLOTHER: Count Leading Ones op requires one non-constant varnode input");
 		}
 
-		// TODO: add support for larger varnode sizes
-
+		MemoryState memoryState = emu.getMemoryState();
 		Varnode in = inputs[1];
 		if (in.getSize() > 8 || out.getSize() > 8) {
-			throw new LowlevelError(
-				"CALLOTHER: Count Leading Ones op only supports varnodes of size 8-bytes or less");
+			BigInteger value = memoryState.getBigInteger(in, false);
+			BigInteger mask = BigInteger.ONE.shiftLeft((in.getSize() * 8) - 1);
+			BigInteger count = BigInteger.ZERO;
+			while ( !(mask.and(value)).equals(BigInteger.ZERO) ) {
+				count = count.add(BigInteger.ONE);
+				value = value.shiftLeft(1);
+			}
+
+			memoryState.setValue(out, count);
 		}
+		else {
+			long value = memoryState.getValue(in);
+			long mask = 1L << ((in.getSize() * 8) - 1);
+			long count = 0;
+			while ((mask & value) != 0) {
+				++count;
+				value = value << 1;
+			}
 
-		MemoryState memoryState = emu.getMemoryState();
-
-		long value = memoryState.getValue(in);
-		long mask = 1L << ((in.getSize() * 8) - 1);
-		long count = 0;
-		while ( (mask & value) != 0 ) {
-			++count;
-			value = value << 1;
+			memoryState.setValue(out, count);
 		}
-
-		memoryState.setValue(out, count);
 	}
 }
