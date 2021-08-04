@@ -234,7 +234,7 @@ define register offset=0x1700 size=64  [ zmmOut zmmRes zmmTmp1 zmmTmp2 ];
 define register offset=0x1800 size=8   [ k0 k1 k2 k3 k4 k5 k6 k7 ];
 
 # Define context bits
-define register offset=0x2000 size=8   contextreg;
+define register offset=0x2000 size=12  contextreg;
 
 #
 #
@@ -288,9 +288,14 @@ define context contextreg
   suffix3D=(18,25)      # 3DNow suffix byte (overlaps un-modified vex context region)
 
   instrPhase=(31,31)    # 0: initial/prefix phase, 1: primary instruction phase
-  
+
   evexL=(32,33)
   evexFactor=(34,41)
+
+  # Insert here first if needed more
+
+  exceptFlag=(63,63)
+  exceptOffset=(64,95)
 ;
 
 
@@ -1703,6 +1708,17 @@ Suffix3D: imm8        is imm8 [ suffix3D=imm8; ] { }
 
 :^instruction is instrPhase=0 & (byte=0x0f; byte=0x0f; XmmReg1 ... & m64; Suffix3D) ... & instruction ... [ instrPhase=1; ] { }
 :^instruction is instrPhase=0 & (byte=0x0f; byte=0x0f; mmxmod=3; Suffix3D) ... & instruction ...         [ instrPhase=1; ] { }
+
+define pcodeop except;
+:^instruction is exceptFlag=1 & exceptOffset & instruction [ exceptFlag = 0; ]
+{
+    e:1 = except();
+    if (!e) goto <skip>;
+	rel:$(SIZE) = inst_next + exceptOffset;
+	goto [rel];
+	<skip>
+	build instruction;
+}
 
 
 # Instructions in alphabetical order
