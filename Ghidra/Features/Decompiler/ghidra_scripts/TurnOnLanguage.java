@@ -16,6 +16,7 @@
 import ghidra.app.script.GhidraScript;
 import ghidra.framework.options.Options;
 import ghidra.program.database.ProgramCompilerSpec;
+import ghidra.program.model.lang.DecompilerLanguage;
 
 public class TurnOnLanguage extends GhidraScript {
 
@@ -26,6 +27,8 @@ public class TurnOnLanguage extends GhidraScript {
 		decompilerPropertyList.registerOption(ProgramCompilerSpec.DECOMPILER_OUTPUT_LANGUAGE,
 			ProgramCompilerSpec.DECOMPILER_OUTPUT_DEF, null,
 			ProgramCompilerSpec.DECOMPILER_OUTPUT_DESC);
+		decompilerPropertyList.setEnum(ProgramCompilerSpec.DECOMPILER_OUTPUT_LANGUAGE,
+				DecompilerLanguage.C_LANGUAGE);
 	}
 
 }
