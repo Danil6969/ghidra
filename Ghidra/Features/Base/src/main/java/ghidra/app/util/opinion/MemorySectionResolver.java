@@ -369,26 +369,23 @@ public abstract class MemorySectionResolver {
 							comment = comment + " - displaced by " + priorityBlock.getName();
 						}
 					}
-					// As an overlay no conflict should ever occur
 					block = createInitializedBlock(section.key, true, blockName, physicalStartAddr,
 						fileOffset, rangeSize, comment, section.isReadable(), section.isWritable(),
 						section.isExecute(), monitor);
+				}
+				else {
+					block = createInitializedBlock(section.key, false, blockName, physicalStartAddr,
+						fileOffset, rangeSize, section.getComment(), section.isReadable(),
+						section.isWritable(), section.isExecute(), monitor);
+				}
+				if (block != null) {
 					minAddr = block.getStart();
 					maxAddr = block.getEnd();
 				}
 				else {
-					// block may be null due to unexpected conflict
-					block = createInitializedBlock(section.key, false, blockName, physicalStartAddr,
-						fileOffset, rangeSize, section.getComment(), section.isReadable(),
-						section.isWritable(), section.isExecute(), monitor);
+					// block may be null due to unexpected conflict or pruning - allow to continue
 					minAddr = physicalStartAddr;
 					maxAddr = physicalStartAddr.addNoWrap(rangeSize - 1);
-					if (block == null) {
-						// This is a bug but allow load to continue by not referring to block below
-						Msg.error(this,
-							"Unexpected ELF memory bock load conflict when creating '" + blockName +
-								"' at " + minAddr.toString(true) + "-" + maxAddr.toString(true));
-					}
 				}
 				if (fileLoadRangeMap != null) {
 					long chunkFileOffset = section.getFileOffset() + sectionByteOffset;
