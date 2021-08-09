@@ -2632,20 +2632,6 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
     desccount += 1;
     if (desccount > maxref) return -1; // Must not exceed max descendants
   }
-  for(iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
-    PcodeOp *op = *iter;
-    uint4 opc = op->code();
-    bool isIndexVn = false;
-    if (opc == CPUI_CALLOTHER) {
-      string nm = op->getOpcode()->getOperatorName(op);
-      if (nm == "extractind")
-        isIndexVn = (vn == op->getIn(2));
-      else if (nm == "insertind")
-        isIndexVn = (vn == op->getIn(3));
-    }
-    if (isArrFunc(op) && !isIndexVn) return -1;
-    if ((opc == CPUI_CALL || opc == CPUI_CALLIND || opc == CPUI_CALLOTHER) && isArrFunc(def)) return -1;
-  }
   
   return desccount;
 }
