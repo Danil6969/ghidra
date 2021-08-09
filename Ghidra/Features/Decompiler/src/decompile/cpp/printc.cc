@@ -385,7 +385,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
       pushOp(&hidden,op);
       pushVnImplied(op->getIn(0),op,mods);
     }
-    else if (op->getIn(0)->isConstant()) {
+    else if (op->getIn(0)->isConstant() || op->getIn(0)->isImplied()) {
       pushOp(&function_call,op);
       s << name << op->getIn(0)->getSize();
       pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
@@ -402,7 +402,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
       pushOp(&hidden,op);
       pushVnImplied(op->getIn(1),op,mods);
     }
-    else if (op->getIn(1)->isConstant()) {
+    else if (op->getIn(1)->isConstant() || op->getIn(1)->isImplied()) {
       pushOp(&function_call,op);
       s << name << op->getIn(1)->getSize();
       pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
@@ -420,7 +420,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
       pushOp(&hidden,op);
       pushVnImplied(op->getIn(0),op,mods);
     }
-    else if (op->getIn(0)->isConstant()) {
+    else if (op->getIn(0)->isConstant() || op->getIn(0)->isImplied()) {
       pushOp(&function_call,op);
       s << name << op->getIn(0)->getSize();
       pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
@@ -457,13 +457,13 @@ void PrintC::opTypeCast(const PcodeOp *op)
   if (!option_nocasts && op->getOut()->getHigh()->getType()->getName() != op->getIn(0)->getHigh()->getType()->getName()) {
     bool outArr = op->getOut()->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
     bool inArr  = op->getIn(0)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
-    bool addr = !inArr && outArr && !op->getIn(0)->isConstant();
+    bool addr = !inArr && outArr && !op->getIn(0)->isConstant() && !op->getIn(0)->isImplied();
     if (!addr)
       pushOp(&function_call,op);
     if (inArr && !outArr)
       pushAtom(Atom("CASTARR",optoken,EmitXml::no_color,op)); // cast with dereference
     else if (!inArr && outArr) {
-      if (op->getIn(0)->isConstant()) {
+      if (op->getIn(0)->isConstant() || op->getIn(0)->isImplied()) {
         ostringstream s;
         s << "TOARR" << op->getOut()->getSize();
         pushAtom(Atom(s.str(), optoken, EmitXml::no_color, op)); // cast with array allocation on stack
@@ -476,7 +476,7 @@ void PrintC::opTypeCast(const PcodeOp *op)
     if (!addr)
       pushOp(&comma,op);
     pushVnImplied(op->getIn(0),op,mods);
-    if (!inArr && outArr && op->getIn(0)->isConstant())
+    if (!inArr && outArr && (op->getIn(0)->isConstant() || op->getIn(0)->isImplied()))
       pushType(op->getIn(0)->getHigh()->getType()); // TOARR prints input type
     else if (!addr)
       pushType(op->getOut()->getHigh()->getType()); // anything else prints output type except address
@@ -715,7 +715,7 @@ void PrintC::opExtractInd(const PcodeOp *op)
     pushOp(&hidden, op);
     pushVnImplied(op->getIn(1), op, mods);
   }
-  else if (op->getIn(1)->isConstant()) {
+  else if (op->getIn(1)->isConstant() || op->getIn(1)->isImplied()) {
     pushOp(&function_call, op);
     s << name << op->getIn(1)->getSize();
     pushAtom(Atom(s.str(), optoken, EmitXml::no_color, op));
@@ -756,7 +756,7 @@ void PrintC::opInsertInd(const PcodeOp *op)
     pushOp(&hidden, op);
     pushVnImplied(op->getIn(1), op, mods);
   }
-  else if (op->getIn(1)->isConstant()) {
+  else if (op->getIn(1)->isConstant() || op->getIn(1)->isImplied()) {
     pushOp(&function_call, op);
     s << name << op->getIn(1)->getSize();
     pushAtom(Atom(s.str(), optoken, EmitXml::no_color, op));
@@ -772,7 +772,7 @@ void PrintC::opInsertInd(const PcodeOp *op)
     pushOp(&hidden, op);
     pushVnImplied(op->getIn(2), op, mods);
   }
-  else if (op->getIn(2)->isConstant()) {
+  else if (op->getIn(2)->isConstant() || op->getIn(2)->isImplied()) {
     pushOp(&function_call,op);
     s << name << op->getIn(2)->getSize();
     pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
