@@ -5095,7 +5095,7 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop->addRule( new RuleLogic2Bool("analysis") );
 	actprop->addRule( new RuleSubExtComm("analysis") );
 	actprop->addRule( new RuleSubCommute("analysis") );
-	actprop->addRule( new RuleConcatCommute("analysis") );
+	//actprop->addRule( new RuleConcatCommute("analysis") );
 	actprop->addRule( new RuleConcatZext("analysis") );
 	actprop->addRule( new RuleZextCommute("analysis") );
 	actprop->addRule( new RuleZextShiftZext("analysis") );
