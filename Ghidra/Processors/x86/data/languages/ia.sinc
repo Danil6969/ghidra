@@ -8286,11 +8286,11 @@ define pcodeop pmaxsb;
 :PMAXSB XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3C; xmmmod=3 & XmmReg1 & XmmReg2 { XmmReg1 = pmaxsb(XmmReg1, XmmReg2); }
 
 define pcodeop pmaxuw;
-:PMAXUW XmmReg1, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3E; XmmReg1 ... & m128 { XmmReg1 = pmaxuw(XmmReg1, m128); }
+:PMAXUW XmmReg, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3E; XmmReg ... & m128 { XmmReg = pmaxuw(XmmReg, m128); }
 :PMAXUW XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3E; xmmmod=3 & XmmReg1 & XmmReg2 { XmmReg1 = pmaxuw(XmmReg1, XmmReg2); }
 
 define pcodeop pmaxud;
-:PMAXUD XmmReg1, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3F; XmmReg1 ... & m128 { XmmReg1 = pmaxud(XmmReg1, m128); }
+:PMAXUD XmmReg, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3F; XmmReg ... & m128 { XmmReg = pmaxud(XmmReg, m128); }
 :PMAXUD XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3F; xmmmod=3 & XmmReg1 & XmmReg2 { XmmReg1 = pmaxud(XmmReg1, XmmReg2); }
 
 define pcodeop pmaxsd;
