@@ -6592,7 +6592,7 @@ define pcodeop pavgw;
     mmxreg1[32,32] = zext(mmxreg1[32,32] == mmxreg2[32,32]) * 0xFFFFFFFF;
 }
 
-:PCMPEQB       XmmReg, m128      is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0x74; m128 & XmmReg ...
+:PCMPEQB       XmmReg1, m128      is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0x74; m128 & XmmReg1 ...
 {
     local m:16 = m128;
     XmmReg1[0,8] = (XmmReg1[0,8] == m[0,8]) * 0xFF;
@@ -6929,24 +6929,24 @@ macro assignUnsignedGreater(dest, x, y){
 	assignUnsignedGreater(mmxreg1[56,8],mmxreg1[56,8],mmxreg2[56,8]);
 }
 
-:PMAXUB        XmmReg, m128     is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0xDE; XmmReg ... & m128 
+:PMAXUB        XmmReg1, m128     is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0xDE; XmmReg1 ... & m128 
 { 
-	assignUnsignedGreater(XmmReg[0,8],XmmReg[0,8],m128[0,8]);
-	assignUnsignedGreater(XmmReg[8,8],XmmReg[8,8],m128[8,8]);
-	assignUnsignedGreater(XmmReg[16,8],XmmReg[16,8],m128[16,8]);
-	assignUnsignedGreater(XmmReg[24,8],XmmReg[24,8],m128[24,8]);
-	assignUnsignedGreater(XmmReg[32,8],XmmReg[32,8],m128[32,8]);
-	assignUnsignedGreater(XmmReg[40,8],XmmReg[40,8],m128[40,8]);
-	assignUnsignedGreater(XmmReg[48,8],XmmReg[48,8],m128[48,8]);
-	assignUnsignedGreater(XmmReg[56,8],XmmReg[56,8],m128[56,8]);
-	assignUnsignedGreater(XmmReg[64,8],XmmReg[64,8],m128[64,8]);
-	assignUnsignedGreater(XmmReg[72,8],XmmReg[72,8],m128[72,8]);
-	assignUnsignedGreater(XmmReg[80,8],XmmReg[80,8],m128[80,8]);
-	assignUnsignedGreater(XmmReg[88,8],XmmReg[88,8],m128[88,8]);
-	assignUnsignedGreater(XmmReg[96,8],XmmReg[96,8],m128[96,8]);
-	assignUnsignedGreater(XmmReg[104,8],XmmReg[104,8],m128[104,8]);
-	assignUnsignedGreater(XmmReg[112,8],XmmReg[112,8],m128[112,8]);
-	assignUnsignedGreater(XmmReg[120,8],XmmReg[120,8],m128[120,8]);
+	assignUnsignedGreater(XmmReg1[0,8],XmmReg1[0,8],m128[0,8]);
+	assignUnsignedGreater(XmmReg1[8,8],XmmReg1[8,8],m128[8,8]);
+	assignUnsignedGreater(XmmReg1[16,8],XmmReg1[16,8],m128[16,8]);
+	assignUnsignedGreater(XmmReg1[24,8],XmmReg1[24,8],m128[24,8]);
+	assignUnsignedGreater(XmmReg1[32,8],XmmReg1[32,8],m128[32,8]);
+	assignUnsignedGreater(XmmReg1[40,8],XmmReg1[40,8],m128[40,8]);
+	assignUnsignedGreater(XmmReg1[48,8],XmmReg1[48,8],m128[48,8]);
+	assignUnsignedGreater(XmmReg1[56,8],XmmReg1[56,8],m128[56,8]);
+	assignUnsignedGreater(XmmReg1[64,8],XmmReg1[64,8],m128[64,8]);
+	assignUnsignedGreater(XmmReg1[72,8],XmmReg1[72,8],m128[72,8]);
+	assignUnsignedGreater(XmmReg1[80,8],XmmReg1[80,8],m128[80,8]);
+	assignUnsignedGreater(XmmReg1[88,8],XmmReg1[88,8],m128[88,8]);
+	assignUnsignedGreater(XmmReg1[96,8],XmmReg1[96,8],m128[96,8]);
+	assignUnsignedGreater(XmmReg1[104,8],XmmReg1[104,8],m128[104,8]);
+	assignUnsignedGreater(XmmReg1[112,8],XmmReg1[112,8],m128[112,8]);
+	assignUnsignedGreater(XmmReg1[120,8],XmmReg1[120,8],m128[120,8]);
 }
 
 :PMAXUB        XmmReg1, XmmReg2 is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0xDE; xmmmod = 3 & XmmReg1 & XmmReg2 
@@ -7003,24 +7003,24 @@ macro assignUnsignedLesser(dest, x, y){
 	assignUnsignedLesser(mmxreg1[56,8],mmxreg1[56,8],mmxreg2[56,8]);
 }
 
-:PMINUB        XmmReg, m128     is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0xDA; XmmReg ... & m128 
+:PMINUB        XmmReg1, m128     is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0xDA; XmmReg1 ... & m128 
 { 
-	assignUnsignedLesser(XmmReg[0,8],XmmReg[0,8],m128[0,8]);
-	assignUnsignedLesser(XmmReg[8,8],XmmReg[8,8],m128[8,8]);
-	assignUnsignedLesser(XmmReg[16,8],XmmReg[16,8],m128[16,8]);
-	assignUnsignedLesser(XmmReg[24,8],XmmReg[24,8],m128[24,8]);
-	assignUnsignedLesser(XmmReg[32,8],XmmReg[32,8],m128[32,8]);
-	assignUnsignedLesser(XmmReg[40,8],XmmReg[40,8],m128[40,8]);
-	assignUnsignedLesser(XmmReg[48,8],XmmReg[48,8],m128[48,8]);
-	assignUnsignedLesser(XmmReg[56,8],XmmReg[56,8],m128[56,8]);
-	assignUnsignedLesser(XmmReg[64,8],XmmReg[64,8],m128[64,8]);
-	assignUnsignedLesser(XmmReg[72,8],XmmReg[72,8],m128[72,8]);
-	assignUnsignedLesser(XmmReg[80,8],XmmReg[80,8],m128[80,8]);
-	assignUnsignedLesser(XmmReg[88,8],XmmReg[88,8],m128[88,8]);
-	assignUnsignedLesser(XmmReg[96,8],XmmReg[96,8],m128[96,8]);
-	assignUnsignedLesser(XmmReg[104,8],XmmReg[104,8],m128[104,8]);
-	assignUnsignedLesser(XmmReg[112,8],XmmReg[112,8],m128[112,8]);
-	assignUnsignedLesser(XmmReg[120,8],XmmReg[120,8],m128[120,8]);
+	assignUnsignedLesser(XmmReg1[0,8],XmmReg1[0,8],m128[0,8]);
+	assignUnsignedLesser(XmmReg1[8,8],XmmReg1[8,8],m128[8,8]);
+	assignUnsignedLesser(XmmReg1[16,8],XmmReg1[16,8],m128[16,8]);
+	assignUnsignedLesser(XmmReg1[24,8],XmmReg1[24,8],m128[24,8]);
+	assignUnsignedLesser(XmmReg1[32,8],XmmReg1[32,8],m128[32,8]);
+	assignUnsignedLesser(XmmReg1[40,8],XmmReg1[40,8],m128[40,8]);
+	assignUnsignedLesser(XmmReg1[48,8],XmmReg1[48,8],m128[48,8]);
+	assignUnsignedLesser(XmmReg1[56,8],XmmReg1[56,8],m128[56,8]);
+	assignUnsignedLesser(XmmReg1[64,8],XmmReg1[64,8],m128[64,8]);
+	assignUnsignedLesser(XmmReg1[72,8],XmmReg1[72,8],m128[72,8]);
+	assignUnsignedLesser(XmmReg1[80,8],XmmReg1[80,8],m128[80,8]);
+	assignUnsignedLesser(XmmReg1[88,8],XmmReg1[88,8],m128[88,8]);
+	assignUnsignedLesser(XmmReg1[96,8],XmmReg1[96,8],m128[96,8]);
+	assignUnsignedLesser(XmmReg1[104,8],XmmReg1[104,8],m128[104,8]);
+	assignUnsignedLesser(XmmReg1[112,8],XmmReg1[112,8],m128[112,8]);
+	assignUnsignedLesser(XmmReg1[120,8],XmmReg1[120,8],m128[120,8]);
 }
 
 :PMINUB        XmmReg1, XmmReg2 is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0xDA; xmmmod = 3 & XmmReg1 & XmmReg2 
@@ -8442,16 +8442,16 @@ define pcodeop pminsb;
 :PMINSB XmmReg1, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x38; XmmReg1 ... & m128 { XmmReg1 = pminsb(XmmReg1, m128); }
 :PMINSB XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x38; xmmmod=3 & XmmReg1 & XmmReg2 { XmmReg1 = pminsb(XmmReg1, XmmReg2); }
 
-:PMINUW XmmReg, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3A; XmmReg ... & m128 
+:PMINUW XmmReg1, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3A; XmmReg1 ... & m128 
 { 
-    assignUnsignedLesser(XmmReg[0,16],XmmReg[0,16],m128[0,16]);
-	assignUnsignedLesser(XmmReg[16,16],XmmReg[16,16],m128[16,16]);
-	assignUnsignedLesser(XmmReg[32,16],XmmReg[32,16],m128[32,16]);
-	assignUnsignedLesser(XmmReg[48,16],XmmReg[48,16],m128[48,16]);
-	assignUnsignedLesser(XmmReg[64,16],XmmReg[64,16],m128[64,16]);
-	assignUnsignedLesser(XmmReg[80,16],XmmReg[80,16],m128[80,16]);
-	assignUnsignedLesser(XmmReg[96,16],XmmReg[96,16],m128[96,16]);
-	assignUnsignedLesser(XmmReg[112,16],XmmReg[112,16],m128[112,16]);	
+    assignUnsignedLesser(XmmReg1[0,16],XmmReg1[0,16],m128[0,16]);
+	assignUnsignedLesser(XmmReg1[16,16],XmmReg1[16,16],m128[16,16]);
+	assignUnsignedLesser(XmmReg1[32,16],XmmReg1[32,16],m128[32,16]);
+	assignUnsignedLesser(XmmReg1[48,16],XmmReg1[48,16],m128[48,16]);
+	assignUnsignedLesser(XmmReg1[64,16],XmmReg1[64,16],m128[64,16]);
+	assignUnsignedLesser(XmmReg1[80,16],XmmReg1[80,16],m128[80,16]);
+	assignUnsignedLesser(XmmReg1[96,16],XmmReg1[96,16],m128[96,16]);
+	assignUnsignedLesser(XmmReg1[112,16],XmmReg1[112,16],m128[112,16]);	
 }
 :PMINUW XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3A; xmmmod=3 & XmmReg1 & XmmReg2 
 { 
@@ -8465,12 +8465,12 @@ define pcodeop pminsb;
 	assignUnsignedLesser(XmmReg1[112,16],XmmReg1[112,16],XmmReg2[112,16]);
 }
 
-:PMINUD XmmReg, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3B; XmmReg ... & m128 
+:PMINUD XmmReg1, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3B; XmmReg1 ... & m128 
 { 
-	assignUnsignedLesser(XmmReg[0,32],XmmReg[0,32],m128[0,32]);
-	assignUnsignedLesser(XmmReg[32,32],XmmReg[32,32],m128[32,32]);
-	assignUnsignedLesser(XmmReg[64,32],XmmReg[64,32],m128[64,32]);
-	assignUnsignedLesser(XmmReg[96,32],XmmReg[96,32],m128[96,32]);
+	assignUnsignedLesser(XmmReg1[0,32],XmmReg1[0,32],m128[0,32]);
+	assignUnsignedLesser(XmmReg1[32,32],XmmReg1[32,32],m128[32,32]);
+	assignUnsignedLesser(XmmReg1[64,32],XmmReg1[64,32],m128[64,32]);
+	assignUnsignedLesser(XmmReg1[96,32],XmmReg1[96,32],m128[96,32]);
 }
 :PMINUD XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3B; xmmmod=3 & XmmReg1 & XmmReg2 
 { 
@@ -8489,16 +8489,16 @@ define pcodeop pmaxsb;
 :PMAXSB XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3C; xmmmod=3 & XmmReg1 & XmmReg2 { XmmReg1 = pmaxsb(XmmReg1, XmmReg2); }
 
 
-:PMAXUW XmmReg, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3E; XmmReg ... & m128 
+:PMAXUW XmmReg1, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3E; XmmReg1 ... & m128 
 { 
-	assignUnsignedGreater(XmmReg[0,16],XmmReg[0,16],m128[0,16]);
-	assignUnsignedGreater(XmmReg[16,16],XmmReg[16,16],m128[16,16]);
-	assignUnsignedGreater(XmmReg[32,16],XmmReg[32,16],m128[32,16]);
-	assignUnsignedGreater(XmmReg[48,16],XmmReg[48,16],m128[48,16]);
-	assignUnsignedGreater(XmmReg[64,16],XmmReg[64,16],m128[64,16]);
-	assignUnsignedGreater(XmmReg[80,16],XmmReg[80,16],m128[80,16]);
-	assignUnsignedGreater(XmmReg[96,16],XmmReg[96,16],m128[96,16]);
-	assignUnsignedGreater(XmmReg[112,16],XmmReg[112,16],m128[112,16]);
+	assignUnsignedGreater(XmmReg1[0,16],XmmReg1[0,16],m128[0,16]);
+	assignUnsignedGreater(XmmReg1[16,16],XmmReg1[16,16],m128[16,16]);
+	assignUnsignedGreater(XmmReg1[32,16],XmmReg1[32,16],m128[32,16]);
+	assignUnsignedGreater(XmmReg1[48,16],XmmReg1[48,16],m128[48,16]);
+	assignUnsignedGreater(XmmReg1[64,16],XmmReg1[64,16],m128[64,16]);
+	assignUnsignedGreater(XmmReg1[80,16],XmmReg1[80,16],m128[80,16]);
+	assignUnsignedGreater(XmmReg1[96,16],XmmReg1[96,16],m128[96,16]);
+	assignUnsignedGreater(XmmReg1[112,16],XmmReg1[112,16],m128[112,16]);
 }
 
 :PMAXUW XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3E; xmmmod=3 & XmmReg1 & XmmReg2 
@@ -8513,12 +8513,12 @@ define pcodeop pmaxsb;
 	assignUnsignedGreater(XmmReg1[112,16],XmmReg1[112,16],XmmReg2[112,16]);
 }
 
-:PMAXUD XmmReg, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3F; XmmReg ... & m128 
+:PMAXUD XmmReg1, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3F; XmmReg1 ... & m128 
 { 
-	assignUnsignedGreater(XmmReg[0,32],XmmReg[0,32],m128[0,32]);
-	assignUnsignedGreater(XmmReg[32,32],XmmReg[32,32],m128[32,32]);
-	assignUnsignedGreater(XmmReg[64,32],XmmReg[64,32],m128[64,32]);
-	assignUnsignedGreater(XmmReg[96,32],XmmReg[96,32],m128[96,32]);
+	assignUnsignedGreater(XmmReg1[0,32],XmmReg1[0,32],m128[0,32]);
+	assignUnsignedGreater(XmmReg1[32,32],XmmReg1[32,32],m128[32,32]);
+	assignUnsignedGreater(XmmReg1[64,32],XmmReg1[64,32],m128[64,32]);
+	assignUnsignedGreater(XmmReg1[96,32],XmmReg1[96,32],m128[96,32]);
 }
 
 :PMAXUD XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3F; xmmmod=3 & XmmReg1 & XmmReg2 
@@ -8651,10 +8651,10 @@ define pcodeop pmovzxdq;
     SF = 0;
 }
 
-:PCMPEQQ XmmReg, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x29; XmmReg ... & m128 
+:PCMPEQQ XmmReg1, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x29; XmmReg1 ... & m128 
 { 
-	XmmReg[0,64] = zext(XmmReg[0,64] == m128[0,64]) * 0xffffffffffffffff:8;
-	XmmReg[64,64] = zext(XmmReg[64,64] == m128[64,64]) * 0xffffffffffffffff:8;
+	XmmReg1[0,64] = zext(XmmReg1[0,64] == m128[0,64]) * 0xffffffffffffffff:8;
+	XmmReg1[64,64] = zext(XmmReg1[64,64] == m128[64,64]) * 0xffffffffffffffff:8;
 }
 :PCMPEQQ XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x29; xmmmod=3 & XmmReg1 & XmmReg2 
 { 
