@@ -513,8 +513,9 @@ void PrintC::opLoad(const PcodeOp *op)
   uint4 m = mods;
   if (usearray&&(!isSet(force_pointer)))
     m |= print_load_value;
-  else if (op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY)
+  else if (op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY) {
     pushOp(&dereference,op);
+  }
   pushVnImplied(op->getIn(1),op,m);
 }
 
@@ -535,8 +536,9 @@ void PrintC::opStore(const PcodeOp *op)
   }
   if (usearray && (!isSet(force_pointer)))
     m |= print_store_value;
-  else if (op->getIn(2)->getHigh()->getType()->getMetatype() != TYPE_ARRAY)
+  else if (op->getIn(2)->getHigh()->getType()->getMetatype() != TYPE_ARRAY) {
     pushOp(&dereference,op);
+  }
   // implied vn's pushed on in reverse order for efficiency
   // see PrintLanguage::pushVnImplied
   pushVnImplied(op->getIn(2),op,mods);
