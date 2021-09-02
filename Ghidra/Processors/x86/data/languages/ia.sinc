@@ -6905,7 +6905,7 @@ define pcodeop pmaxsw;
 define pcodeop pmaxub;
 :PMAXUB        mmxreg, m64      is vexMode=0 &  mandover=0 & byte=0x0F; byte=0xDE; mmxreg ... & m64 { mmxreg = pmaxub(mmxreg, m64); }
 :PMAXUB        mmxreg1, mmxreg2 is vexMode=0 &  mandover=0 & byte=0x0F; byte=0xDE; mmxmod = 3 & mmxreg1 & mmxreg2 { mmxreg1 = pmaxub(mmxreg1, mmxreg2); }
-:PMAXUB        XmmReg1, m128     is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0xDE; XmmReg1 ... & m128 { XmmReg1 = pmaxub(XmmReg1, m128); }
+:PMAXUB        XmmReg, m128     is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0xDE; XmmReg ... & m128 { XmmReg = pmaxub(XmmReg, m128); }
 :PMAXUB        XmmReg1, XmmReg2 is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0xDE; xmmmod = 3 & XmmReg1 & XmmReg2 { XmmReg1 = pmaxub(XmmReg1, XmmReg2); }
 
 define pcodeop pminsw;
@@ -6917,7 +6917,7 @@ define pcodeop pminsw;
 define pcodeop pminub;
 :PMINUB        mmxreg, m64      is vexMode=0 &  mandover=0 & byte=0x0F; byte=0xDA; mmxreg ... & m64 { mmxreg = pminub(mmxreg, m64); }
 :PMINUB        mmxreg1, mmxreg2 is vexMode=0 &  mandover=0 & byte=0x0F; byte=0xDA; mmxmod = 3 & mmxreg1 & mmxreg2 { mmxreg1 = pminub(mmxreg1, mmxreg2); }
-:PMINUB        XmmReg1, m128     is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0xDA; XmmReg1 ... & m128 { XmmReg1 = pminub(XmmReg1, m128); }
+:PMINUB        XmmReg, m128     is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0xDA; XmmReg ... & m128 { XmmReg = pminub(XmmReg, m128); }
 :PMINUB        XmmReg1, XmmReg2 is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0xDA; xmmmod = 3 & XmmReg1 & XmmReg2 { XmmReg1 = pminub(XmmReg1, XmmReg2); }
 
 define pcodeop pmovmskb;
@@ -8270,11 +8270,11 @@ define pcodeop pminsb;
 :PMINSB XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x38; xmmmod=3 & XmmReg1 & XmmReg2 { XmmReg1 = pminsb(XmmReg1, XmmReg2); }
 
 define pcodeop pminuw;
-:PMINUW XmmReg1, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3A; XmmReg1 ... & m128 { XmmReg1 = pminuw(XmmReg1, m128); }
+:PMINUW XmmReg, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3A; XmmReg ... & m128 { XmmReg = pminuw(XmmReg, m128); }
 :PMINUW XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3A; xmmmod=3 & XmmReg1 & XmmReg2 { XmmReg1 = pminuw(XmmReg1, XmmReg2); }
 
 define pcodeop pminud;
-:PMINUD XmmReg1, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3B; XmmReg1 ... & m128 { XmmReg1 = pminud(XmmReg1, m128); }
+:PMINUD XmmReg, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3B; XmmReg ... & m128 { XmmReg = pminud(XmmReg, m128); }
 :PMINUD XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x3B; xmmmod=3 & XmmReg1 & XmmReg2 { XmmReg1 = pminud(XmmReg1, XmmReg2); }
 
 define pcodeop pminsd;
@@ -8416,7 +8416,7 @@ define pcodeop pmovzxdq;
 }
 
 define pcodeop pcmpeqq;
-:PCMPEQQ XmmReg1, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x29; XmmReg1 ... & m128 { XmmReg1 = pcmpeqq(XmmReg1, m128); }
+:PCMPEQQ XmmReg, m128     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x29; XmmReg ... & m128 { XmmReg = pcmpeqq(XmmReg, m128); }
 :PCMPEQQ XmmReg1, XmmReg2 is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0x38; byte=0x29; xmmmod=3 & XmmReg1 & XmmReg2 { XmmReg1 = pcmpeqq(XmmReg1, XmmReg2); }
 
 define pcodeop packusdw;
