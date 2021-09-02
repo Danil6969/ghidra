@@ -6593,7 +6593,7 @@ define pcodeop pavgw;
 }
 
 define pcodeop pcmpeqb;
-:PCMPEQB       XmmReg1, m128      is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0x74; m128 & XmmReg1 ...
+:PCMPEQB       XmmReg, m128      is vexMode=0 &  $(PRE_66) & byte=0x0F; byte=0x74; m128 & XmmReg ...
 {
     local m:16 = m128;
     XmmReg1[0,8] = (XmmReg1[0,8] == m[0,8]) * 0xFF;
