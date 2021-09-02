@@ -34,7 +34,7 @@ public abstract class AbstractModifiedPcodeThread<T> extends DefaultPcodeThread<
 
 	protected class GlueEmulate extends Emulate {
 		public GlueEmulate(SleighLanguage lang, MemoryState s, BreakTable b) {
-			super(lang, s, b);
+			super(null, lang, s, b, null, null);
 		}
 
 		@Override
