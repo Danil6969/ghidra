@@ -35,7 +35,7 @@ public class BytesPcodeThread extends DefaultPcodeThread<byte[]> {
 
 	protected class GlueEmulate extends Emulate {
 		public GlueEmulate(SleighLanguage lang, MemoryState s, BreakTable b) {
-			super(null, lang, s, b, null, null);
+			super(lang, s, b);
 		}
 
 		@Override
