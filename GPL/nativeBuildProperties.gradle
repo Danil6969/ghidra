@@ -23,14 +23,6 @@ apply plugin: 'c'
  * for all native builds and should be extended by each module as-needed.
  ****************************************************************************/
 model {
-	/*toolChains {
-		vc(VisualCpp) {
-			installDir "C:/Program Files (x86)/Microsoft Visual Studio/2019/BuildTools"
-		}
-		clang(Clang) {
-			path "C:\\msys64\\mingw64\\bin"
-		}
-	}*/
 	// define the platforms that we support in ghidra
 	platforms {
 		win32 {
