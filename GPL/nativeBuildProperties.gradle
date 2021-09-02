@@ -23,6 +23,7 @@ apply plugin: 'c'
  * for all native builds and should be extended by each module as-needed.
  ****************************************************************************/
 model {
+
 	// define the platforms that we support in ghidra
 	platforms {
 		win32 {
