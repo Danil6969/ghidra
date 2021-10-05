@@ -64,7 +64,7 @@ public class HighExternalSymbol extends HighSymbol {
 		}
 		buf.append(">\n");
 		AddressXML.buildXML(buf, resolveAddress);
-		if (type != null && !type.equals(DataType.DEFAULT)) buf.append(dtmanage.buildTypeRef(type, getSize()));
+		if (type != null && !type.equals(DataType.DEFAULT)) buf.append(dtmanage.buildTypeRef(buf, type, getSize()));
 		buf.append("</externrefsymbol>\n");
 	}
 }
