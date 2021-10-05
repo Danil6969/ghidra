@@ -21,7 +21,8 @@ import java.util.*;
 import ghidra.app.plugin.processors.sleigh.SleighLanguage;
 import ghidra.pcode.exec.*;
 import ghidra.program.model.address.Address;
-import ghidra.program.model.lang.*;
+import ghidra.program.model.lang.Register;
+import ghidra.program.model.lang.RegisterValue;
 import ghidra.program.model.listing.Instruction;
 import ghidra.program.model.pcode.PcodeOp;
 import ghidra.program.util.ProgramContextImpl;
@@ -69,7 +70,7 @@ public class DefaultPcodeThread<T> implements PcodeThread<T> {
 	protected class PcodeThreadExecutor extends PcodeExecutor<T> {
 		volatile boolean suspended = false;
 
-		public PcodeThreadExecutor(Language language, PcodeArithmetic<T> arithmetic,
+		public PcodeThreadExecutor(SleighLanguage language, PcodeArithmetic<T> arithmetic,
 				PcodeExecutorStatePiece<T, T> state) {
 			super(language, arithmetic, state);
 		}
@@ -124,7 +125,7 @@ public class DefaultPcodeThread<T> implements PcodeThread<T> {
 		this.pc = language.getProgramCounter();
 		this.contextreg = language.getContextBaseRegister();
 
-		if (contextreg != null) {
+		if (contextreg != Register.NO_CONTEXT) {
 			defaultContext = new ProgramContextImpl(language);
 			language.applyContextSettings(defaultContext);
 			this.context = defaultContext.getDefaultDisassemblyContext();
@@ -196,7 +197,7 @@ public class DefaultPcodeThread<T> implements PcodeThread<T> {
 
 	@Override
 	public void overrideContextWithDefault() {
-		if (contextreg != null) {
+		if (contextreg != Register.NO_CONTEXT) {
 			overrideContext(defaultContext.getDefaultValue(contextreg, counter));
 		}
 	}
@@ -212,7 +213,7 @@ public class DefaultPcodeThread<T> implements PcodeThread<T> {
 		long offset = arithmetic.toConcrete(state.getVar(pc)).longValue();
 		setCounter(language.getDefaultSpace().getAddress(offset));
 
-		if (contextreg != null) {
+		if (contextreg != Register.NO_CONTEXT) {
 			try {
 				BigInteger ctx = arithmetic.toConcrete(state.getVar(contextreg));
 				assignContext(new RegisterValue(contextreg, ctx));
@@ -277,7 +278,7 @@ public class DefaultPcodeThread<T> implements PcodeThread<T> {
 		if (frame.isFallThrough()) {
 			overrideCounter(counter.addWrap(decoder.getLastLengthWithDelays()));
 		}
-		if (contextreg != null) {
+		if (contextreg != Register.NO_CONTEXT) {
 			overrideContext(instruction.getRegisterValue(contextreg));
 		}
 		postExecuteInstruction();

@@ -59,7 +59,7 @@ public class BinaryField extends Field {
 	}
 
 	@Override
-	boolean isNull() {
+	public boolean isNull() {
 		return data == null;
 	}
 
@@ -188,6 +188,9 @@ public class BinaryField extends Field {
 
 	@Override
 	public BinaryField copyField() {
+		if (isNull()) {
+			return new BinaryField();
+		}
 		return new BinaryField(getBinaryData().clone());
 	}
 

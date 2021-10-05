@@ -257,9 +257,7 @@ public interface DebuggerResources {
 	Color DEFAULT_COLOR_BACKGROUND_ERROR = new Color(1.0f, 0.75f, 0.75f);
 
 	int PRIORITY_REGISTER_MARKER = 10;
-	// TODO: Is this the right name? Used by Location Tracking, which could be anything
-	// Close enough for now
-	String OPTION_NAME_COLORS_REGISTER_MARKERS = "Colors.Register Markers";
+	String OPTION_NAME_COLORS_TRACKING_MARKERS = "Colors.Tracking Markers";
 	Color DEFAULT_COLOR_REGISTER_MARKERS = new Color(0.75f, 0.875f, 0.75f);
 	ImageIcon ICON_REGISTER_MARKER = ResourceManager.loadImage("images/register-marker.png");
 
@@ -941,10 +939,10 @@ public interface DebuggerResources {
 		}
 	}
 
-	interface EnableRegisterEditsAction {
+	interface EnableEditsAction {
 		String NAME = "Enable Edits";
-		String DESCRIPTION = "Enable editing of recorded register values";
-		String GROUP = "yyyy";
+		String DESCRIPTION = "Enable editing of recorded or live values";
+		String GROUP = "yyyy2";
 		Icon ICON = ResourceManager.loadImage("images/editbytes.gif");
 		String HELP_ANCHOR = "enable_edits";
 
