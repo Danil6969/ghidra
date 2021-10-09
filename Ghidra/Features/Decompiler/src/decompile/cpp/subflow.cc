@@ -82,6 +82,11 @@ SubvariableFlow::ReplaceVarnode *SubvariableFlow::setReplacement(Varnode *vn,uin
       uintb sextval = sign_extend(smallval,flowsize,vn->getSize());// to its fullsize
       if (sextval != cval)
 	return (ReplaceVarnode *)0;
+      cval++;
+      smallval = cval & mask; // From its logical size
+      sextval = sign_extend(smallval,flowsize,vn->getSize());// to its fullsize
+      if (sextval != cval)
+	return (ReplaceVarnode *)0;
     }
     return addConstant((ReplaceOp *)0,mask,0,vn);
   }
