@@ -15,7 +15,8 @@
  */
 package ghidra.app.plugin.core.debug.gui.listing;
 
-import static ghidra.app.plugin.core.debug.gui.DebuggerResources.*;
+import static ghidra.app.plugin.core.debug.gui.DebuggerResources.ICON_REGISTER_MARKER;
+import static ghidra.app.plugin.core.debug.gui.DebuggerResources.OPTION_NAME_COLORS_TRACKING_MARKERS;
 
 import java.awt.Color;
 import java.awt.datatransfer.Transferable;
@@ -342,6 +343,11 @@ public class DebuggerListingProvider extends CodeViewerProvider {
 	@Override
 	public boolean isReadOnly() {
 		return current.isAliveAndPresent();
+	}
+
+	@Override
+	public boolean isDynamicListing() {
+		return true;
 	}
 
 	@Override
