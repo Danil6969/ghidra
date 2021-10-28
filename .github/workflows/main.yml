@@ -30,7 +30,7 @@ jobs:
       - name: Cache Ghidra dependency repository
         uses: eskatos/gradle-command-action@v1
         with:
-          gradle-version: 6.0.1
+          gradle-version: 7.0.1
           arguments: --init-script gradle/support/fetchDependencies.gradle init
 
       - name: Install dependencies [${{ matrix.os }}]
@@ -48,7 +48,7 @@ jobs:
       - name: Build Ghidra
         uses: eskatos/gradle-command-action@v1
         with:
-          gradle-version: 6.0.1
+          gradle-version: 7.0.1
           arguments: buildGhidra
         env:
           GRADLE_OPTS: -Dorg.gradle.parallel=true -Dorg.gradle.caching=true -Dorg.gradle.daemon=false
