@@ -614,9 +614,6 @@ public class ParamEntry {
 			}
 			return;
 		}
-		if (entry1.addressbase != entry2.addressbase) {
-			return;
-		}
 		throw new XmlParseException(
 			"<pentry> tags within a group must be distinguished by size or type");
 	}
