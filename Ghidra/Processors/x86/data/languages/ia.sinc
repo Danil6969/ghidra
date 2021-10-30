@@ -298,25 +298,25 @@ define context contextreg
   rexBprefix=(18,18)    # REX.B bit prefix extend r/m, SIB base, Reg operand
   rexprefix=(19,19)     # True if the Rex prefix is present - note, if present, vex_mode is not supported
                         #   rexWRXB bits can be re-used since they are incompatible.
-  vexMode=(20,20)       # 1 for vex instruction, 0 for normal
-  vexL=(21,21)          # 0 for 128, 1 for 256
-  vexVVVV=(22,25)       # value of vex byte for matching
-  vexVVVV_r32=(22,25)   # value of vex byte for matching a normal 32 bit register
-  vexVVVV_r64=(22,25)   # value of vex byte for matching a normal 64 bit register
-  vexVVVV_XmmReg=(22,25)       # value of vex byte for matching XmmReg
-  vexVVVV_YmmReg=(22,25)       # value of vex byte for matching YmmReg
-  vexVVVV_ZmmReg=(22,25)       # value of vex byte for matching ZmmReg
-  vexMMMMM=(26,30)      # need to match for preceding bytes 1=0x0F, 2=0x0F 0x38, 3=0x0F 0x3A
+  vexMode=(20,21)       # 1 for vex instruction, 0 for normal
+  vexL=(22,22)          # 0 for 128, 1 for 256
+  vexVVVV=(23,26)       # value of vex byte for matching
+  vexVVVV_r32=(23,26)   # value of vex byte for matching a normal 32 bit register
+  vexVVVV_r64=(23,26)   # value of vex byte for matching a normal 64 bit register
+  vexVVVV_XmmReg=(23,26)       # value of vex byte for matching XmmReg
+  vexVVVV_YmmReg=(23,26)       # value of vex byte for matching YmmReg
+  vexVVVV_ZmmReg=(23,26)       # value of vex byte for matching ZmmReg
+  vexMMMMM=(27,31)      # need to match for preceding bytes 1=0x0F, 2=0x0F 0x38, 3=0x0F 0x3A
 
-  suffix3D=(21,28)      # 3DNow suffix byte (overlaps un-modified vex context region)
+  suffix3D=(22,29)      # 3DNow suffix byte (overlaps un-modified vex context region)
 
 
-  instrPhase=(31,31)    # 0: initial/prefix phase, 1: primary instruction phase
+  instrPhase=(32,32)    # 0: initial/prefix phase, 1: primary instruction phase
 
-  evexL=(32,33)
-  evexFactor=(34,41)
-  evexkreg=(42,44)
-  kreg=(42,44)
+  evexL=(33,34)
+  evexFactor=(35,42)
+  evexkreg=(43,45)
+  kreg=(43,45)
 
   # Insert here first if needed more
 
