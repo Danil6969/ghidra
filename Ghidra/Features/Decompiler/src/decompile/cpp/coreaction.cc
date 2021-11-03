@@ -5121,6 +5121,9 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop->addRule( new RuleLogic2Bool("analysis") );
 	actprop->addRule( new RuleSubExtComm("analysis") );
 	actprop->addRule( new RuleSubCommute("analysis") );
+	// Doesn't actually simplify anything, just moves things around
+	// and hurts endianness portability for vector concatenations.
+	// Also may complicate code when many vector operations are used.
 	//actprop->addRule( new RuleConcatCommute("analysis") );
 	actprop->addRule( new RuleConcatZext("analysis") );
 	actprop->addRule( new RuleZextCommute("analysis") );
