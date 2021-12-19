@@ -16,6 +16,7 @@
 package ghidra.app.util.bin;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import ghidra.util.*;
 
@@ -157,9 +158,8 @@ public class BinaryReader {
 	 * the underlying byte provider is valid.
 	 * @param index the index in the byte provider
 	 * @return returns true if the specified index is valid
-	 * @exception IOException if an I/O error occurs
 	 */
-	public boolean isValidIndex(int index) throws IOException {
+	public boolean isValidIndex(int index) {
 		return provider.isValidIndex(index & Conv.INT_MASK);
 	}
 
@@ -168,9 +168,8 @@ public class BinaryReader {
 	 * the underlying byte provider is valid.
 	 * @param index the index in the byte provider
 	 * @return returns true if the specified index is valid
-	 * @exception IOException if an I/O error occurs
 	 */
-	public boolean isValidIndex(long index) throws IOException {
+	public boolean isValidIndex(long index) {
 		return provider.isValidIndex(index);
 	}
 
@@ -507,12 +506,9 @@ public class BinaryReader {
 	 * @exception IOException if an I/O error occurs
 	 */
 	public String readAsciiString(long index, int length) throws IOException {
-		StringBuilder buffer = new StringBuilder();
-		for (int i = 0; i < length; ++i) {
-			byte b = provider.readByte(index++);
-			buffer.append((char) (b & 0x00FF));
-		}
-		return buffer.toString().trim();
+		byte[] readBytes = provider.readBytes(index, length);
+		String str = new String(readBytes, StandardCharsets.US_ASCII);
+		return str.trim();
 	}
 
 	/**
@@ -575,7 +571,7 @@ public class BinaryReader {
 	 */
 	public String readFixedLenAsciiString(long index, int len) throws IOException {
 		byte[] bytes = readByteArray(index, len);
-		return new String(bytes);
+		return new String(bytes, StandardCharsets.US_ASCII);
 	}
 
 	/**

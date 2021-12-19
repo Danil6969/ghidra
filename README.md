@@ -21,10 +21,16 @@ If you are a U.S. citizen interested in projects like this, to develop Ghidra an
 cybersecurity tools for NSA to help protect our nation and its allies, consider applying for a 
 [career with us][career].
 
+## Security Warning
+
+**WARNING:** There are known security vulnerabilities within certain versions of Ghidra.  Before 
+proceeding, please read through Ghidra's [Security Advisories][security] for a better understanding 
+of how you might be impacted.
+
 ## Install
 To install an official pre-built multi-platform Ghidra release:  
 * Install [JDK 11 64-bit][jdk11]
-* Download a Ghidra release file from [ghidra-sre.org][project]
+* Download a Ghidra [release file][releases]
 * Extract the Ghidra release file
 * Launch Ghidra: `./ghidraRun` (or `ghidraRun.bat` for Windows)
 
@@ -38,7 +44,7 @@ To create the latest development build for your platform from this source reposi
 
 ##### Install build tools:
 * [JDK 11 64-bit][jdk11]
-* [Gradle 6 or 7][gradle]
+* [Gradle 6.4+ or 7.x][gradle]
 * make, gcc, and g++ (Linux/macOS-only)
 * [Microsoft Visual Studio][vs] (Windows-only)
 
@@ -106,9 +112,10 @@ source project.
 [contrib]: CONTRIBUTING.md
 [devguide]: DevGuide.md
 [career]: https://www.intelligencecareers.gov/nsa
-[project]: https://www.ghidra-sre.org/
+[releases]: https://github.com/NationalSecurityAgency/ghidra/releases
 [jdk11]: https://adoptium.net/releases.html?variant=openjdk11&jvmVariant=hotspot
 [gradle]: https://gradle.org/releases/
 [vs]: https://visualstudio.microsoft.com/vs/community/
 [eclipse]: https://www.eclipse.org/downloads/packages/
 [master]: https://github.com/NationalSecurityAgency/ghidra/archive/refs/heads/master.zip
+[security]: https://github.com/NationalSecurityAgency/ghidra/security/advisories

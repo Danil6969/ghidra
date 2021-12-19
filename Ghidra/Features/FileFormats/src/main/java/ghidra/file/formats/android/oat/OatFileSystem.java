@@ -21,7 +21,9 @@ import java.util.*;
 import generic.continues.RethrowContinuesFactory;
 import ghidra.app.util.bin.*;
 import ghidra.app.util.bin.format.elf.*;
+import ghidra.app.util.importer.MessageLog;
 import ghidra.file.formats.android.dex.format.DexHeader;
+import ghidra.file.formats.android.oat.oatdexfile.OatDexFile;
 import ghidra.formats.gfilesystem.*;
 import ghidra.formats.gfilesystem.annotations.FileSystemInfo;
 import ghidra.formats.gfilesystem.factory.GFileSystemBaseFactory;
@@ -54,14 +56,16 @@ public class OatFileSystem extends GFileSystemBase {
 
 			if (magicMatch) {
 				ElfHeader elf =
-					ElfHeader.createElfHeader(RethrowContinuesFactory.INSTANCE, provider);
+					ElfHeader.createElfHeader(RethrowContinuesFactory.INSTANCE, provider, null);
 				elf.parse();
 
 				ElfSymbolTable dynamicSymbolTable = elf.getDynamicSymbolTable();
-				ElfSymbol[] symbols = dynamicSymbolTable.getSymbols();
-				for (ElfSymbol symbol : symbols) {
-					if (OatConstants.SYMBOL_OAT_DATA.equals(symbol.getNameAsString())) {
-						return true;
+				if (dynamicSymbolTable != null) {
+					ElfSymbol[] symbols = dynamicSymbolTable.getSymbols();
+					for (ElfSymbol symbol : symbols) {
+						if (OatConstants.SYMBOL_OAT_DATA.equals(symbol.getNameAsString())) {
+							return true;
+						}
 					}
 				}
 
@@ -94,13 +98,14 @@ public class OatFileSystem extends GFileSystemBase {
 			monitor.setMaximum(10);
 			monitor.setMessage("Parsing ELF header...");
 			monitor.incrementProgress(1);
-			ElfHeader elf = ElfHeader.createElfHeader(RethrowContinuesFactory.INSTANCE, provider);
+			ElfHeader elf =
+				ElfHeader.createElfHeader(RethrowContinuesFactory.INSTANCE, provider, null);
 			elf.parse();
 			monitor.incrementProgress(1);
 
 			ElfSectionHeader roDataSection = elf.getSection(ElfSectionHeaderConstants.dot_rodata);
 			if (roDataSection == null) {
-				//TODO should we check?
+				throw new IOException("rodata section does not exist.");
 			}
 			baseOffset = roDataSection.getOffset();
 
@@ -109,8 +114,7 @@ public class OatFileSystem extends GFileSystemBase {
 				new ByteProviderWrapper(provider, baseOffset, roDataSection.getSize());
 			BinaryReader reader = new BinaryReader(wrapper, elf.isLittleEndian());
 			OatHeader oatHeader = OatHeaderFactory.newOatHeader(reader);
-			//oatHeader.parse( reader, null );
-			OatHeaderFactory.parseOatHeader(oatHeader, reader, monitor);
+			OatHeaderFactory.parseOatHeader(oatHeader, null, reader, monitor, new MessageLog());
 			monitor.incrementProgress(1);
 
 			dexFileList = oatHeader.getOatDexFileList();
@@ -184,7 +188,7 @@ public class OatFileSystem extends GFileSystemBase {
 			throw new IOException("Invalid / unknown file: " + file);
 		}
 		OatDexFile oatDexFileHeader = dexFileList.get(index);
-		return new ByteProviderWrapper(provider, oatDexFileHeader.getDexFileOffset(),
+		return new ByteProviderWrapper(provider, baseOffset + oatDexFileHeader.getDexFileOffset(),
 			oatDexFileHeader.getDexHeader().getFileSize(), file.getFSRL());
 	}
 

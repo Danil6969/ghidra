@@ -27,6 +27,7 @@ import db.*;
 import ghidra.program.database.*;
 import ghidra.program.database.code.CodeManager;
 import ghidra.program.database.external.ExternalManagerDB;
+import ghidra.program.database.function.FunctionDB;
 import ghidra.program.database.function.FunctionManagerDB;
 import ghidra.program.database.map.AddressMap;
 import ghidra.program.database.references.ReferenceDBManager;
@@ -161,7 +162,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 			}
 
 			if (oldVariableStorageMgr != null) {
-				// migrate from old variable storage table which utilized namespace-specific 
+				// migrate from old variable storage table which utilized namespace-specific
 				// storage addresses
 				migrateFromOldVariableStorageManager(monitor);
 			}
@@ -268,7 +269,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 
 			Address storageAddr = oldAddress.getNewAddress(oldAddress.getOffset());
 
-			// move variable references - eliminate variable symbol bindings which are no longer supported
+			// move variable references - eliminate variable symbol bindings no longer supported
 			refManager.moveReferencesTo(oldAddress, storageAddr, monitor);
 
 			try {
@@ -364,7 +365,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 	}
 
 	/**
-	 * Create mem references for the external entry points; then delete the table.
+	 * Create memory references for the external entry points; then delete the table.
 	 */
 	private void processOldExternalEntryPoints(TaskMonitor monitor)
 			throws IOException, CancelledException {
@@ -506,7 +507,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 			DBRecord record =
 				adapter.createSymbol(newName, address, newParentID, SymbolType.LABEL, null,
 					null, null, source, true);
-			symbol.setRecord(record);// symbol object was morphed
+			symbol.setRecord(record);
 			symbolAdded(symbol);
 		}
 		catch (IOException e) {
@@ -582,8 +583,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 			return new VariableSymbolDB(this, cache, type, variableStorageMgr, addr, record);
 		}
 		else if (type == SymbolType.GLOBAL_VAR) {
-// TODO: Should this be a variable symbol which can return a variable ??
-			return new GlobalRegisterSymbol(this, cache, addr, record);
+			return new GlobalVariableSymbolDB(this, cache, variableStorageMgr, addr, record);
 		}
 		throw new IllegalArgumentException("No symbol type for " + type);
 	}
@@ -798,6 +798,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 		return false;
 	}
 
+	@Override
 	public SymbolIterator getSymbolsAsIterator(Address addr) {
 		lock.acquire();
 		try {
@@ -883,6 +884,11 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 			namespace = program.getGlobalNamespace();
 		}
 
+		if (isDeletedNamespace(namespace)) {
+			return null;
+		}
+		checkValidNamespaceArgument(namespace);
+
 		long namespaceId = namespace.getID();
 
 		lock.acquire();
@@ -920,7 +926,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 	}
 
 	private Symbol searchNamespaceForSymbol(Namespace namespace, String name, Address address) {
-		for (Symbol symbol : getSymbols(namespace)) {
+		for (Symbol symbol : getSymbols(namespace)) {// NOTE: thunks do not exist in external space
 			if (address.equals(symbol.getAddress()) && name.equals(symbol.getName())) {
 				return symbol;
 			}
@@ -934,33 +940,8 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 	}
 
 	@Override
-	public Symbol getSymbol(String name, Namespace namespace) {
-		List<Symbol> symbols = getSymbols(name, namespace);
-		return symbols.isEmpty() ? null : symbols.get(0);
-	}
-
-	@Override
 	public Symbol getGlobalSymbol(String name, Address addr) {
 		return getSymbol(name, addr, program.getGlobalNamespace());
-	}
-
-	@Override
-	public Symbol getSymbol(String name) {
-		lock.acquire();
-		try {
-			Namespace global = namespaceMgr.getGlobalNamespace();
-			SymbolIterator it = getSymbols(name);
-			while (it.hasNext()) {
-				Symbol s = it.next();
-				if (s.getParentNamespace().equals(global)) {
-					return s;
-				}
-			}
-			return null;
-		}
-		finally {
-			lock.release();
-		}
 	}
 
 	@Override
@@ -990,6 +971,12 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 			namespace = namespaceMgr.getGlobalNamespace();
 		}
 
+		List<Symbol> list = new ArrayList<>();
+		if (isDeletedNamespace(namespace)) {
+			return list;
+		}
+		checkValidNamespaceArgument(namespace);
+
 		// if name is possible default parameter or local variable name, must do brute force search
 		if (namespace instanceof Function &&
 			SymbolUtilities.isPossibleDefaultLocalOrParamName(name)) {
@@ -1001,7 +988,6 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 			return searchNamespaceForSymbols(name, namespace);
 		}
 
-		List<Symbol> list = new ArrayList<>();
 		lock.acquire();
 		try {
 			RecordIterator it = adapter.getSymbolsByNameAndNamespace(name, namespace.getID());
@@ -1057,12 +1043,17 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 		return null;
 	}
 
-	// note: this could be public; adding it may be confusing due to the potential for having 
+	// note: this could be public; adding it may be confusing due to the potential for having
 	//       multiple symbols and not knowing when to call which method.
 	private Symbol getFirstSymbol(String name, Namespace namespace, Predicate<Symbol> test) {
 		if (namespace == null) {
 			namespace = namespaceMgr.getGlobalNamespace();
 		}
+
+		if (isDeletedNamespace(namespace)) {
+			return null;
+		}
+		checkValidNamespaceArgument(namespace);
 
 		// if name is possible default parameter or local variable name, must do brute force search
 		if (namespace instanceof Function &&
@@ -1114,6 +1105,10 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 
 	@Override
 	public SymbolIterator getSymbols(Namespace namespace) {
+		if (isDeletedNamespace(namespace)) {
+			return SymbolIterator.EMPTY_ITERATOR;
+		}
+		checkValidNamespaceArgument(namespace);
 		return getSymbols(namespace.getID());
 	}
 
@@ -1417,9 +1412,9 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 
 	@Override
 	public long getDynamicSymbolID(Address addr) {
-		// Unique dynamic symbol ID produced from a dynamic symbol address map which has
-		// a high-order bit set to avoid potential conflict
-		// with stored symbol ID's which are assigned starting at 0.
+		// Unique dynamic symbol ID produced from a dynamic symbol address map which has a
+		// high-order bit set to avoid potential conflict with stored symbol ID's which are
+		// assigned starting at 0.
 		return dynamicSymbolAddressMap.getKey(addr);
 	}
 
@@ -1502,7 +1497,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 	}
 
 	void primarySymbolSet(Symbol symbol, Symbol oldPrimarySymbol) {
-		// fire event: oldValue=symbol address, newvalue = reference address
+		// fire event: old Value = symbol address, new value = reference address
 		program.symbolChanged(symbol, ChangeManager.DOCR_SYMBOL_SET_AS_PRIMARY, symbol.getAddress(),
 			null, oldPrimarySymbol, symbol);
 	}
@@ -2116,7 +2111,9 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 			program.dbError(e);
 			it = new EmptyRecordIterator();
 		}
-		return new SymbolRecordIterator(it, true, true); // NOTE: thunks do not exist in external space
+
+		// NOTE: thunks do not exist in external space
+		return new SymbolRecordIterator(it, true, true);
 	}
 
 	Lock getLock() {
@@ -2211,13 +2208,14 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 				}
 				Address newAddress = toAddr.add(symbol.getAddress().subtract(fromAddr));
 
-				// any address that has symbols added or removed may have a corrupted primary (too many or non-existent)
+				// any address that has symbols added or removed may have a corrupted primary
+				// (too many or non-existent)
 				primaryFixups.add(symbol.getAddress());
 				primaryFixups.add(newAddress);
 
 				moveSymbolForMemoryBlockMove((SymbolDB) symbol, newAddress);
 			}
-			// go back and make sure there is a valid primary symbol at touched addressess
+			// go back and make sure there is a valid primary symbol at touched addresses
 			fixupPrimarySymbols(primaryFixups);
 		}
 		finally {
@@ -2493,7 +2491,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 	 * Creates variable symbols. Note this is not a method defined in the Symbol Table interface.
 	 * It is intended to be used by Ghidra program internals.
 	 * @param name the name of the variable
-	 * @param namespace the function that contains the variable.
+	 * @param function the function that contains the variable.
 	 * @param type the type of the variable (can only be PARAMETER or LOCAL_VAR)
 	 * @param firstUseOffsetOrOrdinal the offset in the function where the variable is first used.
 	 * @param storage the VariableStorage (stack, registers, etc.)
@@ -2502,7 +2500,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 	 * @throws DuplicateNameException if there is another variable in this function with that name.
 	 * @throws InvalidInputException if the name contains illegal characters (space for example)
 	 */
-	public VariableSymbolDB createVariableSymbol(String name, Namespace namespace, SymbolType type,
+	public VariableSymbolDB createVariableSymbol(String name, FunctionDB function, SymbolType type,
 			int firstUseOffsetOrOrdinal, VariableStorage storage, SourceType source)
 			throws DuplicateNameException, InvalidInputException {
 
@@ -2510,17 +2508,14 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 			throw new IllegalArgumentException("Invalid symbol type for variable: " + type);
 		}
 
-		if (!(namespace instanceof Function)) {
-			throw new IllegalArgumentException(
-				"Function must be namespace for local variable or parameter");
-		}
+		checkValidNamespaceArgument(function);
 
 		lock.acquire();
 		try {
 			source = adjustSourceTypeIfNecessary(name, type, source, storage);
 			Address varAddr = variableStorageMgr.getVariableStorageAddress(storage, true);
-			return (VariableSymbolDB) createSpecialSymbol(varAddr, name, namespace, type,
-				null, Integer.valueOf(firstUseOffsetOrOrdinal), null, source);
+			return (VariableSymbolDB) doCreateSpecialSymbol(varAddr, name, function, type, null,
+				Integer.valueOf(firstUseOffsetOrOrdinal), null, source, true);
 		}
 		catch (IOException e) {
 			dbError(e);
@@ -2546,29 +2541,21 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 	@Override
 	public GhidraClass createClass(Namespace parent, String name, SourceType source)
 			throws DuplicateNameException, InvalidInputException {
-		SymbolDB s =
-			createSpecialSymbol(Address.NO_ADDRESS, name, parent, SymbolType.CLASS, null, null,
-				null, source);
+		SymbolDB s = createClassSymbol(name, parent, source, true);
 		return new GhidraClassDB(s, namespaceMgr);
 	}
 
 	@Override
 	public Library createExternalLibrary(String name, SourceType source)
 			throws DuplicateNameException, InvalidInputException {
-
-		SymbolDB s =
-			createSpecialSymbol(Address.NO_ADDRESS, name, null, SymbolType.LIBRARY, null, null,
-				null, source);
+		SymbolDB s = createLibrarySymbol(name, null, source);
 		return new LibraryDB(s, namespaceMgr);
 	}
 
 	@Override
 	public Namespace createNameSpace(Namespace parent, String name, SourceType source)
 			throws DuplicateNameException, InvalidInputException {
-
-		SymbolDB s =
-			createSpecialSymbol(Address.NO_ADDRESS, name, parent, SymbolType.NAMESPACE, null,
-				null, null, source);
+		SymbolDB s = createNamespaceSymbol(name, parent, source, true);
 		return new NamespaceDB(s, namespaceMgr);
 	}
 
@@ -2582,7 +2569,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 		lock.acquire();
 		try {
 
-			checkIsValidNamespaceForMyProgram(namespace);
+			checkValidNamespaceArgument(namespace);
 
 			Symbol namespaceSymbol = namespace.getSymbol();
 			String name = namespaceSymbol.getName();
@@ -2590,10 +2577,8 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 
 			// no duplicate check, since this class name will be set to that of the existing namespace
 			String tempName = "_temp_" + System.nanoTime();
-			SymbolDB classSymbol =
-				doCreateSpecialSymbol(Address.NO_ADDRESS, tempName, namespace.getParentNamespace(),
-					SymbolType.CLASS, null, null, null, originalSource,
-					false /*check for duplicate */);
+			SymbolDB classSymbol = createClassSymbol(tempName, namespace.getParentNamespace(),
+				originalSource, false /*check for duplicate */);
 			GhidraClassDB classNamespace = new GhidraClassDB(classSymbol, namespaceMgr);
 
 			// move everything from old namespace into new class namespace
@@ -2620,33 +2605,6 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 		}
 	}
 
-	private void checkIsValidNamespaceForMyProgram(Namespace namespace) {
-
-		if (namespace == null) {
-			return;
-		}
-
-		if (namespace == program.getGlobalNamespace()) {
-			return;
-		}
-
-		Symbol symbol = namespace.getSymbol();
-		if (!(symbol instanceof SymbolDB)) {
-			// unexpected namespace type; all supported types will be db objects
-			throw new IllegalArgumentException(
-				"Namespace is not a valid parent for symbols: " + namespace.getClass());
-		}
-
-		SymbolDB dbSymbol = (SymbolDB) symbol;
-		if (program != dbSymbol.getProgram()) {
-			throw new IllegalArgumentException(
-				"Namespace symbol is from a different program");
-		}
-
-		// may throw a ConcurrentModificationException
-		dbSymbol.checkDeleted();
-	}
-
 	@Override
 	public Namespace getOrCreateNameSpace(Namespace parent, String name, SourceType source)
 			throws DuplicateNameException, InvalidInputException {
@@ -2654,7 +2612,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 		lock.acquire();
 		try {
 
-			checkIsValidNamespaceForMyProgram(parent);
+			checkValidNamespaceArgument(parent);
 
 			Symbol namespaceSymbol = getFirstSymbol(name, parent, s -> {
 				return s.getSymbolType() == SymbolType.NAMESPACE ||
@@ -2665,13 +2623,11 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 				return (Namespace) namespaceSymbol.getObject();
 			}
 
-			// Note: We know there are no namespaces with the name; do we still have to check for 
+			// Note: We know there are no namespaces with the name; do we still have to check for
 			//       duplicates?  Assuming yes, as another symbol type may exist with this name.
-			SymbolDB s =
-				doCreateSpecialSymbol(Address.NO_ADDRESS, name, parent, SymbolType.NAMESPACE, null,
-					null, null, source, true /*check for duplicates*/);
-			return new NamespaceDB(s, namespaceMgr);
+			SymbolDB s = createNamespaceSymbol(name, parent, source, true /*check for duplicates*/);
 
+			return new NamespaceDB(s, namespaceMgr);
 		}
 		finally {
 			lock.release();
@@ -2679,36 +2635,55 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 	}
 
 	/**
-	 * Creates a symbol, specifying all information for the record.  This method is not on the
-	 * public interface and is only intended for program API internal use.  The user of this
-	 * method must carefully provided exactly the information needed depending on the type of symbol
-	 * being created.
-	 * @param addr the address for the symbol
-	 * @param name the name of the symbol
-	 * @param parent the namespace for the symbol
-	 * @param symbolType the type of the symbol
-	 * @param dataTypeId the id for an associated datatype or null 
-	 * @param variableOffset this is the ordinal for params and firstUseOffset for locals 
-	 * @param stringData value whose meaning depends on the symbol type.
-	 * @param source the SourceType for the new symbol
-	 * @return the newly created symbol
-	 * @throws DuplicateNameException if the symbol type must be unique and another already has that name
-	 * 	       in the given namespace.
-	 * @throws InvalidInputException if the name contains any illegal characters (i.e. space)
+	 * Create a Library symbol with the specified name and optional pathname
+	 * @param name library name
+	 * @param pathname project file path (may be null)
+	 * @param source symbol source
+	 * @return library symbol
+	 * @throws DuplicateNameException if library name conflicts with another symbol
+	 * @throws InvalidInputException
 	 */
-	public SymbolDB createSpecialSymbol(Address addr, String name, Namespace parent,
-			SymbolType symbolType, Long dataTypeId, Integer variableOffset, String stringData,
-			SourceType source)
+	public SymbolDB createLibrarySymbol(String name, String pathname, SourceType source)
 			throws DuplicateNameException, InvalidInputException {
+		return doCreateSpecialSymbol(Address.NO_ADDRESS, name, null, SymbolType.LIBRARY, null, null,
+			pathname, source, true);
+	}
 
-		return doCreateSpecialSymbol(addr, name, parent, symbolType, stringData, dataTypeId,
-			variableOffset, source, true);
+	/**
+	 * Create a Class symbol with the specified name and parent
+	 * @param name class name
+	 * @param parent parent namespace (may be null for global namespace)
+	 * @param source symbol source
+	 * @param checkForDuplicates true if check for duplicate name conflict should be performed
+	 * @return class symbol
+	 * @throws DuplicateNameException if class name conflicts with another symbol
+	 * @throws InvalidInputException
+	 */
+	SymbolDB createClassSymbol(String name, Namespace parent, SourceType source,
+			boolean checkForDuplicates) throws DuplicateNameException, InvalidInputException {
+		return doCreateSpecialSymbol(Address.NO_ADDRESS, name, parent, SymbolType.CLASS, null, null,
+			null, source, true);
+	}
+
+	/**
+	 * Create a simple Namespace symbol with the specified name and parent
+	 * @param name class name
+	 * @param parent parent namespace (may be null for global namespace)
+	 * @param source symbol source
+	 * @param checkForDuplicates true if check for duplicate name conflict should be performed
+	 * @return namespace symbol
+	 * @throws DuplicateNameException if namespace name conflicts with another symbol
+	 * @throws InvalidInputException
+	 */
+	SymbolDB createNamespaceSymbol(String name, Namespace parent, SourceType source,
+			boolean checkForDuplicates) throws DuplicateNameException, InvalidInputException {
+		return doCreateSpecialSymbol(Address.NO_ADDRESS, name, parent, SymbolType.NAMESPACE, null,
+			null, null, source, true);
 	}
 
 	private SymbolDB doCreateSpecialSymbol(Address addr, String name, Namespace parent,
-			SymbolType symbolType, String stringData, Long dataTypeId, Integer variableOffset,
-			SourceType source,
-			boolean checkForDuplicates)
+			SymbolType symbolType, Long dataTypeId, Integer variableOffset, String stringData,
+			SourceType source, boolean checkForDuplicates)
 			throws DuplicateNameException, InvalidInputException {
 
 		lock.acquire();
@@ -2730,22 +2705,9 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 	}
 
 	@Override
-	public Symbol createSymbol(Address addr, String name, SourceType source)
-			throws InvalidInputException {
-		return createLabel(addr, name, source);
-	}
-
-	@Override
 	public Symbol createLabel(Address addr, String name, SourceType source)
 			throws InvalidInputException {
-
 		return createLabel(addr, name, null, source);
-	}
-
-	@Override
-	public Symbol createSymbol(Address addr, String name, Namespace namespace, SourceType source)
-			throws InvalidInputException, DuplicateNameException {
-		return createLabel(addr, name, namespace, source);
 	}
 
 	@Override
@@ -2755,8 +2717,9 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 	}
 
 	/**
-	 * Internal method for creating label symbols.
-	 * @param addr the address for the new symbol
+	 * Internal method for creating label symbols.  If identical memory symbol already exists
+	 * it will be returned.
+	 * @param addr the address for the new symbol (memory or external)
 	 * @param name the name of the new symbol
 	 * @param namespace the namespace for the new symbol
 	 * @param source the SourceType of the new symbol
@@ -2772,24 +2735,38 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 			source = validateSource(source, name, addr, SymbolType.LABEL);
 			name = validateName(name, source);
 
-			Symbol symbol = getSymbol(name, addr, namespace);
-			if (symbol != null) {
-				return symbol;
-			}
+			boolean makePrimary = true;
+			if (addr.isMemoryAddress()) {
 
-			// If there is a default named function, rename it to the new symbol name
-			Symbol functionSymbol = tryUpdatingDefaultFunction(addr, name, namespace, source);
-			if (functionSymbol != null) {
-				return functionSymbol;
-			}
+				Symbol symbol = getSymbol(name, addr, namespace);
+				if (symbol != null) {
+					return symbol;
+				}
 
-			// if there is a dynamic symbol, delete it and make the new symbol primary.
-			Symbol primary = getPrimarySymbol(addr);
-			if (primary != null && primary.isDynamic()) {
-				deleteDynamicSymbol(primary);
-				primary = null;
+				// If there is a default named function, rename it to the new symbol name
+				Symbol functionSymbol = tryUpdatingDefaultFunction(addr, name, namespace, source);
+				if (functionSymbol != null) {
+					return functionSymbol;
+				}
+
+				// if there is a dynamic symbol, delete it and make the new symbol primary.
+				Symbol primary = getPrimarySymbol(addr);
+				if (primary != null && primary.isDynamic()) {
+					deleteDynamicSymbol(primary);
+					primary = null;
+				}
+				makePrimary = (primary == null);
 			}
-			boolean makePrimary = primary == null;
+			else if (addr.isExternalAddress()) {
+				// only one symbol per external address is allowed
+				Symbol primary = getPrimarySymbol(addr);
+				if (primary != null) {
+					throw new IllegalArgumentException("external address already used");
+				}
+			}
+			else {
+				throw new IllegalArgumentException("bad label address");
+			}
 
 			return doCreateSymbol(name, addr, namespace, SymbolType.LABEL, stringData, null, null,
 				source, makePrimary);
@@ -2816,6 +2793,27 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 		namespace = validateNamespace(namespace, addr, SymbolType.FUNCTION);
 		source = validateSource(source, name, addr, SymbolType.FUNCTION);
 		name = validateName(name, source);
+
+		if (addr.isMemoryAddress()) {
+			return doCreateMemoryFunctionSymbol(addr, name, namespace, source, stringData);
+		}
+		else if (addr.isExternalAddress()) {
+			// only one symbol per external address is allowed
+			Symbol primary = getPrimarySymbol(addr);
+			if (primary != null) {
+				throw new IllegalArgumentException("external address already used");
+			}
+		}
+		else {
+			throw new IllegalArgumentException("bad function address");
+		}
+
+		return doCreateSymbol(name, addr, namespace, SymbolType.FUNCTION, stringData, null, null,
+			source, true);
+	}
+
+	private Symbol doCreateMemoryFunctionSymbol(Address addr, String name, Namespace namespace,
+			SourceType source, String stringData) throws InvalidInputException {
 
 		// if there is already a FUNCTION symbol with that name and namespace here, just return it.
 		Symbol matching = getSymbol(name, addr, namespace);
@@ -2898,6 +2896,8 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 			throws InvalidInputException {
 
 		namespace = namespace == null ? namespaceMgr.getGlobalNamespace() : namespace;
+
+		checkValidNamespaceArgument(namespace);
 
 		checkAddressAndNameSpaceValidForSymbolType(addr, namespace, type);
 
@@ -3062,5 +3062,24 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 
 	private Symbol getSpecificSymbol(String name, Namespace namespace, SymbolType type) {
 		return getFirstSymbol(name, namespace, s -> s.getSymbolType() == type);
+	}
+
+	void checkValidNamespaceArgument(Namespace namespace) throws IllegalArgumentException {
+		if (!isMyNamespace(namespace)) {
+			String kind = (namespace instanceof Function) ? "function" : "namespace";
+			throw new IllegalArgumentException(
+				kind + " is from different program instance: " + namespace);
+		}
+	}
+
+	boolean isMyNamespace(Namespace namespace) {
+		Symbol newNamespaceSymbol = namespace.getSymbol();
+		return newNamespaceSymbol != null && !newNamespaceSymbol.isDeleted() &&
+			(newNamespaceSymbol.getProgram() == getProgram());
+	}
+
+	boolean isDeletedNamespace(Namespace namespace) {
+		Symbol newNamespaceSymbol = namespace.getSymbol();
+		return (newNamespaceSymbol == null) || newNamespaceSymbol.isDeleted();
 	}
 }

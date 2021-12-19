@@ -2153,6 +2153,7 @@ void ScopeInternal::setAttribute(Symbol *sym,uint4 attr)
   attr &= (Varnode::typelock | Varnode::namelock | Varnode::readonly | Varnode::incidental_copy |
 	   Varnode::nolocalalias | Varnode::volatil | Varnode::indirectstorage | Varnode::hiddenretparm);
   sym->flags |= attr;
+  sym->checkSizeTypeLock();
 }
 
 void ScopeInternal::clearAttribute(Symbol *sym,uint4 attr)
@@ -2161,6 +2162,7 @@ void ScopeInternal::clearAttribute(Symbol *sym,uint4 attr)
   attr &= (Varnode::typelock | Varnode::namelock | Varnode::readonly | Varnode::incidental_copy |
 	   Varnode::nolocalalias | Varnode::volatil | Varnode::indirectstorage | Varnode::hiddenretparm);
   sym->flags &= ~attr;
+  sym->checkSizeTypeLock();
 }
 
 void ScopeInternal::setDisplayFormat(Symbol *sym,uint4 attr)
