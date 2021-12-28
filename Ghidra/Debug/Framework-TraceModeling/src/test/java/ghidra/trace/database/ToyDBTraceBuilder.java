@@ -250,7 +250,7 @@ public class ToyDBTraceBuilder implements AutoCloseable {
 			@SuppressWarnings("hiding") Language language) throws CodeUnitInsertionException {
 		DBTraceMemoryManager memory = trace.getMemoryManager();
 		DBTraceCodeManager code = trace.getCodeManager();
-		Disassembler dis = Disassembler.getDisassembler(language, language.getAddressFactory(),
+		Disassembler dis = Disassembler.getDisassembler(trace.getFixedProgramView(0), language, language.getAddressFactory(),
 			new ConsoleTaskMonitor(), msg -> Msg.info(this, "Listener: " + msg));
 		RegisterValue defaultContextValue = trace.getRegisterContextManager()
 				.getDefaultContext(language)
