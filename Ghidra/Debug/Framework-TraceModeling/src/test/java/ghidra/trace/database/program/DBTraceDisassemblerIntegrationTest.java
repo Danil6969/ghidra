@@ -101,7 +101,7 @@ public class DBTraceDisassemblerIntegrationTest extends AbstractGhidraHeadlessIn
 	@Test
 	public void testSingleGuestInstruction() throws AddressOverflowException {
 		Language x86 = getSLEIGH_X86_LANGUAGE();
-		Disassembler dis = Disassembler.getDisassembler(x86, x86.getAddressFactory(),
+		Disassembler dis = Disassembler.getDisassembler(b.trace.getFixedProgramView(0), x86, x86.getAddressFactory(),
 			new ConsoleTaskMonitor(), msg -> System.out.println("Listener: " + msg));
 		try (UndoableTransaction tid = b.startTransaction()) {
 			DBTraceMemorySpace space =
