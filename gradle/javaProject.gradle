@@ -123,6 +123,8 @@ sourceSets {
 		java {
 			srcDir 'developer_scripts'
 			srcDir 'ghidra_scripts'
+			compileClasspath += main.output + main.runtimeClasspath
+			runtimeClasspath += main.output + main.runtimeClasspath
 		}
 	}
 }
