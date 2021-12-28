@@ -105,8 +105,8 @@ sourceSets {
 			
 			// Screenshots are essentially tests, and depend on classes in several other
 			// test directories so they must be included here
-			compileClasspath += main.output + test.output + integrationTest.output
-			runtimeClasspath += main.output + test.output + integrationTest.output
+			compileClasspath += main.output + main.compileClasspath + test.output + test.compileClasspath + integrationTest.output
+			runtimeClasspath += main.output + main.runtimeClasspath + test.output + test.runtimeClasspath + integrationTest.output
 		}
 	}
 	pcodeTest {
@@ -123,7 +123,7 @@ sourceSets {
 		java {
 			srcDir 'developer_scripts'
 			srcDir 'ghidra_scripts'
-			compileClasspath += main.output + main.runtimeClasspath
+			compileClasspath += main.output + main.compileClasspath
 			runtimeClasspath += main.output + main.runtimeClasspath
 		}
 	}
