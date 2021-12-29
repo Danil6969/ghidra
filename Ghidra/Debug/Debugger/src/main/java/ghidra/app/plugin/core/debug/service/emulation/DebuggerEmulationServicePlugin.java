@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import ghidra.pcode.exec.SleighUseropLibrary;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import com.google.common.collect.Range;
@@ -168,6 +169,7 @@ public class DebuggerEmulationServicePlugin extends Plugin implements DebuggerEm
 		new AsyncLazyMap<>(new HashMap<>(), this::doBackgroundEmulate)
 				.forgetErrors((key, t) -> true)
 				.forgetValues((key, l) -> true);
+	private final Map<Trace, SleighUseropLibrary<byte[]>> libraryMap = new HashMap<>();
 
 	@AutoServiceConsumed
 	private DebuggerTraceManagerService traceManager;
@@ -396,8 +398,13 @@ public class DebuggerEmulationServicePlugin extends Plugin implements DebuggerEm
 			time.finish(trace, prevKey.time, emu, monitor);
 		}
 		else {
-			emu = new DebuggerTracePcodeEmulator(tool, trace, time.getSnap(),
-				modelService == null ? null : modelService.getRecorder(trace));
+			SleighUseropLibrary<byte[]> library = libraryMap.get(trace);
+			if (library == null)
+				emu = new DebuggerTracePcodeEmulator(tool, trace, time.getSnap(),
+					modelService == null ? null : modelService.getRecorder(trace));
+			else
+				emu = new DebuggerTracePcodeEmulator(tool, trace, time.getSnap(),
+					modelService == null ? null : modelService.getRecorder(trace), library);
 			ce = new CachedEmulator(emu);
 			monitor.initialize(time.totalTickCount());
 			time.execute(trace, emu, monitor);
@@ -465,5 +472,9 @@ public class DebuggerEmulationServicePlugin extends Plugin implements DebuggerEm
 				assert cache.size() == eldest.size();
 			}
 		}
+	}
+
+	public void setUseropLibrary(Trace trace, SleighUseropLibrary<byte[]> library) {
+		libraryMap.put(trace, library);
 	}
 }
