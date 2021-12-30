@@ -62,12 +62,13 @@ public strictfp class FloatFormat {
 	 * Round {@code bigFloat} using this format's displayContext.
 	 * 
 	 * @param bigFloat any BigFloat
-	 * @return a BigDecimal rounded according to this format's displayContext
+	 * @return a BigDecimal with trailing zeros stripped
 	 */
 	public BigDecimal round(BigFloat bigFloat) {
 		BigDecimal bigDecimal = bigFloat.toBigDecimal();
-		if (bigDecimal == null)
+		if (bigDecimal == null) {
 			return null;
+		}
 		return bigDecimal.stripTrailingZeros();
 	}
 
