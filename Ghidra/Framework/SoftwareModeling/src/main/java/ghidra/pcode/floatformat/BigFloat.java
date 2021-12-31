@@ -970,6 +970,25 @@ public strictfp class BigFloat implements Comparable<BigFloat> {
 	}
 
 	/**
+	 * {@code this=2^this}
+	 */
+	public void exp2() {
+		BigFloat two = new BigFloat(fracbits, expbits, FloatKind.FINITE, +1,
+				BigInteger.ONE.shiftLeft(fracbits), 1);
+		pow(two);
+	}
+
+	/**
+	 * {@code this=base^this}
+	 */
+	public void pow(BigFloat base) {
+		BigFloat exponent = base.copy();
+		exponent.ln();
+		mul(exponent);
+		exp();
+	}
+
+	/**
 	 * {@code this=ln(this)}
 	 */
 	public void ln() {
