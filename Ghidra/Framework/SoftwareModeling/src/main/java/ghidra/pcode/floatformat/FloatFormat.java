@@ -1002,4 +1002,16 @@ public strictfp class FloatFormat {
 		return getEncoding(fa);
 	}
 
+	public BigInteger opLog(BigInteger a) { // binary logarithm of a
+		BigFloat fa = getHostFloat(a);
+		fa.log2();
+		return getEncoding(fa);
+	}
+
+	public BigInteger opExp(BigInteger a) { // binary logarithm of a
+		BigFloat fa = getHostFloat(a);
+		fa.exp2();
+		return getEncoding(fa);
+	}
+
 }
