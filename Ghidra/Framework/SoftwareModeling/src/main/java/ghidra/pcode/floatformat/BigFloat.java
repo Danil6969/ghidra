@@ -306,7 +306,7 @@ public strictfp class BigFloat implements Comparable<BigFloat> {
 				if (sign < 0) {
 					x = x.negate();
 				}
-				return x;
+				return x.stripTrailingZeros();
 			case INFINITE:
 				return sign < 0 ? FloatFormat.BIG_NEGATIVE_INFINITY
 						: FloatFormat.BIG_POSITIVE_INFINITY;
@@ -948,6 +948,81 @@ public strictfp class BigFloat implements Comparable<BigFloat> {
 			BigInteger.ONE.shiftLeft(fracbits), -1);
 		add(half);
 		floor();
+	}
+
+	/**
+	 * {@code this=log2(this)}
+	 */
+	public void log2() {
+		BigFloat two = new BigFloat(fracbits, expbits, FloatKind.FINITE, +1,
+			BigInteger.ONE.shiftLeft(fracbits), 1);
+		log(two);
+	}
+
+	/**
+	 * {@code this=log(base, this)}
+	 */
+	public void log(BigFloat base) {
+		ln();
+		BigFloat divisor = base.copy();
+		divisor.ln();
+		div(divisor);
+	}
+
+	/**
+	 * {@code this=ln(this)}
+	 */
+	public void ln() {
+		if (isNaN() || sign == -1 || unscaled.equals(BigInteger.ZERO)) {
+			makeQuietNaN();
+			return;
+		}
+		BigFloat n = copy();
+		BigFloat half = new BigFloat(fracbits, expbits, FloatKind.FINITE, +1,
+			BigInteger.ONE.shiftLeft(fracbits), -1);
+		BigFloat tol = half.copy();
+		for (int i = 1; i < fracbits - scale; i++)
+			tol.mul(half); // tolerance will be the minimum number
+			// Which satisfies the inequality: this - tolerance != this
+		BigFloat term = tol.copy();
+		term.add(term);
+
+		while (term.compareTo(tol) >= 0) {
+			BigFloat eToX = copy();
+			eToX.exp();
+			term = eToX.copy();
+			term.sub(n);
+			term.div(eToX);
+			sub(term);
+		}
+	}
+
+	/**
+	 * {@code this=e^(this)}
+	 */
+	public void exp() {
+		BigFloat one = new BigFloat(fracbits, expbits, FloatKind.FINITE, +1,
+				BigInteger.ONE.shiftLeft(fracbits), 0);
+		BigFloat factorial = one.copy();
+		BigFloat xPower = copy();
+		BigFloat sum = one.copy();
+		BigFloat sumPrev = sum.copy();
+		sum.add(this);
+		BigFloat i = one.copy();
+		i.add(one);
+
+		while (sum.compareTo(sumPrev) != 0) {
+			xPower.mul(this);
+			factorial.mul(i);
+			BigFloat term = xPower.copy();
+			term.div(factorial);
+			sumPrev = sum.copy();
+			sum.add(term);
+			i.add(one);
+		}
+
+		makeZero();
+		add(sum);
 	}
 
 	@Override
