@@ -13,17 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ghidra.app;
+package agent.gdb.manager.impl;
 
-import ghidra.framework.plugintool.util.PluginPackage;
-import resources.ResourceManager;
+import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 
-public class GraphPluginPackage extends PluginPackage {
+import org.junit.Ignore;
 
-	public static final String NAME = "Graph";
+import agent.gdb.manager.GdbManager;
 
-	public GraphPluginPackage() {
-		super(NAME, ResourceManager.loadImage("images/katomic.png"),
-			"Provides plugins that display information in graph form.", FEATURE_PRIORITY);
+@Ignore("Need compatible version install on CI")
+public class SpawnedMi2GdbSystemManagerTest extends AbstractGdbManagerTest {
+	@Override
+	protected CompletableFuture<Void> startManager(GdbManager manager) {
+		try {
+			manager.start(gdbBin.getAbsolutePath(), "-i", "mi2");
+			return manager.runRC();
+		}
+		catch (IOException e) {
+			throw new AssertionError(e);
+		}
 	}
 }
