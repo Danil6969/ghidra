@@ -13,10 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ghidra.trace.model;
+package agent.gdb.pty.windows;
 
-public interface TraceSnap extends Comparable<TraceSnap> {
-	Trace getTrace();
+import java.io.InputStream;
+import java.io.OutputStream;
 
-	long getSnap();
+import agent.gdb.pty.PtyEndpoint;
+
+public class ConPtyEndpoint implements PtyEndpoint {
+	protected InputStream inputStream;
+	protected OutputStream outputStream;
+
+	public ConPtyEndpoint(Handle writeHandle, Handle readHandle) {
+		this.inputStream = new HandleInputStream(readHandle);
+		this.outputStream = new HandleOutputStream(writeHandle);
+	}
+
+	@Override
+	public OutputStream getOutputStream() {
+		return outputStream;
+	}
+
+	@Override
+	public InputStream getInputStream() {
+		return inputStream;
+	}
 }
