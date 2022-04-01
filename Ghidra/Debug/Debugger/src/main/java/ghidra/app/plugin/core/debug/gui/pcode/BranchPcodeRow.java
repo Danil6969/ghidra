@@ -27,13 +27,18 @@ public class BranchPcodeRow implements PcodeRow {
 	}
 
 	@Override
-	public int getSequence() {
+	public Integer getSequence() {
 		return sequence;
 	}
 
 	@Override
 	public String getCode() {
 		return "(branched from " + fromSeq + ")";
+	}
+
+	@Override
+	public boolean isNext() {
+		return true;
 	}
 
 	@Override

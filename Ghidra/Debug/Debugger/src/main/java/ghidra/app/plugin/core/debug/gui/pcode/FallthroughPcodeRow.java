@@ -25,13 +25,18 @@ public class FallthroughPcodeRow implements PcodeRow {
 	}
 
 	@Override
-	public int getSequence() {
+	public Integer getSequence() {
 		return sequence;
 	}
 
 	@Override
 	public String getCode() {
 		return "(fall-through)";
+	}
+
+	@Override
+	public boolean isNext() {
+		return true;
 	}
 
 	@Override

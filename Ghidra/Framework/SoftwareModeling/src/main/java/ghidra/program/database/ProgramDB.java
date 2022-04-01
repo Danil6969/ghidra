@@ -218,7 +218,7 @@ public class ProgramDB extends DomainObjectAdapterDB implements Program, ChangeM
 	 */
 	public ProgramDB(String name, Language language, CompilerSpec compilerSpec, Object consumer)
 			throws IOException {
-		super(new DBHandle(), name, 500, 1000, consumer);
+		super(new DBHandle(), name, 500, consumer);
 
 		if (!(compilerSpec instanceof BasicCompilerSpec)) {
 			throw new IllegalArgumentException(
@@ -287,7 +287,7 @@ public class ProgramDB extends DomainObjectAdapterDB implements Program, ChangeM
 	public ProgramDB(DBHandle dbh, int openMode, TaskMonitor monitor, Object consumer)
 			throws IOException, VersionException, LanguageNotFoundException, CancelledException {
 
-		super(dbh, "Untitled", 500, 1000, consumer);
+		super(dbh, "Untitled", 500, consumer);
 
 		if (monitor == null) {
 			monitor = TaskMonitor.DUMMY;
@@ -2053,6 +2053,7 @@ public class ProgramDB extends DomainObjectAdapterDB implements Program, ChangeM
 			setEventsEnabled(false);
 			try {
 				boolean redisassemblyRequired = true;
+				LanguageID oldLanguageId = languageID;
 				int oldLanguageVersion = languageVersion;
 				int oldLanguageMinorVersion = languageMinorVersion;
 				if (translator != null) {
@@ -2081,6 +2082,12 @@ public class ProgramDB extends DomainObjectAdapterDB implements Program, ChangeM
 				if (newCompilerSpecID != null) {
 					compilerSpec = ProgramCompilerSpec.getProgramCompilerSpec(this,
 						language.getCompilerSpecByID(newCompilerSpecID));
+					if (!oldLanguageId.equals(languageID) ||
+						!compilerSpecID.equals(newCompilerSpecID)) {
+						if (compilerSpec instanceof ProgramCompilerSpec) {
+							((ProgramCompilerSpec) compilerSpec).resetProgramOptions(monitor);
+						}
+					}
 				}
 				compilerSpecID = compilerSpec.getCompilerSpecID();
 				languageVersion = language.getVersion();

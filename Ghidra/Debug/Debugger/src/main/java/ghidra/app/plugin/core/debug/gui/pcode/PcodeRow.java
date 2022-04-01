@@ -18,9 +18,11 @@ package ghidra.app.plugin.core.debug.gui.pcode;
 import ghidra.program.model.pcode.PcodeOp;
 
 public interface PcodeRow {
-	int getSequence();
+	Integer getSequence();
 
 	String getCode();
+
+	boolean isNext();
 
 	PcodeOp getOp();
 }
