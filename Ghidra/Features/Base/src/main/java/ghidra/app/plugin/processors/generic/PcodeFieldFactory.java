@@ -98,7 +98,7 @@ public class PcodeFieldFactory extends FieldFactory {
 		addCpoolRefInfo(arr, instr);
 		List<AttributedString> pcodeListing =
 			formatter.formatOps(instr.getProgram().getLanguage(),
-				Arrays.asList(instr.getPcode(true)));
+				Arrays.asList(arr));
 		int lineCnt = pcodeListing.size();
 		for (int i = 0; i < lineCnt; i++) {
 			elements.add(new TextFieldElement(pcodeListing.get(i), i, 0));
@@ -226,8 +226,8 @@ public class PcodeFieldFactory extends FieldFactory {
 			PcodeOp[] arr = new PcodeOp[injectionPcode.length + mainPcode.length];
 			//formatter.addComment(instr.getAddress(), 0, "start of uponentry injection");
 			System.arraycopy(injectionPcode, 0, arr, 0, injectionPcode.length);
-			//formatter.addComment(instr.getAddress(), injectionPcode.length, "end of uponentry injection");
 			System.arraycopy(mainPcode, 0, arr, injectionPcode.length, mainPcode.length);
+			formatter.addComment(arr[arr.length - 1], "end of uponentry injection");
 			return arr;
 		}
 		return mainPcode;
@@ -243,10 +243,10 @@ public class PcodeFieldFactory extends FieldFactory {
 				arr = mainPcode;
 				mainPcode = new PcodeOp[arr.length + injectionPcode.length];
 				System.arraycopy(arr, 0, mainPcode, 0, i + 1);
-				//formatter.addComment(instr.getAddress(), i + 1, "start of uponreturn injection");
+				formatter.addComment(mainPcode[i], "start of uponreturn injection");
 				System.arraycopy(injectionPcode, 0, mainPcode, i + 1, injectionPcode.length);
-				//formatter.addComment(instr.getAddress(), i + 1 + injectionPcode.length, "end of uponreturn injection");
 				System.arraycopy(arr, i + 1, mainPcode, i + 1 + injectionPcode.length, arr.length - i - 1);
+				formatter.addComment(mainPcode[i + injectionPcode.length], "end of uponreturn injection");
 			}
 		}
 		return mainPcode;
@@ -262,9 +262,9 @@ public class PcodeFieldFactory extends FieldFactory {
 				arr = mainPcode;
 				mainPcode = new PcodeOp[arr.length + injectionPcode.length];
 				System.arraycopy(arr, 0, mainPcode, 0, i + 1);
-				//formatter.addComment(instr.getAddress(), i + 1, "start of callother implementation");
+				formatter.addComment(mainPcode[i], "start of callother implementation");
 				System.arraycopy(injectionPcode, 0, mainPcode, i + 1, injectionPcode.length);
-				//formatter.addComment(instr.getAddress(), i + 1 + injectionPcode.length, "end of callother implementation");
+				formatter.addComment(mainPcode[i + injectionPcode.length], "end of callother implementation");
 				System.arraycopy(arr, i + 1, mainPcode, i + 1 + injectionPcode.length, arr.length - i - 1);
 			}
 		}
@@ -288,7 +288,7 @@ public class PcodeFieldFactory extends FieldFactory {
 				for (int j = 1; j < op.getInputs().length; j++)
 					refs[j - 1] = op.getInput(j).getOffset();
 				ConstantPool.Record rec = cpool.getRecord(refs);
-				//formatter.addComment(instr.getAddress(), i + 1, getCpoolComment(rec));
+				formatter.addComment(mainPcode[i], getCpoolComment(rec));
 			}
 		}
 	}
@@ -296,31 +296,31 @@ public class PcodeFieldFactory extends FieldFactory {
 	private String getCpoolComment(ConstantPool.Record record) {
 		String EOL = System.getProperty("line.separator");
 		StringBuilder sb = new StringBuilder();
-		sb.append("CPOOL tag: ");
+		sb.append("//CPOOL tag: ");
 		sb.append(resolveTagStr(record.tag));
 		sb.append(EOL);
 		if (record.token != null) {
-			sb.append("CPOOL token: ");
+			sb.append("//CPOOL token: ");
 			sb.append(record.token);
 			sb.append(EOL);
 		}
 		if (record.value != 0) {
-			sb.append("CPOOL value: ");
+			sb.append("//CPOOL value: ");
 			sb.append(record.value);
 			sb.append(EOL);
 		}
 		if (record.byteData != null) {
-			sb.append("CPOOL byteData: ");
+			sb.append("//CPOOL byteData: ");
 			sb.append(Arrays.toString(record.byteData));
 			sb.append(EOL);
 		}
 		if (record.type != null) {
-			sb.append("CPOOL type: ");
+			sb.append("//CPOOL type: ");
 			sb.append(record.type);
 			sb.append(EOL);
 		}
 		if (record.isConstructor) {
-			sb.append("CPOOL has isConstructor flag");
+			sb.append("//CPOOL has isConstructor flag");
 		}
 		return sb.toString();
 	}
