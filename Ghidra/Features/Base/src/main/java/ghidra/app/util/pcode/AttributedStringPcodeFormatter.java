@@ -18,7 +18,9 @@ package ghidra.app.util.pcode;
 import java.awt.Color;
 import java.awt.FontMetrics;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import docking.widgets.fieldpanel.field.AttributedString;
 import docking.widgets.fieldpanel.field.CompositeAttributedString;
@@ -59,6 +61,8 @@ public class AttributedStringPcodeFormatter extends
 	private AttributedString aStar;
 	private AttributedString aColon;
 	private AttributedString aQuote;
+
+	private Map<PcodeOp, String> comments = new HashMap();
 
 	/**
 	 * Constructor
@@ -218,8 +222,33 @@ public class AttributedStringPcodeFormatter extends
 		}
 		appender.startLine();
 		FormatResult result = super.formatOpTemplate(appender, op);
+		PcodeOp garbage = null;
+		for (PcodeOp pcodeOp : comments.keySet()) {
+			if (pcodeOp == null)
+				continue;
+			List<PcodeOp> ops = new ArrayList();
+			ops.add(pcodeOp);
+			List<OpTpl> pcodeOpTemplates;
+			pcodeOpTemplates = PcodeFormatter.getPcodeOpTemplates(appender.language.getAddressFactory(), ops);
+			if (pcodeOpTemplates.size() != 1) continue;
+			OpTpl template = pcodeOpTemplates.get(0);
+			if (!template.toString().equals(op.toString())) continue;
+			String[] str = comments.get(pcodeOp).split("\\r?\\n");
+			for (int i = 0; i < str.length; i++) {
+				appender.endLine();
+				appender.startLine();
+				appender.appendLabel(str[i]);
+			}
+			garbage = pcodeOp;
+		}
+		if (garbage != null)
+			comments.remove(garbage);
 		appender.endLine();
 		return result;
+	}
+
+	public void addComment(PcodeOp op, String comment) {
+		comments.put(op, comment);
 	}
 
 	class ToAttributedStringsAppender extends AbstractAppender<List<AttributedString>> {
