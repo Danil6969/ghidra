@@ -93,7 +93,6 @@ public:
   int4 getAlign(void) const { return alignment; }	///< Get the alignment of \b this entry
   JoinRecord *getJoinRecord(void) const { return joinrec; }
   type_metatype getType(void) const { return type; }	///< Get the data-type class associated with \b this
-  JoinRecord *getJoinRecord(void) const { return joinrec; }
   bool isExclusion(void) const { return (alignment==0); }	///< Return \b true if this holds a single parameter exclusively
   bool isReverseStack(void) const { return ((flags & reverse_stack)!=0); }	///< Return \b true if parameters are allocated in reverse order
   bool isGrouped(void) const { return ((flags & is_grouped)!=0); }	///< Return \b true if \b this is grouped with other entries
