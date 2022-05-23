@@ -256,7 +256,13 @@ public class TraceObjectManager {
 			recorder.createSnapshot(traceThread + " started", traceThread, null);
 			try (UndoableTransaction tid =
 				UndoableTransaction.start(recorder.getTrace(), "Adjust thread creation", true)) {
-				traceThread.setCreationSnap(recorder.getSnap());
+				long existing = traceThread.getCreationSnap();
+				if (existing == Long.MIN_VALUE) {
+					traceThread.setCreationSnap(recorder.getSnap());
+				}
+				else {
+					traceThread.setDestructionSnap(Long.MAX_VALUE);
+				}
 			}
 			catch (DuplicateNameException e) {
 				throw new AssertionError(e); // Should be shrinking
@@ -352,6 +358,7 @@ public class TraceObjectManager {
 		if (memMapper != null) {
 			return;
 		}
+		recorder.memoryRecorder.offerProcessMemory((TargetMemory) added);
 		mapper.offerMemory((TargetMemory) added).thenAccept(mm -> {
 			synchronized (this) {
 				memMapper = mm;
@@ -365,7 +372,7 @@ public class TraceObjectManager {
 	}
 
 	public void removeMemory(TargetObject removed) {
-		// Nothing for now
+		recorder.memoryRecorder.removeProcessMemory((TargetMemory) removed);
 	}
 
 	public void addMemoryRegion(TargetObject added) {

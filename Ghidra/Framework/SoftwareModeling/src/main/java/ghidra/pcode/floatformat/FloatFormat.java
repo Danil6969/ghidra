@@ -253,7 +253,7 @@ public strictfp class FloatFormat {
 		return setSign(res, sgn);
 	}
 
-	public Object getBigZero(boolean sgn) {
+	public BigFloat getBigZero(boolean sgn) {
 		return new BigFloat(frac_size, exp_size, FloatKind.FINITE, sgn ? -1 : +1, BigInteger.ZERO,
 			2 - (1 << (exp_size - 1)));
 	}
@@ -415,15 +415,14 @@ public strictfp class FloatFormat {
 		}
 		else if (exp == maxexponent) {
 			if (frac.signum() == 0) { // Floating point infinity
-				return new BigFloat(sz, exp_size, FloatKind.INFINITE, sign, BigInteger.ZERO,
-					maxexponent);
+				return BigFloat.infinity(sz, exp_size, sign);
 			}
-			return new BigFloat(sz, exp_size, FloatKind.QUIET_NAN, sign, BigInteger.ZERO,
-				maxexponent);
+			return BigFloat.quietNaN(sz, exp_size, sign);
 		}
 
-		if (jbitimplied)
+		if (jbitimplied) {
 			frac = frac.setBit(frac_size);
+		}
 		return new BigFloat(sz, exp_size, FloatKind.FINITE, sign, frac, exp - bias);
 	}
 

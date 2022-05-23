@@ -1713,10 +1713,10 @@ public class Disassembler implements DisassemblerConflictHandler {
 	private static class InstructionContext implements ProcessorContext {
 
 		private RegisterValue contextValue;
-		private Language langauge;
+		private Language language;
 
 		InstructionContext(Language language, RegisterValue contextValue) {
-			this.langauge = language;
+			this.language = language;
 			this.contextValue = contextValue;
 		}
 
@@ -1731,12 +1731,12 @@ public class Disassembler implements DisassemblerConflictHandler {
 
 		@Override
 		public List<Register> getRegisters() {
-			return langauge.getRegisters();
+			return language.getRegisters();
 		}
 
 		@Override
 		public Register getRegister(String name) {
-			return langauge.getRegister(name);
+			return language.getRegister(name);
 		}
 
 		@Override
