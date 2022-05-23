@@ -2122,6 +2122,7 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
     }
     if (!succeeded) {		// Subtype was not good
       pushOp(&function_call,op);
+      Datatype *outtype = vn->getHigh()->getType();
       if (outtype == (Datatype *)0 && op->getOpcode()->getOpcode() == CPUI_COPY)
         outtype = op->getIn(0)->getType();
       bool outArr = true;
