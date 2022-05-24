@@ -6684,8 +6684,6 @@ void RuleSubRight::getOpList(vector<uint4> &oplist) const
 int4 RuleSubRight::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  //if (op->getIn(0)->getSize() > 8) return 0; // No array shifts are allowed
-
   Datatype *parent;
   int4 offset;
 
@@ -6695,6 +6693,8 @@ int4 RuleSubRight::applyOp(PcodeOp *op,Funcdata &data)
     data.opMarkSpecialPrint(op);	// Print this as a field extraction
     return 0;
   }
+
+  if (op->getIn(0)->getSize() > 8) return 0; // No array shifts are allowed
 
   int4 c = op->getIn(1)->getOffset();
   if (c==0) return 0;		// SUBPIECE is not least sig
