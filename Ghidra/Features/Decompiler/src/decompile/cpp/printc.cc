@@ -2589,7 +2589,7 @@ bool PrintC::emitArrCopy(const PcodeOp *op)
   pushOp(&function_call,op);
   pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
   pushOp(&comma,op);
-  pushVnLHS(op->getOut(),op);
+  pushSymbolDetail(op->getOut(),op,false)
   op->getOpcode()->push(this,op,(PcodeOp *)0);
   recurse();
   return true;
