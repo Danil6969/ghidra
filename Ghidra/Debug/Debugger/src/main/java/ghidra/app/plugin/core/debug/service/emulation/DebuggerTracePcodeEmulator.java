@@ -20,7 +20,6 @@ import ghidra.framework.plugintool.PluginTool;
 import ghidra.pcode.emu.BytesPcodeThread;
 import ghidra.pcode.emu.PcodeThread;
 import ghidra.pcode.exec.PcodeExecutorState;
-import ghidra.pcode.exec.SleighUseropLibrary;
 import ghidra.pcode.exec.trace.TracePcodeEmulator;
 import ghidra.program.model.lang.Register;
 import ghidra.program.model.lang.RegisterValue;
@@ -44,13 +43,6 @@ public class DebuggerTracePcodeEmulator extends TracePcodeEmulator {
 	public DebuggerTracePcodeEmulator(PluginTool tool, Trace trace, long snap,
 			TraceRecorder recorder) {
 		super(trace, snap);
-		this.tool = tool;
-		this.recorder = recorder;
-	}
-
-	public DebuggerTracePcodeEmulator(PluginTool tool, Trace trace, long snap,
-			TraceRecorder recorder, SleighUseropLibrary<byte[]> library) {
-		super(trace, snap, library);
 		this.tool = tool;
 		this.recorder = recorder;
 	}
