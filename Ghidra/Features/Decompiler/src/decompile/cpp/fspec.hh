@@ -99,6 +99,7 @@ public:
   bool isOverlap(void) const { return ((flags & overlapping)!=0); }	///< Return \b true if \b this overlaps another entry
   bool subsumesDefinition(const ParamEntry &op2) const;	///< Does \b this subsume the definition of the given ParamEntry
   bool containedBy(const Address &addr,int4 sz) const;	///< Is this entry contained by the given range
+  bool contains(const Address &addr,int4 sz) const;	///< Is this entry contains the given range
   bool intersects(const Address &addr,int4 sz) const;	///< Does \b this intersect the given range in some way
   int4 justifiedContain(const Address &addr,int4 sz) const;	///< Calculate endian aware containment
   bool getContainer(const Address &addr,int4 sz,VarnodeData &res) const;
