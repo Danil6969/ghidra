@@ -146,6 +146,20 @@ bool ParamEntry::containedBy(const Address &addr,int4 sz) const
   return (entryoff <= rangeoff);
 }
 
+/// We assume a \e join ParamEntry cannot contain a single contiguous memory range.
+/// \param addr is the starting address of the potential contained range
+/// \param sz is the number of bytes in the range
+/// \return \b true if the entire range fits inside the ParamEntry
+bool ParamEntry::contains(const Address &addr,int4 sz) const
+
+{
+  if (spaceid != addr.getSpace()) return false;
+  if (addr.getOffset() < addressbase) return false;
+  uintb entryoff = addressbase + size-1;
+  uintb rangeoff = addr.getOffset() + sz-1;
+  return (rangeoff <= entryoff);
+}
+
 /// If \b this a a \e join, each piece is tested for intersection.
 /// Otherwise, \b this, considered as a single memory, is tested for intersection.
 /// \param addr is the starting address of the given memory range to test against
@@ -275,7 +289,17 @@ bool ParamEntry::getContainer(const Address &addr,int4 sz,VarnodeData &res) cons
 bool ParamEntry::contains(const ParamEntry &op2) const
 
 {
-  if (op2.joinrec != (JoinRecord *)0) return false;	// Assume a join entry cannot be contained
+  if (op2.joinrec != (JoinRecord *)0) {
+    if (joinrec == (JoinRecord *)0) {
+      for(int4 i=0;i<op2.joinrec->numPieces();++i) {
+        const VarnodeData &vdata(op2.joinrec->getPiece(i));
+        Address addr = vdata.getAddr();
+        if (!contains(addr,vdata.size)) return false;
+      }
+      return true;
+    }
+    return false;	// Assume a join entry cannot be contained
+  }
   if (joinrec == (JoinRecord *)0) {
     Address addr(spaceid,addressbase);
     return op2.containedBy(addr, size);
