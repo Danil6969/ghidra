@@ -144,6 +144,24 @@ public class ParamEntry {
 	}
 
 	/**
+	 * Does this ParamEntry, as a memory range, contain the given memory range.
+	 * @param addr is the starting address of the given memory range
+	 * @param sz is the number of bytes in the given memory range
+	 * @return true if this contains
+	 */
+	public boolean contains(Address addr, int sz) {
+		if (spaceid != addr.getAddressSpace()) {
+			return false;
+		}
+		if (Long.compareUnsigned(addr.getOffset(), addressbase) < 0) {
+			return false;
+		}
+		long rangeEnd = addr.getOffset() + sz - 1;
+		long thisEnd = addressbase + size - 1;
+		return (Long.compareUnsigned(rangeEnd, thisEnd) <= 0);
+	}
+
+	/**
 	 * Does this ParamEntry intersect the given range in some way
 	 * @param addr is the starting address of the given range
 	 * @param sz is the number of bytes in the given range
@@ -240,6 +258,14 @@ public class ParamEntry {
 	 */
 	public boolean contains(ParamEntry otherEntry) {
 		if (otherEntry.joinrec != null) {
+			if (joinrec == null) {
+				for (Varnode vn : otherEntry.joinrec) {
+					if (!contains(vn.getAddress(), vn.getSize())) {
+						return false;
+					}
+				}
+				return true;
+			}
 			return false;	// Assume a join entry cannot be contained
 		}
 		if (joinrec == null) {
