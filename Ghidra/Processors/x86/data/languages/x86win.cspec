@@ -81,10 +81,10 @@
       <pentry minsize="1" maxsize="4">
         <register name="ESI"/>
       </pentry>
-      <pentry minsize="1" maxsize="8">
+      <pentry minsize="1" maxsize="4">
         <register name="EDX"/>
       </pentry>
-      <pentry minsize="1" maxsize="8">
+      <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
       </pentry>
       <pentry minsize="1" maxsize="500" align="4">
