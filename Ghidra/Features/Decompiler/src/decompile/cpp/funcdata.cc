@@ -16,6 +16,9 @@
 #include "funcdata.hh"
 //#include <fstream>
 
+const string Funcdata::extractind = "extractind";
+const string Funcdata::insertind = "insertind";
+
 /// \param nm is the (base) name of the function
 /// \param scope is Symbol scope associated with the function
 /// \param addr is the entry address for the function
