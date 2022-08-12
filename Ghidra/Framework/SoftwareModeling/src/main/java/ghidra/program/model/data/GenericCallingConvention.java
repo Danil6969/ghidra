@@ -55,9 +55,33 @@ public enum GenericCallingConvention {
 	/**
 	 * Similar to fastcall but extended vector registers are used
 	 */
-	vectorcall(CompilerSpec.CALLING_CONVENTION_vectorcall);
+	vectorcall(CompilerSpec.CALLING_CONVENTION_vectorcall),
 
 	// Append new conventions to the bottom only so that ordinal values will not change!!
+	asm("asm"),
+	asmA("__asmA"),
+	asmAF("__asmAF"),
+	asmAlongcall("__asmA_longcall"),
+	asmxgate("__asm_xgate"),
+	cdecl16far("__cdecl16far"),
+	cdecl16near("__cdecl16near"),
+	cdeclf("__cdeclf"),
+	keilmxs2p1("__keilmxs2p1"),
+	keilmxs3("__keilmxs3"),
+	MSABI("MSABI"),
+	nonwindowcall("__nonwindowcall"),
+	ptrcall("__ptrcall"),
+	ptrcall2("__ptrcall2"),
+	regcall("__regcall"),
+	register("__register"),
+	retina("ret_in_a"),
+	retinr7("ret_in_r7"),
+	stackcall("__stackcall"),
+	stdcall16far("__stdcall16far"),
+	stdcall16near("__stdcall16near"),
+	stdcalldata("__stdcall_data"),
+	stdcallfromamd64("__stdcall_from_amd64"),
+	syscall("syscall");
 
 	private final String declarationName;
 
