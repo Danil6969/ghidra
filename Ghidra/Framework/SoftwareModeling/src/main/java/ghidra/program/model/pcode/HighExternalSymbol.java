@@ -67,7 +67,8 @@ public class HighExternalSymbol extends HighSymbol {
 			encoder.writeString(ATTRIB_NAME, "&" + name); // Indicate this is a pointer to the external variable
 		}
 		AddressXML.encode(encoder, resolveAddress);
-		if (type != null && !type.equals(DataType.DEFAULT)) dtmanage.encodeTypeRef(encoder, type, getSize());
+		if (type == null) dtmanage.encodeTypeRef(encoder, DataType.DEFAULT, getSize());
+		else dtmanage.encodeTypeRef(encoder, type, getSize());
 		encoder.closeElement(ELEM_EXTERNREFSYMBOL);
 	}
 }
