@@ -50,7 +50,7 @@ public class TraceDisassembleCommand extends TypedBackgroundCommand<TraceProgram
 	}
 
 	protected Disassembler getDisassembler(TraceProgramView view, TaskMonitor monitor) {
-		return Disassembler.getDisassembler(platform.getLanguage(), platform.getAddressFactory(),
+		return Disassembler.getDisassembler(view, platform.getLanguage(), platform.getAddressFactory(),
 			monitor, monitor::setMessage);
 	}
 
