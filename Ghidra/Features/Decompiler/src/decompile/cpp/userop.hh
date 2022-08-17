@@ -28,7 +28,7 @@ extern AttributeId ATTRIB_USEROP;	///< Marshaling attribute "userop"
 
 extern ElementId ELEM_CONSTRESOLVE;	///< Marshaling element \<constresolve>
 extern ElementId ELEM_JUMPASSIST;	///< Marshaling element \<jumpassist>
-extern ElementId ELEM_PUREOP;	///< Marshaling element \<pureop>
+extern ElementId ELEM_PUREOP;		///< Marshaling element \<pureop>
 extern ElementId ELEM_SEGMENTOP;	///< Marshaling element \<segmentop>
 
 /// \brief The base class for a detailed definition of a user-defined p-code operation
