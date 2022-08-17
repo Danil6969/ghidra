@@ -812,12 +812,7 @@ void ExternRefSymbol::decode(Decoder &decoder)
   }
   refaddr = Address::decode(decoder);
   type = (Datatype *)0;	// Type is null
-  for(;;) {
-    uint4 attribId = decoder.getNextAttributeId();
-    if (attribId == 0) break;
-    if (attribId == ATTRIB_TYPE) // Unless we see it explicitly
-      type = scope->getArch()->types->decodeType(decoder);
-  }
+  type = scope->getArch()->types->decodeType(decoder); // Unless we see it explicitly
   decoder.closeElement(elemId);
   buildNameType();
 }
