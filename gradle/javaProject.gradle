@@ -174,7 +174,6 @@ dependencies {
 ext.addExports = { List<String> exports ->
 	tasks.withType(JavaCompile) {
 		exports.each {
-			options.release = 11
 			options.compilerArgs.addAll(['--add-exports', it])
 		}
 	}
