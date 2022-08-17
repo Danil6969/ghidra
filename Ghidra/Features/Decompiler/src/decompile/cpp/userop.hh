@@ -28,6 +28,7 @@ extern AttributeId ATTRIB_USEROP;	///< Marshaling attribute "userop"
 
 extern ElementId ELEM_CONSTRESOLVE;	///< Marshaling element \<constresolve>
 extern ElementId ELEM_JUMPASSIST;	///< Marshaling element \<jumpassist>
+extern ElementId ELEM_PUREOP;	///< Marshaling element \<pureop>
 extern ElementId ELEM_SEGMENTOP;	///< Marshaling element \<segmentop>
 
 /// \brief The base class for a detailed definition of a user-defined p-code operation
@@ -237,7 +238,7 @@ public:
 class PureOp : public UserPcodeOp {
 public:
   PureOp(Architecture *g);
-  virtual void restoreXml(const Element *el);
+  virtual void decode(Decoder &decoder);
 };
 
 /// \brief Manager/container for description objects (UserPcodeOp) of user defined p-code ops
@@ -285,7 +286,7 @@ public:
   void decodeVolatile(Decoder &decoder,Architecture *glb);			///< Parse a \<volatile> element
   void decodeCallOtherFixup(Decoder &decoder,Architecture *glb);		///< Parse a \<callotherfixup> element
   void decodeJumpAssist(Decoder &decoder,Architecture *glb);			///< Parse a \<jumpassist> element
-  //void parsePureOp(const Element *el,Architecture *glb);			///< Parse a \<pureop> XML tag
+  void decodePureOp(Decoder &decoder,Architecture *glb);			///< Parse a \<pureop> XML tag
   void manualCallOtherFixup(const string &useropname,const string &outname,
 			    const vector<string> &inname,const string &snippet,Architecture *glb);
 };
