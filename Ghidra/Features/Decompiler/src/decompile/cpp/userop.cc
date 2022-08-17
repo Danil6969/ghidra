@@ -23,7 +23,8 @@ AttributeId ATTRIB_USEROP = AttributeId("userop",88);
 
 ElementId ELEM_CONSTRESOLVE = ElementId("constresolve",127);
 ElementId ELEM_JUMPASSIST = ElementId("jumpassist",128);
-ElementId ELEM_SEGMENTOP = ElementId("segmentop",129);
+ElementId ELEM_PUREOP = ElementId("pureop",129);
+ElementId ELEM_SEGMENTOP = ElementId("segmentop",130);
 
 void InjectedUserOp::decode(Decoder &decoder)
 
@@ -256,10 +257,11 @@ PureOp::PureOp(Architecture *g)
 
 }
 
-void PureOp::restoreXml(const Element *el)
+void PureOp::decode(Decoder &decoder)
 
 {
-  name = el->getAttributeValue("name");
+  uint4 elemId = decoder.openElement();
+  name = decoder.readString(ATTRIB_NAME);
   UserPcodeOp *base = glb->userops.getOp(name);
   useropindex = base->getIndex();
 }
@@ -469,12 +471,12 @@ void UserOpManage::decodeJumpAssist(Decoder &decoder,Architecture *glb)
 /// and register it with \b this manager.
 /// \param el is the root \<pureop> element
 /// \param glb is the owning Architecture
-void UserOpManage::parsePureOp(const Element *el,Architecture *glb)
+void UserOpManage::decodePureOp(Decoder &decoder,Architecture *glb)
 
 {
   PureOp *op = new PureOp(glb);
   try {
-    op->restoreXml(el);
+    op->decode(decoder);
     registerOp(op);
   } catch(LowlevelError &err) {
     delete op;
