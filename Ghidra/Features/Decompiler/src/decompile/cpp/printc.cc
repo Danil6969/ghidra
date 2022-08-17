@@ -398,7 +398,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
   bool outArr = op->getOut()->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
   if (!outArr)
     nm = nm + "T";
-  pushAtom(Atom(nm,optoken,EmitXml::no_color,op));
+  pushAtom(Atom(nm,optoken,EmitMarkup::no_color,op));
   bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
   ostringstream s;
   string name = "TOARR";
@@ -414,7 +414,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
     else if (op->getIn(0)->isConstant() || op->getIn(0)->isImplied()) {
       pushOp(&function_call,op);
       s << name << op->getIn(0)->getSize();
-      pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+      pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
       s.str("");
       pushOp(&comma,op);
       pushVn(op->getIn(0),op,mods);
@@ -431,7 +431,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
     else if (op->getIn(1)->isConstant() || op->getIn(1)->isImplied()) {
       pushOp(&function_call,op);
       s << name << op->getIn(1)->getSize();
-      pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+      pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
       pushOp(&comma,op);
       pushVn(op->getIn(1),op,mods);
       pushType(op->getIn(1)->getHigh()->getType());
@@ -449,7 +449,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
     else if (op->getIn(0)->isConstant() || op->getIn(0)->isImplied()) {
       pushOp(&function_call,op);
       s << name << op->getIn(0)->getSize();
-      pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+      pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
       pushOp(&comma,op);
       pushVn(op->getIn(0),op,mods);
       pushType(op->getIn(0)->getHigh()->getType());
@@ -487,18 +487,18 @@ void PrintC::opTypeCast(const PcodeOp *op)
     if (!addr)
       pushOp(&function_call,op);
     if (inArr && !outArr)
-      pushAtom(Atom("CASTARR",optoken,EmitXml::no_color,op)); // cast with dereference
+      pushAtom(Atom("CASTARR",optoken,EmitMarkup::no_color,op)); // cast with dereference
     else if (!inArr && outArr) {
       if (op->getIn(0)->isConstant() || op->getIn(0)->isImplied()) {
         ostringstream s;
         s << "TOARR" << op->getOut()->getSize();
-        pushAtom(Atom(s.str(), optoken, EmitXml::no_color, op)); // cast with array allocation on stack
+        pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op)); // cast with array allocation on stack
       }
       else
         pushOp(&addressof,op);
     }
     else
-      pushAtom(Atom("CAST",optoken,EmitXml::no_color,op)); // just reinterpret with the same bytes in memory but replaced type
+      pushAtom(Atom("CAST",optoken,EmitMarkup::no_color,op)); // just reinterpret with the same bytes in memory but replaced type
     if (!addr)
       pushOp(&comma,op);
     pushVn(op->getIn(0),op,mods);
@@ -557,7 +557,7 @@ void PrintC::opStore(const PcodeOp *op)
     ostringstream s;
     s << "COPY" << op->getIn(2)->getSize();
     pushOp(&function_call,op);
-    pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+    pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
     pushOp(&comma,op);
   }
   if (usearray && (!isSet(force_pointer)))
@@ -735,7 +735,7 @@ void PrintC::opExtractInd(const PcodeOp *op)
   string nm = s.str();
   s.str("");
   pushOp(&function_call, op);
-  pushAtom(Atom(nm, optoken, EmitXml::no_color, op));
+  pushAtom(Atom(nm, optoken, EmitMarkup::no_color, op));
   pushOp(&comma, op);
   bool in1Arr = op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
   string name = "TOARR";
@@ -746,7 +746,7 @@ void PrintC::opExtractInd(const PcodeOp *op)
   else if (op->getIn(1)->isConstant() || op->getIn(1)->isImplied()) {
     pushOp(&function_call, op);
     s << name << op->getIn(1)->getSize();
-    pushAtom(Atom(s.str(), optoken, EmitXml::no_color, op));
+    pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
     pushOp(&comma, op);
     pushVn(op->getIn(1), op, mods);
     pushType(op->getIn(1)->getHigh()->getType());
@@ -774,7 +774,7 @@ void PrintC::opInsertInd(const PcodeOp *op)
   string nm = s.str();
   s.str("");
   pushOp(&function_call, op);
-  pushAtom(Atom(nm, optoken, EmitXml::no_color, op));
+  pushAtom(Atom(nm, optoken, EmitMarkup::no_color, op));
   pushOp(&comma, op);
   pushOp(&comma, op);
   bool in1Arr = op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
@@ -787,7 +787,7 @@ void PrintC::opInsertInd(const PcodeOp *op)
   else if (op->getIn(1)->isConstant() || op->getIn(1)->isImplied()) {
     pushOp(&function_call, op);
     s << name << op->getIn(1)->getSize();
-    pushAtom(Atom(s.str(), optoken, EmitXml::no_color, op));
+    pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
     pushOp(&comma, op);
     pushVn(op->getIn(1), op, mods);
     pushType(op->getIn(1)->getHigh()->getType());
@@ -803,7 +803,7 @@ void PrintC::opInsertInd(const PcodeOp *op)
   else if (op->getIn(2)->isConstant() || op->getIn(2)->isImplied()) {
     pushOp(&function_call,op);
     s << name << op->getIn(2)->getSize();
-    pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+    pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
     pushOp(&comma,op);
     pushVn(op->getIn(2),op,mods);
     pushType(op->getIn(2)->getHigh()->getType());
@@ -2156,7 +2156,7 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       s << "PARTIAL";
       if (!outArr)
         s << "T";
-      pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+      pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
       s.str("");
       pushOp(&comma,op);
       if (sym->getType()->getMetatype() != TYPE_ARRAY) {
@@ -2165,10 +2165,10 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       pushSymbol(sym,vn,op);
       s << off;
       if (outArr)
-        pushAtom(Atom(s.str(),vartoken,EmitXml::const_color,op,vn));
+        pushAtom(Atom(s.str(),vartoken,EmitMarkup::const_color,op,vn));
       else {
         pushOp(&comma,op);
-        pushAtom(Atom(s.str(),vartoken,EmitXml::const_color,op,vn));
+        pushAtom(Atom(s.str(),vartoken,EmitMarkup::const_color,op,vn));
         pushType(outtype);
       }
       ct = (Datatype *)0;
@@ -2611,7 +2611,7 @@ bool PrintC::emitArrCopy(const PcodeOp *op)
   ostringstream s;
   s << "COPY" << op->getOut()->getSize();
   pushOp(&function_call,op);
-  pushAtom(Atom(s.str(),optoken,EmitXml::no_color,op));
+  pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
   pushOp(&comma,op);
   pushSymbolDetail(op->getOut(),op,false);
   op->getOpcode()->push(this,op,(PcodeOp *)0);
