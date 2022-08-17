@@ -32,12 +32,13 @@ import ghidra.trace.model.breakpoint.TraceBreakpoint;
 import ghidra.trace.model.breakpoint.TraceBreakpointManager;
 import ghidra.trace.model.context.TraceRegisterContextManager;
 import ghidra.trace.model.data.TraceBasedDataTypeManager;
-import ghidra.trace.model.language.TraceLanguageManager;
+import ghidra.trace.model.guest.*;
 import ghidra.trace.model.listing.*;
 import ghidra.trace.model.memory.*;
 import ghidra.trace.model.modules.*;
 import ghidra.trace.model.program.TraceProgramView;
 import ghidra.trace.model.program.TraceVariableSnapProgramView;
+import ghidra.trace.model.property.TraceAddressPropertyManager;
 import ghidra.trace.model.stack.TraceStack;
 import ghidra.trace.model.stack.TraceStackManager;
 import ghidra.trace.model.symbol.*;
@@ -378,6 +379,16 @@ public interface Trace extends DataTypeManagerDomainObject {
 		public static final TraceSnapshotChangeType<Void> DELETED = new TraceSnapshotChangeType<>();
 	}
 
+	public static final class TracePlatformChangeType<U>
+			extends DefaultTraceChangeType<TraceGuestPlatform, U> {
+		public static final TracePlatformChangeType<Void> ADDED = new TracePlatformChangeType<>();
+		public static final TracePlatformChangeType<Void> DELETED = new TracePlatformChangeType<>();
+		public static final TracePlatformChangeType<TraceGuestPlatformMappedRange> MAPPING_ADDED =
+			new TracePlatformChangeType<>();
+		public static final TracePlatformChangeType<TraceGuestPlatformMappedRange> MAPPING_DELETED =
+				new TracePlatformChangeType<>(); 
+	}
+
 	public interface TraceProgramViewListener {
 		void viewCreated(TraceProgramView view);
 	}
@@ -387,6 +398,8 @@ public interface Trace extends DataTypeManagerDomainObject {
 	CompilerSpec getBaseCompilerSpec();
 
 	AddressFactory getBaseAddressFactory();
+
+	TraceAddressPropertyManager getAddressPropertyManager();
 
 	TraceBookmarkManager getBookmarkManager();
 
@@ -399,7 +412,7 @@ public interface Trace extends DataTypeManagerDomainObject {
 
 	TraceEquateManager getEquateManager();
 
-	TraceLanguageManager getLanguageManager();
+	TracePlatformManager getPlatformManager();
 
 	TraceMemoryManager getMemoryManager();
 

@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -945,17 +945,17 @@ public class DecompilerProvider extends NavigatableComponentProviderAdapter
 		setGroupInfo(findReferencesAction, searchGroup, subGroupPosition++);
 		findReferencesAction.getPopupMenuData().setParentMenuGroup(referencesParentGroup);
 
-		FindReferencesToSymbolAction findReferencesToSymbolAction =
-			new FindReferencesToSymbolAction();
+		FindReferencesToHighSymbolAction findReferencesToSymbolAction =
+			new FindReferencesToHighSymbolAction();
 		setGroupInfo(findReferencesToSymbolAction, searchGroup, subGroupPosition++);
 		findReferencesToSymbolAction.getPopupMenuData().setParentMenuGroup(referencesParentGroup);
 		addLocalAction(findReferencesToSymbolAction);
 
-		FindReferencesToAddressAction findReferencesToAdressAction =
+		FindReferencesToAddressAction findReferencesToAddressAction =
 			new FindReferencesToAddressAction(tool, owner);
-		setGroupInfo(findReferencesToAdressAction, searchGroup, subGroupPosition++);
-		findReferencesToAdressAction.getPopupMenuData().setParentMenuGroup(referencesParentGroup);
-		addLocalAction(findReferencesToAdressAction);
+		setGroupInfo(findReferencesToAddressAction, searchGroup, subGroupPosition++);
+		findReferencesToAddressAction.getPopupMenuData().setParentMenuGroup(referencesParentGroup);
+		addLocalAction(findReferencesToAddressAction);
 
 		//
 		// Options
@@ -972,6 +972,8 @@ public class DecompilerProvider extends NavigatableComponentProviderAdapter
 		DebugDecompilerAction debugFunctionAction = new DebugDecompilerAction(controller);
 		ExportToCAction convertAction = new ExportToCAction();
 		CloneDecompilerAction cloneDecompilerAction = new CloneDecompilerAction();
+		GoToNextBraceAction goToNextBraceAction = new GoToNextBraceAction();
+		GoToPreviousBraceAction goToPreviousBraceAction = new GoToPreviousBraceAction();
 
 		addLocalAction(refreshAction);
 		addLocalAction(selectAllAction);
@@ -1018,6 +1020,8 @@ public class DecompilerProvider extends NavigatableComponentProviderAdapter
 		addLocalAction(findReferencesAction);
 		addLocalAction(propertiesAction);
 		addLocalAction(cloneDecompilerAction);
+		addLocalAction(goToNextBraceAction);
+		addLocalAction(goToPreviousBraceAction);
 
 		graphServiceAdded();
 	}

@@ -1015,7 +1015,6 @@ public class MemoryMapDB implements Memory, ManagerDB, LiveMemoryListener {
 			MemoryBlock newBlock = null;
 			try {
 				memBlock1.join(memBlock2);
-				reloadAll();
 				newBlock = getBlockDB(block1Addr);
 				fireBlocksJoined(newBlock, block2Addr);
 			}
@@ -2197,11 +2196,7 @@ public class MemoryMapDB implements Memory, ManagerDB, LiveMemoryListener {
 		}
 		lock.acquire();
 		try {
-			if (monitor != null && is != null) {
-				is = new MonitoredInputStream(is, monitor);
-				monitor.initialize(size);
-			}
-			return fileBytesAdapter.createFileBytes(filename, offset, size, is);
+			return fileBytesAdapter.createFileBytes(filename, offset, size, is, monitor);
 		}
 		catch (IOCancelledException e) {
 			throw new CancelledException();

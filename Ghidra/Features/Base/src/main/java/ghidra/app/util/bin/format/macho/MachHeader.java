@@ -21,13 +21,14 @@ import java.util.List;
 
 import ghidra.app.util.bin.*;
 import ghidra.app.util.bin.format.macho.commands.*;
+import ghidra.app.util.opinion.DyldCacheUtils.SplitDyldCache;
 import ghidra.program.model.data.*;
 import ghidra.util.exception.DuplicateNameException;
 
 /**
  * Represents a mach_header structure.
  * 
- * @see <a href="https://opensource.apple.com/source/xnu/xnu-4570.71.2/EXTERNAL_HEADERS/mach-o/loader.h.auto.html">mach-o/loader.h</a> 
+ * @see <a href="https://opensource.apple.com/source/xnu/xnu-7195.81.3/EXTERNAL_HEADERS/mach-o/loader.h.auto.html">mach-o/loader.h</a> 
  */
 public class MachHeader implements StructConverter {
 	private int magic;
@@ -135,16 +136,54 @@ public class MachHeader implements StructConverter {
 		_commandIndex = _reader.getPointerIndex();
 	}
 
+	/**
+	 * Parses this {@link MachHeader}'s {@link LoadCommand load commands}
+	 * 
+	 * @return This {@link MachHeader}, for convenience
+	 * @throws IOException If there was an IO-related error
+	 * @throws MachException if the load command is invalid
+	 */
 	public MachHeader parse() throws IOException, MachException {
+		return parse(null);
+	}
+	
+	/**
+	 * Parses this {@link MachHeader}'s {@link LoadCommand load commands}
+	 * 
+	 * @param splitDyldCache The {@link SplitDyldCache} that this header resides in.  Could be null
+	 *   if a split DYLD cache is not being used.
+	 * @return This {@link MachHeader}, for convenience
+	 * @throws IOException If there was an IO-related error
+	 * @throws MachException if the load command is invalid
+	 */
+	public MachHeader parse(SplitDyldCache splitDyldCache) throws IOException, MachException {
 		if (_parsed) {
 			return this;
 		}
+
+		// We must parse segment load commands first, so find and store their indexes separately
 		long currentIndex = _commandIndex;
+		List<Long> segmentIndexes = new ArrayList<>();
+		List<Long> nonSegmentIndexes = new ArrayList<>();
 		for (int i = 0; i < nCmds; ++i) {
 			_reader.setPointerIndex(currentIndex);
-			LoadCommand lc = LoadCommandTypes.getLoadCommand(_reader, this);
+			int type = _reader.readNextInt();
+			int size = _reader.readNextInt();
+			if (type == LoadCommandTypes.LC_SEGMENT || type == LoadCommandTypes.LC_SEGMENT_64) {
+				segmentIndexes.add(currentIndex);
+			}
+			else {
+				nonSegmentIndexes.add(currentIndex);
+			}
+			currentIndex += size;
+		}
+		List<Long> combinedIndexes = new ArrayList<>();
+		combinedIndexes.addAll(segmentIndexes);    // Parse segments first
+		combinedIndexes.addAll(nonSegmentIndexes); // Parse everything else second
+		for (Long index : combinedIndexes) {
+			_reader.setPointerIndex(index);
+			LoadCommand lc = LoadCommandFactory.getLoadCommand(_reader, this, splitDyldCache);
 			_commands.add(lc);
-			currentIndex += lc.getCommandSize();
 		}
 		_parsed = true;
 		return this;

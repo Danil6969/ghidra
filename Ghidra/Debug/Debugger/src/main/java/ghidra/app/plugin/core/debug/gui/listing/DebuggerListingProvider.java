@@ -295,6 +295,8 @@ public class DebuggerListingProvider extends CodeViewerProvider {
 
 	protected final boolean isMainListing;
 
+	private long countAddressesInIndex;
+
 	public DebuggerListingProvider(DebuggerListingPlugin plugin, FormatManager formatManager,
 			boolean isConnected) {
 		super(plugin, formatManager, isConnected);
@@ -344,6 +346,11 @@ public class DebuggerListingProvider extends CodeViewerProvider {
 		 * mistaken for it.
 		 */
 		return false;
+	}
+
+	@Override
+	public boolean isDynamic() {
+		return true;
 	}
 
 	/**
@@ -488,7 +495,8 @@ public class DebuggerListingProvider extends CodeViewerProvider {
 		if (markerService != null && markedAddress != null) {
 			trackingMarker = markerService.createPointMarker("Tracked Register",
 				"An address stored by a trace register, mapped to a static program", markedProgram,
-				0, true, true, true, trackingColor, ICON_REGISTER_MARKER, true);
+				MarkerService.HIGHLIGHT_PRIORITY + 1, true, true, true, trackingColor,
+				ICON_REGISTER_MARKER, true);
 			trackingMarker.add(markedAddress);
 		}
 	}
@@ -722,6 +730,19 @@ public class DebuggerListingProvider extends CodeViewerProvider {
 	@Override
 	public void stateChanged(ChangeEvent e) {
 		super.stateChanged(e);
+		/*
+		 * It seems this method gets called a bit spuriously. A change in bytes, which does not
+		 * imply a change in layout, will also land us here. Thus, we do some simple test here to
+		 * verify that the layout has actually changed. A good proxy is if the number of addresses
+		 * in the listing has changed. To detect that, we have to record what we've seen each
+		 * change.
+		 */
+		long newCountAddressesInIndex =
+			getListingPanel().getAddressIndexMap().getIndexedAddressSet().getNumAddresses();
+		if (this.countAddressesInIndex == newCountAddressesInIndex) {
+			return;
+		}
+		this.countAddressesInIndex = newCountAddressesInIndex;
 		ProgramLocation trackedLocation = trackingTrait.getTrackedLocation();
 		if (trackedLocation != null && !isEffectivelyDifferent(getLocation(), trackedLocation)) {
 			cbGoTo.invoke(() -> getListingPanel().goTo(trackedLocation, true));

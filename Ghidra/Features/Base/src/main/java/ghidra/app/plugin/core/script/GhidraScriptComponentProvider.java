@@ -136,6 +136,13 @@ public class GhidraScriptComponentProvider extends ComponentProviderAdapter {
 		updateTitle();
 	}
 
+	@Override
+	public boolean canBeParent() {
+		// the script window may be open and closed often as users run scripts and thus is not a
+		// suitable parent when in a window by itself
+		return false;
+	}
+
 	private void buildCategoryTree() {
 		scriptRoot = new RootNode();
 
@@ -306,7 +313,8 @@ public class GhidraScriptComponentProvider extends ComponentProviderAdapter {
 	}
 
 	/**
-	 * @return the bundle host used for scripting, ultimately from {@link GhidraScriptUtil#getBundleHost()}
+	 * @return the bundle host used for scripting, ultimately from
+	 *         {@link GhidraScriptUtil#getBundleHost()}
 	 */
 	public BundleHost getBundleHost() {
 		return bundleHost;
@@ -756,7 +764,7 @@ public class GhidraScriptComponentProvider extends ComponentProviderAdapter {
 
 		trimUnusedTreeCategories();
 
-		scriptRoot.fireNodeStructureChanged(scriptRoot);
+		scriptRoot.fireNodeStructureChanged();
 		if (preRefreshSelectionPath != null) {
 			scriptCategoryTree.setSelectionPath(preRefreshSelectionPath);
 		}
@@ -811,7 +819,7 @@ public class GhidraScriptComponentProvider extends ComponentProviderAdapter {
 
 		/*
 		 			Unusual Algorithm
-		
+
 			The tree nodes represent categories, but do not contain nodes for individual
 		 	scripts.  We wish to remove any of the tree nodes that no longer represent script
 		 	categories.  (This can happen when a script is deleted or its category is changed.)
@@ -1170,7 +1178,7 @@ public class GhidraScriptComponentProvider extends ComponentProviderAdapter {
 
 		@Override
 		public void bundleBuilt(GhidraBundle bundle, String summary) {
-			// on enable, build can happen before the refresh populates the info manager with this 
+			// on enable, build can happen before the refresh populates the info manager with this
 			// bundle's scripts, so allow for the possibility and create the info here.
 			if (!(bundle instanceof GhidraSourceBundle)) {
 				return;
@@ -1179,7 +1187,7 @@ public class GhidraScriptComponentProvider extends ComponentProviderAdapter {
 			GhidraSourceBundle sourceBundle = (GhidraSourceBundle) bundle;
 			ResourceFile sourceDirectory = sourceBundle.getFile();
 			if (summary == null) {
-				// a null summary means the build didn't change anything, so use any errors from 
+				// a null summary means the build didn't change anything, so use any errors from
 				// the last build
 				for (ResourceFile sourceFile : sourceBundle.getAllErrors().keySet()) {
 					if (sourceFile.getParentFile().equals(sourceDirectory)) {

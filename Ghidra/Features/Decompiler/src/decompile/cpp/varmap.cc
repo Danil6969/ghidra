@@ -16,6 +16,11 @@
 #include "varmap.hh"
 #include "funcdata.hh"
 
+AttributeId ATTRIB_LOCK = AttributeId("lock",133);
+AttributeId ATTRIB_MAIN = AttributeId("main",134);
+
+ElementId ELEM_LOCALDB = ElementId("localdb",228);
+
 /// \brief Can the given intersecting RangeHint coexist with \b this at their given offsets
 ///
 /// Determine if the data-type information in the two ranges \e line \e up
@@ -345,27 +350,30 @@ void ScopeLocal::resetLocalWindow(void)
   glb->symboltab->setRange(this,newrange);
 }
 
-void ScopeLocal::saveXml(ostream &s) const
+void ScopeLocal::encode(Encoder &encoder) const
 
 {
-  s << "<localdb";
-  a_v(s,"main",space->getName());
-  a_v_b(s,"lock",rangeLocked);
-  s << ">\n";
-  ScopeInternal::saveXml(s);
-  s << "</localdb>\n";
+  encoder.openElement(ELEM_LOCALDB);
+  encoder.writeSpace(ATTRIB_MAIN, space);
+  encoder.writeBool(ATTRIB_LOCK, rangeLocked);
+  ScopeInternal::encode(encoder);
+  encoder.closeElement(ELEM_LOCALDB);
 }
 
-void ScopeLocal::restoreXml(const Element *el)
+void ScopeLocal::decode(Decoder &decoder)
+
+{
+  ScopeInternal::decode( decoder );
+  collectNameRecs();
+}
+
+void ScopeLocal::decodeWrappingAttributes(Decoder &decoder)
 
 {
   rangeLocked = false;
-  if (xml_readbool(el->getAttributeValue("lock")))
+  if (decoder.readBool(ATTRIB_LOCK))
     rangeLocked = true;
-  space = glb->getSpaceByName(el->getAttributeValue("main"));
-  
-  ScopeInternal::restoreXml( *(el->getChildren().begin()) );
-  collectNameRecs();
+  space = decoder.readSpace(ATTRIB_MAIN);
 }
 
 /// The given range can no longer hold a \e mapped local variable. This indicates the range
@@ -1356,6 +1364,16 @@ void ScopeLocal::applyTypeRecommendations(void)
     if (vn != (Varnode *)0)
       vn->updateType(dt, true, false);
   }
+}
+
+/// Associate a data-type with a particular storage address. If we see an input Varnode at this address,
+/// if no other info is available, the given data-type is applied.
+/// \param addr is the storage address
+/// \param dt is the given data-type
+void ScopeLocal::addTypeRecommendation(const Address &addr,Datatype *dt)
+
+{
+  typeRecommend.push_back(TypeRecommend(addr,dt));
 }
 
 /// The symbol is stored as a name recommendation and then removed from the scope.
