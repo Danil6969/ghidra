@@ -1293,8 +1293,8 @@ void Architecture::parseCompilerConfig(DocumentStorage &store)
       types->parseEnumConfig(decoder);
     else if (subId == ELEM_GLOBAL)
       decodeGlobal(decoder, globalRanges);
-    //else if (elname == "pureop")
-      //userops.parsePureOp(*iter,this);
+    else if (subId == ELEM_PUREOP)
+      userops.decodePureOp(decoder,this);
     else if (subId == ELEM_SEGMENTOP)
       userops.decodeSegmentOp(decoder,this);
     else if (subId == ELEM_READONLY)
