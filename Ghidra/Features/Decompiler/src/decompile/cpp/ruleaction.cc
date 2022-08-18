@@ -6264,6 +6264,49 @@ int4 RulePtrArith::evaluatePointerExpression(PcodeOp *op,int4 slot)
   return res;
 }
 
+PcodeOp *RulePtrArith::getOpToUnlink(PcodeOp *op)
+
+{
+  Varnode *outVn = op->getOut();
+  PcodeOp *opLoadOrStore = (PcodeOp *)0;
+  PcodeOp *opAdd = (PcodeOp *)0;
+  list<PcodeOp *>::const_iterator iter;
+  for(iter=outVn->beginDescend();iter!=outVn->endDescend();++iter) {
+    PcodeOp *decOp = *iter;
+    OpCode opc = decOp->code();
+    if (opc == CPUI_INT_ADD) {
+      opAdd = decOp;
+    }
+    else if ((opc == CPUI_LOAD || opc == CPUI_STORE) && decOp->getIn(1) == outVn) {
+      opLoadOrStore = decOp;
+    }
+  }
+  if ((opAdd != (PcodeOp *)0) && (opLoadOrStore != (PcodeOp *)0)) {
+    return opAdd;
+  }
+  else {
+    return (PcodeOp *)0;
+  }
+}
+
+void RulePtrArith::unlinkAddOp(PcodeOp *op,int4 slot,Funcdata &data) {
+  PcodeOp *oldOp = op->getIn(slot)->getDef();
+  OpCode opc = oldOp->code();
+  Varnode *oldOut = oldOp->getOut();
+  int4 num = oldOp->numInput();
+  PcodeOp *newOp = data.newOp(num, oldOp->getAddr());
+  Varnode *newOut = RulePushPtr::buildVarnodeOut(oldOut, newOp, data);
+  newOut->updateType(oldOut->getType(),false,false);
+  data.opSetOpcode(newOp, opc);
+  for (int4 i=0;i<num;++i) {
+    Varnode *inVn = oldOp->getIn(i);
+    data.opSetInput(newOp, inVn, i);
+  }
+  data.opSetInput(op,newOut,slot);
+  data.opInsertBefore(newOp,op);
+  return;
+}
+
 /// \class RulePtrArith
 /// \brief Transform pointer arithmetic
 ///
@@ -6304,6 +6347,11 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
   if (slot == op->numInput()) return 0;
   if (evaluatePointerExpression(op, slot) != 2) return 0;
   if (!verifyPreferredPointer(op, slot)) return 0;
+  PcodeOp *unlinkOp = getOpToUnlink(op);
+  if (unlinkOp != (PcodeOp *)0) { // This is a workaround to split out INT_ADD descendants so RulePushPtr will be able to catch them
+    unlinkAddOp(unlinkOp, unlinkOp->getSlot(op->getOut()), data);
+    return 1;
+  }
 
   AddTreeState state(data,op,slot);
   if (state.apply()) return 1;
