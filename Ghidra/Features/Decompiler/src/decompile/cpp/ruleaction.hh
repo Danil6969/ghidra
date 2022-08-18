@@ -1032,6 +1032,8 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RulePtrArith : public Rule {
+  static PcodeOp *getOpToUnlink(PcodeOp *op);
+  static void unlinkAddOp(PcodeOp *op,int4 slot,Funcdata &data);
   static bool verifyPreferredPointer(PcodeOp *op,int4 slot);
 public:
   RulePtrArith(const string &g) : Rule(g, 0, "ptrarith") {}	///< Constructor
@@ -1054,7 +1056,6 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RulePushPtr : public Rule {
-  static Varnode *buildVarnodeOut(Varnode *vn,PcodeOp *op,Funcdata &data);
   static void collectDuplicateNeeds(vector<PcodeOp *> &reslist,Varnode *vn);
 public:
   RulePushPtr(const string &g) : Rule(g, 0, "pushptr") {}	///< Constructor
@@ -1064,6 +1065,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+  static Varnode *buildVarnodeOut(Varnode *vn,PcodeOp *op,Funcdata &data);
   static void duplicateNeed(PcodeOp *op,Funcdata &data);
 };
 class RulePtraddUndo : public Rule {
