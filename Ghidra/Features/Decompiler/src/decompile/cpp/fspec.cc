@@ -324,9 +324,9 @@ bool ParamEntry::contains(const ParamEntry &op2) const
   if (op2.joinrec != (JoinRecord *)0) {
     if (joinrec == (JoinRecord *)0) {
       for(int4 i=0;i<op2.joinrec->numPieces();++i) {
-        const VarnodeData &vdata(op2.joinrec->getPiece(i));
-        Address addr = vdata.getAddr();
-        if (!contains(addr,vdata.size)) return false;
+	const VarnodeData &vdata(op2.joinrec->getPiece(i));
+	Address addr = vdata.getAddr();
+	if (!contains(addr,vdata.size)) return false;
       }
       return true;
     }
@@ -667,11 +667,11 @@ void ParamListStandard::collectUsedVarnodes(vector<Varnode> &res,vector<int4> &s
     if (spc->getType() == IPTR_JOIN) {
       JoinRecord *joinrec = curEntry.getJoinRecord();
       for(int4 i=0;i<joinrec->numPieces();++i) {
-        VarnodeData vndata = joinrec->getPiece(i);
-        uint4 size = vndata.size;
-        uintb offset = vndata.offset;
-        AddrSpace *space = vndata.space;
-        res.push_back(Varnode(size,Address(space,offset),(Datatype *)0));
+	VarnodeData vndata = joinrec->getPiece(i);
+	uint4 size = vndata.size;
+	uintb offset = vndata.offset;
+	AddrSpace *space = vndata.space;
+	res.push_back(Varnode(size,Address(space,offset),(Datatype *)0));
       }
     }
     else {
@@ -884,9 +884,9 @@ void ParamListStandard::buildTrialMap(ParamActive *active) const
       int4 trialpos = active->getNumTrials();
       bool overlaps;
       if (curentry->getSpace()->getType() == IPTR_JOIN)
-        overlaps = overlapsTakenUpVarnodes(takenUpVarnodes,*curentry);
+	overlaps = overlapsTakenUpVarnodes(takenUpVarnodes,*curentry);
       else
-        overlaps = overlapsTakenUpVarnodes(takenUpVarnodes,addr,sz);
+	overlaps = overlapsTakenUpVarnodes(takenUpVarnodes,addr,sz);
       if (overlaps) continue;
       active->registerTrial(addr,sz);
       ParamTrial &paramtrial(active->getTrial(trialpos));
