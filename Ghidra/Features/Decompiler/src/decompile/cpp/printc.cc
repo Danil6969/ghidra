@@ -490,12 +490,12 @@ void PrintC::opTypeCast(const PcodeOp *op)
       pushAtom(Atom("CASTARR",optoken,EmitMarkup::no_color,op)); // cast with dereference
     else if (!inArr && outArr) {
       if (op->getIn(0)->isConstant() || op->getIn(0)->isImplied()) {
-        ostringstream s;
-        s << "TOARR" << op->getOut()->getSize();
-        pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op)); // cast with array allocation on stack
+	ostringstream s;
+	s << "TOARR" << op->getOut()->getSize();
+	pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op)); // cast with array allocation on stack
       }
       else
-        pushOp(&addressof,op);
+	pushOp(&addressof,op);
     }
     else
       pushAtom(Atom("CAST",optoken,EmitMarkup::no_color,op)); // just reinterpret with the same bytes in memory but replaced type
@@ -768,7 +768,10 @@ void PrintC::opInsertInd(const PcodeOp *op)
 {
   ostringstream s;
   s << "INSERTIND" << op->getIn(1)->getSize() << "_" << op->getIn(2)->getSize();
-  bool outArr = op->getOut()->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
+  bool outArr = true;
+  if (op->getOut() != (Varnode *)0 && op->getOut()->getHigh() != (HighVariable *)0) {
+    outArr = op->getOut()->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
+  }
   if (!outArr)
     s << "T";
   string nm = s.str();
@@ -2148,28 +2151,28 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       pushOp(&function_call,op);
       Datatype *outtype = vn->getHigh()->getType();
       if (outtype == (Datatype *)0 && op->getOpcode()->getOpcode() == CPUI_COPY)
-        outtype = op->getIn(0)->getType();
+	outtype = op->getIn(0)->getType();
       bool outArr = true;
       if (outtype != (Datatype *)0)
-        outArr = outtype->getMetatype() == TYPE_ARRAY;
+	outArr = outtype->getMetatype() == TYPE_ARRAY;
       ostringstream s;
       s << "PARTIAL";
       if (!outArr)
-        s << "T";
+	s << "T";
       pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
       s.str("");
       pushOp(&comma,op);
       if (sym->getType()->getMetatype() != TYPE_ARRAY) {
-        pushOp(&addressof,op);
+	pushOp(&addressof,op);
       }
       pushSymbol(sym,vn,op);
       s << off;
       if (outArr)
-        pushAtom(Atom(s.str(),vartoken,EmitMarkup::const_color,op,vn));
+	pushAtom(Atom(s.str(),vartoken,EmitMarkup::const_color,op,vn));
       else {
-        pushOp(&comma,op);
-        pushAtom(Atom(s.str(),vartoken,EmitMarkup::const_color,op,vn));
-        pushType(outtype);
+	pushOp(&comma,op);
+	pushAtom(Atom(s.str(),vartoken,EmitMarkup::const_color,op,vn));
+	pushType(outtype);
       }
       ct = (Datatype *)0;
       skipBase = true;
