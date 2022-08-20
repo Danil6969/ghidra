@@ -1522,4 +1522,30 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 
+class RuleByteLoop : public Rule {
+  class VarnodeValues {
+    map<Varnode *,uintb> vals;
+  public:
+    PcodeOp *dynamicInsert;
+    VarnodeValues(void) { dynamicInsert = (PcodeOp *)0; }
+    pair<Varnode *,uintb> getEntry(Varnode *key);
+    bool contains(Varnode *key);
+    void putValue(Varnode *key,uintb value);
+    uintb getValue(Varnode *key);
+  };
+  intb multiplier;
+  PcodeOp *endOp;
+  BlockBasic *getFallthru(PcodeOp *op);
+  BlockBasic *getNonFallthru(PcodeOp *op);
+  BlockBasic *evaluateBlock(BlockBasic *bl,VarnodeValues &values,vector<PcodeOp*> &result,Funcdata &data);
+public:
+  RuleByteLoop(const string &g) : Rule(g,0,"byteloop") { multiplier = 1; endOp = (PcodeOp *)0; }		///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleByteLoop(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
 #endif
