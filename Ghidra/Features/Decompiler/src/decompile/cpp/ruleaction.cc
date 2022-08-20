@@ -9531,3 +9531,410 @@ int4 RuleXorSwap::applyOp(PcodeOp *op,Funcdata &data)
   }
   return 0;
 }
+
+pair<Varnode *,uintb> RuleByteLoop::VarnodeValues::getEntry(Varnode *key)
+
+{
+  map<Varnode *,uintb>::iterator iter;
+  for(iter=vals.begin();iter!=vals.end();++iter) {
+    Varnode *vn = (*iter).first;
+    if (vn->getAddr()!=key->getAddr()) continue;
+    if (vn->getSize()!=key->getSize()) continue;
+    return (*iter);
+  }
+  return *vals.end();
+}
+
+bool RuleByteLoop::VarnodeValues::contains(Varnode *key)
+
+{
+  if (key->isConstant()) return true;
+  pair<Varnode *,uintb> end=*vals.end();
+  return getEntry(key)!=end;
+}
+
+void RuleByteLoop::VarnodeValues::putValue(Varnode *key,uintb value)
+
+{
+  if (key->getSize() > 8) return; // large varnodes aren't supported
+  if (key == (Varnode *)0) return;
+  if (contains(key)) vals.erase(getEntry(key).first); // must deduplicate entries
+  vals[key]=value;
+}
+
+/// \brief Return offset if key is or has association with a constant
+///
+/// \param key is varnode representing constant
+/// \return value by key
+uintb RuleByteLoop::VarnodeValues::getValue(Varnode *key)
+
+{
+  if (key->isConstant()) return key->getOffset();
+  if (!contains(key)) return 0;
+  return getEntry(key).second;
+}
+
+BlockBasic *RuleByteLoop::getFallthru(PcodeOp *op)
+
+{
+  if (op->getParent() == (BlockBasic *)0) return (BlockBasic *)0;
+  if (op->getParent()->sizeOut() == 0) return (BlockBasic *)0;
+  if (op->getParent()->sizeOut() == 1)
+    return (BlockBasic *)(op->isFallthruTrue() ? 0 : op->getParent()->getFalseOut());
+  return (BlockBasic *)(op->isFallthruTrue() ? op->getParent()->getTrueOut() : op->getParent()->getFalseOut());
+}
+
+BlockBasic *RuleByteLoop::getNonFallthru(PcodeOp *op)
+
+{
+  if (op->getParent() == (BlockBasic *)0) return (BlockBasic *)0;
+  if (op->getParent()->sizeOut() == 0) return (BlockBasic *)0;
+  //if (op->getParent()->sizeOut() == 1) return (BlockBasic *)(op->getParent()->getOut(0));
+  if (op->getParent()->sizeOut() == 1)
+    return (BlockBasic *)(op->isFallthruTrue() ? op->getParent()->getFalseOut() : 0);
+  return (BlockBasic *)(op->isFallthruTrue() ? op->getParent()->getFalseOut() : op->getParent()->getTrueOut());
+}
+
+BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,VarnodeValues &values,vector<PcodeOp*> &result,Funcdata &data)
+
+{
+  list<PcodeOp *>::iterator iter;
+  for(iter=bl->beginOp();iter!=bl->endOp();++iter) {
+    PcodeOp *op = *iter;
+    OpCode opc = op->code();
+    Varnode *out = op->getOut();
+    if (opc == CPUI_CALLOTHER && op->getOpcode()->getOperatorName(op) == Funcdata::insertind) {
+      if (!result.empty()) {
+        uintb in3 = values.getValue(op->getIn(3));
+        if (values.dynamicInsert != (PcodeOp *)0) {
+          result[in3] = values.dynamicInsert;
+          values.dynamicInsert = (PcodeOp *)0;
+          continue;
+        }
+	else if (values.contains(op->getIn(2))) {
+	  Varnode *newVn = data.newConstant(multiplier, values.getValue(op->getIn(2)));
+	  PcodeOp *newOp = data.newOp(1, endOp->getAddr());
+	  data.newUniqueOut(multiplier, newOp);
+	  data.opSetOpcode(newOp, CPUI_COPY);
+	  data.opSetInput(newOp, newVn, 0);
+	  result[in3] = newOp;
+	  continue;
+	}
+      }
+    }
+    if (out != (Varnode *)0 && out->getSize() > 8) continue;
+    uintb res,in0,in1,in2,mask,bit1,bit2;
+    string nm;
+    switch (opc) {
+      case CPUI_COPY:
+	if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
+	if (out == (Varnode *)0) return (BlockBasic *)0;
+	in0 = values.getValue(op->getIn(0));
+	res = in0;
+	values.putValue(out,res);
+	break;
+      case CPUI_BRANCH:
+	if (bl->sizeOut() != 1) return (BlockBasic *)0;
+	return (BlockBasic *)bl->getFalseOut();
+	break;
+      case CPUI_CBRANCH:
+	if (bl->sizeOut() != 2) return (BlockBasic *)0;
+	if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
+	in1 = values.getValue(op->getIn(1));
+	if (in1 != 0) return (BlockBasic *)bl->getTrueOut();
+	return (BlockBasic *)bl->getFalseOut();
+      case CPUI_CALLOTHER:
+	nm = op->getOpcode()->getOperatorName(op);
+	if (nm == Funcdata::extractind) {
+	  if (!values.contains(op->getIn(2))) return (BlockBasic *)0;
+	  if (out == (Varnode *)0) continue;
+	  in2 = values.getValue(op->getIn(2));
+	  if (op->getIn(1)->isReadOnly()) {
+	    if (op->getIn(1)->getAddr().isBigEndian()) {
+	      in2 = op->getIn(1)->getSize() - op->getOut()->getSize() - in2;
+	    }
+	    MemoryImage mem(op->getIn(1)->getSpace(),4,16,data.getArch()->loader);
+	    res = mem.getValue(op->getIn(1)->getOffset() + in2,op->getOut()->getSize());
+	    values.putValue(out,res);
+	  }
+	  else if (op->getOut()->loneDescend() != (PcodeOp *)0 && !result.empty()) {
+	    PcodeOp *insertOp = op->getOut()->loneDescend();
+            insertOp = op->getOut()->loneDescend();
+	    while (insertOp != (PcodeOp *)0 && insertOp->code() == CPUI_MULTIEQUAL) {
+              insertOp = insertOp->getOut()->loneDescend();
+	    }
+	    PcodeOp *newOp = data.newOp(3,endOp->getAddr());
+            data.newUniqueOut(multiplier,newOp);
+            data.opSetOpcode(newOp,CPUI_CALLOTHER);
+            Varnode *input = data.newConstant(op->getIn(0)->getSize(), op->getIn(0)->getOffset());
+            data.opSetInput(newOp, input, 0);
+            input = op->getIn(1);
+            data.opSetInput(newOp, input, 1);
+            input = data.newConstant(op->getIn(2)->getSize(), in2);
+            data.opSetInput(newOp, input, 2);
+	    values.dynamicInsert = newOp;
+	  }
+	}
+	break;
+      case CPUI_INT_EQUAL:
+	if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
+	if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
+	if (out == (Varnode *)0) return (BlockBasic *)0;
+	in0 = values.getValue(op->getIn(0));
+	in1 = values.getValue(op->getIn(1));
+	res = (in0 == in1) ? 1 : 0;
+	values.putValue(out,res);
+	break;
+      case CPUI_INT_NOTEQUAL:
+	if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
+	if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
+	if (out == (Varnode *)0) return (BlockBasic *)0;
+	in0 = values.getValue(op->getIn(0));
+	in1 = values.getValue(op->getIn(1));
+	res = (in0 != in1) ? 1 : 0;
+	values.putValue(out,res);
+	break;
+      case CPUI_INT_SLESS:
+        if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
+        if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
+        if (out == (Varnode *)0) return (BlockBasic *)0;
+        in0 = values.getValue(op->getIn(0));
+        in1 = values.getValue(op->getIn(1));
+        mask = 0x80;
+        mask <<= 8 * (op->getIn(0)->getSize() - 1);
+        bit1 = in0 & mask;
+        bit2 = in1 & mask;
+        if (bit1 != bit2) {
+          res = (bit1 != 0) ? 1 : 0;
+        }
+        else {
+          res = (in0 < in1) ? 1 : 0;
+        }
+        values.putValue(out,res);
+        break;
+      case CPUI_INT_LESS:
+	if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
+	if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
+	if (out == (Varnode *)0) return (BlockBasic *)0;
+	in0 = values.getValue(op->getIn(0));
+	in1 = values.getValue(op->getIn(1));
+	res = (in0 < in1) ? 1 : 0;
+	values.putValue(out,res);
+	break;
+      case CPUI_INT_ADD:
+	if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
+	if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
+	if (out == (Varnode *)0) return (BlockBasic *)0;
+	in0 = values.getValue(op->getIn(0));
+	in1 = values.getValue(op->getIn(1));
+	res = (in0 + in1) & calc_mask(out->getSize());
+	values.putValue(out,res);
+	break;
+      case CPUI_INT_AND:
+	if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
+	if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
+	if (out == (Varnode *)0) return (BlockBasic *)0;
+	in0 = values.getValue(op->getIn(0));
+	in1 = values.getValue(op->getIn(1));
+	res = in0 & in1;
+	values.putValue(out,res);
+	break;
+      case CPUI_INT_RIGHT:
+	if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
+	if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
+	if (out == (Varnode *)0) return (BlockBasic *)0;
+	in0 = values.getValue(op->getIn(0));
+	in1 = values.getValue(op->getIn(1));
+	res = (in0 & calc_mask(out->getSize())) >> in1;
+	values.putValue(out,res);
+	break;
+      case CPUI_INT_SRIGHT:
+        if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
+        if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
+        if (out == (Varnode *)0) return (BlockBasic *)0;
+        in0 = values.getValue(op->getIn(0));
+        in1 = values.getValue(op->getIn(1));
+        if (in1 >= 8*out->getSize()){
+          res = signbit_negative(in0,op->getIn(0)->getSize()) ? calc_mask(out->getSize()) : 0;
+        }
+        else {
+          if (signbit_negative(in0,op->getIn(0)->getSize())) {
+            res = in0 >> in1;
+            mask = calc_mask(op->getIn(1)->getSize());
+            mask = (mask >> in1) ^ mask;
+            res |= mask;
+          }
+          else {
+            res = in0 >> in1;
+          }
+        }
+        values.putValue(out,res);
+        break;
+      case CPUI_INT_MULT:
+	if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
+	if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
+	if (out == (Varnode *)0) return (BlockBasic *)0;
+	in0 = values.getValue(op->getIn(0));
+	in1 = values.getValue(op->getIn(1));
+	res = (in0 * in1) & calc_mask(out->getSize());
+	values.putValue(out,res);
+	break;
+      case CPUI_MULTIEQUAL:
+        break;
+      default:
+	break;
+    }
+  }
+  return getFallthru(bl->lastOp());
+}
+
+void RuleByteLoop::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_BRANCH);
+}
+
+int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  BlockBasic *bl = op->getParent();
+  if (!bl->hasLoopOut()) return 0;
+  FlowBlock *condBlock = bl->getOut(0);
+  PcodeOp *branchOp = condBlock->lastOp();
+  if (branchOp->code() != CPUI_CBRANCH) return 0;
+  PcodeOp *condOp = branchOp->getIn(1)->getDef();
+
+  uintb counts;
+  Varnode *counterVn;
+  if (condOp != (PcodeOp *)0 && condOp->code() == CPUI_INT_LESS) {
+    if (condOp->getIn(0)->isConstant() && !condOp->getIn(1)->isConstant()) {
+      counts = condOp->getIn(0)->getOffset() + 1;
+      counterVn = condOp->getIn(1); // find i varnode
+    } else if (condOp->getIn(1)->isConstant() && !condOp->getIn(0)->isConstant()) {
+      counts = condOp->getIn(1)->getOffset();
+      counterVn = condOp->getIn(0);
+    }
+    else
+      return 0; // not exactly 1 constant
+  }
+  else
+    return 0; // not conditional op
+
+  PcodeOp *initOp = counterVn->getDef();
+  if (initOp == (PcodeOp *)0) return 0;
+  if (initOp->code() != CPUI_MULTIEQUAL) return 0;
+  for(int4 i=0;i<2;++i) {
+    PcodeOp *curop = initOp->getIn(i)->getDef();
+    if (curop != (PcodeOp *)0 && curop->code() == CPUI_COPY) {
+      initOp = curop;
+      break;
+    }
+  }
+  if (initOp->code() != CPUI_COPY) return 0;
+  if (!initOp->getIn(0)->isConstant()) return 0;
+  if (initOp->getIn(0)->getOffset() != 0) return 0; // i must be initialized to 0
+
+  vector<PcodeOp *> extractlist;
+  vector<PcodeOp *> insertlist;
+  for(list<PcodeOp *>::const_iterator iter=counterVn->beginDescend();iter!=counterVn->endDescend();++iter) {
+    PcodeOp *curop = *iter;
+    if (curop->code() == CPUI_INT_MULT) {
+      int4 slot = 1 - curop->getSlot(counterVn);
+      Varnode *multVn = curop->getIn(slot);
+      if (multVn->isConstant()) {
+	intb off = multVn->getOffset();
+	sign_extend(off,8*multVn->getSize()-1);
+	if (off < 0) {
+	  multiplier = -off;
+	  curop = curop->getOut()->loneDescend();
+	  if (curop == (PcodeOp *)0) return 0;
+	  if (curop->code() != CPUI_INT_ADD) return 0;
+	  curop = curop->getOut()->loneDescend();
+	  if (curop == (PcodeOp *)0) return 0;
+	}
+	else if (off > 0) {
+	  multiplier = off;
+	  curop = curop->getOut()->loneDescend();
+	  if (curop == (PcodeOp *)0) return 0;
+	}
+	else
+	  return 0;
+      }
+    }
+    if (curop->code() == CPUI_CALLOTHER) {
+      string nm = curop->getOpcode()->getOperatorName(curop);
+      if (nm == Funcdata::extractind)
+	extractlist.push_back(curop);
+      else if (nm == Funcdata::insertind && insertlist.empty())
+	insertlist.push_back(curop);
+    }
+  }
+  // TODO: find out if multiple inserts may ever take place
+  if (extractlist.empty() || insertlist.empty()) return 0;
+  if (insertlist[0]->numInput() != 4) return 0;
+  if (insertlist[0]->getOut() == (Varnode *)0) return 0;
+  if (insertlist[0]->getOut()->loneDescend() == (PcodeOp *)0) return 0;
+  if (insertlist[0]->getOut()->loneDescend()->code() != CPUI_MULTIEQUAL) return 0;
+  // The multiplier is number of bytes
+  // The counts are number of performed operations
+  if (insertlist[0]->getIn(2)->getSize() != multiplier) return 0;
+  if (insertlist[0]->getOut()->getSize() != insertlist[0]->getIn(1)->getSize()) return 0;
+  if ((insertlist[0]->getIn(1)->getSize() % insertlist[0]->getIn(2)->getSize()) != 0) return 0;
+  if ((insertlist[0]->getIn(1)->getSize() / insertlist[0]->getIn(2)->getSize()) != counts) return 0;
+  if (counts < 2) return 0;
+
+  VarnodeValues values;
+  values.putValue(counterVn,0);
+  BlockBasic *curbl = (BlockBasic *)condBlock;
+  BlockBasic *endbl = getNonFallthru(branchOp);
+  endOp = *(endbl->beginOp());
+  vector<PcodeOp *> result;
+  while (curbl != endbl) {
+    if (curbl == (BlockBasic *)0)
+      return 0;
+    curbl = evaluateBlock(curbl, values, result, data); // This just validates code without changes
+  }
+
+  for (int4 i=0;i<counts;++i) {
+    result.push_back((PcodeOp *)0);
+  }
+
+  values.putValue(counterVn,0);
+  curbl = (BlockBasic *)condBlock;
+  while (curbl != endbl) {
+    curbl = evaluateBlock(curbl, values, result, data);
+  }
+
+  PcodeOp *prevop = (PcodeOp *)0;
+  PcodeOp *curop = (PcodeOp *)0;
+  for (int4 i=0;i<result.size();++i) {
+    curop = result[i];
+    data.opInsertBefore(curop, endOp);
+    PcodeOp *newop = data.newOp(4,endOp->getAddr());
+    data.newUniqueOut(insertlist[0]->getOut()->getSize(), newop);
+    data.opSetOpcode(newop, CPUI_CALLOTHER);
+    Varnode *input = data.newConstant(insertlist[0]->getIn(0)->getSize(), insertlist[0]->getIn(0)->getOffset());
+    data.opSetInput(newop, input, 0);
+    if (prevop == (PcodeOp *)0) {
+      input = insertlist[0]->getIn(1);
+      while (input->getDef()->code() == CPUI_MULTIEQUAL) {
+        input = input->getDef()->getIn(0);
+      }
+    }
+    else {
+      input = prevop->getOut();
+    }
+    data.opSetInput(newop, input, 1);
+    input = curop->getOut();
+    data.opSetInput(newop, input, 2);
+    input = data.newConstant(insertlist[0]->getIn(3)->getSize(), i);
+    data.opSetInput(newop, input, 3);
+    data.opInsertBefore(newop,endOp);
+    prevop = newop;
+  }
+  curop = insertlist[0]->getOut()->loneDescend();
+  data.opSetInput(curop, prevop->getOut(), 0);
+  data.opSetInput(curop, prevop->getOut(), 1);
+  data.opDestroy(insertlist[0]);
+  return 1;
+}
