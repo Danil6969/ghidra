@@ -1216,6 +1216,8 @@ void Architecture::parseProcessorConfig(DocumentStorage &store)
       context->decodeFromSpec(decoder);
     else if (subId == ELEM_JUMPASSIST)
       userops.decodeJumpAssist(decoder, this);
+    else if (subId == ELEM_PUREOP)
+      userops.decodePureOp(decoder,this);
     else if (subId == ELEM_SEGMENTOP)
       userops.decodeSegmentOp(decoder,this);
     else if (subId == ELEM_REGISTER_DATA) {
