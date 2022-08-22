@@ -5168,6 +5168,11 @@ void ActionDatabase::universalAction(Architecture *conf)
     actfullloop->addAction( new ActionUnjustifiedParams("protorecovery") );
     actfullloop->addAction( new ActionStartTypes("typerecovery") );
     actfullloop->addAction( new ActionActiveReturn("protorecovery") );
+    {
+      actprop3 = new ActionPool(Action::rule_repeatapply, "oppool3");
+      actprop3->addRule( new RuleByteLoop("analysis") );
+    }
+    actfullloop->addAction(actprop3);
   }
   act->addAction( actfullloop );
   act->addAction( new ActionStartCleanUp("cleanup") );
