@@ -4958,7 +4958,7 @@ void ActionDatabase::universalAction(Architecture *conf)
   ActionGroup *act;
   ActionGroup *actmainloop;
   ActionGroup *actfullloop;
-  ActionPool *actprop,*actprop2;
+  ActionPool *actprop,*actprop2,*actprop3;
   ActionPool *actcleanup;
   ActionGroup *actstackstall;
   AddrSpace *stackspace = conf->getStackSpace();
