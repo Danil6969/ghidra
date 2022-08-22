@@ -23,9 +23,9 @@ ElementId ELEM_HIGHLIST = ElementId("highlist",117);
 ElementId ELEM_JUMPTABLELIST = ElementId("jumptablelist",118);
 ElementId ELEM_VARNODES = ElementId("varnodes",119);
 
+const string Funcdata::addrof = "addrof";
 const string Funcdata::extractind = "extractind";
 const string Funcdata::insertind = "insertind";
-const string Funcdata::addrof = "addrof";
 
 /// \param nm is the (base) name of the function
 /// \param scope is Symbol scope associated with the function
