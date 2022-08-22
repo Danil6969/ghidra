@@ -298,6 +298,10 @@ void UserOpManage::initialize(Architecture *glb)
     UserPcodeOp *userop = new UnspecializedPcodeOp(glb,basicops[i],i);
     registerOp(userop);
   }
+  if (getOp(Funcdata::addr) == (UserPcodeOp *)0) {
+    UserPcodeOp *addrOp = new UnspecializedPcodeOp(glb,Funcdata::addr,useroplist.size());
+    registerOp(addrOp);
+  }
 }
 
 /// Establish defaults for necessary operators not already defined.
