@@ -9641,8 +9641,8 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,VarnodeValues &values,vec
 	if (bl->sizeOut() != 2) return (BlockBasic *)0;
 	if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
 	in1 = values.getValue(op->getIn(1));
-	if (in1 != 0) return (BlockBasic *)bl->getTrueOut();
-	return (BlockBasic *)bl->getFalseOut();
+	if (in1 != 0) return (BlockBasic *)bl->getOut(1);
+	return (BlockBasic *)bl->getOut(0);
       case CPUI_CALLOTHER:
 	nm = op->getOpcode()->getOperatorName(op);
 	if (nm == Funcdata::extractind) {
@@ -9664,7 +9664,6 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,VarnodeValues &values,vec
               insertOp = insertOp->getOut()->loneDescend();
 	    }
 	    PcodeOp *newOp = data.newOp(3,endOp->getAddr());
-            data.newUniqueOut(multiplier,newOp);
             data.opSetOpcode(newOp,CPUI_CALLOTHER);
             Varnode *input = data.newConstant(op->getIn(0)->getSize(), op->getIn(0)->getOffset());
             data.opSetInput(newOp, input, 0);
@@ -9672,6 +9671,7 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,VarnodeValues &values,vec
             data.opSetInput(newOp, input, 1);
             input = data.newConstant(op->getIn(2)->getSize(), in2);
             data.opSetInput(newOp, input, 2);
+            data.newUniqueOut(multiplier,newOp);
 	    values.dynamicInsert = newOp;
 	  }
 	}
@@ -9788,20 +9788,22 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,VarnodeValues &values,vec
   return getFallthru(bl->lastOp());
 }
 
+/// \class RuleByteLoop
+/// \brief Simplify loop with insertind
+///
+/// loop with insertind and various operations may be converted just to consecutive insertinds if control register gets replaced with constants
 void RuleByteLoop::getOpList(vector<uint4> &oplist) const
 
 {
-  oplist.push_back(CPUI_BRANCH);
+  oplist.push_back(CPUI_CBRANCH);
 }
 
 int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  BlockBasic *bl = op->getParent();
-  if (!bl->hasLoopOut()) return 0;
-  FlowBlock *condBlock = bl->getOut(0);
-  PcodeOp *branchOp = condBlock->lastOp();
-  if (branchOp->code() != CPUI_CBRANCH) return 0;
+  PcodeOp *branchOp = op;
+  FlowBlock *condBlock = branchOp->getParent();
+  if (!condBlock->hasLoopIn()) return 0;
   PcodeOp *condOp = branchOp->getIn(1)->getDef();
 
   uintb counts;
@@ -9863,13 +9865,15 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
     }
     if (curop->code() == CPUI_CALLOTHER) {
       string nm = curop->getOpcode()->getOperatorName(curop);
-      if (nm == Funcdata::extractind)
-	extractlist.push_back(curop);
+      if (nm == Funcdata::extractind && curop->getOut() != (Varnode *)0) {
+        if (curop->numInput() != 3) return 0;
+        extractlist.push_back(curop);
+      }
       else if (nm == Funcdata::insertind && insertlist.empty())
 	insertlist.push_back(curop);
     }
   }
-  // TODO: find out if multiple inserts may ever take place
+
   if (extractlist.empty() || insertlist.empty()) return 0;
   if (insertlist[0]->numInput() != 4) return 0;
   if (insertlist[0]->getOut() == (Varnode *)0) return 0;
@@ -9909,9 +9913,9 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   PcodeOp *curop = (PcodeOp *)0;
   for (int4 i=0;i<result.size();++i) {
     curop = result[i];
+    if (curop == (PcodeOp *)0) continue;
     data.opInsertBefore(curop, endOp);
     PcodeOp *newop = data.newOp(4,endOp->getAddr());
-    data.newUniqueOut(insertlist[0]->getOut()->getSize(), newop);
     data.opSetOpcode(newop, CPUI_CALLOTHER);
     Varnode *input = data.newConstant(insertlist[0]->getIn(0)->getSize(), insertlist[0]->getIn(0)->getOffset());
     data.opSetInput(newop, input, 0);
@@ -9929,12 +9933,105 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
     data.opSetInput(newop, input, 2);
     input = data.newConstant(insertlist[0]->getIn(3)->getSize(), i);
     data.opSetInput(newop, input, 3);
+    data.newUniqueOut(insertlist[0]->getOut()->getSize(), newop);
     data.opInsertBefore(newop,endOp);
     prevop = newop;
   }
+  if (prevop == (PcodeOp *)0) return 0;
   curop = insertlist[0]->getOut()->loneDescend();
   data.opSetInput(curop, prevop->getOut(), 0);
   data.opSetInput(curop, prevop->getOut(), 1);
   data.opDestroy(insertlist[0]);
   return 1;
+}
+
+void RuleOpToAdrr::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_CALLOTHER);
+  oplist.push_back(CPUI_PIECE);
+  oplist.push_back(CPUI_SUBPIECE);
+}
+
+int4 RuleOpToAdrr::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  OpCode opc = op->code();
+  AddrSpace *spc = data.getArch()->getDefaultDataSpace();
+  if (opc == CPUI_CALLOTHER) {
+    string nm = op->getOpcode()->getOperatorName(op);
+    if (nm == Funcdata::extractind) {
+      Varnode *out = op->getOut();
+      if (out == (Varnode *)0) return 0;
+      if (op->numInput() != 3) return 0;
+      Varnode *in1 = op->getIn(1);
+      Varnode *in2 = op->getIn(2);
+
+      PcodeOp *addrop = data.newOp(2, op->getAddr());
+      data.opSetOpcode(addrop, CPUI_CALLOTHER);
+      UserPcodeOp *userop = data.getArch()->userops.getOp(Funcdata::addrof);
+      Varnode *input = data.newConstant(4, userop->getIndex());
+      data.opSetInput(addrop, input, 0);
+      data.opSetInput(addrop, in1, 1);
+      data.newUniqueOut(spc->getAddrSize(), addrop);
+      data.opInsertBefore(addrop, op);
+
+      Varnode *indexvn = in2;
+      if (spc->isBigEndian()) {
+        int4 index = in1->getSize() - out->getSize();
+
+        bool isAlreadySub = false;
+        PcodeOp *in2op = in2->getDef();
+        if (in2op != (PcodeOp *)0 && in2op->code() == CPUI_INT_ADD) {
+          if (in2op->getIn(1)->isConstant() && in2op->getIn(1)->getOffset() == index) {
+            PcodeOp *offsetop = in2op->getIn(0)->getDef();
+            if (offsetop != (PcodeOp *)0 && offsetop->code() == CPUI_INT_MULT) {
+              if (offsetop->getIn(1)->isConstant()) {
+                intb off = offsetop->getIn(1)->getOffset();
+                sign_extend(off,8*offsetop->getIn(1)->getSize()-1);
+                if (off == -1) {
+                  isAlreadySub = true;
+                }
+              }
+            }
+          }
+        }
+        if (isAlreadySub) {
+          indexvn = in2op->getIn(0)->getDef()->getIn(0);
+        }
+        else {
+          PcodeOp *subop = data.newOp(2, op->getAddr());
+          data.opSetOpcode(subop, CPUI_INT_SUB);
+          input = data.newConstant(in2->getSize(), index);
+          data.opSetInput(subop, input, 0);
+          data.opSetInput(subop, in2, 1);
+          data.newUniqueOut(in2->getSize(), subop);
+          data.opInsertBefore(subop, op);
+          indexvn = subop->getOut();
+        }
+      }
+
+      PcodeOp *addop = data.newOp(2, op->getAddr());
+      data.opSetOpcode(addop, CPUI_INT_ADD);
+      data.opSetInput(addop, addrop->getOut(), 0);
+      data.opSetInput(addop, indexvn, 1);
+      data.newUniqueOut(addrop->getOut()->getSize(), addop);
+      data.opInsertBefore(addop, op);
+
+      data.opSetOpcode(op, CPUI_LOAD);
+      data.opSetInput(op, data.newVarnodeSpace(spc), 0);
+      data.opSetInput(op, addop->getOut(), 1);
+      return 1;
+    }
+    else if (nm == Funcdata::insertind) {
+      ;
+    }
+  }
+  else if (opc == CPUI_PIECE) {
+    ;
+  }
+  else if (opc == CPUI_SUBPIECE) {
+    ;
+  }
+  return 0;
 }
