@@ -25,6 +25,7 @@ ElementId ELEM_VARNODES = ElementId("varnodes",119);
 
 const string Funcdata::extractind = "extractind";
 const string Funcdata::insertind = "insertind";
+const string Funcdata::addr = "addr";
 
 /// \param nm is the (base) name of the function
 /// \param scope is Symbol scope associated with the function
