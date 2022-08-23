@@ -6307,6 +6307,30 @@ void RulePtrArith::unlinkAddOp(PcodeOp *op,int4 slot,Funcdata &data) {
   return;
 }
 
+bool RulePtrArith::replaceMultiplier(Varnode *vn,Funcdata &data)
+
+{
+  PcodeOp *op = vn->getDef();
+  if (op == (PcodeOp *)0) return false;
+  if (op->code() != CPUI_INT_MULT) return false;
+  Varnode *vn0 = op->getIn(0);
+  Varnode *vn1 = op->getIn(1);
+  if (!vn1->isConstant()) return false;
+  PcodeOp *otherop = vn0->getDef();
+  if (otherop == (PcodeOp *)0) return false;
+  if (otherop->code() == CPUI_INT_ZEXT) {
+    otherop = otherop->getIn(0)->getDef();
+  }
+  if (otherop->code() != CPUI_INT_MULT) return false;
+  if (!otherop->getIn(1)->isConstant()) return false;
+  Varnode *input = otherop->getIn(0);
+  data.opSetInput(op, input, 0);
+  uintb off = vn1->getOffset() * otherop->getIn(1)->getOffset();
+  input = data.newConstant(vn1->getSize(), off);
+  data.opSetInput(op, input, 1);
+  return true;
+}
+
 /// \class RulePtrArith
 /// \brief Transform pointer arithmetic
 ///
@@ -6347,9 +6371,17 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
   if (slot == op->numInput()) return 0;
   if (evaluatePointerExpression(op, slot) != 2) return 0;
   if (!verifyPreferredPointer(op, slot)) return 0;
-  PcodeOp *unlinkOp = getOpToUnlink(op);
-  if (unlinkOp != (PcodeOp *)0) { // This is a workaround to split out INT_ADD descendants so RulePushPtr will be able to catch them
-    unlinkAddOp(unlinkOp, unlinkOp->getSlot(op->getOut()), data);
+
+  if (replaceMultiplier(op->getIn(1), data)) return 1; // Ensure all multiplier constants are propagated here
+
+  PcodeOp *anotheraddop = op->getIn(1)->getDef();
+  if (anotheraddop != (PcodeOp *)0 && anotheraddop->code() == CPUI_INT_ADD) {
+    if (replaceMultiplier(anotheraddop->getIn(0), data)) return 1; // Also check second addition
+  }
+
+  anotheraddop = getOpToUnlink(op);
+  if (anotheraddop != (PcodeOp *)0) { // Must split out INT_ADD descendants so RulePushPtr will deal with them
+    unlinkAddOp(anotheraddop, anotheraddop->getSlot(op->getOut()), data);
     return 1;
   }
 
