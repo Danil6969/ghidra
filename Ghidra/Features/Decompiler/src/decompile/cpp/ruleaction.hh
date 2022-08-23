@@ -1034,6 +1034,7 @@ public:
 class RulePtrArith : public Rule {
   static PcodeOp *getOpToUnlink(PcodeOp *op);
   static void unlinkAddOp(PcodeOp *op,int4 slot,Funcdata &data);
+  static bool replaceMultiplier(Varnode* multvn,Funcdata &data);
   static bool verifyPreferredPointer(PcodeOp *op,int4 slot);
 public:
   RulePtrArith(const string &g) : Rule(g, 0, "ptrarith") {}	///< Constructor
