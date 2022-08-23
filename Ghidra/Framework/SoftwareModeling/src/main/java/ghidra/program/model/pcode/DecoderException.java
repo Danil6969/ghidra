@@ -13,13 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ghidra.util.database.annot;
+package ghidra.program.model.pcode;
 
-import java.lang.annotation.*;
+/**
+ * Exception thrown for errors decoding decompiler objects from stream
+ */
+public class DecoderException extends PcodeException {
+	public DecoderException(String msg) {
+		super("Decoding error: " + msg);
+	}
 
-// TODO: Process these and specify or build indices accordingly.
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface DBAnnotatedIndex {
-	// None
+	public DecoderException(String msg, Throwable cause) {
+		super("Decoding error: " + msg, cause);
+	}
 }
