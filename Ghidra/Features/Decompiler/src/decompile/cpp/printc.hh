@@ -348,16 +348,4 @@ public:
   virtual void callback(Emit *emit);
 };
 
-/// \brief Push a token indicating a PTRSUB (a -> operator) is acting at an offset from the original pointer
-///
-/// When a variable has TypePointerRel as its data-type, PTRSUB acts relative to the \e parent
-/// data-type.  We print a specific token to indicate this relative shift is happening.
-/// \param op is is the PTRSUB op
-inline void PrintC::pushTypePointerRel(const PcodeOp *op)
-
-{
-  pushOp(&function_call,op);
-  pushAtom(Atom(typePointerRelToken,optoken,EmitMarkup::funcname_color,op));
-}
-
 #endif
