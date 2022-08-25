@@ -2540,6 +2540,24 @@ bool PrintC::checkPrintNegation(const Varnode *vn)
   return true;
 }
 
+/// \brief Push a token indicating a PTRSUB (a -> operator) is acting at an offset from the original pointer
+///
+/// When a variable has TypePointerRel as its data-type, PTRSUB acts relative to the \e parent
+/// data-type.  We print a specific token to indicate this relative shift is happening.
+/// \param op is is the PTRSUB op
+inline void PrintC::pushTypePointerRel(const PcodeOp *op)
+
+{
+  pushOp(&function_call,op);
+  pushAtom(Atom(typePointerRelToken,optoken,EmitMarkup::funcname_color,op));
+  pushOp(&comma,op);
+  const Varnode *in0 = op->getIn(0);
+  TypePointer *ptype = (TypePointer *) in0->getHighTypeReadFacing(op);
+  TypePointerRel *ptrel = (TypePointerRel *) ptype;
+  int4 off = ptrel->getPointerOffset();
+  push_integer(off,4,true,(Varnode *)0,op);
+}
+
 void PrintC::docTypeDefinitions(const TypeFactory *typegrp)
 
 {
