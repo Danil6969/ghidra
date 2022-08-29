@@ -2216,6 +2216,7 @@ ProtoModel::ProtoModel(Architecture *g)
   stackgrowsnegative = true;	// Normal stack parameter ordering
   hasThis = false;
   isConstruct = false;
+  isPrinted = true;
   defaultLocalRange();
   defaultParamRange();
 }
@@ -2228,6 +2229,7 @@ ProtoModel::ProtoModel(const string &nm,const ProtoModel &op2)
 {
   glb = op2.glb;
   name = nm;
+  isPrinted = true;		// Don't inherit. Always print unless setPrintInDecl called explicitly
   extrapop = op2.extrapop;
   if (op2.input != (ParamList *)0)
     input = op2.input->clone();
@@ -2414,6 +2416,7 @@ void ProtoModel::decode(Decoder &decoder)
   extrapop = -300;
   hasThis = false;
   isConstruct = false;
+  isPrinted = true;
   effectlist.clear();
   injectUponEntry = -1;
   injectUponReturn = -1;
@@ -3658,7 +3661,6 @@ void FuncProto::setModel(ProtoModel *m)
     model = m;
     extrapop = ProtoModel::extrapop_unknown;
   }
-  flags &= ~((uint4)unknown_model);	// Model is not "unknown" (even if null pointer is passed in)
 }
 
 /// The full function prototype is (re)set from a model, names, and data-types
@@ -4486,7 +4488,6 @@ void FuncProto::decode(Decoder &decoder,Architecture *glb)
     throw LowlevelError("Prototype storage must be set before restoring FuncProto");
   ProtoModel *mod = (ProtoModel *)0;
   bool seenextrapop = false;
-  bool seenunknownmod = false;
   int4 readextrapop;
   flags = 0;
   injectid = -1;
@@ -4496,14 +4497,13 @@ void FuncProto::decode(Decoder &decoder,Architecture *glb)
     if (attribId == 0) break;
     if (attribId == ATTRIB_MODEL) {
       string modelname = decoder.readString();
-      if ((modelname == "default")||(modelname.size()==0))
-	mod = glb->defaultfp;	// Get default model
-      else if (modelname == "unknown") {
-	mod = glb->defaultfp;		// Use the default
-	seenunknownmod = true;
-      }
-      else
+      if (modelname.size()==0 || modelname == "default")
+	mod = glb->defaultfp;	// Use the default model
+      else {
 	mod = glb->getModel(modelname);
+	if (mod == (ProtoModel *)0)	// Model name is unrecognized
+	  mod = glb->createUnknownModel(modelname);	// Create model with placeholder behavior
+      }
     }
     else if (attribId == ATTRIB_EXTRAPOP) {
       seenextrapop = true;
@@ -4550,8 +4550,6 @@ void FuncProto::decode(Decoder &decoder,Architecture *glb)
     setModel(mod);		// This sets extrapop to model default
   if (seenextrapop)		// If explicitly set
     extrapop = readextrapop;
-  if (seenunknownmod)
-    flags |= unknown_model;
 
   uint4 subId = decoder.peekElement();
   if (subId != 0) {
