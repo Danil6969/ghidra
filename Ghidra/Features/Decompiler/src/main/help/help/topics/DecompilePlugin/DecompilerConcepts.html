@@ -765,7 +765,7 @@
     </p>
     <div class="informalexample">
       <div class="variablelist"><dl class="variablelist">
-<dt><span class="term"><code class="code">SUB41(x,c)</code> - Truncation operation - SUBPIECE</span></dt>
+<dt><span class="term"><code class="code">SUB4_1(x,c)</code> - Truncation operation - SUBPIECE</span></dt>
 <dd>
 	  <div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: bullet; ">
 <li class="listitem" style="list-style-type: disc">The digit '4' indicates the size of the input operand 'x' in bytes.</li>
@@ -774,7 +774,7 @@
 <li class="listitem" style="list-style-type: disc">The parameter 'c' is the number of least significant bytes being truncated.</li>
 </ul></div>
 	  <pre class="programlisting">
-	    SUB42(0xaabbccdd,1) = 0xbbcc
+	    SUB4_2(0xaabbccdd,1) = 0xbbcc
 	  </pre>
 	  <p>
 	    Extract a contiguous subset of the bytes from 'x'.
@@ -784,22 +784,22 @@
 	  </p>
 <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: none; ">
 <li class="listitem" style="list-style-type: none">
-	      <code class="code">SUB41(x,0)</code>
+	      <code class="code">SUB4_1(x,0)</code>
 	      truncates from a 4-byte integer to a 1-byte (<span class="bold"><strong>char</strong></span>
 	      or <span class="bold"><strong>byte</strong></span>) integer.
 	    </li>
 <li class="listitem" style="list-style-type: none">
-	      <code class="code">SUB42(x,0)</code>
+	      <code class="code">SUB4_2(x,0)</code>
 	      truncates from a 4-byte integer to a 2-byte (<span class="bold"><strong>short</strong></span>) integer.
 	    </li>
 <li class="listitem" style="list-style-type: none">
-	      <code class="code">SUB84(x,4)</code> extracts the high 4 bytes from the 8 byte integer.
+	      <code class="code">SUB8_4(x,4)</code> extracts the high 4 bytes from the 8 byte integer.
 	    </li>
 </ul></div>
 <p>
 	  </p>
 	</dd>
-<dt><span class="term"><code class="code">CONCAT31(x,y)</code> - Concatenation operator - PIECE</span></dt>
+<dt><span class="term"><code class="code">CONCAT3_1(x,y)</code> - Concatenation operator - PIECE</span></dt>
 <dd>
 	  <div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: bullet; ">
 <li class="listitem" style="list-style-type: disc">The digit '3' indicates the size of the input operand 'x' in bytes.</li>
@@ -807,35 +807,35 @@
 <li class="listitem" style="list-style-type: disc">The parameters 'x' and 'y' hold the values being concatenated.</li>
 </ul></div>
 	  <pre class="programlisting">
-	    CONCAT31(0xaabbcc,0xdd) = 0xaabbccdd 
+	    CONCAT3_1(0xaabbcc,0xdd) = 0xaabbccdd
 	  </pre>
 	  <p>
 	    Concatenate the bytes in 'x' with the bytes in 'y'.  'x' becomes the most significant
 	    bytes, and 'y' the least significant bytes, in the result.
 	  </p>
 	</dd>
-<dt><span class="term"><code class="code">ZEXT14(x)</code> - Zero-extension operator - INT_ZEXT</span></dt>
+<dt><span class="term"><code class="code">ZEXT1_4(x)</code> - Zero-extension operator - INT_ZEXT</span></dt>
 <dd>
 	  <div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: bullet; ">
 <li class="listitem" style="list-style-type: disc">The digit '1' indicates the size of the input operand 'x' in bytes.</li>
 <li class="listitem" style="list-style-type: disc">The digit '4' indicates the size of the output in bytes.</li>
 </ul></div>
 	  <pre class="programlisting">
-	    ZEXT24(0xaabb) = 0x0000aabb
+	    ZEXT2_4(0xaabb) = 0x0000aabb
 	  </pre>
 	  <p>
 	    Extend the operand 'x' to a larger size by appending zero bytes, which become the most
 	    significant bytes of the result.
 	  </p>
 	</dd>
-<dt><span class="term"><code class="code">SEXT14(x)</code> - Sign-extension operator - INT_SEXT</span></dt>
+<dt><span class="term"><code class="code">SEXT1_4(x)</code> - Sign-extension operator - INT_SEXT</span></dt>
 <dd>
 	  <div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: bullet; ">
 <li class="listitem" style="list-style-type: disc">The digit '1' indicates the size of the input operand 'x' in bytes.</li>
 <li class="listitem" style="list-style-type: disc">The digit '4' indicates the size of the output in bytes.</li>
 </ul></div>
 	  <pre class="programlisting">
-	    SEXT48(0xaabbccdd) = 0xffffffffaabbccdd
+	    SEXT4_8(0xaabbccdd) = 0xffffffffaabbccdd
 	  </pre>
 	  <p>
 	    Extend the operand 'x' to a larger size by duplicating the <span class="emphasis"><em>sign</em></span>
@@ -864,6 +864,34 @@
 	  <p>
 	    Return <span class="emphasis"><em>true</em></span> if there is an arithmetic overflow when adding 'x' and 'y'
 	    as signed integers.
+	  </p>
+	</dd>
+<dt><span class="term"><code class="code">EXTRACTIND16_1(x,c)</code> - Indexed extraction operation - EXTRACTIND</span></dt>
+<dd>
+	  <div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">The digit '16' indicates the size of the input operand 'x' in bytes.</li>
+<li class="listitem" style="list-style-type: disc">The digit '1' indicates the size of the output value in bytes.</li>
+<li class="listitem" style="list-style-type: disc">The parameter 'x' is the value being truncated.</li>
+<li class="listitem" style="list-style-type: disc">The parameter 'c' is the variable with index of least significant byte for truncation.</li>
+</ul></div>
+	  <p>
+	    Extract a contiguous subset of the bytes from 'x'.
+	    When 'c' is constant, the operation is just a subpiece.
+	    This is designed to be used with shuffle or byte compression operations.
+	  </p>
+	</dd>
+<dt><span class="term"><code class="code">INSERTIND16_1(x,y,c)</code> - Indexed insertion operation - INSERTIND</span></dt>
+<dd>
+	  <div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">The digit '16' indicates the size of the input operand 'x' in bytes.</li>
+<li class="listitem" style="list-style-type: disc">The digit '1' indicates the size of the input operand 'y' in bytes.</li>
+<li class="listitem" style="list-style-type: disc">The parameter 'x' is the value being modified.</li>
+<li class="listitem" style="list-style-type: disc">The parameter 'y' is the value being inserted.</li>
+<li class="listitem" style="list-style-type: disc">The parameter 'c' is the variable with index of least significant byte for insertion.</li>
+</ul></div>
+	  <p>
+	    Insert (overwrite) bytes from 'y' to 'x' starting from 'c' and onwards but leave other bytes unmodified.
+	    This is designed to be used with shuffle or byte compression operations.
 	  </p>
 	</dd>
 </dl></div>
