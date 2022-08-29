@@ -952,7 +952,7 @@
 	    <listitem>The digit '4' indicates the size of the output in bytes.</listitem>
 	  </itemizedlist>
 	  <programlisting>
-	    SEXT4)8(0xaabbccdd) = 0xffffffffaabbccdd
+	    SEXT4_8(0xaabbccdd) = 0xffffffffaabbccdd
 	  </programlisting>
 	  <para>
 	    Extend the operand 'x' to a larger size by duplicating the <emphasis>sign</emphasis>
