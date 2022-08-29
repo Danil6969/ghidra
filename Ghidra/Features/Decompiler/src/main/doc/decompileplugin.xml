@@ -878,7 +878,7 @@
       <variablelist>
       <?dbfo list-presentation="blocks"?>
       <varlistentry>
-	<term><code>SUB41(x,c)</code> - Truncation operation - SUBPIECE</term>
+	<term><code>SUB4_1(x,c)</code> - Truncation operation - SUBPIECE</term>
 	<listitem>
 	  <itemizedlist mark='bullet' spacing='compact'>
 	    <listitem>The digit '4' indicates the size of the input operand 'x' in bytes.</listitem>
@@ -887,7 +887,7 @@
 	    <listitem>The parameter 'c' is the number of least significant bytes being truncated.</listitem>
 	  </itemizedlist>
 	  <programlisting>
-	    SUB42(0xaabbccdd,1) = 0xbbcc
+	    SUB4_2(0xaabbccdd,1) = 0xbbcc
 	  </programlisting>
 	  <para>
 	    Extract a contiguous subset of the bytes from 'x'.
@@ -896,23 +896,23 @@
 	  <para>
 	  <itemizedlist mark='none'>
 	    <listitem>
-	      <code>SUB41(x,0)</code>
+	      <code>SUB4_1(x,0)</code>
 	      truncates from a 4-byte integer to a 1-byte (<emphasis role="bold">char</emphasis>
 	      or <emphasis role="bold">byte</emphasis>) integer.
 	    </listitem>
 	    <listitem>
-	      <code>SUB42(x,0)</code>
+	      <code>SUB4_2(x,0)</code>
 	      truncates from a 4-byte integer to a 2-byte (<emphasis role="bold">short</emphasis>) integer.
 	    </listitem>
 	    <listitem>
-	      <code>SUB84(x,4)</code> extracts the high 4 bytes from the 8 byte integer.
+	      <code>SUB8_4(x,4)</code> extracts the high 4 bytes from the 8 byte integer.
 	    </listitem>
 	  </itemizedlist>
 	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
-	<term><code>CONCAT31(x,y)</code> - Concatenation operator - PIECE</term>
+	<term><code>CONCAT3_1(x,y)</code> - Concatenation operator - PIECE</term>
 	<listitem>
 	  <itemizedlist mark='bullet' spacing='compact'>
 	    <listitem>The digit '3' indicates the size of the input operand 'x' in bytes.</listitem>
@@ -920,7 +920,7 @@
 	    <listitem>The parameters 'x' and 'y' hold the values being concatenated.</listitem>
 	  </itemizedlist>
 	  <programlisting>
-	    CONCAT31(0xaabbcc,0xdd) = 0xaabbccdd 
+	    CONCAT3_1(0xaabbcc,0xdd) = 0xaabbccdd 
 	  </programlisting>
 	  <para>
 	    Concatenate the bytes in 'x' with the bytes in 'y'.  'x' becomes the most significant
@@ -929,14 +929,14 @@
 	</listitem>
       </varlistentry>
       <varlistentry>
-	<term><code>ZEXT14(x)</code> - Zero-extension operator - INT_ZEXT</term>
+	<term><code>ZEXT1_4(x)</code> - Zero-extension operator - INT_ZEXT</term>
 	<listitem>
 	  <itemizedlist mark='bullet' spacing='compact'>
 	    <listitem>The digit '1' indicates the size of the input operand 'x' in bytes.</listitem>
 	    <listitem>The digit '4' indicates the size of the output in bytes.</listitem>
 	  </itemizedlist>
 	  <programlisting>
-	    ZEXT24(0xaabb) = 0x0000aabb
+	    ZEXT2_4(0xaabb) = 0x0000aabb
 	  </programlisting>
 	  <para>
 	    Extend the operand 'x' to a larger size by appending zero bytes, which become the most
@@ -945,14 +945,14 @@
 	</listitem>
       </varlistentry>
       <varlistentry>
-	<term><code>SEXT14(x)</code> - Sign-extension operator - INT_SEXT</term>
+	<term><code>SEXT1_4(x)</code> - Sign-extension operator - INT_SEXT</term>
 	<listitem>
 	  <itemizedlist mark='bullet' spacing='compact'>
 	    <listitem>The digit '1' indicates the size of the input operand 'x' in bytes.</listitem>
 	    <listitem>The digit '4' indicates the size of the output in bytes.</listitem>
 	  </itemizedlist>
 	  <programlisting>
-	    SEXT48(0xaabbccdd) = 0xffffffffaabbccdd
+	    SEXT4)8(0xaabbccdd) = 0xffffffffaabbccdd
 	  </programlisting>
 	  <para>
 	    Extend the operand 'x' to a larger size by duplicating the <emphasis>sign</emphasis>
@@ -993,6 +993,38 @@
 	  <para>
 	    Return <emphasis>true</emphasis> if there is an arithmetic overflow when adding 'x' and 'y'
 	    as signed integers.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><code>EXTRACTIND16_1(x,c)</code> - Indexed extraction operation - EXTRACTIND</term>
+	<listitem>
+	  <itemizedlist mark='bullet' spacing='compact'>
+	    <listitem>The digit '16' indicates the size of the input operand 'x' in bytes.</listitem>
+	    <listitem>The digit '1' indicates the size of the output value in bytes.</listitem>
+	    <listitem>The parameter 'x' is the value being truncated.</listitem>
+	    <listitem>The parameter 'c' is the variable with index of least significant byte for truncation.</listitem>
+	  </itemizedlist>
+	  <para>
+	    Extract a contiguous subset of the bytes from 'x'.
+	    When 'c' is constant, the operation is just a subpiece.
+	    This is designed to be used with shuffle or byte compression operations.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><code>INSERTIND16_1(x,y,c)</code> - Indexed insertion operation - INSERTIND</term>
+	<listitem>
+	  <itemizedlist mark='bullet' spacing='compact'>
+	    <listitem>The digit '16' indicates the size of the input operand 'x' in bytes.</listitem>
+	    <listitem>The digit '1' indicates the size of the input operand 'y' in bytes.</listitem>
+	    <listitem>The parameter 'x' is the value being modified.</listitem>
+	    <listitem>The parameter 'y' is the value being inserted.</listitem>
+	    <listitem>The parameter 'c' is the variable with index of least significant byte for insertion.</listitem>
+	  </itemizedlist>
+	  <para>
+	    Insert (overwrite) bytes from 'y' to 'x' starting from 'c' and onwards but leave other bytes unmodified.
+	    This is designed to be used with shuffle or byte compression operations.
 	  </para>
 	</listitem>
       </varlistentry>
