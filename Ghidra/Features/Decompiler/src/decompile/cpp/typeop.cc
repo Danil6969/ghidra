@@ -1141,6 +1141,13 @@ TypeOpIntAdd::TypeOpIntAdd(TypeFactory *t)
 Datatype *TypeOpIntAdd::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
+  const Varnode *invn = op->getIn(slot);
+  Datatype *invnType = invn->getType();
+  if (invnType->getMetatype() == TYPE_PTR) {
+    TypePointer *pointer = (TypePointer *)invnType;
+    Datatype *dt = tlst->getBase(invn->getSize(),TYPE_UINT,"uintptr_t");
+    return dt;
+  }
   return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
 }
 
