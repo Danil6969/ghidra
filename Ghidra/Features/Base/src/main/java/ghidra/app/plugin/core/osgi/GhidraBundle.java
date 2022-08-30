@@ -211,6 +211,8 @@ public abstract class GhidraBundle {
 
 	@Override
 	public String toString() {
-		return getOSGiBundle().getSymbolicName();
+		Bundle bundle = getOSGiBundle();
+		if (bundle == null) return null;
+		return bundle.getSymbolicName();
 	}
 }
