@@ -57,6 +57,13 @@ public class BytesDebuggerPcodeEmulator extends BytesTracePcodeEmulator
 		this.recorder = recorder;
 	}
 
+	public BytesDebuggerPcodeEmulator(PluginTool tool, Trace trace, long snap,
+			TraceRecorder recorder, SleighUseropLibrary<byte[]> library) {
+		super(trace, snap, library);
+		this.tool = tool;
+		this.recorder = recorder;
+	}
+
 	@Override
 	public PluginTool getTool() {
 		return tool;
