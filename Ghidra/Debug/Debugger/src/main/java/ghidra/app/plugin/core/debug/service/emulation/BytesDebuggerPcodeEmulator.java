@@ -18,6 +18,7 @@ package ghidra.app.plugin.core.debug.service.emulation;
 import ghidra.app.services.TraceRecorder;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.pcode.emu.*;
+import ghidra.pcode.exec.PcodeUseropLibrary;
 import ghidra.pcode.exec.trace.BytesTracePcodeEmulator;
 import ghidra.pcode.exec.trace.TracePcodeExecutorState;
 import ghidra.trace.model.Trace;
@@ -41,6 +42,7 @@ public class BytesDebuggerPcodeEmulator extends BytesTracePcodeEmulator
 		implements DebuggerPcodeMachine<byte[]> {
 	protected final PluginTool tool;
 	protected final TraceRecorder recorder;
+	protected PcodeUseropLibrary<byte[]> library = PcodeUseropLibrary.nil();
 
 	/**
 	 * Create the emulator
@@ -85,5 +87,14 @@ public class BytesDebuggerPcodeEmulator extends BytesTracePcodeEmulator
 			trace.getThreadManager().getLiveThreadByPath(snap, emuThread.getName());
 		return new ReadsTargetRegistersPcodeExecutorState(tool, trace, snap, traceThread, 0,
 			recorder);
+	}
+
+	@Override
+	protected PcodeUseropLibrary<byte[]> createUseropLibrary() {
+		return library;
+	}
+	
+	public void setUseropLibrary(PcodeUseropLibrary<byte[]> library) {
+		this.library = library;
 	}
 }
