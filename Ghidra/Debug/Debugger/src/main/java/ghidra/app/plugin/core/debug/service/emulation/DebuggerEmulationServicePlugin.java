@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import ghidra.pcode.exec.PcodeUseropLibrary;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import com.google.common.collect.Range;
@@ -178,6 +179,8 @@ public class DebuggerEmulationServicePlugin extends Plugin implements DebuggerEm
 				.forgetErrors((key, t) -> true)
 				.forgetValues((key, l) -> true);
 
+	@AutoServiceConsumed
+	private final Map<Trace, PcodeUseropLibrary<byte[]>> libraryMap = new HashMap<>();
 	@AutoServiceConsumed
 	private DebuggerTraceManagerService traceManager;
 	@AutoServiceConsumed
@@ -478,6 +481,9 @@ public class DebuggerEmulationServicePlugin extends Plugin implements DebuggerEm
 		else {
 			emu = emulatorFactory.create(tool, trace, time.getSnap(),
 				modelService == null ? null : modelService.getRecorder(trace));
+			if (emu instanceof BytesDebuggerPcodeEmulator && libraryMap.get(trace) != null) {
+				((BytesDebuggerPcodeEmulator) emu).setUseropLibrary(libraryMap.get(trace));
+			}
 			ce = new CachedEmulator(emu);
 			monitor.initialize(time.totalTickCount());
 			time.execute(trace, emu, monitor);
@@ -500,6 +506,10 @@ public class DebuggerEmulationServicePlugin extends Plugin implements DebuggerEm
 		}
 
 		return destSnap.getKey();
+	}
+
+	public void setUseropLibrary(Trace trace, PcodeUseropLibrary<byte[]> library) {
+		libraryMap.put(trace, library);
 	}
 
 	@Override
