@@ -54,6 +54,7 @@ project.ext.GHIDRA_GROUP = "Z Ghidra"
 project.ext.ROOT_PROJECT_DIR = projectDir.absolutePath
 project.ext.BIN_REPO = file("${projectDir}/../ghidra.bin").absolutePath
 project.ext.DEPS_DIR = file("${projectDir}/dependencies")
+project.ext.GHIDRA_INSTALL_DIR = file("${projectDir}/GhidraInstall").absolutePath
 
 /*********************************************************************************
  *  Prevent forked Java processes from stealing focus
