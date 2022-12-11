@@ -1524,6 +1524,8 @@ public:
 };
 
 class RuleByteLoop : public Rule {
+  intb multiplier;
+  PcodeOp *endOp;
   class VarnodeValues {
     map<Varnode *,uintb> vals;
   public:
@@ -1534,13 +1536,14 @@ class RuleByteLoop : public Rule {
     void putValue(Varnode *key,uintb value);
     uintb getValue(Varnode *key);
   };
-  intb multiplier;
-  PcodeOp *endOp;
   BlockBasic *getFallthru(PcodeOp *op);
   BlockBasic *getNonFallthru(PcodeOp *op);
   BlockBasic *evaluateBlock(BlockBasic *bl,VarnodeValues &values,vector<PcodeOp*> &result,Funcdata &data);
 public:
-  RuleByteLoop(const string &g) : Rule(g,0,"byteloop") { multiplier = 1; endOp = (PcodeOp *)0; }		///< Constructor
+  RuleByteLoop(const string &g) : Rule(g,0,"byteloop") {
+    multiplier = 1;
+    endOp = (PcodeOp *)0;
+  }		///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
     return new RuleByteLoop(getGroup());
@@ -1550,8 +1553,17 @@ public:
 };
 
 class RuleOpToAdrr : public Rule {
+  AddrSpace *space;
+  bool isBigEndian;
+  uint4 spaceSize;
+  Varnode *getSubtractedIndex(Varnode *arrvn,Varnode *indexvn,Varnode *piecevn,PcodeOp *after,Funcdata &data);
+  bool extractindToAddr(PcodeOp *op,Funcdata &data);
+  bool insertindToAddr(PcodeOp *op,Funcdata &data);
 public:
-  RuleOpToAdrr(const string &g) : Rule(g,0,"optoaddr") {}	///< Constructor
+  RuleOpToAdrr(const string &g) : Rule(g,0,"optoaddr") {
+    isBigEndian = false;
+    spaceSize = 0;
+  }	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
     return new RuleOpToAdrr(getGroup());
