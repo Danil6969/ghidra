@@ -125,6 +125,7 @@ public class MachoProgramBuilder {
 		processEncryption();
 		processEntryPoint();
 		processMemoryBlocks(machoHeader, provider.getName(), true, true);
+		fixupProgramTree();
 		processUnsupportedLoadCommands();
 		boolean exportsFound = processExports(machoHeader);
 		processSymbolTables(machoHeader, !exportsFound);
@@ -387,6 +388,81 @@ public class MachoProgramBuilder {
 	}
 
 	/**
+	 * Fixes up the Program Tree to better visualize the memory blocks that were split into sections
+	 * 
+	 * @throws Exception if there was a problem fixing up the Program Tree
+	 */
+	protected void fixupProgramTree() throws Exception {
+		ProgramModule rootModule = listing.getDefaultRootModule();
+		ListIterator<SegmentCommand> it = machoHeader.getAllSegments().listIterator();
+		while (it.hasNext()) {
+			int i = it.nextIndex();
+			SegmentCommand segment = it.next();
+
+			if (segment.getVMsize() == 0) {
+				continue;
+			}
+			Address segmentStart = space.getAddress(segment.getVMaddress());
+			Address segmentEnd = segmentStart.add(segment.getVMsize() - 1);
+			if (!memory.contains(segmentStart)) {
+				continue;
+			}
+			if (!memory.contains(segmentEnd)) {
+				segmentEnd = memory.getBlock(segmentStart).getEnd();
+			}
+			// Move original segment fragment into module and rename it.  After we add new 
+			// section fragments, it will represent the parts of the segment that weren't in any
+			// section.
+			String segmentName = segment.getSegmentName();
+			if (segmentName.isBlank()) {
+				segmentName = "SEGMENT." + i;
+			}
+			String noSectionsName = segmentName + " <no section>";
+			ProgramFragment segmentFragment = null;
+			for (Group group : rootModule.getChildren()) {
+				if (group instanceof ProgramFragment fragment &&
+					fragment.getName().equals(segmentName)) {
+					fragment.setName(noSectionsName);
+					segmentFragment = fragment;
+					break;
+				}
+			}
+			if (segmentFragment == null) {
+				log.appendMsg("Could not find/fixup segment in Program Tree: " + segmentName);
+				continue;
+			}
+			ProgramModule segmentModule = rootModule.createModule(segmentName);
+			try {
+				segmentModule.reparent(noSectionsName, rootModule);
+			}
+			catch (NotFoundException e) {
+				log.appendException(e);
+				continue;
+			}
+
+			// Add the sections, which will remove overlapped ranges from the segment fragment
+			for (Section section : segment.getSections()) {
+				if (section.getSize() == 0) {
+					continue;
+				}
+				Address sectionStart = space.getAddress(section.getAddress());
+				Address sectionEnd = sectionStart.add(section.getSize() - 1);
+				if (!memory.contains(sectionEnd)) {
+					sectionEnd = memory.getBlock(sectionStart).getEnd();
+				}
+				ProgramFragment sectionFragment = segmentModule.createFragment(
+					String.format("%s %s", section.getSegmentName(), section.getSectionName()));
+				sectionFragment.move(sectionStart, sectionEnd);
+			}
+			
+			// If the sections fully filled the segment, we can remove the now-empty segment
+			if (segmentFragment.isEmpty()) {
+				segmentModule.removeChild(segmentFragment.getName());
+			}
+		}
+	}
+
+	/**
  	 * Processes {@link LoadCommand}s that we haven't implemented yet.
  	 * 
  	 * @throws CancelledException if the operation was cancelled.
@@ -402,11 +478,6 @@ public class MachoProgramBuilder {
  	
 	protected boolean processExports(MachHeader header) throws Exception {
 		List<ExportEntry> exports = new ArrayList<>();
- 		SegmentCommand textSegment = header.getSegment(SegmentNames.SEG_TEXT);
- 		if (textSegment == null) {
- 			log.appendMsg("Cannot process exports, __TEXT segment not found!");
-			return false;
- 		}
 
 		// Old way - export tree in DyldInfoCommand
 		List<DyldInfoCommand> dyldInfoCommands = header.getLoadCommands(DyldInfoCommand.class);
@@ -420,6 +491,16 @@ public class MachoProgramBuilder {
 			header.getLoadCommands(DyldExportsTrieCommand.class);
 		for (DyldExportsTrieCommand dyldExportsTreeCommand : dyldExportsTrieCommands) {
 			exports.addAll(dyldExportsTreeCommand.getExportTrie().getExports(e -> !e.isReExport()));
+		}
+
+		if (exports.isEmpty()) {
+			return false;
+		}
+
+		SegmentCommand textSegment = header.getSegment(SegmentNames.SEG_TEXT);
+		if (textSegment == null) {
+			log.appendMsg("Cannot process exports, __TEXT segment not found!");
+			return false;
 		}
 
 		Address baseAddr = space.getAddress(textSegment.getVMaddress());

@@ -23,12 +23,11 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-import com.google.common.collect.Range;
-
 import agent.gdb.manager.GdbInferior;
 import agent.gdb.manager.impl.GdbMemoryMapping;
 import agent.gdb.manager.impl.cmd.GdbCommandError;
 import agent.gdb.manager.impl.cmd.GdbStateChangeRecord;
+import generic.ULongSpan;
 import ghidra.async.AsyncFence;
 import ghidra.async.AsyncUtils;
 import ghidra.dbg.agent.DefaultTargetObject;
@@ -81,12 +80,14 @@ public class GdbModelTargetProcessMemory
 			}
 			if (size == 8) {
 				// TODO: This split shouldn't be necessary.
-				BigInteger split = BigInteger.valueOf(Long.MAX_VALUE);
-				GdbMemoryMapping lowMapping = new GdbMemoryMapping(start, split,
-					split.subtract(start), BigInteger.ZERO, "rwx", "defaultLow");
-				GdbMemoryMapping highMapping = new GdbMemoryMapping(split, end,
-					end.subtract(split), BigInteger.ZERO, "rwx", "defaultHigh");
-				return Map.of(start, lowMapping, split, highMapping);
+				BigInteger lowEnd = BigInteger.valueOf(Long.MAX_VALUE);
+				BigInteger highStart = lowEnd.add(BigInteger.ONE);
+
+				GdbMemoryMapping lowMapping = new GdbMemoryMapping(start, lowEnd,
+					lowEnd.subtract(start), BigInteger.ZERO, "rwx", "defaultLow");
+				GdbMemoryMapping highMapping = new GdbMemoryMapping(highStart, end,
+					end.subtract(highStart), BigInteger.ZERO, "rwx", "defaultHigh");
+				return Map.of(start, lowMapping, highStart, highMapping);
 			}
 			throw new GdbCommandError("Unexpected address size: " + size);
 		});
@@ -153,13 +154,12 @@ public class GdbModelTargetProcessMemory
 			throw new IllegalArgumentException("address,length", e);
 		}
 		return inferior.readMemory(offset, buf).thenApply(set -> {
-			Range<Long> r = set.rangeContaining(offset);
-			if (r == null) {
+			ULongSpan s = set.spanContaining(offset);
+			if (s == null) {
 				throw new DebuggerMemoryAccessException("Cannot read at " + address);
 			}
-			byte[] content =
-				Arrays.copyOf(buf.array(), (int) (r.upperEndpoint() - r.lowerEndpoint()));
-			listeners.fire.memoryUpdated(this, address, content);
+			byte[] content = Arrays.copyOf(buf.array(), (int) s.length());
+			broadcast().memoryUpdated(this, address, content);
 			return content;
 		}).exceptionally(e -> {
 			e = AsyncUtils.unwrapThrowable(e);
@@ -167,10 +167,10 @@ public class GdbModelTargetProcessMemory
 				GdbCommandError gce = (GdbCommandError) e;
 				e = new DebuggerMemoryAccessException(
 					"Cannot read at " + address + ": " + gce.getInfo().getString("msg"));
-				listeners.fire.memoryReadError(this, range, (DebuggerMemoryAccessException) e);
+				broadcast().memoryReadError(this, range, (DebuggerMemoryAccessException) e);
 			}
 			if (e instanceof DebuggerMemoryAccessException) {
-				listeners.fire.memoryReadError(this, range, (DebuggerMemoryAccessException) e);
+				broadcast().memoryReadError(this, range, (DebuggerMemoryAccessException) e);
 			}
 			return ExceptionUtils.rethrow(e);
 		});
@@ -186,12 +186,12 @@ public class GdbModelTargetProcessMemory
 		CompletableFuture<Void> future =
 			inferior.writeMemory(address.getOffset(), ByteBuffer.wrap(data));
 		return impl.gateFuture(future.thenAccept(__ -> {
-			listeners.fire.memoryUpdated(this, address, data);
+			broadcast().memoryUpdated(this, address, data);
 		}));
 	}
 
 	protected void invalidateMemoryCaches() {
-		listeners.fire.invalidateCacheRequested(this);
+		broadcast().invalidateCacheRequested(this);
 	}
 
 	public void memoryChanged(long offset, int len) {

@@ -133,6 +133,9 @@ public class GdbModelTargetSession extends DefaultTargetModelRoot
 
 	@Override
 	public void output(GdbManager.Channel gdbChannel, String out) {
+		if (!valid) {
+			return;
+		}
 		TargetConsole.Channel dbgChannel;
 		switch (gdbChannel) {
 			case STDOUT:
@@ -144,7 +147,7 @@ public class GdbModelTargetSession extends DefaultTargetModelRoot
 			default:
 				throw new AssertionError();
 		}
-		listeners.fire.consoleOutput(this, dbgChannel, out);
+		broadcast().consoleOutput(this, dbgChannel, out);
 	}
 
 	@Override

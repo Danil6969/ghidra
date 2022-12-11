@@ -17,13 +17,9 @@ package ghidra.trace.database.listing;
 
 import java.util.*;
 
-import com.google.common.collect.Range;
-
 import ghidra.program.model.address.AddressRange;
-import ghidra.trace.model.ImmutableTraceAddressSnapRange;
-import ghidra.trace.model.TraceAddressSnapRange;
-import ghidra.trace.model.listing.TraceCodeSpace;
-import ghidra.trace.model.listing.TraceDefinedUnitsView;
+import ghidra.trace.model.*;
+import ghidra.trace.model.listing.*;
 import ghidra.util.LockHold;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
@@ -33,7 +29,7 @@ import ghidra.util.task.TaskMonitor;
  */
 public class DBTraceDefinedUnitsView extends
 		AbstractComposedDBTraceCodeUnitsView<AbstractDBTraceCodeUnit<?>, AbstractBaseDBTraceDefinedUnitsView<? extends AbstractDBTraceCodeUnit<?>>>
-		implements TraceDefinedUnitsView {
+		implements TraceDefinedUnitsView, InternalTraceBaseDefinedUnitsView<TraceCodeUnit> {
 
 	/**
 	 * Construct the view
@@ -45,7 +41,7 @@ public class DBTraceDefinedUnitsView extends
 	}
 
 	@Override
-	public boolean coversRange(Range<Long> span, AddressRange range) {
+	public boolean coversRange(Lifespan span, AddressRange range) {
 		try (LockHold hold = LockHold.lock(space.lock.readLock())) {
 			Set<TraceAddressSnapRange> set1 = new HashSet<>();
 			Set<TraceAddressSnapRange> set2 = new HashSet<>();
@@ -59,7 +55,7 @@ public class DBTraceDefinedUnitsView extends
 	}
 
 	@Override
-	public boolean intersectsRange(Range<Long> span, AddressRange range) {
+	public boolean intersectsRange(Lifespan span, AddressRange range) {
 		try (LockHold hold = LockHold.lock(space.lock.readLock())) {
 			for (AbstractBaseDBTraceDefinedUnitsView<? extends AbstractDBTraceCodeUnit<?>> p : parts) {
 				if (p.intersectsRange(span, range)) {
@@ -71,7 +67,7 @@ public class DBTraceDefinedUnitsView extends
 	}
 
 	@Override
-	public void clear(Range<Long> span, AddressRange range, boolean clearContext,
+	public void clear(Lifespan span, AddressRange range, boolean clearContext,
 			TaskMonitor monitor) throws CancelledException {
 		for (AbstractBaseDBTraceDefinedUnitsView<? extends AbstractDBTraceCodeUnit<?>> view : parts) {
 			view.clear(span, range, clearContext, monitor);

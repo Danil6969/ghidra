@@ -21,8 +21,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.collect.Range;
-
 import ghidra.app.plugin.core.debug.service.modules.DebuggerStaticMappingUtils;
 import ghidra.app.services.DebuggerEmulationService;
 import ghidra.framework.model.DomainFile;
@@ -33,8 +31,7 @@ import ghidra.program.model.listing.ProgramContext;
 import ghidra.program.model.mem.MemoryBlock;
 import ghidra.program.util.ProgramLocation;
 import ghidra.trace.database.DBTrace;
-import ghidra.trace.model.DefaultTraceLocation;
-import ghidra.trace.model.Trace;
+import ghidra.trace.model.*;
 import ghidra.trace.model.memory.*;
 import ghidra.trace.model.modules.TraceConflictedMappingException;
 import ghidra.trace.model.thread.TraceThread;
@@ -166,7 +163,7 @@ public enum ProgramEmulationUtils {
 			}
 			for (Extrema extrema : extremaBySpace.values()) {
 				DebuggerStaticMappingUtils.addMapping(
-					new DefaultTraceLocation(trace, null, Range.atLeast(snapshot.getKey()),
+					new DefaultTraceLocation(trace, null, Lifespan.nowOn(snapshot.getKey()),
 						extrema.min),
 					new ProgramLocation(program, extrema.min),
 					extrema.max.subtract(extrema.min), false);
@@ -216,8 +213,8 @@ public enum ProgramEmulationUtils {
 	 */
 	public static void initializeRegisters(Trace trace, long snap, TraceThread thread,
 			Program program, Address tracePc, Address programPc, TraceMemoryRegion stack) {
-		TraceMemorySpace space =
-			trace.getMemoryManager().getMemoryRegisterSpace(thread, true);
+		TraceMemoryManager memory = trace.getMemoryManager();
+		TraceMemorySpace regSpace = memory.getMemoryRegisterSpace(thread, true);
 		if (program != null) {
 			ProgramContext ctx = program.getProgramContext();
 			for (Register reg : Stream.of(ctx.getRegistersWithValues())
@@ -227,20 +224,30 @@ public enum ProgramEmulationUtils {
 				if (rv == null || !rv.hasAnyValue()) {
 					continue;
 				}
+				TraceMemoryOperations space =
+					reg.getAddressSpace().isRegisterSpace() ? regSpace : memory;
 				// Set all the mask bits
 				space.setValue(snap, new RegisterValue(reg, BigInteger.ZERO).combineValues(rv));
 			}
 		}
-		space.setValue(snap, new RegisterValue(trace.getBaseLanguage().getProgramCounter(),
+		Register regPC = trace.getBaseLanguage().getProgramCounter();
+		TraceMemoryOperations spacePC =
+			regPC.getAddressSpace().isRegisterSpace() ? regSpace : memory;
+		spacePC.setValue(snap, new RegisterValue(regPC,
 			NumericUtilities.unsignedLongToBigInteger(tracePc.getAddressableWordOffset())));
 		if (stack != null) {
 			CompilerSpec cSpec = trace.getBaseCompilerSpec();
 			Address sp = cSpec.stackGrowsNegative()
-					? stack.getMaxAddress()
+					? stack.getMaxAddress().addWrap(1)
 					: stack.getMinAddress();
-			space.setValue(snap,
-				new RegisterValue(cSpec.getStackPointer(),
-					NumericUtilities.unsignedLongToBigInteger(sp.getAddressableWordOffset())));
+			Register regSP = cSpec.getStackPointer();
+			if (regSP != null) {
+				TraceMemoryOperations spaceSP =
+					regSP.getAddressSpace().isRegisterSpace() ? regSpace : memory;
+				spaceSP.setValue(snap,
+					new RegisterValue(regSP,
+						NumericUtilities.unsignedLongToBigInteger(sp.getAddressableWordOffset())));
+			}
 		}
 	}
 

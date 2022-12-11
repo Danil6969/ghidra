@@ -22,7 +22,6 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Range;
 
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressRangeImpl;
@@ -32,6 +31,7 @@ import ghidra.program.model.mem.*;
 import ghidra.program.model.symbol.*;
 import ghidra.trace.database.DBTrace;
 import ghidra.trace.database.symbol.DBTraceReference;
+import ghidra.trace.model.Lifespan;
 import ghidra.trace.model.listing.TraceCodeUnit;
 import ghidra.trace.model.memory.TraceMemoryRegion;
 import ghidra.trace.model.program.TraceProgramView;
@@ -42,7 +42,6 @@ import ghidra.trace.model.thread.TraceThread;
 import ghidra.util.LockHold;
 import ghidra.util.Saveable;
 import ghidra.util.exception.NoValueException;
-import ghidra.util.prop.PropertyVisitor;
 
 /**
  * A base interface for implementations of {@link TraceCodeUnit}
@@ -172,7 +171,7 @@ public interface DBTraceCodeUnitAdapter extends TraceCodeUnit, MemBufferAdapter 
 				return false;
 			}
 			// NOTE: Properties all defined at start snap
-			return map.getAddressSetView(Range.singleton(getStartSnap())).contains(getAddress());
+			return map.getAddressSetView(Lifespan.at(getStartSnap())).contains(getAddress());
 		}
 	}
 
@@ -190,13 +189,13 @@ public interface DBTraceCodeUnitAdapter extends TraceCodeUnit, MemBufferAdapter 
 			if (space == null) {
 				return false;
 			}
-			return map.getAddressSetView(Range.singleton(getStartSnap())).contains(getAddress());
+			return map.getAddressSetView(Lifespan.at(getStartSnap())).contains(getAddress());
 		}
 	}
 
 	@Override
 	default Iterator<String> propertyNames() {
-		Range<Long> span = Range.singleton(getStartSnap());
+		Lifespan span = Lifespan.at(getStartSnap());
 		return Iterators.transform(Iterators.filter(
 			getTrace().getInternalAddressPropertyManager().getAllProperties().entrySet().iterator(),
 			e -> e.getValue().getAddressSetView(span).contains(getAddress())), Entry::getKey);
@@ -211,39 +210,6 @@ public interface DBTraceCodeUnitAdapter extends TraceCodeUnit, MemBufferAdapter 
 				return;
 			}
 			map.clear(getLifespan(), new AddressRangeImpl(getMinAddress(), getMaxAddress()));
-		}
-	}
-
-	@Override
-	default void visitProperty(PropertyVisitor visitor, String propertyName) {
-		try (LockHold hold = LockHold.lock(getTrace().getReadWriteLock().readLock())) {
-			TracePropertyMapOperations<?> map =
-				getTrace().getInternalAddressPropertyManager().getPropertyMap(propertyName);
-			if (map == null) {
-				return;
-			}
-			if (map.getValueClass() == Void.class) {
-				if (map.getAddressSetView(Range.singleton(getStartSnap())).contains(getAddress())) {
-					visitor.visit();
-				}
-				return;
-			}
-			Object value = map.get(getStartSnap(), getAddress());
-			if (value == null) {
-				return;
-			}
-			if (value instanceof String) {
-				visitor.visit((String) value);
-			}
-			else if (value instanceof Saveable) {
-				visitor.visit((Saveable) value);
-			}
-			else if (value instanceof Integer) {
-				visitor.visit(((Integer) value).intValue());
-			}
-			else {
-				visitor.visit(value);
-			}
 		}
 	}
 

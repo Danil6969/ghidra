@@ -225,6 +225,7 @@ public:
   bool isTypeLocked(void) const { return ((flags&Varnode::typelock)!=0); }	///< Is the Symbol type-locked
   bool isNameLocked(void) const { return ((flags&Varnode::namelock)!=0); }	///< Is the Symbol name-locked
   bool isSizeTypeLocked(void) const { return ((dispflags & size_typelock)!=0); }	///< Is the Symbol size type-locked
+  bool isVolatile(void) const { return ((flags & Varnode::volatil)!=0); }	///< Is the Symbol volatile
   bool isThisPointer(void) const { return ((dispflags & is_this_ptr)!=0); }		///< Is \b this the "this" pointer
   bool isIndirectStorage(void) const { return ((flags&Varnode::indirectstorage)!=0); }	///< Is storage really a pointer to the true Symbol
   bool isHiddenReturn(void) const { return ((flags&Varnode::hiddenretparm)!=0); }	///< Is this a reference to the function return value
@@ -762,6 +763,7 @@ public:
   LabSymbol *addCodeLabel(const Address &addr,const string &nm);
   Symbol *addDynamicSymbol(const string &nm,Datatype *ct,const Address &caddr,uint8 hash);
   Symbol *addEquateSymbol(const string &nm,uint4 format,uintb value,const Address &addr,uint8 hash);
+  Symbol *addUnionFacetSymbol(const string &nm,Datatype *dt,int4 fieldNum,const Address &addr,uint8 hash);
   string buildDefaultName(Symbol *sym,int4 &base,Varnode *vn) const;	///< Create a default name for the given Symbol
   bool isReadOnly(const Address &addr,int4 size,const Address &usepoint) const;
   void printBounds(ostream &s) const { rangetree.printBounds(s); }	///< Print a description of \b this Scope's \e owned memory ranges
@@ -923,6 +925,7 @@ public:
   Scope *mapScope(Scope *qpoint,const Address &addr,const Address &usepoint);
   uint4 getProperty(const Address &addr) const { return flagbase.getValue(addr); }	///< Get boolean properties at the given address
   void setPropertyRange(uint4 flags,const Range &range);	///< Set boolean properties over a given memory range
+  void clearPropertyRange(uint4 flags,const Range &range);	///< Clear boolean properties over a given memory range
   void setProperties(const partmap<Address,uint4> &newflags) { flagbase = newflags; }	///< Replace the property map
   const partmap<Address,uint4> &getProperties(void) const { return flagbase; }	///< Get the entire property map
   void encode(Encoder &encoder) const;				///< Encode the whole Database to a stream

@@ -29,7 +29,6 @@ import javax.swing.table.TableModel;
 import org.jdom.Element;
 
 import docking.DockingWindowManager;
-import docking.help.HelpService;
 import docking.menu.*;
 import docking.widgets.EmptyBorderButton;
 import docking.widgets.EventTrigger;
@@ -38,6 +37,7 @@ import docking.widgets.label.GDLabel;
 import docking.widgets.table.columnfilter.ColumnBasedTableFilter;
 import docking.widgets.table.columnfilter.ColumnFilterSaveManager;
 import docking.widgets.table.constraint.dialog.ColumnFilterDialog;
+import generic.theme.GIcon;
 import ghidra.framework.options.PreferenceState;
 import ghidra.util.HelpLocation;
 import ghidra.util.Msg;
@@ -45,8 +45,8 @@ import ghidra.util.datastruct.WeakDataStructureFactory;
 import ghidra.util.datastruct.WeakSet;
 import ghidra.util.exception.AssertException;
 import ghidra.util.task.SwingUpdateManager;
+import help.HelpService;
 import resources.Icons;
-import resources.ResourceManager;
 import utilities.util.reflection.ReflectionUtilities;
 import utility.function.Callback;
 
@@ -112,8 +112,8 @@ public class GTableFilterPanel<ROW_OBJECT> extends JPanel {
 	public static final String FILTER_TEXTFIELD_NAME = "filter.panel.textfield";
 	private static final String FILTER_STATE = "FILTER_STATE";
 	private static final String FILTER_EXTENSION = ".FilterExtension";
-	private static final Icon FILTER_ON_ICON = ResourceManager.loadImage("images/filter_on.png");
-	private static final Icon FILTER_OFF_ICON = ResourceManager.loadImage("images/filter_off.png");
+	private static final Icon FILTER_ON_ICON = new GIcon("icon.widget.filterpanel.filter.on");
+	private static final Icon FILTER_OFF_ICON = new GIcon("icon.widget.filterpanel.filter.off");
 	private static final Icon APPLY_FILTER_ICON = Icons.OPEN_FOLDER_ICON;
 	private static final Icon CLEAR_FILTER_ICON = Icons.DELETE_ICON;
 

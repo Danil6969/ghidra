@@ -31,8 +31,6 @@ import ghidra.app.util.bin.format.dwarf4.expression.DWARFExpressionException;
 import ghidra.app.util.bin.format.dwarf4.external.ExternalDebugInfo;
 import ghidra.app.util.bin.format.dwarf4.next.sectionprovider.*;
 import ghidra.app.util.opinion.*;
-import ghidra.program.model.address.Address;
-import ghidra.program.model.address.AddressSet;
 import ghidra.program.model.data.CategoryPath;
 import ghidra.program.model.data.DataType;
 import ghidra.program.model.listing.Program;
@@ -78,7 +76,8 @@ public class DWARFProgram implements Closeable {
 				return hasExpectedDWARFSections(program) ||
 					ExternalDebugInfo.fromProgram(program) != null;
 			case MachoLoader.MACH_O_NAME:
-				return DSymSectionProvider.getDSYMForProgram(program) != null;
+				return hasExpectedDWARFSections(program) ||
+					DSymSectionProvider.getDSYMForProgram(program) != null;
 		}
 		return false;
 	}
@@ -250,7 +249,7 @@ public class DWARFProgram implements Closeable {
 
 	@Override
 	public void close() throws IOException {
-		sectionProvider.close();
+		sectionProvider = null;
 		compUnits.clear();
 		debugAbbrBR = null;
 		debugInfoBR = null;
@@ -289,12 +288,8 @@ public class DWARFProgram implements Closeable {
 			return false;
 		}
 		ByteProvider bp = br.getByteProvider();
-		if (bp instanceof MemoryByteProvider && bp.length() > 0) {
-			MemoryByteProvider mbp = (MemoryByteProvider) bp;
-			Address startAddr = mbp.getAddress(0);
-			Address endAddr = mbp.getAddress(mbp.length() - 1);
-			if (program.getRelocationTable().getRelocations(
-				new AddressSet(startAddr, endAddr)).hasNext()) {
+		if (bp instanceof MemoryByteProvider mbp && !mbp.isEmpty()) {
+			if (program.getRelocationTable().getRelocations(mbp.getAddressSet()).hasNext()) {
 				return true;
 			}
 		}
@@ -584,7 +579,7 @@ public class DWARFProgram implements Closeable {
 
 		BinaryReader br = debugInfoBR;
 		br.setPointerIndex(0);
-		while (br.getPointerIndex() < br.getByteProvider().length()) {
+		while (br.hasNext()) {
 			monitor.checkCanceled();
 			monitor.setMessage("Bootstrapping DWARF Compilation Unit #" + compUnits.size());
 

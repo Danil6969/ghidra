@@ -21,20 +21,19 @@ import java.util.Map;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Range;
 
 import ghidra.program.model.address.*;
-import ghidra.trace.database.DBTraceUtils;
+import ghidra.trace.model.Lifespan;
 import ghidra.trace.model.TraceAddressSnapRange;
-import ghidra.trace.model.listing.TraceCodeSpace;
-import ghidra.trace.model.listing.TraceUndefinedDataView;
+import ghidra.trace.model.listing.*;
 import ghidra.util.*;
 
 /**
  * The implementation of {@link TraceCodeSpace#undefinedData()}
  */
 public class DBTraceUndefinedDataView extends
-		AbstractSingleDBTraceCodeUnitsView<UndefinedDBTraceData> implements TraceUndefinedDataView {
+		AbstractSingleDBTraceCodeUnitsView<UndefinedDBTraceData>
+		implements TraceUndefinedDataView, InternalBaseCodeUnitsView<TraceData> {
 
 	protected final static int CACHE_MAX_SNAPS = 5;
 
@@ -100,12 +99,12 @@ public class DBTraceUndefinedDataView extends
 	}
 
 	@Override
-	public boolean coversRange(Range<Long> lifespan, AddressRange range) {
+	public boolean coversRange(Lifespan lifespan, AddressRange range) {
 		return !space.definedUnits.intersectsRange(lifespan, range);
 	}
 
 	@Override
-	public boolean intersectsRange(Range<Long> lifespan, AddressRange range) {
+	public boolean intersectsRange(Lifespan lifespan, AddressRange range) {
 		return !space.definedUnits.coversRange(lifespan, range);
 	}
 
@@ -157,7 +156,7 @@ public class DBTraceUndefinedDataView extends
 	@Override
 	public Iterable<? extends UndefinedDBTraceData> getIntersecting(TraceAddressSnapRange tasr) {
 		Iterator<Iterator<? extends UndefinedDBTraceData>> itIt =
-			Iterators.transform(DBTraceUtils.iterateSpan(tasr.getLifespan()),
+			Iterators.transform(tasr.getLifespan().iterator(),
 				snap -> get(snap, tasr.getX1(), tasr.getX2(), true).iterator());
 		return () -> Iterators.concat(itIt);
 	}

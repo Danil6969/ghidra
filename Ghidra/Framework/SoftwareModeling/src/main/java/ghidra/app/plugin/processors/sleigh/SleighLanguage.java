@@ -1546,4 +1546,9 @@ public class SleighLanguage implements Language {
 		return registerManager.getSortedVectorRegisters();
 	}
 
+	@Override
+	public AddressSetView getRegisterAddresses() {
+		return registerManager.getRegisterAddresses();
+	}
+
 }

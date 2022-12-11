@@ -63,20 +63,16 @@ public class PcodeFieldFactory extends FieldFactory {
 
 		super(name, model, highlightProvider, displayOptions, fieldOptions);
 		setWidth(300);
-		color = displayOptions.getColor(OptionsGui.BYTES.getColorOptionName(),
-			OptionsGui.BYTES.getDefaultColor());
 		style = displayOptions.getInt(OptionsGui.BYTES.getStyleOptionName(), -1);
 		formatter = new AttributedStringPcodeFormatter();
 
-		setColors(displayOptions);
 		setOptions(fieldOptions);
 	}
 
 	@Override
 	public FieldFactory newInstance(FieldFormatModel myModel, HighlightProvider highlightProvider,
-			ToolOptions displayOptions, ToolOptions fieldOptions) {
-		return new PcodeFieldFactory(FIELD_NAME, myModel, highlightProvider, displayOptions,
-			fieldOptions);
+			ToolOptions options, ToolOptions fieldOptions) {
+		return new PcodeFieldFactory(FIELD_NAME, myModel, highlightProvider, options, fieldOptions);
 	}
 
 	@Override
@@ -160,7 +156,6 @@ public class PcodeFieldFactory extends FieldFactory {
 			Object newValue) {
 		super.displayOptionsChanged(options, optionName, oldValue, newValue);
 		formatter.setFontMetrics(getMetrics());
-		setColors(options);
 	}
 
 	@Override
@@ -174,37 +169,6 @@ public class PcodeFieldFactory extends FieldFactory {
 				model.update();
 			}
 		}
-	}
-
-	/**
-	 * Called when the fonts are first initialized or when one of the options changes. It looks up
-	 * all the color settings and resets the its values.
-	 */
-	private void setColors(Options options) {
-		formatter.setAddressColor(options.getColor(OptionsGui.ADDRESS.getColorOptionName(),
-			OptionsGui.ADDRESS.getDefaultColor()));
-		formatter.setRegisterColor(options.getColor(OptionsGui.REGISTERS.getColorOptionName(),
-			OptionsGui.REGISTERS.getDefaultColor()));
-		formatter.setScalarColor(options.getColor(OptionsGui.CONSTANT.getColorOptionName(),
-			OptionsGui.CONSTANT.getDefaultColor()));
-		formatter.setLocalColor(options.getColor(OptionsGui.LABELS_LOCAL.getColorOptionName(),
-			OptionsGui.LABELS_LOCAL.getDefaultColor()));
-		formatter.setMnemonicColor(options.getColor(OptionsGui.MNEMONIC.getColorOptionName(),
-			OptionsGui.MNEMONIC.getDefaultColor()));
-		formatter.setUnimplColor(options.getColor(OptionsGui.UNIMPL.getColorOptionName(),
-			OptionsGui.UNIMPL.getDefaultColor()));
-		formatter.setSeparatorColor(options.getColor(OptionsGui.SEPARATOR.getColorOptionName(),
-			OptionsGui.SEPARATOR.getDefaultColor()));
-		formatter.setLineLabelColor(
-			options.getColor(OptionsGui.PCODE_LINE_LABEL.getColorOptionName(),
-				OptionsGui.PCODE_LINE_LABEL.getDefaultColor()));
-		formatter.setSpaceColor(options.getColor(OptionsGui.PCODE_ADDR_SPACE.getColorOptionName(),
-			OptionsGui.PCODE_ADDR_SPACE.getDefaultColor()));
-		formatter.setRawColor(options.getColor(OptionsGui.PCODE_RAW_VARNODE.getColorOptionName(),
-			OptionsGui.PCODE_RAW_VARNODE.getDefaultColor()));
-		formatter.setUseropColor(options.getColor(OptionsGui.PCODE_USEROP.getColorOptionName(),
-			OptionsGui.PCODE_USEROP.getDefaultColor()));
-		formatter.setFontMetrics(getMetrics());
 	}
 
 	private void setOptions(Options fieldOptions) {

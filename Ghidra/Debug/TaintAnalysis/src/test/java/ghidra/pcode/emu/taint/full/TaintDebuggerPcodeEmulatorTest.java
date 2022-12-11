@@ -18,13 +18,10 @@ package ghidra.pcode.emu.taint.full;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.List;
 import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Range;
 
 import ghidra.app.plugin.assembler.Assembler;
 import ghidra.app.plugin.assembler.Assemblers;
@@ -40,6 +37,7 @@ import ghidra.program.model.address.AddressSpace;
 import ghidra.program.model.util.StringPropertyMap;
 import ghidra.program.util.ProgramLocation;
 import ghidra.trace.model.DefaultTraceLocation;
+import ghidra.trace.model.Lifespan;
 import ghidra.trace.model.property.TracePropertyMap;
 import ghidra.trace.model.property.TracePropertyMapSpace;
 import ghidra.trace.model.thread.TraceThread;
@@ -102,17 +100,15 @@ public class TaintDebuggerPcodeEmulatorTest extends AbstractGhidraHeadedDebugger
 		TraceThread thread;
 		try (UndoableTransaction tid = tb.startTransaction()) {
 			mappingService.addMapping(
-				new DefaultTraceLocation(tb.trace, null, Range.atLeast(0L), tb.addr(0x55550000)),
+				new DefaultTraceLocation(tb.trace, null, Lifespan.nowOn(0), tb.addr(0x55550000)),
 				new ProgramLocation(program, tb.addr(0x00400000)), 0x1000, false);
 			thread = tb.getOrAddThread("Threads[0]", 0);
-			tb.exec(0, 0, thread, List.of(
-				"RIP = 0x55550000;"));
+			tb.exec(0, thread, 0, "RIP = 0x55550000;");
 		}
 		waitForDomainObject(tb.trace);
 		waitForPass(() -> assertEquals(new ProgramLocation(program, tb.addr(0x00400000)),
 			mappingService.getOpenMappedLocation(
-				new DefaultTraceLocation(tb.trace, null, Range.singleton(0L),
-					tb.addr(0x55550000)))));
+				new DefaultTraceLocation(tb.trace, null, Lifespan.at(0), tb.addr(0x55550000)))));
 
 		try (UndoableTransaction tid = UndoableTransaction.start(program, "Assemble")) {
 			program.getMemory()
@@ -123,9 +119,8 @@ public class TaintDebuggerPcodeEmulatorTest extends AbstractGhidraHeadedDebugger
 			progTaintMap.add(tb.addr(0x00400800), "test_0");
 			Assembler asm = Assemblers.getAssembler(program);
 
-			// TODO: I should be able to make this use a RIP-relative address
-			asm.assemble(tb.addr(0x00400000),
-				"MOV RAX, [0x55550800]"); // was [0x00400800], but fixed address is a problem.
+			// NOTE: qword ptr [0x00400800] is RIP-relative
+			asm.assemble(tb.addr(0x00400000), "MOV RAX, qword ptr [0x00400800]");
 		}
 
 		TraceSchedule time = TraceSchedule.parse("0:t0-1");
@@ -137,7 +132,7 @@ public class TaintDebuggerPcodeEmulatorTest extends AbstractGhidraHeadedDebugger
 			traceTaintMap.getPropertyMapRegisterSpace(thread, 0, false);
 
 		assertEquals(TaintTracePcodeEmulatorTest.makeTaintEntries(tb.trace,
-			Range.closed(scratch, -1L), rs, Set.of(0L), "test_0"),
-			Set.copyOf(taintRegSpace.getEntries(Range.singleton(scratch), tb.reg("RAX"))));
+			Lifespan.span(scratch, -1), rs, Set.of(0L), "test_0"),
+			Set.copyOf(taintRegSpace.getEntries(Lifespan.at(scratch), tb.reg("RAX"))));
 	}
 }

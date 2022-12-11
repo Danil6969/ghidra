@@ -17,22 +17,20 @@ package ghidra.trace.database.program;
 
 import java.util.Iterator;
 
-import com.google.common.collect.Range;
-
 import ghidra.program.model.address.*;
 import ghidra.program.model.util.*;
-import ghidra.trace.database.DBTraceUtils;
+import ghidra.trace.model.Lifespan;
 import ghidra.trace.model.property.TracePropertyMap;
 import ghidra.util.LockHold;
 import ghidra.util.Saveable;
 import ghidra.util.exception.*;
-import ghidra.util.prop.PropertyVisitor;
+import ghidra.util.map.TypeMismatchException;
 import ghidra.util.task.TaskMonitor;
 
 public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager {
 	protected final DBTraceProgramView program;
 
-	protected abstract class AbstractDBTraceProgramViewPropertyMap<T> implements PropertyMap {
+	protected abstract class AbstractDBTraceProgramViewPropertyMap<T> implements PropertyMap<T> {
 		protected final TracePropertyMap<T> map;
 		protected final String name;
 
@@ -47,7 +45,7 @@ public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager 
 		}
 
 		protected AddressSetView getAddressSetView() {
-			return map.getAddressSetView(Range.singleton(program.snap));
+			return map.getAddressSetView(Lifespan.at(program.snap));
 		}
 
 		@Override
@@ -62,9 +60,9 @@ public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager 
 
 		@Override
 		public boolean removeRange(Address start, Address end) {
-			return map.clear(Range.singleton(program.snap), new AddressRangeImpl(start, end));
+			return map.clear(Lifespan.at(program.snap), new AddressRangeImpl(start, end));
 		}
-
+	
 		@Override
 		public boolean remove(Address addr) {
 			return removeRange(addr, addr);
@@ -76,7 +74,7 @@ public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager 
 		}
 
 		@Override
-		public T getObject(Address addr) {
+		public T get(Address addr) {
 			return map.get(program.snap, addr);
 		}
 
@@ -173,22 +171,13 @@ public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager 
 		}
 
 		@Override
-		public void applyValue(PropertyVisitor visitor, Address addr) {
-			Integer value = getObject(addr);
-			if (value == null) {
-				return;
-			}
-			visitor.visit(value.intValue());
-		}
-
-		@Override
 		public void add(Address addr, int value) {
-			map.set(DBTraceUtils.atLeastMaybeScratch(program.snap), addr, value);
+			map.set(Lifespan.nowOnMaybeScratch(program.snap), addr, value);
 		}
 
 		@Override
 		public int getInt(Address addr) throws NoValueException {
-			Integer value = getObject(addr);
+			Integer value = get(addr);
 			if (value == null) {
 				throw new NoValueException();
 			}
@@ -204,23 +193,13 @@ public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager 
 		}
 
 		@Override
-		public void applyValue(PropertyVisitor visitor, Address addr) {
-			Long value = getObject(addr);
-			if (value == null) {
-				return;
-			}
-			// TODO: In program, this throws NotYetImplemented....
-			visitor.visit(value.longValue());
-		}
-
-		@Override
 		public void add(Address addr, long value) {
-			map.set(DBTraceUtils.atLeastMaybeScratch(program.snap), addr, value);
+			map.set(Lifespan.nowOnMaybeScratch(program.snap), addr, value);
 		}
 
 		@Override
 		public long getLong(Address addr) throws NoValueException {
-			Long value = getObject(addr);
+			Long value = get(addr);
 			if (value == null) {
 				throw new NoValueException();
 			}
@@ -236,65 +215,47 @@ public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager 
 		}
 
 		@Override
-		public void applyValue(PropertyVisitor visitor, Address addr) {
-			String value = getObject(addr);
-			visitor.visit(value);
-		}
-
-		@Override
 		public void add(Address addr, String value) {
-			map.set(DBTraceUtils.atLeastMaybeScratch(program.snap), addr, value);
+			map.set(Lifespan.nowOnMaybeScratch(program.snap), addr, value);
 		}
 
 		@Override
 		public String getString(Address addr) {
-			return getObject(addr);
+			return get(addr);
 		}
 	}
 
 	protected class DBTraceProgramViewObjectPropertyMap<T extends Saveable>
-			extends AbstractDBTraceProgramViewPropertyMap<T> implements ObjectPropertyMap {
+			extends AbstractDBTraceProgramViewPropertyMap<T> implements ObjectPropertyMap<T> {
+
+		// TODO: Handle case where specific Saveable implementation class is missing
 
 		public DBTraceProgramViewObjectPropertyMap(TracePropertyMap<T> map, String name) {
 			super(map, name);
 		}
 
 		@Override
-		public void applyValue(PropertyVisitor visitor, Address addr) {
-			Saveable value = getObject(addr);
-			visitor.visit(value);
-		}
-
-		@Override
 		public void add(Address addr, Saveable value) {
-			map.set(DBTraceUtils.atLeastMaybeScratch(program.snap), addr,
+			map.set(Lifespan.nowOnMaybeScratch(program.snap), addr,
 				map.getValueClass().cast(value));
 		}
 
 		@Override
-		public Class<?> getObjectClass() {
+		public Class<T> getValueClass() {
 			return map.getValueClass();
 		}
 	}
 
 	protected class DBTraceProgramViewVoidPropertyMap
-			extends AbstractDBTraceProgramViewPropertyMap<Void> implements VoidPropertyMap {
+			extends AbstractDBTraceProgramViewPropertyMap<Boolean> implements VoidPropertyMap {
 
-		public DBTraceProgramViewVoidPropertyMap(TracePropertyMap<Void> map, String name) {
+		public DBTraceProgramViewVoidPropertyMap(TracePropertyMap<Boolean> map, String name) {
 			super(map, name);
 		}
 
 		@Override
-		public void applyValue(PropertyVisitor visitor, Address addr) {
-			if (!hasProperty(addr)) {
-				return;
-			}
-			visitor.visit();
-		}
-
-		@Override
 		public void add(Address addr) {
-			map.set(DBTraceUtils.atLeastMaybeScratch(program.snap), addr, null);
+			map.set(Lifespan.nowOnMaybeScratch(program.snap), addr, true);
 		}
 	}
 
@@ -326,8 +287,8 @@ public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager 
 	}
 
 	@Override
-	public ObjectPropertyMap createObjectPropertyMap(String propertyName,
-			Class<? extends Saveable> objectClass) throws DuplicateNameException {
+	public <T extends Saveable> ObjectPropertyMap<T> createObjectPropertyMap(String propertyName,
+			Class<T> objectClass) throws DuplicateNameException {
 		return new DBTraceProgramViewObjectPropertyMap<>(program.trace.getAddressPropertyManager()
 				.createPropertyMap(propertyName, objectClass),
 			propertyName);
@@ -337,13 +298,13 @@ public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager 
 	public VoidPropertyMap createVoidPropertyMap(String propertyName)
 			throws DuplicateNameException {
 		return new DBTraceProgramViewVoidPropertyMap(program.trace.getAddressPropertyManager()
-				.createPropertyMap(propertyName, Void.class),
+				.createPropertyMap(propertyName, Boolean.class),
 			propertyName);
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public PropertyMap getPropertyMap(String propertyName) {
+	public PropertyMap<?> getPropertyMap(String propertyName) {
 		TracePropertyMap<?> map =
 			program.trace.getAddressPropertyManager().getPropertyMap(propertyName);
 		if (map == null) {
@@ -363,13 +324,14 @@ public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager 
 				propertyName);
 		}
 		if (cls == Void.class) {
-			return new DBTraceProgramViewVoidPropertyMap((TracePropertyMap<Void>) map,
+			return new DBTraceProgramViewVoidPropertyMap((TracePropertyMap<Boolean>) map,
 				propertyName);
 		}
 		if (Saveable.class.isAssignableFrom(cls)) {
 			return new DBTraceProgramViewObjectPropertyMap<>(
 				(TracePropertyMap<? extends Saveable>) map, propertyName);
 		}
+		// TODO: Handle unsupported map (simiar to UnsupportedMapDB) 
 		throw new AssertionError("Where did this property map type come from? " + cls);
 	}
 
@@ -396,7 +358,7 @@ public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager 
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public ObjectPropertyMap getObjectPropertyMap(String propertyName) {
+	public ObjectPropertyMap<? extends Saveable> getObjectPropertyMap(String propertyName) {
 		TracePropertyMap<?> map =
 			program.trace.getAddressPropertyManager().getPropertyMap(propertyName);
 		if (map == null) {
@@ -411,8 +373,8 @@ public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager 
 
 	@Override
 	public VoidPropertyMap getVoidPropertyMap(String propertyName) {
-		TracePropertyMap<Void> map = program.trace.getAddressPropertyManager()
-				.getPropertyMap(propertyName, Void.class);
+		TracePropertyMap<Boolean> map = program.trace.getAddressPropertyManager()
+				.getPropertyMap(propertyName, Boolean.class);
 		return map == null ? null : new DBTraceProgramViewVoidPropertyMap(map, propertyName);
 	}
 
@@ -427,7 +389,7 @@ public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager 
 		return program.trace.getAddressPropertyManager().getAllProperties().keySet().iterator();
 	}
 
-	protected void removeAll(Range<Long> span, AddressRange range) {
+	protected void removeAll(Lifespan span, AddressRange range) {
 		try (LockHold hold = program.trace.lockWrite()) {
 			for (TracePropertyMap<?> map : program.trace.getAddressPropertyManager()
 					.getAllProperties()
@@ -439,13 +401,13 @@ public class DBTraceProgramViewPropertyMapManager implements PropertyMapManager 
 
 	@Override
 	public void removeAll(Address addr) {
-		removeAll(DBTraceUtils.atLeastMaybeScratch(program.snap), new AddressRangeImpl(addr, addr));
+		removeAll(Lifespan.nowOnMaybeScratch(program.snap), new AddressRangeImpl(addr, addr));
 	}
 
 	@Override
 	public void removeAll(Address startAddr, Address endAddr, TaskMonitor monitor)
 			throws CancelledException {
-		removeAll(DBTraceUtils.atLeastMaybeScratch(program.snap),
+		removeAll(Lifespan.nowOnMaybeScratch(program.snap),
 			new AddressRangeImpl(startAddr, endAddr));
 	}
 }

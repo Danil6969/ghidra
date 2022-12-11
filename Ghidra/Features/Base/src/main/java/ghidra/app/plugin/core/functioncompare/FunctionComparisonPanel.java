@@ -29,10 +29,9 @@ import javax.swing.event.ChangeListener;
 import docking.ActionContext;
 import docking.ComponentProvider;
 import docking.action.*;
-import docking.help.Help;
-import docking.help.HelpService;
 import docking.widgets.fieldpanel.internal.FieldPanelCoordinator;
 import docking.widgets.tabbedpane.DockingTabRenderer;
+import generic.theme.GIcon;
 import ghidra.app.util.viewer.listingpanel.ListingCodeComparisonPanel;
 import ghidra.app.util.viewer.util.CodeComparisonPanel;
 import ghidra.framework.options.SaveState;
@@ -44,7 +43,8 @@ import ghidra.program.model.listing.*;
 import ghidra.util.HelpLocation;
 import ghidra.util.Msg;
 import ghidra.util.classfinder.ClassSearcher;
-import resources.ResourceManager;
+import help.Help;
+import help.HelpService;
 
 /**
  * A panel for displaying {@link Function functions}, {@link Data data}, or 
@@ -66,9 +66,10 @@ public class FunctionComparisonPanel extends JPanel implements ChangeListener {
 	private static final HelpService help = Help.getHelpService();
 	private static final String HELP_TOPIC = "FunctionComparison";
 
-	private static final Icon SYNC_SCROLLING_ICON = ResourceManager.loadImage("images/lock.gif");
+	private static final Icon SYNC_SCROLLING_ICON =
+		new GIcon("icon.plugin.functioncompare.scroll.lock");
 	private static final Icon UNSYNC_SCROLLING_ICON =
-		ResourceManager.loadImage("images/unlock.gif");
+		new GIcon("icon.plugin.functioncompare.scroll.unlock");
 	private static final String SCROLLING_GROUP = "A9_SCROLLING";
 	private static final String DUAL_SCROLLING_ACTION_GROUP = "DualScrolling";
 	private static final String DUAL_SCROLLING_HELP_TOPIC = "FunctionComparison";

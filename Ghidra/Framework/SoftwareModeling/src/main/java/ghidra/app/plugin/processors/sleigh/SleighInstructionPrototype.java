@@ -1556,8 +1556,6 @@ public class SleighInstructionPrototype implements InstructionPrototype {
 		}
 		Address newaddr = hand.space.getTruncatedAddress(hand.offset_offset, false);
 
-		newaddr = newaddr.getPhysicalAddress();
-
 		// if we are in an address space, translate it
 		if (curSpace.isOverlaySpace()) {
 			newaddr = curSpace.getOverlayAddress(newaddr);

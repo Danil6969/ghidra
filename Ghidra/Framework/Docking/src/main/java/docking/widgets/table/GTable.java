@@ -38,11 +38,12 @@ import docking.widgets.AutoLookup;
 import docking.widgets.OptionDialog;
 import docking.widgets.dialogs.SettingsDialog;
 import docking.widgets.filechooser.GhidraFileChooser;
+import generic.theme.GIcon;
 import ghidra.docking.settings.*;
 import ghidra.framework.preferences.Preferences;
 import ghidra.util.*;
 import ghidra.util.exception.AssertException;
-import resources.ResourceManager;
+import resources.Icons;
 
 /**
  * A sub-class of <code>JTable</code> that provides navigation and auto-lookup.
@@ -74,6 +75,7 @@ import resources.ResourceManager;
  */
 public class GTable extends JTable {
 
+	private static final GIcon ICON_SPREADSHEET = new GIcon("icon.spreadsheet");
 	private static final KeyStroke COPY_KEY_STROKE =
 		KeyStroke.getKeyStroke(KeyEvent.VK_C, CONTROL_KEY_MODIFIER_MASK);
 	private static final KeyStroke COPY_COLUMN_KEY_STROKE =
@@ -493,6 +495,13 @@ public class GTable extends JTable {
 			return; // must be initializing
 		}
 
+		// don't try to update if we are not in window hierarchy
+		// as this will cause look and feel issues
+		Window window = SwingUtilities.windowForComponent(this);
+		if (window == null) {
+			return;
+		}
+
 		int linesPerRow = getLinesPerRow();
 		int preferredHeight = calculatePreferredRowHeight();
 		int newHeight = linesPerRow * preferredHeight;
@@ -692,6 +701,13 @@ public class GTable extends JTable {
 			addColumn(newColumn);
 		}
 
+		for (int i = 0; i < columnCount; i++) {
+			TableCellRenderer headerRenderer = getHeaderRendererOverride(i);
+			if (headerRenderer != null) {
+				tableColumnModel.getColumn(i).setHeaderRenderer(headerRenderer);
+			}
+		}
+
 		tableColumnModel.setEventsEnabled(wasEnabled);
 	}
 
@@ -888,6 +904,25 @@ public class GTable extends JTable {
 			}
 		}
 		return super.getCellRenderer(row, col);
+	}
+
+	/**
+	 * Performs custom work to locate header renderers for special table model types.  The headers
+	 * are located and installed at the time the table's model is set.
+	 * 
+	 * @param col the column
+	 * @return the header cell renderer
+	 */
+	public final TableCellRenderer getHeaderRendererOverride(int col) {
+		ConfigurableColumnTableModel configurableModel = getConfigurableColumnTableModel();
+		if (configurableModel != null) {
+			int modelIndex = convertColumnIndexToModel(col);
+			TableCellRenderer renderer = configurableModel.getHeaderRenderer(modelIndex);
+			if (renderer != null) {
+				return renderer;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -1253,7 +1288,7 @@ public class GTable extends JTable {
 		//@formatter:off
 		copyAction.setPopupMenuData(new MenuData(
 				new String[] { "Copy", "Copy" },
-				ResourceManager.loadImage("images/page_white_copy.png"),
+				Icons.COPY_ICON,
 				actionMenuGroup, NO_MNEMONIC,
 				Integer.toString(subGroupIndex++)
 			)
@@ -1274,7 +1309,7 @@ public class GTable extends JTable {
 		copyCurrentColumnAction.setPopupMenuData(new MenuData(
 				new String[] { "Copy",
 				"Copy Current Column" },
-				ResourceManager.loadImage("images/page_white_copy.png"),
+				Icons.COPY_ICON,
 				actionMenuGroup,
 				NO_MNEMONIC,
 				Integer.toString(subGroupIndex++)
@@ -1294,7 +1329,7 @@ public class GTable extends JTable {
 		//@formatter:off
 		copyColumnsAction.setPopupMenuData(new MenuData(
 				new String[] { "Copy", "Copy Columns..." },
-				ResourceManager.loadImage("images/page_white_copy.png"),
+				Icons.COPY_ICON,
 				actionMenuGroup,
 				NO_MNEMONIC,
 				Integer.toString(subGroupIndex++)
@@ -1313,7 +1348,7 @@ public class GTable extends JTable {
 		//@formatter:off
 		exportAction.setPopupMenuData(new MenuData(
 				new String[] { "Export", GTableToCSV.TITLE + "..." },
-				ResourceManager.loadImage("images/application-vnd.oasis.opendocument.spreadsheet-template.png"),
+				ICON_SPREADSHEET,
 				actionMenuGroup,
 				NO_MNEMONIC,
 				Integer.toString(subGroupIndex++)
@@ -1333,7 +1368,7 @@ public class GTable extends JTable {
 		//@formatter:off
 		exportColumnsAction.setPopupMenuData(new MenuData(
 				new String[] { "Export", "Export Columns to CSV..." },
-				ResourceManager.loadImage("images/application-vnd.oasis.opendocument.spreadsheet-template.png"),
+				ICON_SPREADSHEET,
 				actionMenuGroup,
 				NO_MNEMONIC,
 				Integer.toString(subGroupIndex++)

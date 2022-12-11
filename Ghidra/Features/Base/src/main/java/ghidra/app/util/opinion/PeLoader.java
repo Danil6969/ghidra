@@ -16,7 +16,6 @@
 package ghidra.app.util.opinion;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.*;
 
 import ghidra.app.util.MemoryBlockUtils;
@@ -36,16 +35,13 @@ import ghidra.program.database.function.OverlappingFunctionException;
 import ghidra.program.database.mem.FileBytes;
 import ghidra.program.model.address.*;
 import ghidra.program.model.data.*;
-import ghidra.program.model.lang.Register;
-import ghidra.program.model.lang.RegisterValue;
 import ghidra.program.model.listing.*;
-import ghidra.program.model.mem.Memory;
 import ghidra.program.model.mem.MemoryAccessException;
 import ghidra.program.model.reloc.RelocationTable;
 import ghidra.program.model.symbol.*;
 import ghidra.program.model.util.AddressSetPropertyMap;
 import ghidra.program.model.util.CodeUnitInsertionException;
-import ghidra.util.*;
+import ghidra.util.Msg;
 import ghidra.util.exception.*;
 import ghidra.util.task.TaskMonitor;
 
@@ -109,7 +105,6 @@ public class PeLoader extends AbstractPeDebugLoader {
 			return;
 		}
 		OptionalHeader optionalHeader = ntHeader.getOptionalHeader();
-		FileHeader fileHeader = ntHeader.getFileHeader();
 
 		monitor.setMessage("Completing PE header parsing...");
 		FileBytes fileBytes = createFileBytes(provider, program, monitor);
@@ -132,8 +127,6 @@ public class PeLoader extends AbstractPeDebugLoader {
 					datadir.markup(program, false, monitor, log, ntHeader);
 				}
 			}
-
-			setProcessorContext(fileHeader, program, monitor, log);
 
 			processExports(optionalHeader, program, monitor, log);
 			processImports(optionalHeader, program, monitor, log);
@@ -287,10 +280,9 @@ public class PeLoader extends AbstractPeDebugLoader {
 
 	private void processRelocations(OptionalHeader optionalHeader, Program prog,
 			TaskMonitor monitor, MessageLog log) {
+		// We don't currently support relocations in PE's because we always load at the preferred
+		// image base, but we'll go though them anyway and add them to the relocation table
 
-		if (monitor.isCancelled()) {
-			return;
-		}
 		monitor.setMessage("[" + prog.getName() + "]: processing relocation tables...");
 
 		DataDirectory[] dataDirectories = optionalHeader.getDataDirectories();
@@ -306,68 +298,14 @@ public class PeLoader extends AbstractPeDebugLoader {
 		AddressSpace space = prog.getAddressFactory().getDefaultAddressSpace();
 		RelocationTable relocTable = prog.getRelocationTable();
 
-		Memory memory = prog.getMemory();
-
-		BaseRelocation[] relocs = brdd.getBaseRelocations();
-		long originalImageBase = optionalHeader.getOriginalImageBase();
-		AddressRange brddRange =
-			new AddressRangeImpl(space.getAddress(originalImageBase + brdd.getVirtualAddress()),
-				space.getAddress(originalImageBase + brdd.getVirtualAddress() + brdd.getSize()));
-		AddressRange headerRange = new AddressRangeImpl(space.getAddress(originalImageBase),
-			space.getAddress(originalImageBase + optionalHeader.getSizeOfHeaders()));
-		DataConverter conv = LittleEndianDataConverter.INSTANCE;
-
-		for (BaseRelocation reloc : relocs) {
+		for (BaseRelocation reloc : brdd.getBaseRelocations()) {
 			if (monitor.isCancelled()) {
 				return;
 			}
 			int baseAddr = reloc.getVirtualAddress();
-			int count = reloc.getCount();
-			for (int j = 0; j < count; ++j) {
-				int type = reloc.getType(j);
-				if (type == BaseRelocation.IMAGE_REL_BASED_ABSOLUTE) {
-					continue;
-				}
-				int offset = reloc.getOffset(j);
-				long addr =
-					Integer.toUnsignedLong(baseAddr + offset) + optionalHeader.getImageBase();
-				Address relocAddr = space.getAddress(addr);
-
-				try {
-					byte[] bytes = optionalHeader.is64bit() ? new byte[8] : new byte[4];
-					memory.getBytes(relocAddr, bytes);
-					if (optionalHeader.wasRebased()) {
-						long val = optionalHeader.is64bit() ? conv.getLong(bytes)
-								: conv.getInt(bytes) & 0xFFFFFFFFL;
-						val =
-							val - (originalImageBase & 0xFFFFFFFFL) + optionalHeader.getImageBase();
-						byte[] newbytes = optionalHeader.is64bit() ? conv.getBytes(val)
-								: conv.getBytes((int) val);
-						if (type == BaseRelocation.IMAGE_REL_BASED_HIGHLOW) {
-							memory.setBytes(relocAddr, newbytes);
-						}
-						else if (type == BaseRelocation.IMAGE_REL_BASED_DIR64) {
-							memory.setBytes(relocAddr, newbytes);
-						}
-						else {
-							Msg.error(this, "Non-standard relocation type " + type);
-						}
-					}
-
-					relocTable.add(relocAddr, type, null, null, null);
-
-				}
-				catch (MemoryAccessException e) {
-					log.appendMsg("Relocation does not exist in memory: " + relocAddr);
-				}
-				if (brddRange.contains(relocAddr)) {
-					Msg.error(this, "Self-modifying relocation table at " + relocAddr);
-					return;
-				}
-				if (headerRange.contains(relocAddr)) {
-					Msg.error(this, "Header modified at " + relocAddr);
-					return;
-				}
+			for (int i = 0; i < reloc.getCount(); ++i) {
+				long addr = optionalHeader.getImageBase() + baseAddr + reloc.getOffset(i);
+				relocTable.add(space.getAddress(addr), reloc.getType(i), null, null, null);
 			}
 		}
 	}
@@ -408,7 +346,7 @@ public class PeLoader extends AbstractPeDebugLoader {
 			//than 32bit. On WindowsCE some sections are
 			//declared to roll over.
 			if (!optionalHeader.is64bit()) {
-				addr &= Conv.INT_MASK;
+				addr &= 0x00000000ffffffffL;
 			}
 
 			Address address = space.getAddress(addr);
@@ -544,27 +482,6 @@ public class PeLoader extends AbstractPeDebugLoader {
 
 		if (codeProp != null) {
 			codeProp.add(address, address);
-		}
-	}
-
-	private void setProcessorContext(FileHeader fileHeader, Program program, TaskMonitor monitor,
-			MessageLog log) {
-
-		try {
-			String machineName = fileHeader.getMachineName();
-			if ("450".equals(machineName) || "452".equals(machineName)) {
-				Register tmodeReg = program.getProgramContext().getRegister("TMode");
-				if (tmodeReg == null) {
-					return;
-				}
-				RegisterValue thumbMode = new RegisterValue(tmodeReg, BigInteger.ONE);
-				AddressSpace space = program.getAddressFactory().getDefaultAddressSpace();
-				program.getProgramContext()
-						.setRegisterValue(space.getMinAddress(), space.getMaxAddress(), thumbMode);
-			}
-		}
-		catch (ContextChangeException e) {
-			throw new AssertException("instructions should not exist");
 		}
 	}
 
@@ -709,6 +626,11 @@ public class PeLoader extends AbstractPeDebugLoader {
 
 				address = space.getAddress(addr);
 
+				String sectionName = sections[i].getReadableName();
+				if (sectionName.isBlank()) {
+					sectionName = "SECTION." + i;
+				}
+
 				r = ((sections[i].getCharacteristics() &
 					SectionFlags.IMAGE_SCN_MEM_READ.getMask()) != 0x0);
 				w = ((sections[i].getCharacteristics() &
@@ -729,10 +651,6 @@ public class PeLoader extends AbstractPeDebugLoader {
 						if (!ntHeader.checkRVA(dataSize)) {
 							Msg.warn(this, "OptionalHeader.SizeOfImage < size of " +
 								sections[i].getName() + " section");
-						}
-						String sectionName = sections[i].getReadableName();
-						if (sectionName.isBlank()) {
-							sectionName = "SECTION." + i;
 						}
 						MemoryBlockUtils.createInitializedBlock(prog, false, sectionName, address,
 							fileBytes, rawDataPtr, dataSize, "", "", r, w, x, log);
@@ -763,8 +681,8 @@ public class PeLoader extends AbstractPeDebugLoader {
 				else {
 					int dataSize = (virtualSize > 0 || rawDataSize < 0) ? virtualSize : 0;
 					if (dataSize > 0) {
-						MemoryBlockUtils.createUninitializedBlock(prog, false,
-							sections[i].getReadableName(), address, dataSize, "", "", r, w, x, log);
+						MemoryBlockUtils.createUninitializedBlock(prog, false, sectionName, address,
+							dataSize, "", "", r, w, x, log);
 						sectionToAddress.put(sections[i], address);
 					}
 				}

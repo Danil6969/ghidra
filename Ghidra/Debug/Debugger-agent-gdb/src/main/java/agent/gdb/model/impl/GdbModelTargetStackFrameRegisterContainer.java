@@ -117,7 +117,7 @@ public class GdbModelTargetStackFrameRegisterContainer
 				elements.get(regName).stateChanged(bytes);
 			}
 			this.regValues = result;
-			listeners.fire.registersUpdated(this, result);
+			broadcast().registersUpdated(this, result);
 			return result;
 		});
 	}
@@ -179,6 +179,8 @@ public class GdbModelTargetStackFrameRegisterContainer
 			return frame.frame.writeRegisters(toWrite);
 		}).thenCompose(__ -> {
 			return updateRegisterValues(toWrite.keySet());
+		}).thenCompose(__ -> {
+			return frame.getParent().fetchElements(true);
 		})).thenApply(__ -> null);
 	}
 

@@ -17,8 +17,6 @@ package ghidra.trace.database.listing;
 
 import java.io.IOException;
 
-import com.google.common.collect.Range;
-
 import db.DBRecord;
 import ghidra.docking.settings.Settings;
 import ghidra.program.model.address.AddressSpace;
@@ -29,6 +27,7 @@ import ghidra.trace.database.DBTraceUtils;
 import ghidra.trace.database.data.DBTraceDataSettingsOperations;
 import ghidra.trace.database.guest.InternalTracePlatform;
 import ghidra.trace.database.map.DBTraceAddressSnapRangePropertyMapTree;
+import ghidra.trace.model.Lifespan;
 import ghidra.trace.model.guest.TracePlatform;
 import ghidra.trace.model.listing.TraceData;
 import ghidra.util.LockHold;
@@ -121,9 +120,9 @@ public class DBTraceData extends AbstractDBTraceCodeUnit<DBTraceData>
 	 * @param platform the platform
 	 * @param dataType the data type
 	 */
-	protected void set(InternalTracePlatform platform, DataType dataType) {
+	protected void set(InternalTracePlatform platform, long dataTypeID) {
 		this.platformKey = platform.getIntKey();
-		this.dataTypeID = space.dataTypeManager.getResolvedID(dataType);
+		this.dataTypeID = dataTypeID;
 		update(PLATFORM_COLUMN, DATATYPE_COLUMN);
 
 		this.platform = platform;
@@ -140,12 +139,6 @@ public class DBTraceData extends AbstractDBTraceCodeUnit<DBTraceData>
 	 * @return the length, or -1
 	 */
 	protected int getDataTypeLength() {
-		if (baseDataType instanceof Pointer) {
-			// TODO: Also need to know where this address maps into the other language's spaces....
-			// NOTE: Using default data space for now
-			// TODO: I may not need this Pointer check, as clone(dtm) should adjust already
-			return getLanguage().getDefaultDataSpace().getPointerSize();
-		}
 		return dataType.getLength(); // -1 is checked elsewhere
 	}
 
@@ -177,7 +170,7 @@ public class DBTraceData extends AbstractDBTraceCodeUnit<DBTraceData>
 
 	@Override
 	public void setEndSnap(long endSnap) {
-		Range<Long> oldSpan;
+		Lifespan oldSpan;
 		try (LockHold hold = LockHold.lock(space.lock.writeLock())) {
 			oldSpan = getLifespan();
 			super.setEndSnap(endSnap);

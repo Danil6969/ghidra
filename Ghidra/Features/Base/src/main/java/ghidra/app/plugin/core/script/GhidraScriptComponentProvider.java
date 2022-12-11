@@ -19,6 +19,7 @@ import java.awt.BorderLayout;
 import java.awt.Rectangle;
 import java.awt.event.*;
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
@@ -45,6 +46,7 @@ import docking.widgets.tree.GTree;
 import docking.widgets.tree.GTreeNode;
 import docking.widgets.tree.support.BreadthFirstIterator;
 import generic.jar.ResourceFile;
+import generic.theme.GIcon;
 import ghidra.app.plugin.core.osgi.*;
 import ghidra.app.script.*;
 import ghidra.app.services.ConsoleService;
@@ -56,7 +58,6 @@ import ghidra.util.datastruct.WeakDataStructureFactory;
 import ghidra.util.datastruct.WeakSet;
 import ghidra.util.table.GhidraTableFilterPanel;
 import ghidra.util.task.*;
-import resources.ResourceManager;
 import util.CollectionUtils;
 import utilities.util.FileUtilities;
 
@@ -125,7 +126,7 @@ public class GhidraScriptComponentProvider extends ComponentProviderAdapter {
 		scriptList.addListener(scriptListListener);
 
 		setHelpLocation(new HelpLocation(plugin.getName(), plugin.getName()));
-		setIcon(ResourceManager.loadImage("images/play.png"));
+		setIcon(new GIcon("icon.plugin.scriptmanager.provider"));
 		addToToolbar();
 		setWindowGroup(WINDOW_GROUP);
 
@@ -671,14 +672,9 @@ public class GhidraScriptComponentProvider extends ComponentProviderAdapter {
 		try {
 			return provider.getScriptInstance(scriptFile, console.getStdErr());
 		}
-		catch (IllegalAccessException e) {
-			console.addErrorMessage("", "Unable to access script: " + scriptName);
-		}
-		catch (InstantiationException e) {
-			console.addErrorMessage("", "Unable to instantiate script: " + scriptName);
-		}
-		catch (ClassNotFoundException e) {
-			console.addErrorMessage("", "Unable to locate script class: " + scriptName);
+		catch (GhidraScriptLoadException e) {
+			console.addErrorMessage("", "Unable to load script: " + scriptName);
+			console.addErrorMessage("", "  detail: " + e.getMessage());
 		}
 
 		// show the error icon
@@ -819,7 +815,7 @@ public class GhidraScriptComponentProvider extends ComponentProviderAdapter {
 
 		/*
 		 			Unusual Algorithm
-
+		
 			The tree nodes represent categories, but do not contain nodes for individual
 		 	scripts.  We wish to remove any of the tree nodes that no longer represent script
 		 	categories.  (This can happen when a script is deleted or its category is changed.)

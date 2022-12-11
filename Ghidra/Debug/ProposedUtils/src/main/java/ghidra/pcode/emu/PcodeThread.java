@@ -64,6 +64,10 @@ public interface PcodeThread<T> {
 	/**
 	 * Set the thread's program counter and write the pc register of its executor state
 	 * 
+	 * <p>
+	 * <b>Warning:</b> Setting the counter into the middle of group constructs, e.g., parallel
+	 * instructions or delay-slotted instructions, may cause undefined behavior.
+	 * 
 	 * @see #setCounter(Address)
 	 * @param counter the new target address
 	 */
@@ -336,9 +340,9 @@ public interface PcodeThread<T> {
 	 * inject.
 	 * 
 	 * @param address the address to inject at
-	 * @param sleigh the SLEIGH source to compile and inject
+	 * @param source the Sleigh source to compile and inject
 	 */
-	void inject(Address address, List<String> sleigh);
+	void inject(Address address, String source);
 
 	/**
 	 * Remove the per-thread inject, if present, at the given address

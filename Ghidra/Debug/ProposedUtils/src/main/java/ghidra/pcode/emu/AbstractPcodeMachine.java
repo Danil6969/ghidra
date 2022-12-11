@@ -20,7 +20,7 @@ import java.util.*;
 import ghidra.app.plugin.processors.sleigh.SleighLanguage;
 import ghidra.pcode.exec.*;
 import ghidra.pcode.exec.PcodeArithmetic.Purpose;
-import ghidra.program.model.address.Address;
+import ghidra.program.model.address.*;
 import ghidra.program.model.lang.Language;
 import ghidra.util.classfinder.ClassSearcher;
 
@@ -70,7 +70,10 @@ public abstract class AbstractPcodeMachine<T> implements PcodeMachine<T> {
 	protected final Collection<PcodeThread<T>> threadsView =
 		Collections.unmodifiableCollection(threads.values());
 
+	protected volatile boolean suspended = false;
 	protected final Map<Address, PcodeProgram> injects = new HashMap<>();
+	protected final SparseAddressRangeMap<AccessKind> accessBreakpoints =
+		new SparseAddressRangeMap<>();
 
 	/**
 	 * Construct a p-code machine with the given language and arithmetic
@@ -246,6 +249,11 @@ public abstract class AbstractPcodeMachine<T> implements PcodeMachine<T> {
 		return sharedState;
 	}
 
+	@Override
+	public void setSuspended(boolean suspended) {
+		this.suspended = suspended;
+	}
+
 	/**
 	 * Check for a p-code injection (override) at the given address
 	 * 
@@ -257,19 +265,19 @@ public abstract class AbstractPcodeMachine<T> implements PcodeMachine<T> {
 	}
 
 	@Override
-	public PcodeProgram compileSleigh(String sourceName, List<String> lines) {
-		return SleighProgramCompiler.compileProgram(language, sourceName, lines, stubLibrary);
+	public PcodeProgram compileSleigh(String sourceName, String source) {
+		return SleighProgramCompiler.compileProgram(language, sourceName, source, stubLibrary);
 	}
 
 	@Override
-	public void inject(Address address, List<String> sleigh) {
+	public void inject(Address address, String source) {
 		/**
 		 * TODO: Can I compile the template and build as if the inject were a
 		 * instruction:^instruction constructor? This would require me to delay that build until
 		 * execution, or at least check for instruction modification, if I do want to cache the
 		 * built p-code.
 		 */
-		PcodeProgram pcode = compileSleigh("machine_inject:" + address, sleigh);
+		PcodeProgram pcode = compileSleigh("machine_inject:" + address, source);
 		injects.put(address, pcode);
 	}
 
@@ -292,11 +300,52 @@ public abstract class AbstractPcodeMachine<T> implements PcodeMachine<T> {
 		 * addressed by formalizing and better exposing the notion of p-code stacks (of p-code
 		 * frames)
 		 */
-		PcodeProgram pcode = compileSleigh("breakpoint:" + address, List.of(
-			"if (!(" + sleighCondition + ")) goto <nobreak>;",
-			"    emu_swi();",
-			"<nobreak>",
-			"    emu_exec_decoded();"));
+		PcodeProgram pcode = compileSleigh("breakpoint:" + address, String.format("""
+				if (!(%s)) goto <nobreak>;
+					emu_swi();
+				<nobreak>
+					emu_exec_decoded();
+				""", sleighCondition));
 		injects.put(address, pcode);
+	}
+
+	@Override
+	public void addAccessBreakpoint(AddressRange range, AccessKind kind) {
+		accessBreakpoints.put(range, kind);
+	}
+
+	@Override
+	public void clearAccessBreakpoints() {
+		accessBreakpoints.clear();
+	}
+
+	protected void checkLoad(AddressSpace space, T offset) {
+		if (accessBreakpoints.isEmpty()) {
+			return;
+		}
+		try {
+			long concrete = arithmetic.toLong(offset, Purpose.LOAD);
+			if (accessBreakpoints.hasEntry(space.getAddress(concrete), AccessKind::trapsRead)) {
+				throw new InterruptPcodeExecutionException(null, null);
+			}
+		}
+		catch (ConcretionError e) {
+			// Consider this not hitting any breakpoint
+		}
+	}
+
+	protected void checkStore(AddressSpace space, T offset) {
+		if (accessBreakpoints.isEmpty()) {
+			return;
+		}
+		try {
+			long concrete = arithmetic.toLong(offset, Purpose.LOAD);
+			if (accessBreakpoints.hasEntry(space.getAddress(concrete), AccessKind::trapsWrite)) {
+				throw new InterruptPcodeExecutionException(null, null);
+			}
+		}
+		catch (ConcretionError e) {
+			// Consider this not hitting any breakpoint
+		}
 	}
 }

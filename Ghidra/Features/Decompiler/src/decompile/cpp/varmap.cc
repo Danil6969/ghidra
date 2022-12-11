@@ -48,8 +48,21 @@ bool RangeHint::reconcile(const RangeHint *b) const
 
   if (sub == (Datatype *)0) return false;
   if (umod != 0) return false;
-  if (sub->getSize() < b->type->getSize()) return false;
-  return true;
+  if (sub->getSize() == b->type->getSize()) return true;
+  if ((b->flags & Varnode::typelock)!=0) return false;
+  // If we reach here, component sizes do not match
+  // Check for data-types we want to protect more
+  type_metatype meta = a->type->getMetatype();
+  if (meta != TYPE_STRUCT && meta != TYPE_UNION) {
+    if (meta != TYPE_ARRAY || ((TypeArray *)(a->type))->getBase()->getMetatype() == TYPE_UNKNOWN)
+      return false;
+  }
+  // For structures, unions, and arrays, test if b looks like a partial data-type
+  meta = b->type->getMetatype();
+  if (meta == TYPE_UNKNOWN || meta == TYPE_INT || meta == TYPE_UINT) {
+    return true;
+  }
+  return false;
 }
 
 /// \brief Return \b true if \b this or the given range contains the other.
@@ -275,7 +288,8 @@ ScopeLocal::ScopeLocal(uint8 id,AddrSpace *spc,Funcdata *fd,Architecture *g) : S
 
 {
   space = spc;
-  deepestParamOffset = ~((uintb)0);
+  minParamOffset = ~((uintb)0);
+  maxParamOffset = 0;
   rangeLocked = false;
   stackGrowsNegative = true;
   restrictScope(fd);
@@ -298,7 +312,7 @@ void ScopeLocal::collectNameRecs(void)
 void ScopeLocal::annotateRawStackPtr(void)
 
 {
-  if (!fd->isTypeRecoveryOn()) return;
+  if (!fd->hasTypeRecoveryStarted()) return;
   Varnode *spVn = fd->findSpacebaseInput(space);
   if (spVn == (Varnode *)0) return;
   list<PcodeOp *>::const_iterator iter;
@@ -325,7 +339,8 @@ void ScopeLocal::resetLocalWindow(void)
 
 {
   stackGrowsNegative = fd->getFuncProto().isStackGrowsNegative();
-  deepestParamOffset = stackGrowsNegative ? ~((uintb)0) : 0;
+  minParamOffset = ~(uintb)0;
+  maxParamOffset = 0;
 
   if (rangeLocked) return;
 
@@ -376,6 +391,22 @@ void ScopeLocal::decodeWrappingAttributes(Decoder &decoder)
   space = decoder.readSpace(ATTRIB_MAIN);
 }
 
+/// Currently we treat all unmapped Varnodes as not having an alias, unless the Varnode is on the stack
+/// and the location is also used to pass parameters.  This should not be called until the second pass, in
+/// order to give markNotMapped a chance to be called.
+/// Return \b true if the Varnode can be treated as having no aliases.
+/// \param vn is the given Varnode
+/// \return \b true if there are no aliases
+bool ScopeLocal::isUnmappedUnaliased(Varnode *vn) const
+
+{
+  if (vn->getSpace() != space) return false;	// Must be in mapped local (stack) space
+  if (maxParamOffset < minParamOffset) return false;	// If no min/max, then we have no know stack parameters
+  if (vn->getOffset() < minParamOffset || vn->getOffset() > maxParamOffset)
+    return true;
+  return false;
+}
+
 /// The given range can no longer hold a \e mapped local variable. This indicates the range
 /// is being used for temporary storage.
 /// \param spc is the address space holding the given range
@@ -393,14 +424,10 @@ void ScopeLocal::markNotMapped(AddrSpace *spc,uintb first,int4 sz,bool parameter
   else if (last > spc->getHighest())
     last = spc->getHighest();
   if (parameter) {		// Everything above parameter
-    if (stackGrowsNegative) {
-      if (first < deepestParamOffset)
-	deepestParamOffset = first;
-    }
-    else {
-      if (first > deepestParamOffset)
-	deepestParamOffset = first;
-    }
+    if (first < minParamOffset)
+      minParamOffset = first;
+    if (last > maxParamOffset)
+      maxParamOffset = last;
   }
   Address addr(space,first);
 				// Remove any symbols under range
@@ -444,11 +471,12 @@ string ScopeLocal::buildVariableName(const Address &addr,
 	start = -start;
       }
       else {
-	if (deepestParamOffset + 1 > 1 && stackGrowsNegative == (addr.getOffset() < deepestParamOffset)) {
+	if ((minParamOffset < maxParamOffset) &&
+	    (stackGrowsNegative ? (addr.getOffset() < minParamOffset) : (addr.getOffset() > maxParamOffset))) {
 	  s << 'Y';		// Indicate unusual region of stack
 	}
       }
-      s << dec << start;
+      s << '_' << hex << start;
       return makeNameUnique(s.str());
     }
   }

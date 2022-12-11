@@ -17,7 +17,6 @@ package ghidra.app.plugin.core.debug.gui.copying;
 
 import static org.junit.Assert.*;
 
-import java.awt.Color;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -26,8 +25,7 @@ import javax.swing.JCheckBox;
 
 import org.junit.Test;
 
-import com.google.common.collect.Range;
-
+import generic.theme.GThemeDefaults.Colors.Palette;
 import ghidra.app.plugin.assembler.Assembler;
 import ghidra.app.plugin.assembler.Assemblers;
 import ghidra.app.plugin.core.debug.gui.AbstractGhidraHeadedDebuggerGUITest;
@@ -47,6 +45,7 @@ import ghidra.trace.database.breakpoint.DBTraceBreakpointManager;
 import ghidra.trace.database.memory.DBTraceMemoryManager;
 import ghidra.trace.database.program.DBTraceVariableSnapProgramView;
 import ghidra.trace.database.symbol.*;
+import ghidra.trace.model.Lifespan;
 import ghidra.trace.model.breakpoint.TraceBreakpointKind;
 import ghidra.trace.model.memory.TraceMemoryFlag;
 import ghidra.trace.model.memory.TraceMemoryState;
@@ -284,13 +283,13 @@ public class DebuggerCopyPlanTests extends AbstractGhidraHeadedDebuggerGUITest {
 		Register contextReg = tb.language.getContextBaseRegister();
 		Register longMode = tb.language.getRegister("longMode");
 		RegisterValue rv = tb.trace.getRegisterContextManager()
-				.getValueWithDefault(tb.language, contextReg, 0, tb.addr(0x55550000));
+				.getValueWithDefault(tb.host, contextReg, 0, tb.addr(0x55550000));
 		rv = rv.assign(longMode, BigInteger.ZERO);
 		Instruction checkCtx;
 		try (UndoableTransaction tid = tb.startTransaction()) {
 			DBTraceMemoryManager memory = tb.trace.getMemoryManager();
 			memory.createRegion(".text", 0, trng, TraceMemoryFlag.READ, TraceMemoryFlag.EXECUTE);
-			tb.trace.getRegisterContextManager().setValue(tb.language, rv, Range.atLeast(0L), trng);
+			tb.trace.getRegisterContextManager().setValue(tb.language, rv, Lifespan.nowOn(0), trng);
 
 			// TODO: Once GP-1426 is resolved, use the assembler
 			/*
@@ -616,7 +615,7 @@ public class DebuggerCopyPlanTests extends AbstractGhidraHeadedDebuggerGUITest {
 				TraceMemoryFlag.READ, TraceMemoryFlag.EXECUTE);
 
 			BookmarkManager bookmarks = view.getBookmarkManager();
-			bookmarks.defineType("TestType", DebuggerResources.ICON_DEBUGGER, Color.BLUE, 1);
+			bookmarks.defineType("TestType", DebuggerResources.ICON_DEBUGGER, Palette.BLUE, 1);
 			bookmarks.setBookmark(tb.addr(0x55550123), "TestType", "TestCategory", "Test Comment");
 		}
 
@@ -645,7 +644,7 @@ public class DebuggerCopyPlanTests extends AbstractGhidraHeadedDebuggerGUITest {
 		assertEquals("Test Comment", bm.getComment());
 
 		assertEquals(DebuggerResources.ICON_DEBUGGER, type.getIcon());
-		assertEquals(Color.BLUE, type.getMarkerColor());
+		assertEquals(Palette.BLUE, type.getMarkerColor());
 		assertEquals(1, type.getMarkerPriority());
 	}
 

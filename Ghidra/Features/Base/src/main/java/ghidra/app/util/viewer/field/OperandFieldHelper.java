@@ -27,6 +27,7 @@ import docking.widgets.fieldpanel.support.FieldLocation;
 import docking.widgets.fieldpanel.support.RowColLocation;
 import ghidra.GhidraOptions;
 import ghidra.app.util.*;
+import ghidra.app.util.viewer.field.ListingColors.FunctionColors;
 import ghidra.app.util.viewer.format.FieldFormatModel;
 import ghidra.app.util.viewer.options.OptionsGui;
 import ghidra.app.util.viewer.proxy.ProxyObj;
@@ -381,7 +382,7 @@ abstract class OperandFieldHelper extends FieldFactory {
 		}
 		AttributedString as =
 			new AttributedString(str, attributes.colorAttribute,
-				getMetrics(attributes.styleAttribute), underline, underlineColor);
+				getMetrics(attributes.styleAttribute), underline, ListingColors.UNDERLINE);
 		FieldElement field = new OperandFieldElement(as, 0, 0, 0);
 
 		if (shouldWordWrap(data, dataValueRepresentation)) {
@@ -465,7 +466,7 @@ abstract class OperandFieldHelper extends FieldFactory {
 			AttributedString as =
 				new AttributedString(opRepList != null ? opRepList.toString() : "<UNSUPPORTED>",
 					badRefAttributes.colorAttribute, getMetrics(badRefAttributes.styleAttribute),
-					false, underlineColor);
+					false, ListingColors.UNDERLINE);
 			elements.add(new OperandFieldElement(as, opIndex, subOpIndex, characterOffset));
 			characterOffset += as.length();
 		}
@@ -506,7 +507,7 @@ abstract class OperandFieldHelper extends FieldFactory {
 
 		ColorStyleAttributes attributes = getOpAttributes(opElem, inst, opIndex);
 		AttributedString as = new AttributedString(opElem.toString(), attributes.colorAttribute,
-			getMetrics(attributes.styleAttribute), underline, underlineColor);
+			getMetrics(attributes.styleAttribute), underline, ListingColors.UNDERLINE);
 		elements.add(new OperandFieldElement(as, opIndex, subOpIndex, characterOffset));
 		return characterOffset + as.length();
 	}
@@ -685,34 +686,27 @@ abstract class OperandFieldHelper extends FieldFactory {
 	 * changes.  It looks up all the color settings and resets the its values.
 	 */
 	private void setOptions(Options options) {
-		separatorAttributes.colorAttribute = options.getColor(
-			OptionsGui.SEPARATOR.getColorOptionName(), OptionsGui.SEPARATOR.getDefaultColor());
+
+		separatorAttributes.colorAttribute = ListingColors.SEPARATOR;
+		scalarAttributes.colorAttribute = ListingColors.CONSTANT;
+		variableRefAttributes.colorAttribute = FunctionColors.VARIABLE;
+		addressAttributes.colorAttribute = ListingColors.ADDRESS;
+		externalRefAttributes.colorAttribute = ListingColors.EXT_REF_RESOLVED;
+		badRefAttributes.colorAttribute = ListingColors.REF_BAD;
+		registerAttributes.colorAttribute = ListingColors.REGISTER;
+
 		separatorAttributes.styleAttribute =
 			options.getInt(OptionsGui.SEPARATOR.getStyleOptionName(), -1);
-		scalarAttributes.colorAttribute = options.getColor(OptionsGui.CONSTANT.getColorOptionName(),
-			OptionsGui.CONSTANT.getDefaultColor());
 		scalarAttributes.styleAttribute =
 			options.getInt(OptionsGui.CONSTANT.getStyleOptionName(), -1);
-		variableRefAttributes.colorAttribute = options.getColor(
-			OptionsGui.VARIABLE.getColorOptionName(), OptionsGui.VARIABLE.getDefaultColor());
 		variableRefAttributes.styleAttribute =
 			options.getInt(OptionsGui.VARIABLE.getStyleOptionName(), -1);
-		addressAttributes.colorAttribute = options.getColor(OptionsGui.ADDRESS.getColorOptionName(),
-			OptionsGui.ADDRESS.getDefaultColor());
 		addressAttributes.styleAttribute =
 			options.getInt(OptionsGui.ADDRESS.getStyleOptionName(), -1);
-		externalRefAttributes.colorAttribute =
-			options.getColor(OptionsGui.EXT_REF_RESOLVED.getColorOptionName(),
-				OptionsGui.EXT_REF_RESOLVED.getDefaultColor());
 		externalRefAttributes.styleAttribute =
 			options.getInt(OptionsGui.EXT_REF_RESOLVED.getStyleOptionName(), -1);
-		badRefAttributes.colorAttribute =
-			options.getColor(OptionsGui.BAD_REF_ADDR.getColorOptionName(),
-				OptionsGui.BAD_REF_ADDR.getDefaultColor());
 		badRefAttributes.styleAttribute =
 			options.getInt(OptionsGui.BAD_REF_ADDR.getStyleOptionName(), -1);
-		registerAttributes.colorAttribute = options.getColor(
-			OptionsGui.REGISTERS.getColorOptionName(), OptionsGui.REGISTERS.getDefaultColor());
 		registerAttributes.styleAttribute =
 			options.getInt(OptionsGui.REGISTERS.getStyleOptionName(), -1);
 

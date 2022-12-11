@@ -22,8 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import agent.gdb.manager.GdbStackFrame;
 import agent.gdb.manager.impl.cmd.GdbStateChangeRecord;
 import ghidra.dbg.agent.DefaultTargetObject;
-import ghidra.dbg.target.TargetObject;
-import ghidra.dbg.target.TargetStackFrame;
+import ghidra.dbg.target.*;
 import ghidra.dbg.target.schema.*;
 import ghidra.dbg.util.PathUtils;
 import ghidra.lifecycle.Internal;
@@ -35,8 +34,9 @@ import ghidra.program.model.address.Address;
 		@TargetElementType(type = Void.class) },
 	attributes = {
 		@TargetAttributeType(type = Void.class) })
-public class GdbModelTargetStackFrame extends DefaultTargetObject<TargetObject, GdbModelTargetStack>
-		implements TargetStackFrame, GdbModelSelectableObject {
+public class GdbModelTargetStackFrame
+		extends DefaultTargetObject<TargetObject, GdbModelTargetStack>
+		implements TargetStackFrame, TargetAggregate, GdbModelSelectableObject {
 	public static final String FUNC_ATTRIBUTE_NAME = PREFIX_INVISIBLE + "function";
 	public static final String FROM_ATTRIBUTE_NAME = PREFIX_INVISIBLE + "from"; // TODO
 
@@ -110,7 +110,7 @@ public class GdbModelTargetStackFrame extends DefaultTargetObject<TargetObject, 
 	}
 
 	protected void invalidateRegisterCaches() {
-		listeners.fire.invalidateCacheRequested(this);
+		broadcast().invalidateCacheRequested(this);
 	}
 
 	@Override
@@ -119,7 +119,7 @@ public class GdbModelTargetStackFrame extends DefaultTargetObject<TargetObject, 
 		return impl.gateFuture(frame.setActive(false));
 	}
 
-	@TargetAttributeType(name = FUNC_ATTRIBUTE_NAME)
+	@TargetAttributeType(name = FUNC_ATTRIBUTE_NAME, hidden = true)
 	public String getFunction() {
 		return func;
 	}

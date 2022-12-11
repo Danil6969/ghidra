@@ -83,6 +83,10 @@ public class DWARFAnalyzer extends AbstractAnalyzer {
 		"Create function signature data types for each function encountered in the DWARF debug " +
 			"data.";
 
+	private static final String OPTION_TRY_PACK_STRUCTS = "Try To Pack Structs";
+	private static final String OPTION_TRY_PACK_STRUCTS_DESC =
+		"Try to pack structure/union data types.";
+
 	private static final String DWARF_ANALYZER_NAME = "DWARF";
 	private static final String DWARF_ANALYZER_DESCRIPTION =
 		"Automatically extracts DWARF info from an ELF file.";
@@ -176,14 +180,13 @@ public class DWARFAnalyzer extends AbstractAnalyzer {
 			return false;
 		}
 
-		DWARFSectionProvider dsp =
-			DWARFSectionProviderFactory.createSectionProviderFor(program, monitor); // closed by DWARFProgram
-		if (dsp == null) {
-			Msg.info(this, "Unable to find DWARF information, skipping DWARF analysis");
-			return false;
-		}
+		try (DWARFSectionProvider dsp =
+			DWARFSectionProviderFactory.createSectionProviderFor(program, monitor)) {
+			if (dsp == null) {
+				Msg.info(this, "Unable to find DWARF information, skipping DWARF analysis");
+				return false;
+			}
 
-		try {
 			try (DWARFProgram prog = new DWARFProgram(program, importOptions, monitor, dsp)) {
 				if (prog.getRegisterMappings() == null && importOptions.isImportFuncs()) {
 					log.appendMsg(
@@ -265,6 +268,9 @@ public class DWARFAnalyzer extends AbstractAnalyzer {
 
 		options.registerOption(OPTION_OUTPUT_FUNC_SIGS, importOptions.isCreateFuncSignatures(),
 			null, OPTION_OUTPUT_FUNC_SIGS_DESC);
+
+		options.registerOption(OPTION_TRY_PACK_STRUCTS, importOptions.isTryPackStructs(),
+			null, OPTION_TRY_PACK_STRUCTS_DESC);
 	}
 
 	@Override
@@ -294,6 +300,8 @@ public class DWARFAnalyzer extends AbstractAnalyzer {
 			options.getInt(OPTION_NAME_LENGTH_CUTOFF, importOptions.getNameLengthCutoff()));
 		importOptions.setCreateFuncSignatures(
 			options.getBoolean(OPTION_OUTPUT_FUNC_SIGS, importOptions.isCreateFuncSignatures()));
+		importOptions.setTryPackDataTypes(
+			options.getBoolean(OPTION_TRY_PACK_STRUCTS, importOptions.isTryPackStructs()));
 	}
 
 }

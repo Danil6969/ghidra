@@ -56,7 +56,6 @@ import ghidra.framework.options.SaveState;
 import ghidra.framework.plugintool.PluginInfo;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
-import ghidra.program.database.DataTypeArchiveContentHandler;
 import ghidra.program.database.data.ProgramDataTypeManager;
 import ghidra.program.model.address.AddressSetView;
 import ghidra.program.model.data.*;
@@ -96,7 +95,7 @@ public class DataTypeManagerPlugin extends ProgramPlugin
 
 	private DataTypeManagerHandler dataTypeManagerHandler;
 	private DataTypesProvider provider;
-	private OpenVersionedFileDialog openDialog;
+	private OpenVersionedFileDialog<DataTypeArchive> openDialog;
 
 	private Map<String, DockingAction> recentlyOpenedArchiveMap;
 	private Map<String, DockingAction> installArchiveMap;
@@ -105,7 +104,7 @@ public class DataTypeManagerPlugin extends ProgramPlugin
 	private DataTypePropertyManager dataTypePropertyManager;
 
 	public DataTypeManagerPlugin(PluginTool tool) {
-		super(tool, true, true);
+		super(tool);
 	}
 
 	@Override
@@ -245,8 +244,7 @@ public class DataTypeManagerPlugin extends ProgramPlugin
 		Project project = tool.getProjectManager().getActiveProject();
 		if (project != null && project.getName().equals(projectName)) {
 			DomainFile df = project.getProjectData().getFile(pathname);
-			if (df != null && DataTypeArchiveContentHandler.DATA_TYPE_ARCHIVE_CONTENT_TYPE
-					.equals(df.getContentType())) {
+			if (DataTypeArchive.class.isAssignableFrom(df.getDomainObjectClass())) {
 				return df;
 			}
 		}
@@ -588,12 +586,9 @@ public class DataTypeManagerPlugin extends ProgramPlugin
 					openArchive(domainFile, version);
 				}
 			};
-			DomainFileFilter filter = f -> {
-				Class<?> c = f.getDomainObjectClass();
-				return DataTypeArchive.class.isAssignableFrom(c);
-			};
 			openDialog =
-				new OpenVersionedFileDialog(tool, "Open Project Data Type Archive", filter);
+				new OpenVersionedFileDialog<>(tool, "Open Project Data Type Archive",
+					DataTypeArchive.class);
 			openDialog.setHelpLocation(new HelpLocation(HelpTopics.PROGRAM, "Open_File_Dialog"));
 			openDialog.addOkActionListener(listener);
 		}

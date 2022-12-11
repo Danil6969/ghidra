@@ -19,14 +19,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.google.common.collect.Range;
-
 import ghidra.program.model.address.*;
 import ghidra.program.model.lang.*;
 import ghidra.program.model.util.CodeUnitInsertionException;
+import ghidra.trace.model.Lifespan;
 import ghidra.trace.model.guest.TracePlatform;
-import ghidra.trace.model.listing.TraceCodeManager;
-import ghidra.trace.model.listing.TraceInstructionsView;
+import ghidra.trace.model.listing.*;
 import ghidra.util.LockHold;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
@@ -36,7 +34,7 @@ import ghidra.util.task.TaskMonitor;
  */
 public class DBTraceInstructionsMemoryView
 		extends AbstractBaseDBTraceCodeUnitsMemoryView<DBTraceInstruction, DBTraceInstructionsView>
-		implements TraceInstructionsView {
+		implements TraceInstructionsView, InternalTraceBaseDefinedUnitsView<TraceInstruction> {
 
 	/**
 	 * Construct the view
@@ -53,13 +51,13 @@ public class DBTraceInstructionsMemoryView
 	}
 
 	@Override
-	public void clear(Range<Long> span, AddressRange range, boolean clearContext,
+	public void clear(Lifespan span, AddressRange range, boolean clearContext,
 			TaskMonitor monitor) throws CancelledException {
 		delegateDeleteV(range.getAddressSpace(), m -> m.clear(span, range, clearContext, monitor));
 	}
 
 	@Override
-	public DBTraceInstruction create(Range<Long> lifespan, Address address,
+	public DBTraceInstruction create(Lifespan lifespan, Address address,
 			TracePlatform platform, InstructionPrototype prototype,
 			ProcessorContextView context) throws CodeUnitInsertionException {
 		return delegateWrite(address.getAddressSpace(),
@@ -67,7 +65,7 @@ public class DBTraceInstructionsMemoryView
 	}
 
 	@Override
-	public AddressSetView addInstructionSet(Range<Long> lifespan, TracePlatform platform,
+	public AddressSetView addInstructionSet(Lifespan lifespan, TracePlatform platform,
 			InstructionSet instructionSet, boolean overwrite) {
 		InstructionSet mappedSet = platform.mapGuestInstructionAddressesToHost(instructionSet);
 

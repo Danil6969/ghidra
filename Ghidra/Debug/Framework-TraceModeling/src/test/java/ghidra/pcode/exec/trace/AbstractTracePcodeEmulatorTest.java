@@ -17,8 +17,6 @@ package ghidra.pcode.exec.trace;
 
 import java.util.*;
 
-import com.google.common.collect.Range;
-
 import ghidra.app.plugin.assembler.Assembler;
 import ghidra.app.plugin.assembler.Assemblers;
 import ghidra.app.plugin.processors.sleigh.SleighLanguage;
@@ -27,6 +25,7 @@ import ghidra.program.model.address.AddressRange;
 import ghidra.program.model.listing.Instruction;
 import ghidra.test.AbstractGhidraHeadlessIntegrationTest;
 import ghidra.trace.database.ToyDBTraceBuilder;
+import ghidra.trace.model.Lifespan;
 import ghidra.trace.model.memory.TraceMemoryFlag;
 import ghidra.trace.model.memory.TraceMemoryManager;
 import ghidra.trace.model.thread.TraceThread;
@@ -35,7 +34,7 @@ import ghidra.util.database.UndoableTransaction;
 
 public class AbstractTracePcodeEmulatorTest extends AbstractGhidraHeadlessIntegrationTest {
 
-	public TraceThread initTrace(ToyDBTraceBuilder tb, List<String> stateInit,
+	public TraceThread initTrace(ToyDBTraceBuilder tb, String stateInit,
 			List<String> assembly) throws Throwable {
 		return initTrace(tb, tb.range(0x00400000, 0x0040ffff), tb.range(0x00100000, 0x0010ffff),
 			stateInit, assembly);
@@ -53,21 +52,20 @@ public class AbstractTracePcodeEmulatorTest extends AbstractGhidraHeadlessIntegr
 	 * memory where it was assembled.
 	 * 
 	 * @param tb the trace builder
-	 * @param stateInit SLEIGH source lines to execute to initialize the trace state before
-	 *            emulation. Each line must end with ";"
+	 * @param stateInit Sleigh source to execute to initialize the trace state before emulation
 	 * @param assembly lines of assembly to place starting at {@code 0x00400000}
 	 * @return a new trace thread, whose register state is initialized as specified
 	 * @throws Throwable if anything goes wrong
 	 */
 	public TraceThread initTrace(ToyDBTraceBuilder tb, AddressRange text, AddressRange stack,
-			List<String> stateInit, List<String> assembly) throws Throwable {
+			String stateInit, List<String> assembly) throws Throwable {
 		TraceMemoryManager mm = tb.trace.getMemoryManager();
 		TraceThread thread;
 		try (UndoableTransaction tid = tb.startTransaction()) {
 			thread = tb.getOrAddThread("Thread1", 0);
-			mm.addRegion("Regions[bin:.text]", Range.atLeast(0L), text,
+			mm.addRegion("Regions[bin:.text]", Lifespan.nowOn(0), text,
 				TraceMemoryFlag.READ, TraceMemoryFlag.EXECUTE);
-			mm.addRegion("Regions[stack1]", Range.atLeast(0L), stack,
+			mm.addRegion("Regions[stack1]", Lifespan.nowOn(0), stack,
 				TraceMemoryFlag.READ, TraceMemoryFlag.WRITE);
 			Assembler asm = Assemblers.getAssembler(tb.trace.getFixedProgramView(0));
 			Iterator<Instruction> block = assembly.isEmpty() ? Collections.emptyIterator()

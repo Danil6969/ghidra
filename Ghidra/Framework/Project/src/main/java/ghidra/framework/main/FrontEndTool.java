@@ -37,8 +37,6 @@ import db.buffers.DataBuffer;
 import docking.*;
 import docking.action.DockingAction;
 import docking.action.MenuData;
-import docking.help.Help;
-import docking.help.HelpService;
 import docking.tool.ToolConstants;
 import docking.util.AnimationUtils;
 import docking.util.image.ToolIconURL;
@@ -77,6 +75,8 @@ import ghidra.util.exception.VersionException;
 import ghidra.util.task.*;
 import ghidra.util.xml.GenericXMLOutputter;
 import ghidra.util.xml.XmlUtilities;
+import help.Help;
+import help.HelpService;
 
 /**
  * Tool that serves as the the Ghidra Project Window. Only those plugins that
@@ -94,7 +94,11 @@ public class FrontEndTool extends PluginTool implements OptionsChangeListener {
 	private static final String ENABLE_COMPRESSED_DATABUFFER_OUTPUT =
 		"Use DataBuffer Output Compression";
 
+	private static final String RESTORE_PREVIOUS_PROJECT_NAME = "Restore Previous Project";
+	private boolean shouldRestorePreviousProject;
+
 	private static final int MIN_HEIGHT = 600;
+
 	/**
 	 * Preference name for whether to show the "What's New" help page when the
 	 * Ghidra Project Window is displayed.
@@ -153,6 +157,8 @@ public class FrontEndTool extends PluginTool implements OptionsChangeListener {
 
 		AppInfo.setFrontEndTool(this);
 		AppInfo.setActiveProject(getProject());
+
+		initFrontEndOptions();
 	}
 
 	private void ensureSize() {
@@ -291,15 +297,20 @@ public class FrontEndTool extends PluginTool implements OptionsChangeListener {
 
 	private void initFrontEndOptions() {
 		ToolOptions options = getOptions(ToolConstants.TOOL_OPTIONS);
-		HelpLocation help = new HelpLocation(ToolConstants.TOOL_HELP_TOPIC, "Save_Tool");
+		HelpLocation help =
+			new HelpLocation(ToolConstants.TOOL_HELP_TOPIC, "Front_End_Tool_Options");
 
 		options.registerOption(AUTOMATICALLY_SAVE_TOOLS, true, help,
-			"When enabled tools will be saved " + "when they are closed");
+			"When enabled tools will be saved when they are closed");
 		options.registerOption(USE_ALERT_ANIMATION_OPTION_NAME, true, help,
-			"Signals that user notifications " +
-				"should be animated.  This makes notifications more distinguishable.");
+			"Signals that user notifications should be animated.  This makes notifications more " +
+				"distinguishable.");
 		options.registerOption(ENABLE_COMPRESSED_DATABUFFER_OUTPUT, Boolean.FALSE, help,
-			"When enabled data buffers sent to Ghidra Server are compressed (see server configuration for other direction)");
+			"When enabled data buffers sent to Ghidra Server are compressed (see server " +
+				"configuration for other direction)");
+
+		options.registerOption(RESTORE_PREVIOUS_PROJECT_NAME, Boolean.TRUE, help,
+			"Restore the previous project when Ghidra starts.");
 
 		boolean autoSave = options.getBoolean(AUTOMATICALLY_SAVE_TOOLS, true);
 		GhidraTool.autoSave = autoSave;
@@ -310,6 +321,8 @@ public class FrontEndTool extends PluginTool implements OptionsChangeListener {
 		boolean compressDataBuffers =
 			options.getBoolean(ENABLE_COMPRESSED_DATABUFFER_OUTPUT, false);
 		DataBuffer.enableCompressedSerializationOutput(compressDataBuffers);
+
+		shouldRestorePreviousProject = options.getBoolean(RESTORE_PREVIOUS_PROJECT_NAME, true);
 
 		options.addOptionsChangeListener(this);
 	}
@@ -326,6 +339,9 @@ public class FrontEndTool extends PluginTool implements OptionsChangeListener {
 		else if (ENABLE_COMPRESSED_DATABUFFER_OUTPUT.equals(optionName)) {
 			DataBuffer.enableCompressedSerializationOutput((Boolean) newValue);
 		}
+		else if (RESTORE_PREVIOUS_PROJECT_NAME.equals(optionName)) {
+			shouldRestorePreviousProject = (Boolean) newValue;
+		}
 	}
 
 	@Override
@@ -336,7 +352,7 @@ public class FrontEndTool extends PluginTool implements OptionsChangeListener {
 
 	@Override
 	public void close() {
-		exit();
+		close(true);
 	}
 
 	/**
@@ -350,14 +366,19 @@ public class FrontEndTool extends PluginTool implements OptionsChangeListener {
 			return;
 		}
 
-		ToolOptions options = getOptions(ToolConstants.TOOL_OPTIONS);
-		options.removeOptionsChangeListener(this);
-
 		configureToolAction.setEnabled(true);
 		setProject(project);
 		AppInfo.setActiveProject(project);
 		plugin.setActiveProject(project);
-		initFrontEndOptions();
+	}
+
+	/**
+	 * Checks to see if the previous project should be restored
+	 *
+	 * @return true if the previous project should be restored; otherwise, false
+	 */
+	public boolean shouldRestorePreviousProject() {
+		return shouldRestorePreviousProject;
 	}
 
 	/**

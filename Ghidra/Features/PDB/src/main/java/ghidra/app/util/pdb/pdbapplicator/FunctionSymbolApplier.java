@@ -30,8 +30,8 @@ import ghidra.program.model.data.FunctionDefinition;
 import ghidra.program.model.lang.Register;
 import ghidra.program.model.listing.*;
 import ghidra.program.model.symbol.SourceType;
-import ghidra.util.exception.AssertException;
-import ghidra.util.exception.CancelledException;
+import ghidra.util.InvalidNameException;
+import ghidra.util.exception.*;
 import ghidra.util.task.TaskMonitor;
 
 /**
@@ -45,6 +45,7 @@ public class FunctionSymbolApplier extends MsSymbolApplier {
 	private AbstractThunkMsSymbol thunkSymbol;
 	private Address specifiedAddress;
 	private Address address;
+	private boolean isNonReturning;
 	private Function function = null;
 	private long specifiedFrameSize = 0;
 	private long currentFrameSize = 0;
@@ -79,11 +80,27 @@ public class FunctionSymbolApplier extends MsSymbolApplier {
 			procedureSymbol = (AbstractProcedureMsSymbol) abstractSymbol;
 			specifiedAddress = applicator.getRawAddress(procedureSymbol);
 			address = applicator.getAddress(procedureSymbol);
+			isNonReturning =
+				((AbstractProcedureStartMsSymbol) procedureSymbol).getFlags().doesNotReturn();
+		}
+		else if (abstractSymbol instanceof AbstractProcedureStartIa64MsSymbol) {
+			procedureSymbol = (AbstractProcedureStartIa64MsSymbol) abstractSymbol;
+			specifiedAddress = applicator.getRawAddress(procedureSymbol);
+			address = applicator.getAddress(procedureSymbol);
+			isNonReturning = ((AbstractProcedureStartIa64MsSymbol) procedureSymbol).getFlags()
+					.doesNotReturn();
+		}
+		else if (abstractSymbol instanceof AbstractProcedureStartMipsMsSymbol) {
+			procedureSymbol = (AbstractProcedureStartMipsMsSymbol) abstractSymbol;
+			specifiedAddress = applicator.getRawAddress(procedureSymbol);
+			address = applicator.getAddress(procedureSymbol);
+			isNonReturning = false; // we do not have ProcedureFlags to check
 		}
 		else if (abstractSymbol instanceof AbstractThunkMsSymbol) {
 			thunkSymbol = (AbstractThunkMsSymbol) abstractSymbol;
 			specifiedAddress = applicator.getRawAddress(thunkSymbol);
 			address = applicator.getAddress(thunkSymbol);
+			// isNonReturning value is not used when thunk; is controlled by thunked function;
 		}
 		else {
 			throw new AssertException(
@@ -235,24 +252,21 @@ public class FunctionSymbolApplier extends MsSymbolApplier {
 	}
 
 	private boolean applyFunction(TaskMonitor monitor) {
-		Listing listing = applicator.getProgram().getListing();
-
-		applicator.createSymbol(address, getName(), true);
-
-		function = listing.getFunctionAt(address);
-		if (function == null) {
-			function = createFunction(monitor);
-		}
-		if (function != null && !function.isThunk() &&
-			(function.getSignatureSource() == SourceType.DEFAULT ||
-				function.getSignatureSource() == SourceType.ANALYSIS)) {
-			// Set the function definition
-			setFunctionDefinition(monitor);
-
-		}
+		function = createFunction(monitor);
 		if (function == null) {
 			return false;
 		}
+
+		boolean succeededSetFunctionSignature = false;
+		if (!function.isThunk() &&
+			function.getSignatureSource().isLowerPriorityThan(SourceType.IMPORTED)) {
+			succeededSetFunctionSignature = setFunctionDefinition(monitor);
+			function.setNoReturn(isNonReturning);
+		}
+		// If signature was set, then override existing primary mangled symbol with
+		// the global symbol that provided this signature so that Demangler does not overwrite
+		// the richer data type we get with global symbols.
+		applicator.createSymbol(address, getName(), succeededSetFunctionSignature);
 
 		currentFrameSize = 0;
 		return true;
@@ -280,11 +294,16 @@ public class FunctionSymbolApplier extends MsSymbolApplier {
 		return myFunction;
 	}
 
+	/**
+	 * returns true only if we set a function signature
+	 * @param monitor monitor
+	 * @return true if function signature was set
+	 */
 	private boolean setFunctionDefinition(TaskMonitor monitor) {
 		if (procedureSymbol == null) {
 			// TODO: is there anything we can do with thunkSymbol?
 			// long x = thunkSymbol.getParentPointer();
-			return true;
+			return false;
 		}
 		// Rest presumes procedureSymbol.
 		RecordNumber typeRecordNumber = procedureSymbol.getTypeRecordNumber();
@@ -299,23 +318,34 @@ public class FunctionSymbolApplier extends MsSymbolApplier {
 				((PrimitiveTypeApplier) applier).isNoType())) {
 				applicator.appendLogMsg("Error: Failed to resolve datatype RecordNumber " +
 					typeRecordNumber + " at " + address);
-				return false;
 			}
+			return false;
 		}
 
 		DataType dataType = applier.getDataType();
 		// Since we know the applier is an AbstractionFunctionTypeApplier, then dataType is either
 		//  FunctionDefinition or no type (typedef).
-		if (dataType instanceof FunctionDefinition) {
-			FunctionDefinition def = (FunctionDefinition) dataType;
-			ApplyFunctionSignatureCmd sigCmd =
-				new ApplyFunctionSignatureCmd(address, def, SourceType.IMPORTED);
-			if (!sigCmd.applyTo(applicator.getProgram(), monitor)) {
-				applicator.appendLogMsg(
-					"PDB Warning: Failed to apply signature to function at address " + address +
-						" due to " + sigCmd.getStatusMsg() + "; dataType: " + def.getName());
-				return false;
-			}
+		if (!(dataType instanceof FunctionDefinition)) {
+			return false;
+		}
+		FunctionDefinition def =
+			(FunctionDefinition) dataType.copy(applicator.getDataTypeManager());
+		try {
+			// Must use copy of function definition with preserved function name.
+			// While not ideal, this prevents applying an incorrect function name
+			// with an IMPORTED source type
+			def.setName(function.getName());
+		}
+		catch (InvalidNameException | DuplicateNameException e) {
+			throw new RuntimeException("unexpected exception", e);
+		}
+		ApplyFunctionSignatureCmd sigCmd =
+			new ApplyFunctionSignatureCmd(address, def, SourceType.IMPORTED);
+		if (!sigCmd.applyTo(applicator.getProgram(), monitor)) {
+			applicator.appendLogMsg(
+				"PDB Warning: Failed to apply signature to function at address " + address +
+					" due to " + sigCmd.getStatusMsg() + "; dataType: " + def.getName());
+			return false;
 		}
 		return true;
 	}

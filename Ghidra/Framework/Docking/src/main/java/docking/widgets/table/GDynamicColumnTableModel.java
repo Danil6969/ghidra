@@ -260,7 +260,7 @@ public abstract class GDynamicColumnTableModel<ROW_TYPE, DATA_SOURCE>
 	 * @param column The field to add
 	 */
 	protected void addTableColumn(DynamicTableColumn<ROW_TYPE, ?, ?> column) {
-		addTableColumns(CollectionUtils.asSet(column));
+		addTableColumns(CollectionUtils.asSet(column), true);
 	}
 
 	/**
@@ -274,8 +274,24 @@ public abstract class GDynamicColumnTableModel<ROW_TYPE, DATA_SOURCE>
 	 * @param columns The columns to add
 	 */
 	protected void addTableColumns(Set<DynamicTableColumn<ROW_TYPE, ?, ?>> columns) {
+		addTableColumns(columns, true);
+	}
+
+	/**
+	 * Adds the given columns to the end of the list of columns. This method is intended for
+	 * implementations to add custom column objects, rather than relying on generic, discovered
+	 * DynamicTableColumn implementations.
+	 * 
+	 * <p>
+	 * <b>Note: this method assumes that the columns have already been sorted.</b>
+	 * 
+	 * @param columns The columns to add
+	 * @param isDefault true if these are default columns
+	 */
+	protected void addTableColumns(Set<DynamicTableColumn<ROW_TYPE, ?, ?>> columns,
+			boolean isDefault) {
 		for (DynamicTableColumn<ROW_TYPE, ?, ?> column : columns) {
-			doAddTableColumn(column, getDefaultTableColumns().size(), true);
+			doAddTableColumn(column, getDefaultTableColumns().size(), isDefault);
 		}
 		fireTableStructureChanged();
 	}
@@ -538,6 +554,19 @@ public abstract class GDynamicColumnTableModel<ROW_TYPE, DATA_SOURCE>
 	@Override
 	public TableCellRenderer getRenderer(int index) {
 		return tableColumns.get(index).getColumnRenderer();
+	}
+
+	/**
+	 * Gets the special header cell renderer for the specified table field column. A null value
+	 * indicates that this column uses a default header renderer.
+	 *
+	 * @param index the model column index
+	 * @return a table cell renderer for this field's header. Otherwise, null if a default renderer
+	 *         should be used.
+	 */
+	@Override
+	public TableCellRenderer getHeaderRenderer(int index) {
+		return tableColumns.get(index).getHeaderRenderer();
 	}
 
 	/**

@@ -15,11 +15,11 @@
  */
 package ghidra.app.plugin.core.osgi;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.*;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.swing.*;
@@ -31,6 +31,8 @@ import docking.widgets.filechooser.GhidraFileChooserMode;
 import docking.widgets.table.GTable;
 import docking.widgets.table.GTableFilterPanel;
 import generic.jar.ResourceFile;
+import generic.theme.GColor;
+import generic.theme.GIcon;
 import generic.util.Path;
 import ghidra.app.services.ConsoleService;
 import ghidra.framework.plugintool.ComponentProviderAdapter;
@@ -42,7 +44,6 @@ import ghidra.util.filechooser.GhidraFileChooserModel;
 import ghidra.util.filechooser.GhidraFileFilter;
 import ghidra.util.task.*;
 import resources.Icons;
-import resources.ResourceManager;
 
 /**
  * Component for managing OSGi bundle status
@@ -62,11 +63,12 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 	private GhidraFileChooser fileChooser;
 	private GhidraFileFilter filter;
 	private final BundleHost bundleHost;
+	private transient boolean isDisposed;
 
 	/**
 	 * {@link BundleStatusComponentProvider} visualizes bundle status and exposes actions for
 	 * adding, removing, enabling, disabling, activating, and deactivating bundles.
-	 * 
+	 *
 	 * @param tool the tool
 	 * @param owner the owner name
 	 * @param bundleHost the bundle host
@@ -104,8 +106,8 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 
 		bundleStatusTable = new GTable(bundleStatusTableModel);
 		bundleStatusTable.setName("BUNDLESTATUS_TABLE");
-		bundleStatusTable.setSelectionBackground(new Color(204, 204, 255));
-		bundleStatusTable.setSelectionForeground(Color.BLACK);
+		bundleStatusTable.setSelectionBackground(new GColor("color.bg.table.selection.bundle"));
+		bundleStatusTable.setSelectionForeground(new GColor("color.fg.table.selection.bundle"));
 		bundleStatusTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
 		// give actions a chance to update status when selection changed
@@ -154,15 +156,15 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 				.buildAndInstallLocal(this);
 
 		addBundlesAction("EnableBundles", "Enable selected bundle(s)",
-			ResourceManager.loadImage("images/media-playback-start.png"), this::doEnableBundles);
+			new GIcon("icon.plugin.bundlemanager.enable"), this::doEnableBundles);
 
 		addBundlesAction("DisableBundles", "Disable selected bundle(s)",
-			ResourceManager.loadImage("images/media-playback-stop.png"), this::doDisableBundles);
+			new GIcon("icon.plugin.bundlemanager.disable"), this::doDisableBundles);
 
 		addBundlesAction("CleanBundles", "Clean selected bundle build cache(s)",
-			ResourceManager.loadImage("images/erase16.png"), this::doCleanBundleBuildCaches);
+			Icons.CLEAR_ICON, this::doCleanBundleBuildCaches);
 
-		icon = ResourceManager.loadImage("images/Plus.png");
+		icon = Icons.ADD_ICON;
 		new ActionBuilder("AddBundles", this.getName()).popupMenuPath("Add bundle(s)")
 				.popupMenuIcon(icon)
 				.popupMenuGroup(BUNDLE_LIST_GROUP)
@@ -172,7 +174,7 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 				.onAction(c -> showAddBundlesFileChooser())
 				.buildAndInstallLocal(this);
 
-		icon = ResourceManager.loadImage("images/edit-delete.png");
+		icon = Icons.DELETE_ICON;
 		new ActionBuilder("RemoveBundles", this.getName())
 				.popupMenuPath("Remove selected bundle(s)")
 				.popupMenuIcon(icon)
@@ -187,7 +189,7 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 
 	/**
 	 * get the currently selected rows and translate to model rows
-	 * 
+	 *
 	 * @return selected model rows
 	 */
 	int[] getSelectedModelRows() {
@@ -290,8 +292,16 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 			Collection<GhidraBundle> bundles = bundleHost.add(resourceFiles, true, false);
 
 			TaskLauncher.launchNonModal("Activating new bundles", (monitor) -> {
-				bundleHost.activateAll(bundles, monitor,
-					getTool().getService(ConsoleService.class).getStdErr());
+				try {
+					bundleHost.activateAll(bundles, monitor,
+						getTool().getService(ConsoleService.class).getStdErr());
+				}
+				catch (Exception e) {
+					if (!isDisposed) {
+						Msg.showError(this, bundleStatusTable, "Error Activating Bundles",
+							"Unexpected error activating new bundles", e);
+					}
+				}
 			});
 		}
 	}
@@ -340,6 +350,7 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 	}
 
 	public void dispose() {
+		isDisposed = true;
 		filterPanel.dispose();
 	}
 
@@ -348,11 +359,11 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 	}
 
 	/**
-	 * This is for testing only!  during normal execution, statuses are only added through 
+	 * This is for testing only!  during normal execution, statuses are only added through
 	 * BundleHostListener bundle(s) added events.
-	 * 
+	 *
 	 * <p>Each new bundle will be enabled and writable
-	 * 
+	 *
 	 * @param bundleFiles the files to use
 	 */
 	public void setBundleFilesForTesting(List<ResourceFile> bundleFiles) {
@@ -363,7 +374,7 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 
 //=================================================================================================
 // Inner Classes
-//=================================================================================================	
+//=================================================================================================
 
 	private final class RemoveBundlesTask extends Task {
 		private final DeactivateAndDisableBundlesTask deactivateBundlesTask;
@@ -405,7 +416,7 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 
 		/**
 		 * A task to enable and activate bundles.
-		 * 
+		 *
 		 * @param title the title
 		 * @param statuses the bundle statuses
 		 * @param inStages see {@link BundleHost#activateInStages}
@@ -419,7 +430,18 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 
 		@Override
 		public void run(TaskMonitor monitor) throws CancelledException {
+			try {
+				doRun(monitor);
+			}
+			catch (Exception e) {
+				if (!isDisposed) {
+					Msg.showError(this, bundleStatusTable, "Error Refreshing Bundles",
+						"Unexpected error refreshing bundles", e);
+				}
+			}
+		}
 
+		private void doRun(TaskMonitor monitor) {
 			List<GhidraBundle> bundles = new ArrayList<>();
 			for (BundleStatus status : statuses) {
 				GhidraBundle bundle = bundleHost.getExistingGhidraBundle(status.getFile());
@@ -472,11 +494,15 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 
 			monitor.setMaximum(bundles.size());
 			for (GhidraBundle bundle : bundles) {
+				monitor.checkCanceled();
 				try {
 					bundleHost.deactivateSynchronously(bundle.getLocationIdentifier());
 					bundleHost.disable(bundle);
 				}
 				catch (GhidraBundleException | InterruptedException e) {
+					if (isDisposed) {
+						return; // the tool is being closed
+					}
 					Msg.error(this, "Error while deactivating and disabling bundle", e);
 				}
 				monitor.incrementProgress(1);
@@ -485,7 +511,7 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 	}
 
 	/*
-	 * Activating/deactivating a single bundle doesn't require resolving dependents, so this task 
+	 * Activating/deactivating a single bundle doesn't require resolving dependents, so this task
 	 * is slightly different from the others.
 	 */
 	private class ActivateDeactivateBundleTask extends Task {
@@ -515,11 +541,17 @@ public class BundleStatusComponentProvider extends ComponentProviderAdapter {
 				}
 			}
 			catch (Exception e) {
+				if (isDisposed) {
+					return; // the tool is being closed
+				}
 				status.setSummary(e.getMessage());
 				Msg.error(this, "Error during activation/deactivation of bundle", e);
 			}
 			finally {
 				status.setBusy(false);
+				if (isDisposed) {
+					return; // the tool is being closed
+				}
 				notifyTableRowChanged(status);
 			}
 		}

@@ -28,7 +28,6 @@ import java.util.Map.Entry;
 import javax.help.*;
 import javax.help.Map.ID;
 import javax.swing.JButton;
-import javax.swing.UIManager;
 
 import docking.ComponentProvider;
 import docking.action.DockingActionIf;
@@ -38,6 +37,7 @@ import ghidra.util.*;
 import ghidra.util.exception.AssertException;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+import help.*;
 import resources.ResourceManager;
 import utilities.util.reflection.ReflectionUtilities;
 
@@ -50,6 +50,12 @@ import utilities.util.reflection.ReflectionUtilities;
  * the {@link DockingActionIf} and the {@link ComponentProvider} base classes.
  */
 public class HelpManager implements HelpService {
+
+	/**
+	 * The hardcoded value to use for all HelpSet 'home id' values.  Subclasses may change this 
+	 * value by overriding {@link #getHomeId()}.
+	 */
+	private static final String HOME_ID = "Misc_Help_Contents";
 
 	public static final String SHOW_AID_KEY = "SHOW.HELP.NAVIGATION.AID";
 	private static final String TABLE_OF_CONTENTS_FILENAME_KEY = "data";
@@ -83,11 +89,10 @@ public class HelpManager implements HelpService {
 	 * @throws HelpSetException if HelpSet could not be created
 	 */
 	protected HelpManager(URL url) throws HelpSetException {
-		mainHS = new GHelpSet(new GHelpClassLoader(null), url);
+		mainHS = new DockingHelpSet(new GHelpClassLoader(null), url);
+		mainHS.setHomeID(getHomeId());
 		mainHB = mainHS.createHelpBroker();
 		mainHS.setTitle(GHIDRA_HELP_TITLE);
-
-		setColorResources();
 
 		isValidHelp = isValidHelp();
 	}
@@ -121,6 +126,15 @@ public class HelpManager implements HelpService {
 		else {
 			helpSetsPendingMerge.add(hs);
 		}
+	}
+
+	/**
+	 * Returns the 'home id' to be used by all help sets in the system (as opposed to allowing each
+	 * help set to define its own home id.
+	 * @return the home id
+	 */
+	protected String getHomeId() {
+		return HOME_ID;
 	}
 
 	@Override
@@ -195,6 +209,18 @@ public class HelpManager implements HelpService {
 	}
 
 	@Override
+	public void reload() {
+
+		if (!(mainHB instanceof GHelpBroker)) {
+			// not our broker installed; can't force a reload
+			return;
+		}
+
+		GHelpBroker gHelpBroker = (GHelpBroker) mainHB;
+		gHelpBroker.reload();
+	}
+
+	@Override
 	public void showHelp(URL url) {
 		if (!isValidHelp) {
 			Msg.warn(this, "Help is not in a valid state.  " +
@@ -260,8 +286,8 @@ public class HelpManager implements HelpService {
 			displayHelp(createHelpID(helpId), window);
 		}
 		catch (BadIDException e) {
-			Msg.info(this, "Could not find help for ID: \"" + helpId +
-				"\" from HelpLocation: " + loc);
+			Msg.info(this,
+				"Could not find help for ID: \"" + helpId + "\" from HelpLocation: " + loc);
 			displayHelp(HELP_NOT_FOUND_PAGE_URL, window);
 		}
 	}
@@ -565,12 +591,12 @@ public class HelpManager implements HelpService {
 	/** This forces page to be redisplayed when location has not changed */
 	private void reloadPage(URL helpURL) {
 
-		if (!(mainHB instanceof GHelpBroker)) {
+		if (!(mainHB instanceof DockingHelpBroker)) {
 			// not our broker installed; can't force a reload
 			return;
 		}
 
-		((GHelpBroker) mainHB).reloadHelpPage(validateUrl(helpURL));
+		((DockingHelpBroker) mainHB).reloadHelpPage(validateUrl(helpURL));
 	}
 
 	private URL getURLForID(ID ID) {
@@ -685,19 +711,11 @@ public class HelpManager implements HelpService {
 	private HelpSet createHelpSet(URL url, GHelpClassLoader classLoader) throws HelpSetException {
 		if (!urlToHelpSets.containsKey(url)) {
 			GHelpSet hs = new GHelpSet(classLoader, url);
+			hs.setHomeID(getHomeId());
 			urlToHelpSets.put(url, hs);
 			return hs;
 		}
 		return null;
-	}
-
-	/**
-	 * Set the color resources on the JEditorPane for selection so that
-	 * you can see the highlights when you do a search in the JavaHelp.
-	 */
-	private void setColorResources() {
-		UIManager.put("EditorPane.selectionBackground", new Color(204, 204, 255));
-		UIManager.put("EditorPane.selectionForeground", UIManager.get("EditorPane.foreground"));
 	}
 
 	private void displayHelpInfo(Object helpObj, HelpLocation loc, Window parent) {

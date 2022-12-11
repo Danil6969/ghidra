@@ -20,10 +20,9 @@ import static ghidra.program.model.pcode.ElementId.*;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import ghidra.app.cmd.function.CallDepthChangeInfo;
-import ghidra.docking.settings.Settings;
 import ghidra.docking.settings.SettingsImpl;
 import ghidra.program.disassemble.Disassembler;
 import ghidra.program.model.address.*;
@@ -55,6 +54,15 @@ public class DecompileCallback {
 	public static class StringData {
 		boolean isTruncated;		// Did we truncate the string
 		public byte[] byteData;		// The UTF8 encoding of the string
+
+		public StringData(String stringVal, int maxChars) {
+			this.isTruncated = false;
+			if (stringVal.length() > maxChars) {
+				this.isTruncated = true;
+				stringVal = stringVal.substring(0, maxChars);
+			}
+			this.byteData = stringVal.getBytes(StandardCharsets.UTF_8);
+		}
 	}
 
 	private DecompileDebug debug;
@@ -63,14 +71,12 @@ public class DecompileCallback {
 	private Function cachedFunction;
 	private AddressSet undefinedBody;
 	private Address funcEntry;
-	private AddressSpace overlaySpace;		// non-null if function being decompiled is in an overlay
 	private int default_extrapop;
 	private Language pcodelanguage;
 	private CompilerSpec pcodecompilerspec;
 	private AddressFactory addrfactory;
 	private ConstantPool cpool;
 	private PcodeDataTypeManager dtmanage;
-	private Charset utf8Charset;
 	private String nativeMessage;
 
 	private InstructionBlock lastPseudoInstructionBlock;
@@ -88,7 +94,6 @@ public class DecompileCallback {
 		cpool = null;
 		nativeMessage = null;
 		debug = null;
-		utf8Charset = Charset.availableCharsets().get(CharsetInfo.UTF8);
 	}
 
 	/**
@@ -105,8 +110,6 @@ public class DecompileCallback {
 			undefinedBody = new AddressSet(func.getBody());
 		}
 		funcEntry = entry;
-		AddressSpace spc = funcEntry.getAddressSpace();
-		overlaySpace = spc.isOverlaySpace() ? spc : null;
 		debug = dbg;
 		if (debug != null) {
 			debug.setPcodeDataTypeManager(dtmanage);
@@ -141,9 +144,6 @@ public class DecompileCallback {
 	 * @return the bytes matching the query or null if the query can't be met
 	 */
 	public byte[] getBytes(Address addr, int size) {
-		if (overlaySpace != null) {
-			addr = overlaySpace.getOverlayAddress(addr);
-		}
 		if (addr == Address.NO_ADDRESS) {
 			Msg.error(this, "Address does not physically map");
 			return null;
@@ -186,9 +186,6 @@ public class DecompileCallback {
 	 * @throws IOException for errors in the underlying stream
 	 */
 	public void getComments(Address addr, int types, Encoder resultEncoder) throws IOException {
-		if (overlaySpace != null) {
-			addr = overlaySpace.getOverlayAddress(addr);
-		}
 		Function func = getFunctionAt(addr);
 		if (func == null) {
 			return;
@@ -207,9 +204,6 @@ public class DecompileCallback {
 	 * @param resultEncoder will contain the generated p-code ops
 	 */
 	public void getPcode(Address addr, PackedEncode resultEncoder) {
-		if (overlaySpace != null) {
-			addr = overlaySpace.getOverlayAddress(addr);
-		}
 		try {
 			Instruction instr = getInstruction(addr);
 			if (instr == null) {
@@ -437,9 +431,6 @@ public class DecompileCallback {
 	 * @return the symbol or null if no symbol is found
 	 */
 	public String getCodeLabel(Address addr) {
-		if (overlaySpace != null) {
-			addr = overlaySpace.getOverlayAddress(addr);
-		}
 		try {
 			Symbol sym = program.getSymbolTable().getPrimarySymbol(addr);
 			if (sym == null) {
@@ -669,9 +660,6 @@ public class DecompileCallback {
 	 * @param resultEncoder is where to write encoded description
 	 */
 	public void getMappedSymbols(Address addr, Encoder resultEncoder) {
-		if (overlaySpace != null) {
-			addr = overlaySpace.getOverlayAddress(addr);
-		}
 		if (addr == Address.NO_ADDRESS) {
 			// Unknown spaces may result from "spacebase" registers defined in cspec
 			return;
@@ -712,9 +700,6 @@ public class DecompileCallback {
 	 * @param resultEncoder will contain the resulting description
 	 */
 	public void getExternalRef(Address addr, Encoder resultEncoder) {
-		if (overlaySpace != null) {
-			addr = overlaySpace.getOverlayAddress(addr);
-		}
 		try {
 			Function func = null;
 			if (cachedFunction != null && cachedFunction.getEntryPoint().equals(addr)) {
@@ -824,9 +809,6 @@ public class DecompileCallback {
 	 * @throws IOException for errors in the underlying stream writing the result
 	 */
 	public void getTrackedRegisters(Address addr, Encoder resultEncoder) throws IOException {
-		if (overlaySpace != null) {
-			addr = overlaySpace.getOverlayAddress(addr);
-		}
 		ProgramContext context = program.getProgramContext();
 
 		encodeTrackedPointSet(resultEncoder, addr, context);
@@ -1012,14 +994,14 @@ public class DecompileCallback {
 				Address first = range.getMinAddress();
 				Address last = range.getMaxAddress();
 				boolean readonly = true; // Treat function body as readonly
-				encodeHole(encoder, first.getAddressSpace().getPhysicalSpace(),
-					first.getUnsignedOffset(), last.getUnsignedOffset(), readonly, false);
+				encodeHole(encoder, first.getAddressSpace(), first.getUnsignedOffset(),
+					last.getUnsignedOffset(), readonly, false);
 				return;
 			}
 		}
 		// There is probably some sort of error, just return a block
 		// containing the single queried address
-		encodeHole(encoder, addr.getAddressSpace().getPhysicalSpace(), addr.getUnsignedOffset(),
+		encodeHole(encoder, addr.getAddressSpace(), addr.getUnsignedOffset(),
 			addr.getUnsignedOffset(), true, false);
 	}
 
@@ -1084,7 +1066,7 @@ public class DecompileCallback {
 	private void encodeHole(Encoder encoder, Address addr) throws IOException {
 		boolean readonly = isReadOnlyNoData(addr);
 		boolean isvolatile = isVolatileNoData(addr);
-		encodeHole(encoder, addr.getAddressSpace().getPhysicalSpace(), addr.getUnsignedOffset(),
+		encodeHole(encoder, addr.getAddressSpace(), addr.getUnsignedOffset(),
 			addr.getUnsignedOffset(), readonly, isvolatile);
 	}
 
@@ -1246,65 +1228,28 @@ public class DecompileCallback {
 	 * @return the UTF8 encoded byte array or null
 	 */
 	public StringData getStringData(Address addr, int maxChars, String dtName, long dtId) {
-		if (overlaySpace != null) {
-			addr = overlaySpace.getOverlayAddress(addr);
-		}
 		if (addr == Address.NO_ADDRESS) {
 			Msg.error(this, "Address does not physically map");
 			return null;
 		}
 		Data data = program.getListing().getDataContaining(addr);
-		Settings settings = SettingsImpl.NO_SETTINGS;
-		AbstractStringDataType dataType = null;
-		StringDataInstance stringInstance = null;
-		int length = 0;
-		if (data != null) {
-			if (data.getDataType() instanceof AbstractStringDataType) {
-				// There is already a string here.  Use its configuration to
-				// set up the StringDataInstance
-				settings = data;
-				dataType = (AbstractStringDataType) data.getDataType();
-				length = data.getLength();
-				if (length <= 0) {
-					return null;
-				}
-				long diff = addr.subtract(data.getAddress()) *
-					addr.getAddressSpace().getAddressableUnitSize();
-				if (diff < 0 || diff >= length) {
-					return null;
-				}
-				length -= diff;
-				MemoryBufferImpl buf = new MemoryBufferImpl(program.getMemory(), addr, 64);
-				stringInstance = dataType.getStringDataInstance(buf, settings, length);
+		StringDataInstance stringInstance = StringDataInstance.getStringDataInstance(data);
+		if (stringInstance != StringDataInstance.NULL_INSTANCE) {
+			long diff =
+				addr.subtract(data.getAddress()) * addr.getAddressSpace().getAddressableUnitSize();
+			int length = data.getLength();
+			if (length <= 0 || diff < 0 || diff >= length) {
+				return null;
 			}
+			stringInstance = stringInstance.getByteOffcut((int) diff);
 		}
-		if (stringInstance == null) {
+		else {
 			// There is no string and/or something else at the address.
 			// Setup StringDataInstance based on raw memory
-			DataType dt = dtmanage.findBaseType(dtName, dtId);
-			if (dt instanceof AbstractStringDataType) {
-				dataType = (AbstractStringDataType) dt;
-			}
-			else {
-				if (dt != null) {
-					int size = dt.getLength();
-					if (size == 2) {
-						dataType = TerminatedUnicodeDataType.dataType;
-					}
-					else if (size == 4) {
-						dataType = TerminatedUnicode32DataType.dataType;
-					}
-					else {
-						dataType = TerminatedStringDataType.dataType;
-					}
-				}
-				else {
-					dataType = TerminatedStringDataType.dataType;
-				}
-			}
+			AbstractStringDataType dt = coerceToStringDataType(dtmanage.findBaseType(dtName, dtId));
 			MemoryBufferImpl buf = new MemoryBufferImpl(program.getMemory(), addr, 64);
-			stringInstance = dataType.getStringDataInstance(buf, settings, maxChars);
-			length = stringInstance.getStringLength();
+			stringInstance = dt.getStringDataInstance(buf, SettingsImpl.NO_SETTINGS, maxChars);
+			int length = stringInstance.getStringLength();
 			if (length < 0 || length > maxChars) {
 				return null;
 			}
@@ -1320,16 +1265,29 @@ public class DecompileCallback {
 		if (!isValidChars(stringVal)) {
 			return null;
 		}
-		StringData stringData = new StringData();
-		stringData.isTruncated = false;
-		if (stringVal.length() > maxChars) {
-			stringData.isTruncated = true;
-			stringVal = stringVal.substring(0, maxChars);
-		}
-		stringData.byteData = stringVal.getBytes(utf8Charset);
+		StringData stringData = new StringData(stringVal, maxChars);
 		if (debug != null) {
 			debug.getStringData(addr, stringData);
 		}
 		return stringData;
+	}
+
+	private AbstractStringDataType coerceToStringDataType(DataType dt) {
+		if (dt instanceof AbstractStringDataType asdt) {
+			return asdt;
+		}
+
+		int size = -1;
+		if (dt != null) {
+			if (dt instanceof Array arrayDT) {
+				dt = arrayDT.getDataType();
+			}
+			size = dt.getLength();
+		}
+		return switch (size) {
+			default -> TerminatedStringDataType.dataType;
+			case 2 -> TerminatedUnicodeDataType.dataType;
+			case 4 -> TerminatedUnicode32DataType.dataType;
+		};
 	}
 }

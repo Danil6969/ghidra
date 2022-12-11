@@ -25,8 +25,6 @@ import javax.swing.*;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
-import com.google.common.collect.Range;
-
 import docking.ActionContext;
 import docking.WindowPosition;
 import docking.action.*;
@@ -44,9 +42,8 @@ import ghidra.framework.plugintool.annotation.AutoServiceConsumed;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressRange;
 import ghidra.program.util.ProgramLocation;
-import ghidra.trace.model.Trace;
+import ghidra.trace.model.*;
 import ghidra.trace.model.Trace.TraceBreakpointChangeType;
-import ghidra.trace.model.TraceDomainObjectListener;
 import ghidra.trace.model.breakpoint.TraceBreakpoint;
 import ghidra.util.*;
 import ghidra.util.database.ObjectKey;
@@ -267,7 +264,12 @@ public class DebuggerBreakpointsProvider extends ComponentProviderAdapter
 				DebuggerLogicalBreakpointsActionContext ctx =
 					(DebuggerLogicalBreakpointsActionContext) context;
 				Collection<LogicalBreakpoint> sel = ctx.getBreakpoints();
-				breakpointService.enableAll(sel, null).exceptionally(ex -> {
+				Trace trace = isFilterByCurrentTrace() ? currentTrace : null;
+				String status = breakpointService.generateStatusEnable(sel, trace);
+				if (status != null) {
+					tool.setStatusInfo(status, true);
+				}
+				breakpointService.enableAll(sel, trace).exceptionally(ex -> {
 					breakpointError("Enable Breakpoints", "Could not enable breakpoints", ex);
 					return null;
 				});
@@ -309,7 +311,12 @@ public class DebuggerBreakpointsProvider extends ComponentProviderAdapter
 		@Override
 		public void actionPerformed(ActionContext context) {
 			Set<LogicalBreakpoint> all = breakpointService.getAllBreakpoints();
-			breakpointService.enableAll(all, null).exceptionally(ex -> {
+			Trace trace = isFilterByCurrentTrace() ? currentTrace : null;
+			String status = breakpointService.generateStatusEnable(all, trace);
+			if (status != null) {
+				tool.setStatusInfo(status, true);
+			}
+			breakpointService.enableAll(all, trace).exceptionally(ex -> {
 				breakpointError("Enable All Breakpoints", "Could not enable breakpoints", ex);
 				return null;
 			});
@@ -601,8 +608,8 @@ public class DebuggerBreakpointsProvider extends ComponentProviderAdapter
 			breakpointLocationUpdated(location);
 		}
 
-		private void locationLifespanChanged(TraceBreakpoint location, Range<Long> oldSpan,
-				Range<Long> newSpan) {
+		private void locationLifespanChanged(TraceBreakpoint location, Lifespan oldSpan,
+				Lifespan newSpan) {
 			boolean isLiveOld = oldSpan.contains(recorder.getSnap());
 			boolean isLiveNew = newSpan.contains(recorder.getSnap());
 			if (isLiveOld == isLiveNew) {
@@ -821,7 +828,7 @@ public class DebuggerBreakpointsProvider extends ComponentProviderAdapter
 		Trace trace = recorder.getTrace();
 		for (AddressRange range : trace.getBaseAddressFactory().getAddressSet()) {
 			locationTableModel.addAllItems(trace.getBreakpointManager()
-					.getBreakpointsIntersecting(Range.singleton(recorder.getSnap()), range));
+					.getBreakpointsIntersecting(Lifespan.at(recorder.getSnap()), range));
 		}
 	}
 
@@ -996,7 +1003,12 @@ public class DebuggerBreakpointsProvider extends ComponentProviderAdapter
 			new DebuggerBreakpointStateTableCellEditor<>(breakpointFilterPanel) {
 				@Override
 				protected State getToggledState(LogicalBreakpointRow row, State current) {
-					return current.getToggled(row.isMapped());
+					boolean mapped = row.isMapped();
+					if (!mapped) {
+						tool.setStatusInfo(
+							"Breakpoint has no locations. Only toggling its bookmark.", true);
+					}
+					return current.getToggled(mapped);
 				}
 			});
 		bptEnCol.setMaxWidth(24);

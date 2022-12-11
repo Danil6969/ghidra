@@ -29,13 +29,15 @@ import org.jdesktop.animation.timing.TimingTargetAdapter;
 import docking.action.*;
 import docking.actions.KeyBindingUtils;
 import docking.event.mouse.GMouseListenerAdapter;
-import docking.help.HelpService;
 import docking.menu.DialogToolbarButton;
 import docking.util.AnimationUtils;
 import docking.widgets.label.GDHtmlLabel;
+import generic.theme.*;
+import generic.theme.GThemeDefaults.Colors.Messages;
 import ghidra.util.*;
 import ghidra.util.exception.AssertException;
 import ghidra.util.task.*;
+import help.HelpService;
 import utility.function.Callback;
 
 /**
@@ -45,7 +47,10 @@ import utility.function.Callback;
 public class DialogComponentProvider
 		implements ActionContextProvider, StatusListener, TaskListener {
 
-	private static final Color WARNING_COLOR = new Color(0xff9900);
+	private static final Color FG_COLOR_ALERT = new GColor("color.fg.dialog.status.alert");
+	private static final Color FG_COLOR_ERROR = new GColor("color.fg.dialog.status.error");
+	private static final Color FG_COLOR_WARNING = new GColor("color.fg.dialog.status.warning");
+	private static final Color FG_COLOR_NORMAL = new GColor("color.fg.dialog.status.normal");
 
 	private final static int DEFAULT_DELAY = 750;
 
@@ -98,6 +103,7 @@ public class DialogComponentProvider
 	private boolean isTransient = false;
 
 	private Dimension defaultSize;
+	private ThemeListener themeListener = this::themeChanged;
 
 	/**
 	 * Constructor for a DialogComponentProvider that will be modal and will include a status line and
@@ -172,6 +178,8 @@ public class DialogComponentProvider
 		installEscapeAction();
 
 		doInitialize();
+
+		Gui.addThemeListener(themeListener);
 	}
 
 	private void installEscapeAction() {
@@ -334,6 +342,20 @@ public class DialogComponentProvider
 		if (component.isFocusable()) {
 			component.addMouseListener(popupHandler);
 		}
+	}
+
+	private void themeChanged(ThemeEvent ev) {
+		if (!ev.isLookAndFeelChanged()) {
+			return;  // we only care if the Look and Feel changes
+		}
+
+		// if we are visible, then we don't need to update as the system updates all 
+		// visible components
+		if (isVisible()) {
+			return;
+		}
+		Component component = dialog != null ? dialog : rootPanel;
+		SwingUtilities.updateComponentTreeUI(component);
 	}
 
 	private void uninstallMouseListener(Component comp) {
@@ -699,13 +721,13 @@ public class DialogComponentProvider
 	protected Color getStatusColor(MessageType type) {
 		switch (type) {
 			case ALERT:
-				return Color.orange;
+				return FG_COLOR_ALERT;
 			case WARNING:
-				return WARNING_COLOR;
+				return FG_COLOR_WARNING;
 			case ERROR:
-				return Color.red;
+				return FG_COLOR_ERROR;
 			default:
-				return Color.blue;
+				return FG_COLOR_NORMAL;
 		}
 	}
 
@@ -883,6 +905,7 @@ public class DialogComponentProvider
 	}
 
 	public void dispose() {
+		Gui.removeThemeListener(themeListener);
 		cancelCurrentTask();
 		close();
 		popupManager.dispose();
@@ -914,7 +937,7 @@ public class DialogComponentProvider
 		statusLabel = new GDHtmlLabel(" ");
 		statusLabel.setName("statusLabel");
 		statusLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		statusLabel.setForeground(Color.blue);
+		statusLabel.setForeground(Messages.NORMAL);
 		statusLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
 		statusLabel.addComponentListener(new ComponentAdapter() {
 			@Override
