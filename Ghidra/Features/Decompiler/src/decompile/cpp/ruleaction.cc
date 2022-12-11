@@ -9977,6 +9977,148 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+///
+/// \param arrvn is array varnode
+/// \param indexvn is index varnode
+/// \param piecevn is piece varnode
+/// \param after is op after which new varnodes will be place
+/// \param data
+/// \return varnode for indexing
+Varnode *RuleOpToAdrr::getSubtractedIndex(Varnode *arrvn,Varnode *indexvn,Varnode *piecevn,PcodeOp *after,Funcdata &data)
+
+{
+  int4 index = arrvn->getSize() - piecevn->getSize();
+
+  bool isAlreadySub = false;
+  PcodeOp *indexop = indexvn->getDef();
+  if (indexop != (PcodeOp *)0 && indexop->code() == CPUI_INT_ADD) {
+    if (indexop->getIn(1)->isConstant() && indexop->getIn(1)->getOffset() == index) {
+      PcodeOp *offsetop = indexop->getIn(0)->getDef();
+      if (offsetop != (PcodeOp *)0 && offsetop->code() == CPUI_INT_MULT) {
+        if (offsetop->getIn(1)->isConstant()) {
+          intb off = offsetop->getIn(1)->getOffset();
+          sign_extend(off,8*offsetop->getIn(1)->getSize()-1);
+          if (off == -1) {
+            isAlreadySub = true;
+          }
+        }
+      }
+    }
+  }
+  Varnode *resvn;
+  if (isAlreadySub) {
+    resvn = indexop->getIn(0)->getDef()->getIn(0);
+  }
+  else {
+    PcodeOp *subop = data.newOp(2, after->getAddr());
+    data.opSetOpcode(subop, CPUI_INT_SUB);
+    Varnode *input = data.newConstant(indexvn->getSize(), index);
+    data.opSetInput(subop, input, 0);
+    data.opSetInput(subop, indexvn, 1);
+    data.newUniqueOut(indexvn->getSize(), subop);
+    data.opInsertAfter(subop, after);
+    resvn = subop->getOut();
+  }
+  return resvn;
+}
+
+/// \brief Try to replace extractind with addr
+///
+/// out = extractind(in1, in2) -> out = *(in1 + in2)
+///
+/// \param op
+/// \param data
+/// \return true if replacement was sucessful, false otherwise
+bool RuleOpToAdrr::extractindToAddr(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *out = op->getOut();
+  if (out == (Varnode *)0) return false;
+  if (op->numInput() != 3) return false;
+  Varnode *in1 = op->getIn(1);
+  Varnode *in2 = op->getIn(2);
+
+  PcodeOp *addrop = data.newOp(2, op->getAddr());
+  data.opSetOpcode(addrop, CPUI_CALLOTHER);
+  UserPcodeOp *userop = data.getArch()->userops.getOp(Funcdata::addrof);
+  Varnode *input = data.newConstant(4, userop->getIndex());
+  data.opSetInput(addrop, input, 0);
+  data.opSetInput(addrop, in1, 1);
+  data.newUniqueOut(spaceSize, addrop);
+  data.opInsertBefore(addrop, op);
+
+  Varnode *indexvn = in2;
+  if (isBigEndian) {
+    indexvn = getSubtractedIndex(in1,in2,out,addrop,data);
+  }
+
+  PcodeOp *addop = data.newOp(2, op->getAddr());
+  data.opSetOpcode(addop, CPUI_INT_ADD);
+  data.opSetInput(addop, addrop->getOut(), 0);
+  data.opSetInput(addop, indexvn, 1);
+  data.newUniqueOut(addrop->getOut()->getSize(), addop);
+  data.opInsertBefore(addop, op);
+
+  data.opSetOpcode(op, CPUI_LOAD);
+  data.opSetInput(op, data.newVarnodeSpace(space), 0);
+  data.opSetInput(op, addop->getOut(), 1);
+  data.opRemoveInput(op, 2);
+  return true;
+}
+
+/// \brief Try to replace insertind with addr
+///
+/// out = insertind(in1, in2, in3) -> out = in1; *(addrof(out) + in3) = in2
+///
+/// \param op
+/// \param data
+/// \return true if replacement was sucessful, false otherwise
+bool RuleOpToAdrr::insertindToAddr(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *out = op->getOut();
+  if (out == (Varnode *)0) return false;
+  if (op->numInput() != 4) return false;
+  Varnode *in1 = op->getIn(1);
+  Varnode *in2 = op->getIn(2);
+  Varnode *in3 = op->getIn(3);
+
+  data.opSetOpcode(op, CPUI_COPY);
+  data.opSetInput(op, in1, 0);
+  data.opRemoveInput(op, 3);
+  data.opRemoveInput(op, 2);
+  data.opRemoveInput(op, 1);
+
+  PcodeOp *addrop = data.newOp(2, op->getAddr());
+  data.opSetOpcode(addrop, CPUI_CALLOTHER);
+  UserPcodeOp *userop = data.getArch()->userops.getOp(Funcdata::addrof);
+  Varnode *input = data.newConstant(4, userop->getIndex());
+  data.opSetInput(addrop, input, 0);
+  data.opSetInput(addrop, out, 1);
+  data.newUniqueOut(spaceSize, addrop);
+  data.opInsertAfter(addrop, op);
+
+  Varnode *indexvn = in3;
+  if (isBigEndian) {
+    indexvn = getSubtractedIndex(out, in3, in2, addrop, data);
+  }
+
+  PcodeOp *addop = data.newOp(2, op->getAddr());
+  data.opSetOpcode(addop, CPUI_INT_ADD);
+  data.opSetInput(addop, addrop->getOut(), 0);
+  data.opSetInput(addop, indexvn, 1);
+  data.newUniqueOut(addrop->getOut()->getSize(), addop);
+  data.opInsertAfter(addop, addrop);
+
+  PcodeOp *storeop = data.newOp(3, op->getAddr());
+  data.opSetOpcode(storeop, CPUI_STORE);
+  data.opSetInput(storeop, data.newVarnodeSpace(space), 0);
+  data.opSetInput(storeop, addop->getOut(), 1);
+  data.opSetInput(storeop, in2, 2);
+  data.opInsertAfter(storeop, addop);
+  return true;
+}
+
 void RuleOpToAdrr::getOpList(vector<uint4> &oplist) const
 
 {
@@ -9989,74 +10131,16 @@ int4 RuleOpToAdrr::applyOp(PcodeOp *op,Funcdata &data)
 
 {
   OpCode opc = op->code();
-  AddrSpace *spc = data.getArch()->getDefaultDataSpace();
+  space = data.getArch()->getDefaultDataSpace();
+  isBigEndian = space->isBigEndian();
+  spaceSize = space->getAddrSize();
   if (opc == CPUI_CALLOTHER) {
     string nm = op->getOpcode()->getOperatorName(op);
     if (nm == Funcdata::extractind) {
-      Varnode *out = op->getOut();
-      if (out == (Varnode *)0) return 0;
-      if (op->numInput() != 3) return 0;
-      Varnode *in1 = op->getIn(1);
-      Varnode *in2 = op->getIn(2);
-
-      PcodeOp *addrop = data.newOp(2, op->getAddr());
-      data.opSetOpcode(addrop, CPUI_CALLOTHER);
-      UserPcodeOp *userop = data.getArch()->userops.getOp(Funcdata::addrof);
-      Varnode *input = data.newConstant(4, userop->getIndex());
-      data.opSetInput(addrop, input, 0);
-      data.opSetInput(addrop, in1, 1);
-      data.newUniqueOut(spc->getAddrSize(), addrop);
-      data.opInsertBefore(addrop, op);
-
-      Varnode *indexvn = in2;
-      if (spc->isBigEndian()) {
-        int4 index = in1->getSize() - out->getSize();
-
-        bool isAlreadySub = false;
-        PcodeOp *in2op = in2->getDef();
-        if (in2op != (PcodeOp *)0 && in2op->code() == CPUI_INT_ADD) {
-          if (in2op->getIn(1)->isConstant() && in2op->getIn(1)->getOffset() == index) {
-            PcodeOp *offsetop = in2op->getIn(0)->getDef();
-            if (offsetop != (PcodeOp *)0 && offsetop->code() == CPUI_INT_MULT) {
-              if (offsetop->getIn(1)->isConstant()) {
-                intb off = offsetop->getIn(1)->getOffset();
-                sign_extend(off,8*offsetop->getIn(1)->getSize()-1);
-                if (off == -1) {
-                  isAlreadySub = true;
-                }
-              }
-            }
-          }
-        }
-        if (isAlreadySub) {
-          indexvn = in2op->getIn(0)->getDef()->getIn(0);
-        }
-        else {
-          PcodeOp *subop = data.newOp(2, op->getAddr());
-          data.opSetOpcode(subop, CPUI_INT_SUB);
-          input = data.newConstant(in2->getSize(), index);
-          data.opSetInput(subop, input, 0);
-          data.opSetInput(subop, in2, 1);
-          data.newUniqueOut(in2->getSize(), subop);
-          data.opInsertBefore(subop, op);
-          indexvn = subop->getOut();
-        }
-      }
-
-      PcodeOp *addop = data.newOp(2, op->getAddr());
-      data.opSetOpcode(addop, CPUI_INT_ADD);
-      data.opSetInput(addop, addrop->getOut(), 0);
-      data.opSetInput(addop, indexvn, 1);
-      data.newUniqueOut(addrop->getOut()->getSize(), addop);
-      data.opInsertBefore(addop, op);
-
-      data.opSetOpcode(op, CPUI_LOAD);
-      data.opSetInput(op, data.newVarnodeSpace(spc), 0);
-      data.opSetInput(op, addop->getOut(), 1);
-      return 1;
+      if (extractindToAddr(op, data)) return 1;
     }
     else if (nm == Funcdata::insertind) {
-      ;
+      if (insertindToAddr(op, data)) return 1;
     }
   }
   else if (opc == CPUI_PIECE) {
