@@ -820,6 +820,13 @@ Datatype *TypeOpCallother::getOutputLocal(const PcodeOp *op) const
     if (res != (Datatype *)0)
       return res;
   }
+
+  if (TypeOpCallother::getOperatorName(op) == Funcdata::addrof) {
+    Datatype *pt = tlst->getBase(1, TYPE_UNKNOWN);
+    AddrSpace *spc = tlst->getArch()->getDefaultDataSpace();
+    return tlst->getTypePointer(op->getOut()->getSize(), pt, spc->getWordSize());
+  }
+
   if (!op->doesSpecialPropagation())
     return TypeOp::getOutputLocal(op);
   Architecture *glb = tlst->getArch();
