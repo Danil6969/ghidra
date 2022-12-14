@@ -2840,6 +2840,7 @@ bool ActionMarkExplicit::isArrFunc(PcodeOp *op)
     string nm = op->getOpcode()->getOperatorName(op);
     if (nm == Funcdata::extractind) return true;
     if (nm == Funcdata::insertind) return true;
+    if (nm == Funcdata::addrof) return true;
   }
   return false;
 }
