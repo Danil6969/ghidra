@@ -3,6 +3,7 @@
 <processor_spec>
   <properties>
     <property key="useOperandReferenceAnalyzerSwitchTables" value="true"/>
+	<property key="emulateInstructionStateModifierClass" value="ghidra.program.emulation.X86EmulateInstructionStateModifier"/>
     <property key="assemblyRating:x86:LE:32:default" value="GOLD"/>
   </properties>
   <programcounter register="EIP"/>
@@ -118,4 +119,31 @@
     <register name="repneprefx" hidden="true"/>
     <register name="segover" hidden="true"/>
   </register_data>
+  <pureop name="cpuid"/>
+  <pureop name="cpuid_basic_info"/>
+  <pureop name="cpuid_Version_info"/>
+  <pureop name="cpuid_cache_tlb_info"/>
+  <pureop name="cpuid_serial_info"/>
+  <pureop name="cpuid_Deterministic_Cache_Parameters_info"/>
+  <pureop name="cpuid_MONITOR_MWAIT_Features_info"/>
+  <pureop name="cpuid_Thermal_Power_Management_info"/>
+  <pureop name="cpuid_Extended_Feature_Enumeration_info"/>
+  <pureop name="cpuid_Direct_Cache_Access_info"/>
+  <pureop name="cpuid_Architectural_Performance_Monitoring_info"/>
+  <pureop name="cpuid_Extended_Topology_info"/>
+  <pureop name="cpuid_Processor_Extended_States_info"/>
+  <pureop name="cpuid_Quality_of_Service_info"/>
+  <pureop name="cpuid_brand_part1_info"/>
+  <pureop name="cpuid_brand_part2_info"/>
+  <pureop name="cpuid_brand_part3_info"/>
+  <pureop name="exp"/>
+  <pureop name="log"/>
+  <pureop name="sin"/>
+  <pureop name="cos"/>
+  <pureop name="tan"/>
+  <pureop name="atan2"/>
+  <pureop name="getexp"/>
+  <pureop name="getsig"/>
+  <pureop name="extractind"/>
+  <pureop name="insertind"/>
 </processor_spec>
