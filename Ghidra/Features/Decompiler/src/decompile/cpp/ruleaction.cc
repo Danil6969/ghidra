@@ -10444,6 +10444,7 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+/// \brief Gets index for big endian case
 ///
 /// \param arrvn is array varnode
 /// \param indexvn is index varnode
