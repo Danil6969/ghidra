@@ -22,11 +22,6 @@ apply from: "$rootProject.projectDir/gradle/javadoc.gradle"
 apply plugin: 'eclipse'
 eclipse.project.name = 'Features Base'
 
-
-
-rootProject.createJavadocs.exclude '**/ghidra/app/plugin/core/**'
-rootProject.createJsondocs.exclude '**/ghidra/app/plugin/core/**' 
-
 /*
 	This build file is a bit different than most project build files, as it initializes
 	tools needed for the system to compile some of the code.  Also, this module has
