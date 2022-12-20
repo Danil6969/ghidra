@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import ghidra.pcode.exec.PcodeUseropLibrary;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import docking.action.DockingAction;
@@ -253,8 +252,6 @@ public class DebuggerEmulationServicePlugin extends Plugin implements DebuggerEm
 		}
 	}
 
-	@AutoServiceConsumed
-	private final Map<Trace, PcodeUseropLibrary<byte[]>> libraryMap = new HashMap<>();
 	@AutoServiceConsumed
 	private DebuggerTraceManagerService traceManager;
 	@AutoServiceConsumed
@@ -605,9 +602,6 @@ public class DebuggerEmulationServicePlugin extends Plugin implements DebuggerEm
 		}
 		DebuggerPcodeMachine<?> emu = emulatorFactory.create(tool, platform, time.getSnap(),
 			modelService == null ? null : modelService.getRecorder(trace));
-		if (emu instanceof BytesDebuggerPcodeEmulator && libraryMap.get(trace) != null) {
-			((BytesDebuggerPcodeEmulator) emu).setUseropLibrary(libraryMap.get(trace));
-		}
 		try (BusyEmu be = new BusyEmu(new CachedEmulator(key.trace, emu))) {
 			monitor.initialize(time.totalTickCount());
 			createRegisterSpaces(trace, time, monitor);
@@ -678,10 +672,6 @@ public class DebuggerEmulationServicePlugin extends Plugin implements DebuggerEm
 			throw new IllegalArgumentException(
 				"Cannot emulate a trace unless it's opened in the tool.");
 		}
-	}
-
-	public void setUseropLibrary(Trace trace, PcodeUseropLibrary<byte[]> library) {
-		libraryMap.put(trace, library);
 	}
 
 	@Override
