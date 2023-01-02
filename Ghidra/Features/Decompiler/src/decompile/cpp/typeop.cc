@@ -2119,7 +2119,7 @@ TypeOpPtradd::TypeOpPtradd(TypeFactory *t) : TypeOp(t,CPUI_PTRADD,"+")
 Datatype *TypeOpPtradd::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
-  return tlst->getBase(op->getIn(slot)->getSize(),TYPE_INT);	// For type propagation, treat same as INT_ADD
+  return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);	// For type propagation, treat same as INT_ADD
 }
 
 Datatype *TypeOpPtradd::getOutputLocal(const PcodeOp *op) const
