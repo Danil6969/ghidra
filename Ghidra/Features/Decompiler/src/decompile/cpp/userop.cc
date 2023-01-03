@@ -323,6 +323,14 @@ void UserOpManage::initialize(Architecture *glb)
     UserPcodeOp *addrOp = new UnspecializedPcodeOp(glb,Funcdata::addrof,useroplist.size());
     registerOp(addrOp);
   }
+  if (getOp(Funcdata::extractind) == (UserPcodeOp *)0) {
+    UserPcodeOp *extractindOp = new UnspecializedPcodeOp(glb,Funcdata::extractind,useroplist.size());
+    registerOp(extractindOp);
+  }
+  if (getOp(Funcdata::insertind) == (UserPcodeOp *)0) {
+    UserPcodeOp *insertindOp = new UnspecializedPcodeOp(glb,Funcdata::insertind,useroplist.size());
+    registerOp(insertindOp);
+  }
 }
 
 /// Establish defaults for necessary operators not already defined.
