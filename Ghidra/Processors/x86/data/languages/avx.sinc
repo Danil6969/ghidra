@@ -3375,11 +3375,12 @@ define pcodeop vxorpd_avx ;
 define pcodeop vxorps_avx ;
 :VXORPS XmmReg1, vexVVVV_XmmReg, XmmReg2_m128 is $(VEX_NDS) & $(VEX_L128) & $(VEX_PRE_NONE) & $(VEX_0F) & $(VEX_WIG) & vexVVVV_XmmReg; byte=0x57; (XmmReg1 & YmmReg1) ... & XmmReg2_m128
 {
+	local n:16 = vexVVVV_XmmReg;
 	local m:16 = XmmReg2_m128;
-	XmmReg1[0,32] = ( vexVVVV_XmmReg[0,32] ^ m[0,32] );
-	XmmReg1[32,32] = ( vexVVVV_XmmReg[32,32] ^ m[32,32] );
-	XmmReg1[64,32] = ( vexVVVV_XmmReg[64,32] ^ m[64,32] );
-	XmmReg1[96,32] = ( vexVVVV_XmmReg[96,32] ^ m[96,32] );
+	XmmReg1[0,32] = ( n[0,32] ^ m[0,32] );
+	XmmReg1[32,32] = ( n[32,32] ^ m[32,32] );
+	XmmReg1[64,32] = ( n[64,32] ^ m[64,32] );
+	XmmReg1[96,32] = ( n[96,32] ^ m[96,32] );
 	YmmReg1 = zext(XmmReg1);
 	# TODO ZmmReg1 = zext(XmmReg1)
 }
@@ -3387,15 +3388,16 @@ define pcodeop vxorps_avx ;
 # XORPS 5-599 PAGE 2423 LINE 123956
 :VXORPS YmmReg1, vexVVVV_YmmReg, YmmReg2_m256 is $(VEX_NDS) & $(VEX_L256) & $(VEX_PRE_NONE) & $(VEX_0F) & $(VEX_WIG) & vexVVVV_YmmReg; byte=0x57; YmmReg1 ... & YmmReg2_m256
 {
+	local n:32 = vexVVVV_YmmReg;
 	local m:32 = YmmReg2_m256;
-	YmmReg1[0,32] = ( vexVVVV_YmmReg[0,32] ^ m[0,32] );
-	YmmReg1[32,32] = ( vexVVVV_YmmReg[32,32] ^ m[32,32] );
-	YmmReg1[64,32] = ( vexVVVV_YmmReg[64,32] ^ m[64,32] );
-	YmmReg1[96,32] = ( vexVVVV_YmmReg[96,32] ^ m[96,32] );
-	YmmReg1[128,32] = ( vexVVVV_YmmReg[128,32] ^ m[128,32] );
-	YmmReg1[160,32] = ( vexVVVV_YmmReg[160,32] ^ m[160,32] );
-	YmmReg1[192,32] = ( vexVVVV_YmmReg[192,32] ^ m[192,32] );
-	YmmReg1[224,32] = ( vexVVVV_YmmReg[224,32] ^ m[224,32] );
+	YmmReg1[0,32] = ( n[0,32] ^ m[0,32] );
+	YmmReg1[32,32] = ( n[32,32] ^ m[32,32] );
+	YmmReg1[64,32] = ( n[64,32] ^ m[64,32] );
+	YmmReg1[96,32] = ( n[96,32] ^ m[96,32] );
+	YmmReg1[128,32] = ( n[128,32] ^ m[128,32] );
+	YmmReg1[160,32] = ( n[160,32] ^ m[160,32] );
+	YmmReg1[192,32] = ( n[192,32] ^ m[192,32] );
+	YmmReg1[224,32] = ( n[224,32] ^ m[224,32] );
 	# TODO ZmmReg1 = zext(YmmReg1)
 }
 
