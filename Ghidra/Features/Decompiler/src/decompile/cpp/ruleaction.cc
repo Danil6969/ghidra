@@ -4621,8 +4621,8 @@ int4 RuleSubZext::applyOp(PcodeOp *op,Funcdata &data)
   PcodeOp *subop;
   uintb val;
 
+  if (op->getOut()->getSize() > 8) return 0; // No array masking is allowed
   subvn = op->getIn(0);
-  if (subvn->getSize() > 8) return 0; // No array masking is allowed
   if (!subvn->isWritten()) return 0;
   subop = subvn->getDef();
   if (subop->code() == CPUI_SUBPIECE) {
@@ -10410,7 +10410,7 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
 
   PcodeOp *prevop = (PcodeOp *)0;
   PcodeOp *curop = (PcodeOp *)0;
-  for (int4 i=0;i<result.size();++i) {
+  for (int4 i=result.size() - 1;i>=0;--i) {
     curop = result[i];
     if (curop == (PcodeOp *)0) continue;
     data.opInsertBefore(curop, endOp);
