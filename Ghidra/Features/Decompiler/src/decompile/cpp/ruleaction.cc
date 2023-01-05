@@ -4442,6 +4442,7 @@ void RuleZextShiftZext::getOpList(vector<uint4> &oplist) const
 int4 RuleZextShiftZext::applyOp(PcodeOp *op,Funcdata &data)
 
 {
+  if (op->getOut()->getSize() > 8) return 0; // No array masking is allowed
   Varnode *invn = op->getIn(0);
   if (!invn->isWritten()) return 0;
   PcodeOp *shiftop = invn->getDef();
