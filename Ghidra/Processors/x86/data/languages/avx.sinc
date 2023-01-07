@@ -1179,6 +1179,9 @@ define pcodeop vmovd_avx ;
 :VMOVD XmmReg1, rm32 is $(VEX_NONE) & $(VEX_L128) & $(VEX_PRE_66) & $(VEX_0F) & $(VEX_W0); byte=0x6E; (XmmReg1 & YmmReg1) ... & rm32
 {
 	XmmReg1[0,32] = rm32;
+	XmmReg1[32,32] = 0;
+	XmmReg1[64,32] = 0;
+	XmmReg1[96,32] = 0;
 	YmmReg1 = zext(XmmReg1);
 	# TODO ZmmReg1 = zext(XmmReg1)
 }
@@ -2744,8 +2747,13 @@ define pcodeop vpunpcklqdq_avx ;
 define pcodeop vpxor_avx ;
 :VPXOR XmmReg1, vexVVVV_XmmReg, XmmReg2_m128 is $(VEX_NDS) & $(VEX_L128) & $(VEX_PRE_66) & $(VEX_0F) & $(VEX_WIG) & vexVVVV_XmmReg; byte=0xEF; (XmmReg1 & YmmReg1) ... & XmmReg2_m128
 {
-	local tmp:16 = vpxor_avx( vexVVVV_XmmReg, XmmReg2_m128 );
-	YmmReg1 = zext(tmp);
+	local n:16 = vexVVVV_XmmReg;
+	local m:16 = XmmReg2_m128;
+	XmmReg1[0,32] = ( n[0,32] ^ m[0,32] );
+	XmmReg1[32,32] = ( n[32,32] ^ m[32,32] );
+	XmmReg1[64,32] = ( n[64,32] ^ m[64,32] );
+	XmmReg1[96,32] = ( n[96,32] ^ m[96,32] );
+	YmmReg1 = zext(XmmReg1);
 	# TODO ZmmReg1 = zext(XmmReg1)
 }
 
