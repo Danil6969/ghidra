@@ -97,6 +97,7 @@ OptionDatabase::OptionDatabase(Architecture *g)
   registerOption(new OptionDefaultPrototype());
   registerOption(new OptionInferConstPtr());
   registerOption(new OptionForLoops());
+  registerOption(new OptionConvertToAddr());
   registerOption(new OptionInline());
   registerOption(new OptionNoReturn());
   registerOption(new OptionStructAlign());
@@ -301,6 +302,15 @@ string OptionForLoops::apply(Architecture *glb,const string &p1,const string &p2
   glb->analyze_for_loops = onOrOff(p1);
 
   string res = "Recovery of for-loops is " + p1;
+  return res;
+}
+
+string OptionConvertToAddr::apply(Architecture *glb,const string &p1,const string &p2,const string &p3) const
+
+{
+  glb->convert_to_addr = onOrOff(p1);
+
+  string res = "Conversion of operators to addrof is " + p1;
   return res;
 }
 
