@@ -98,12 +98,6 @@ public class DecompileOptions {
 	private final static boolean ANALYZEFORLOOPS_OPTIONDEFAULT = true;	// Must match Architecture::resetDefaultsInternal
 	private boolean analyzeForLoops;
 
-	private final static String CONVERTTOADDR_OPTIONSTRING = "Analysis.Convert operators to -addrof-";
-	private final static String CONVERTTOADDR_OPTIONDESCRIPTION =
-		"If set, insertind and extractind will be converted to -addrof- and load/store operators";
-	private final static boolean CONVERTTOADDR_OPTIONDEFAULT = true;	// Must match Architecture::resetDefaultsInternal
-	private boolean convertToAddr;
-
 	private final static String NULLTOKEN_OPTIONSTRING = "Display.Print 'NULL' for null pointers";
 	private final static String NULLTOKEN_OPTIONDESCRIPTION =
 		"If set, any zero valued pointer (null pointer) will " +
@@ -389,7 +383,6 @@ public class DecompileOptions {
 		ignoreunimpl = IGNOREUNIMPL_OPTIONDEFAULT;
 		inferconstptr = INFERCONSTPTR_OPTIONDEFAULT;
 		analyzeForLoops = ANALYZEFORLOOPS_OPTIONDEFAULT;
-		convertToAddr = CONVERTTOADDR_OPTIONDEFAULT;
 		nullToken = NULLTOKEN_OPTIONDEFAULT;
 		inplaceTokens = INPLACEOP_OPTIONDEFAULT;
 		aliasBlock = ALIASBLOCK_OPTIONDEFAULT;
@@ -442,8 +435,6 @@ public class DecompileOptions {
 		inferconstptr = opt.getBoolean(INFERCONSTPTR_OPTIONSTRING, INFERCONSTPTR_OPTIONDEFAULT);
 		analyzeForLoops =
 			opt.getBoolean(ANALYZEFORLOOPS_OPTIONSTRING, ANALYZEFORLOOPS_OPTIONDEFAULT);
-		convertToAddr =
-			opt.getBoolean(CONVERTTOADDR_OPTIONSTRING, CONVERTTOADDR_OPTIONDEFAULT);
 		nullToken = opt.getBoolean(NULLTOKEN_OPTIONSTRING, NULLTOKEN_OPTIONDEFAULT);
 		inplaceTokens = opt.getBoolean(INPLACEOP_OPTIONSTRING, INPLACEOP_OPTIONDEFAULT);
 		aliasBlock = opt.getEnum(ALIASBLOCK_OPTIONSTRING, ALIASBLOCK_OPTIONDEFAULT);
@@ -546,9 +537,6 @@ public class DecompileOptions {
 		opt.registerOption(ANALYZEFORLOOPS_OPTIONSTRING, ANALYZEFORLOOPS_OPTIONDEFAULT,
 			new HelpLocation(HelpTopics.DECOMPILER, "AnalysisForLoops"),
 			ANALYZEFORLOOPS_OPTIONDESCRIPTION);
-		opt.registerOption(CONVERTTOADDR_OPTIONSTRING, CONVERTTOADDR_OPTIONDEFAULT,
-			new HelpLocation(HelpTopics.DECOMPILER, "AnalysisConvertToAddr"),
-			CONVERTTOADDR_OPTIONDESCRIPTION);
 		opt.registerOption(NULLTOKEN_OPTIONSTRING, NULLTOKEN_OPTIONDEFAULT,
 			new HelpLocation(HelpTopics.DECOMPILER, "DisplayNull"), NULLTOKEN_OPTIONDESCRIPTION);
 		opt.registerOption(INPLACEOP_OPTIONSTRING, INPLACEOP_OPTIONDEFAULT,
@@ -710,9 +698,6 @@ public class DecompileOptions {
 		}
 		if (analyzeForLoops != ANALYZEFORLOOPS_OPTIONDEFAULT) {
 			appendOption(encoder, ELEM_ANALYZEFORLOOPS, analyzeForLoops ? "on" : "off", "", "");
-		}
-		if (convertToAddr != CONVERTTOADDR_OPTIONDEFAULT) {
-			appendOption(encoder, ELEM_CONVERTTOADDR, convertToAddr ? "on" : "off", "", "");
 		}
 		if (nullToken != NULLTOKEN_OPTIONDEFAULT) {
 			appendOption(encoder, ELEM_NULLPRINTING, nullToken ? "on" : "off", "", "");
