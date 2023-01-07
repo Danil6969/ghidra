@@ -1398,6 +1398,7 @@ void Architecture::resetDefaultsInternal(void)
   max_instructions = 100000;
   infer_pointers = true;
   analyze_for_loops = true;
+  convert_to_addr = true;
   readonlypropagate = false;
   alias_block_level = 2;	// Block structs and arrays by default
 }
