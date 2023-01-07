@@ -140,12 +140,6 @@ public:
   virtual string apply(Architecture *glb,const string &p1,const string &p2,const string &p3) const;
 };
 
-class OptionConvertToAddr : public ArchOption {
-public:
-  OptionConvertToAddr(void) { name = "converttoaddr"; }	///< Constructor
-  virtual string apply(Architecture *glb,const string &p1,const string &p2,const string &p3) const;
-};
-
 class OptionInline : public ArchOption {
 public:
   OptionInline(void) { name = "inline"; }	///< Constructor
