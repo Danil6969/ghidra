@@ -985,14 +985,29 @@ void PrintC::opSubpiece(const PcodeOp *op)
 
 {
   if (op->doesSpecialPrinting()) {		// Special printing means it is a field extraction
-    int4 offset;
-    Datatype *ct;
-    const TypeField *field = TypeOpSubpiece::testExtraction(true, op, ct, offset);
-    if (field != (const TypeField *)0 && offset == 0) {
-      pushOp(&object_member,op);
-      pushVn(op->getIn(0), op, mods);
-      pushAtom(Atom(field->name,fieldtoken,EmitMarkup::no_color,ct,field->ident,op));
-      return;
+    const Varnode *vn = op->getIn(0);
+    Datatype *ct = vn->getHighTypeReadFacing(op);
+    if (ct->isPieceStructured()) {
+      int4 offset;
+      int4 byteOff = TypeOpSubpiece::computeByteOffsetForComposite(op);
+      const TypeField *field = ct->findTruncation(byteOff,op->getOut()->getSize(),op,1,offset);	// Use artificial slot
+      if (field != (const TypeField*)0 && offset == 0) {		// A formal structure field
+	pushOp(&object_member,op);
+	pushVn(vn,op,mods);
+	pushAtom(Atom(field->name,fieldtoken,EmitMarkup::no_color,ct,field->ident,op));
+	return;
+      }
+      else if (vn->isExplicit() && vn->getHigh()->getSymbolOffset() == -1) {	// An explicit, entire, structured object
+	Symbol *sym = vn->getHigh()->getSymbol();
+	if (sym != (Symbol *)0) {
+	  int4 sz = op->getOut()->getSize();
+	  int4 off = (int4)op->getIn(1)->getOffset();
+	  off = vn->getSpace()->isBigEndian() ? vn->getSize() - (sz + off) : off;
+	  pushPartialSymbol(sym, off, sz, vn, op, -1);
+	  return;
+	}
+      }
+      // Fall thru to functional printing
     }
   }
   if (castStrategy->isSubpieceCast(op->getOut()->getHighTypeDefFacing(),

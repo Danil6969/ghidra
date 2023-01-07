@@ -98,7 +98,7 @@ public class Emulate {
 //		emitterContext = new EmulateDisassemblerContext(lang, s);
 
 		pseudoDisassembler =
-			Disassembler.getDisassembler(program, lang, addrFactory, TaskMonitorAdapter.DUMMY_MONITOR, null);
+			Disassembler.getDisassembler(program, lang, addrFactory, TaskMonitor.DUMMY, null);
 
 		initInstuctionStateModifier();
 	}
