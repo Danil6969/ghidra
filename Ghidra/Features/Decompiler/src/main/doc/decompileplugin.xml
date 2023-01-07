@@ -3076,6 +3076,21 @@
 	</para>
       </listitem>
     </varlistentry>
+    <varlistentry id="AnalysisConvertToAddr">
+      <term><emphasis role="bold">Convert operators to -addrof-</emphasis></term>
+      <listitem>
+	<para>
+	  When toggled <emphasis>on</emphasis>, the Decompiler will use addrof.
+	  <informalexample>
+	    <code>ptr = ADDROF(a); *ptr = val;</code>
+	  </informalexample>
+	</para>
+	<para>
+	  When toggled <emphasis>off</emphasis>, the array operations will be
+	  displayed using insertind and extractind.
+	</para>
+      </listitem>
+    </varlistentry>
     <varlistentry id="AnalysisReadOnly">
       <term><emphasis role="bold">Respect read-only flags</emphasis></term>
       <listitem>
