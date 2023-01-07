@@ -1614,9 +1614,17 @@ class RuleOpToAdrr : public Rule {
   AddrSpace *space;
   bool isBigEndian;
   uint4 spaceSize;
+  class PieceData {
+  public:
+    PcodeOp *op;
+    Varnode *vn;
+  };
   Varnode *getSubtractedIndex(Varnode *arrvn,Varnode *indexvn,Varnode *piecevn,PcodeOp *after,Funcdata &data);
   bool extractindToAddr(PcodeOp *op,Funcdata &data);
   bool insertindToAddr(PcodeOp *op,Funcdata &data);
+  void collectPieceData(PcodeOp *op,vector<PieceData> &res);
+  void replacePieces(vector<PieceData> &res,Funcdata &data);
+  bool pieceToInsertind(PcodeOp *op,Funcdata &data);
 public:
   RuleOpToAdrr(const string &g) : Rule(g,0,"optoaddr") {
     isBigEndian = false;
