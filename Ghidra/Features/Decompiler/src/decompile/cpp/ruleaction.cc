@@ -10569,31 +10569,61 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
 
   PcodeOp *prevop = (PcodeOp *)0;
   PcodeOp *curop = (PcodeOp *)0;
-  for (int4 i=result.size() - 1;i>=0;--i) {
-    curop = result[i];
-    if (curop == (PcodeOp *)0) continue;
-    data.opInsertBefore(curop, endOp);
-    PcodeOp *newop = data.newOp(4,endOp->getAddr());
-    data.opSetOpcode(newop, CPUI_CALLOTHER);
-    Varnode *input = data.newConstant(insertlist[0]->getIn(0)->getSize(), insertlist[0]->getIn(0)->getOffset());
-    data.opSetInput(newop, input, 0);
-    if (prevop == (PcodeOp *)0) {
-      input = insertlist[0]->getIn(1);
-      while (input->getDef()->code() == CPUI_MULTIEQUAL) {
-        input = input->getDef()->getIn(0);
+  AddrSpace *space = data.getArch()->getDefaultDataSpace();
+  bool isBigEndian = space->isBigEndian();
+  if (isBigEndian) {
+    for (int4 i = result.size() - 1; i >= 0; --i) {
+      curop = result[i];
+      if (curop == (PcodeOp *) 0) continue;
+      data.opInsertBefore(curop, endOp);
+      PcodeOp *newop = data.newOp(4, endOp->getAddr());
+      data.opSetOpcode(newop, CPUI_CALLOTHER);
+      Varnode *input = data.newConstant(insertlist[0]->getIn(0)->getSize(), insertlist[0]->getIn(0)->getOffset());
+      data.opSetInput(newop, input, 0);
+      if (prevop == (PcodeOp *) 0) {
+        input = insertlist[0]->getIn(1);
+        while (input->getDef()->code() == CPUI_MULTIEQUAL) {
+          input = input->getDef()->getIn(0);
+        }
+      } else {
+        input = prevop->getOut();
       }
+      data.opSetInput(newop, input, 1);
+      input = curop->getOut();
+      data.opSetInput(newop, input, 2);
+      input = data.newConstant(insertlist[0]->getIn(3)->getSize(), i);
+      data.opSetInput(newop, input, 3);
+      data.newUniqueOut(insertlist[0]->getOut()->getSize(), newop);
+      data.opInsertBefore(newop, endOp);
+      prevop = newop;
     }
-    else {
-      input = prevop->getOut();
+  }
+  else {
+    for (int4 i = 0; i < result.size(); ++i) {
+      curop = result[i];
+      if (curop == (PcodeOp *) 0) continue;
+      data.opInsertBefore(curop, endOp);
+      PcodeOp *newop = data.newOp(4, endOp->getAddr());
+      data.opSetOpcode(newop, CPUI_CALLOTHER);
+      Varnode *input = data.newConstant(insertlist[0]->getIn(0)->getSize(), insertlist[0]->getIn(0)->getOffset());
+      data.opSetInput(newop, input, 0);
+      if (prevop == (PcodeOp *) 0) {
+        input = insertlist[0]->getIn(1);
+        while (input->getDef()->code() == CPUI_MULTIEQUAL) {
+          input = input->getDef()->getIn(0);
+        }
+      } else {
+        input = prevop->getOut();
+      }
+      data.opSetInput(newop, input, 1);
+      input = curop->getOut();
+      data.opSetInput(newop, input, 2);
+      input = data.newConstant(insertlist[0]->getIn(3)->getSize(), i);
+      data.opSetInput(newop, input, 3);
+      data.newUniqueOut(insertlist[0]->getOut()->getSize(), newop);
+      data.opInsertBefore(newop, endOp);
+      prevop = newop;
     }
-    data.opSetInput(newop, input, 1);
-    input = curop->getOut();
-    data.opSetInput(newop, input, 2);
-    input = data.newConstant(insertlist[0]->getIn(3)->getSize(), i);
-    data.opSetInput(newop, input, 3);
-    data.newUniqueOut(insertlist[0]->getOut()->getSize(), newop);
-    data.opInsertBefore(newop,endOp);
-    prevop = newop;
   }
   if (prevop == (PcodeOp *)0) return 0;
   curop = insertlist[0]->getOut()->loneDescend();
