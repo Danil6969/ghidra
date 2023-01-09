@@ -10321,14 +10321,12 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,VarnodeValues &values,vec
 	    while (insertOp != (PcodeOp *)0 && insertOp->code() == CPUI_MULTIEQUAL) {
               insertOp = insertOp->getOut()->loneDescend();
 	    }
-	    PcodeOp *newOp = data.newOp(3,endOp->getAddr());
-            data.opSetOpcode(newOp,CPUI_CALLOTHER);
-            Varnode *input = data.newConstant(op->getIn(0)->getSize(), op->getIn(0)->getOffset());
+	    PcodeOp *newOp = data.newOp(2,endOp->getAddr());
+            data.opSetOpcode(newOp,CPUI_SUBPIECE);
+            Varnode *input = op->getIn(1);
             data.opSetInput(newOp, input, 0);
-            input = op->getIn(1);
-            data.opSetInput(newOp, input, 1);
             input = data.newConstant(op->getIn(2)->getSize(), in2);
-            data.opSetInput(newOp, input, 2);
+            data.opSetInput(newOp, input, 1);
             data.newUniqueOut(multiplier,newOp);
 	    values.dynamicInsert = newOp;
 	  }
@@ -10567,63 +10565,33 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
     curbl = evaluateBlock(curbl, values, result, data);
   }
 
-  PcodeOp *prevop = (PcodeOp *)0;
   PcodeOp *curop = (PcodeOp *)0;
+  // Results preparation loop
+  for (int4 i=0;i<counts;++i) {
+    curop = result[i];
+    if (curop == (PcodeOp *) 0) return 0; // TODO create subpiece of itself at this index and put in result instead of null
+    data.opInsertBefore(curop, endOp);
+  }
+
   AddrSpace *space = data.getArch()->getDefaultDataSpace();
   bool isBigEndian = space->isBigEndian();
-  if (isBigEndian) {
-    for (int4 i = result.size() - 1; i >= 0; --i) {
-      curop = result[i];
-      if (curop == (PcodeOp *) 0) continue;
-      data.opInsertBefore(curop, endOp);
-      PcodeOp *newop = data.newOp(4, endOp->getAddr());
-      data.opSetOpcode(newop, CPUI_CALLOTHER);
-      Varnode *input = data.newConstant(insertlist[0]->getIn(0)->getSize(), insertlist[0]->getIn(0)->getOffset());
-      data.opSetInput(newop, input, 0);
-      if (prevop == (PcodeOp *) 0) {
-        input = insertlist[0]->getIn(1);
-        while (input->getDef()->code() == CPUI_MULTIEQUAL) {
-          input = input->getDef()->getIn(0);
-        }
-      } else {
-        input = prevop->getOut();
-      }
-      data.opSetInput(newop, input, 1);
-      input = curop->getOut();
-      data.opSetInput(newop, input, 2);
-      input = data.newConstant(insertlist[0]->getIn(3)->getSize(), i);
-      data.opSetInput(newop, input, 3);
-      data.newUniqueOut(insertlist[0]->getOut()->getSize(), newop);
-      data.opInsertBefore(newop, endOp);
-      prevop = newop;
+  PcodeOp *prevop = (PcodeOp *)0;
+  for (int4 i = 0; i < result.size(); ++i) {
+    curop = result[i];
+    if (curop == (PcodeOp *) 0) continue;
+    if (prevop == (PcodeOp *) 0) {
+      prevop = curop;
+      continue;
     }
-  }
-  else {
-    for (int4 i = 0; i < result.size(); ++i) {
-      curop = result[i];
-      if (curop == (PcodeOp *) 0) continue;
-      data.opInsertBefore(curop, endOp);
-      PcodeOp *newop = data.newOp(4, endOp->getAddr());
-      data.opSetOpcode(newop, CPUI_CALLOTHER);
-      Varnode *input = data.newConstant(insertlist[0]->getIn(0)->getSize(), insertlist[0]->getIn(0)->getOffset());
-      data.opSetInput(newop, input, 0);
-      if (prevop == (PcodeOp *) 0) {
-        input = insertlist[0]->getIn(1);
-        while (input->getDef()->code() == CPUI_MULTIEQUAL) {
-          input = input->getDef()->getIn(0);
-        }
-      } else {
-        input = prevop->getOut();
-      }
-      data.opSetInput(newop, input, 1);
-      input = curop->getOut();
-      data.opSetInput(newop, input, 2);
-      input = data.newConstant(insertlist[0]->getIn(3)->getSize(), i);
-      data.opSetInput(newop, input, 3);
-      data.newUniqueOut(insertlist[0]->getOut()->getSize(), newop);
-      data.opInsertBefore(newop, endOp);
-      prevop = newop;
-    }
+    PcodeOp *newop = data.newOp(2, endOp->getAddr());
+    data.opSetOpcode(newop, CPUI_PIECE);
+    Varnode *input0 = curop->getOut();
+    data.opSetInput(newop, input0, 0);
+    Varnode *input1 = prevop->getOut();
+    data.opSetInput(newop, input1, 1);
+    data.newUniqueOut(input0->getSize() + input1->getSize(), newop);
+    data.opInsertBefore(newop, endOp);
+    prevop = newop;
   }
   if (prevop == (PcodeOp *)0) return 0;
   curop = insertlist[0]->getOut()->loneDescend();
@@ -10776,115 +10744,24 @@ bool RuleOpToAdrr::insertindToAddr(PcodeOp *op,Funcdata &data)
   return true;
 }
 
-// Note that piece data is put in reverse order
-void RuleOpToAdrr::collectPieceData(PcodeOp *op,vector<PieceData> &res)
-
-{
-  Varnode *in0,*in1;
-  if (isBigEndian) {
-    in0 = op->getIn(1);
-    in1 = op->getIn(0);
-  }
-  else {
-    in0 = op->getIn(0);
-    in1 = op->getIn(1);
-  }
-
-  if (in0->getDef() != (PcodeOp *)0 && in0->getDef()->getOpcode()->getOpcode() == CPUI_PIECE) {
-    collectPieceData(in0->getDef(), res);
-  }
-  else {
-    PieceData pieceData;
-    pieceData.op = op;
-    pieceData.vn = in0;
-    res.push_back(pieceData);
-  }
-  if (in1->getDef() != (PcodeOp *)0 && in1->getDef()->getOpcode()->getOpcode() == CPUI_PIECE) {
-    collectPieceData(in1->getDef(), res);
-  }
-  else {
-    PieceData pieceData;
-    pieceData.op = op;
-    pieceData.vn = in1;
-    res.push_back(pieceData);
-  }
-}
-
-void RuleOpToAdrr::replacePieces(vector<PieceData> &res,Funcdata &data)
-
-{
-  PcodeOp *firstop = res[res.size()-1].op;
-  PcodeOp *mainop = res[0].op;
-  PcodeOp *zextop = data.newOp(1, firstop->getAddr());
-  data.opSetOpcode(zextop, CPUI_INT_ZEXT);
-  data.opSetInput(zextop, data.newConstant(4, 0), 0);
-  data.newUniqueOut(mainop->getOut()->getSize(), zextop);
-  data.opInsertBefore(zextop, firstop);
-  UserPcodeOp *userop = data.getArch()->userops.getOp(Funcdata::insertind);
-  Varnode *useropin = data.newConstant(4, userop->getIndex());
-  PcodeOp *prevop = zextop;
-  for (int4 i=res.size() - 1;i>=0;--i) {
-    PieceData curpiece = res[i];
-    PcodeOp *newop = data.newOp(4,curpiece.op->getAddr());
-    data.opSetOpcode(newop, CPUI_CALLOTHER);
-    data.opSetInput(newop, useropin, 0);
-    data.opSetInput(newop, prevop->getOut(), 1);
-    data.opSetInput(newop, curpiece.vn, 2);
-    Varnode *indexvn = data.newConstant(4, 0);
-    data.opSetInput(newop, indexvn, 3);
-    data.newUniqueOut(mainop->getOut()->getSize(), newop);
-    data.opInsertBefore(newop, curpiece.op);
-    prevop = newop;
-  }
-  data.opSetOpcode(mainop, CPUI_COPY);
-  data.opSetInput(mainop, prevop->getOut(), 0);
-  data.opRemoveInput(mainop, 1);
-}
-
-bool RuleOpToAdrr::pieceToInsertind(PcodeOp *op,Funcdata &data)
-
-{
-  vector<PieceData> res;
-  Varnode *outVn = op->getOut();
-  for(list<PcodeOp *>::const_iterator iter=outVn->beginDescend();iter!=outVn->endDescend();++iter) {
-    PcodeOp *curop = *iter;
-    OpCode opc = curop->getOpcode()->getOpcode();
-    if (opc == CPUI_PIECE) return false; // Only highest piece is considered as main
-  }
-  collectPieceData(op, res);
-  replacePieces(res, data);
-  return true;
-}
-
 void RuleOpToAdrr::getOpList(vector<uint4> &oplist) const
 
 {
   oplist.push_back(CPUI_CALLOTHER);
-  oplist.push_back(CPUI_PIECE);
-  oplist.push_back(CPUI_SUBPIECE);
 }
 
 int4 RuleOpToAdrr::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  OpCode opc = op->code();
   space = data.getArch()->getDefaultDataSpace();
   isBigEndian = space->isBigEndian();
   spaceSize = space->getAddrSize();
-  if (opc == CPUI_PIECE) {
-    if (pieceToInsertind(op, data)) return 1;
+  string nm = op->getOpcode()->getOperatorName(op);
+  if (nm == Funcdata::extractind) {
+    if (extractindToAddr(op, data)) return 1;
   }
-  else if (opc == CPUI_SUBPIECE) {
-    ;
-  }
-  else if (opc == CPUI_CALLOTHER) {
-    string nm = op->getOpcode()->getOperatorName(op);
-    if (nm == Funcdata::extractind) {
-      if (extractindToAddr(op, data)) return 1;
-    }
-    else if (nm == Funcdata::insertind) {
-      if (insertindToAddr(op, data)) return 1;
-    }
+  else if (nm == Funcdata::insertind) {
+    if (insertindToAddr(op, data)) return 1;
   }
   return 0;
 }
