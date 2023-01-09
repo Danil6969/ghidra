@@ -911,6 +911,7 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RuleHumptyDumpty : public Rule {
+  bool pieceForm(PcodeOp *op,Funcdata &data);
 public:
   RuleHumptyDumpty(const string &g) : Rule(g, 0, "humptydumpty") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
