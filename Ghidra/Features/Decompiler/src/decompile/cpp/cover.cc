@@ -509,6 +509,7 @@ void Cover::addRefPoint(const PcodeOp *ref,const Varnode *vn)
   uintm ustop;
 
   bl = ref->getParent();
+  if (bl == (FlowBlock *)0) return;
   CoverBlock &block(cover[bl->getIndex()]);
   if (block.empty()) {
     block.setEnd(ref);
