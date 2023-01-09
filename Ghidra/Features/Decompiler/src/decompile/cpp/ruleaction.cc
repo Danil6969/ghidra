@@ -4778,11 +4778,58 @@ int4 RuleShiftSub::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+bool RuleHumptyDumpty::pieceForm(PcodeOp *op,Funcdata &data)
+
+{
+  uintb pos1,pos2;
+  int4 size1,size2;
+  Varnode *vn1,*vn2,*root;
+  PcodeOp *sub1,*sub2;
+
+  vn1 = op->getIn(0);
+  vn2 = op->getIn(1)->getDef()->getIn(0);
+
+  sub1 = vn1->getDef();
+  sub2 = vn2->getDef();
+  if (sub2->code() != CPUI_SUBPIECE) return false;
+
+  root = sub1->getIn(0);
+  if (root != sub2->getIn(0)) return false; // pieces of the same whole
+
+  pos1 = sub1->getIn(1)->getOffset();
+  pos2 = sub2->getIn(1)->getOffset();
+  size1 = vn1->getSize();
+  size2 = vn2->getSize();
+
+  if (pos1 != pos2 + size2) return false; // Pieces do not match up
+
+  PcodeOp *pieceop = op->getIn(1)->getDef();
+  if ((pos2==0)&&(size1+size2==root->getSize())) {	// Pieced together whole thing
+    data.opSetInput(op,root,0);
+    data.opSetInput(op,pieceop->getIn(1),1);
+  }
+  else {                        // Pieced together a larger part of the whole
+    PcodeOp *sub3 = data.newOp(2,op->getAddr());
+    data.opSetOpcode(sub3,CPUI_SUBPIECE);
+    data.opSetInput(sub3,root,0);
+    data.opSetInput(sub3,data.newConstant(sub2->getIn(1)->getSize(),pos2),1);
+    data.newUniqueOut(op->getOut()->getSize() - pieceop->getIn(1)->getSize(),sub3);
+    data.opInsertBefore(sub3,op);
+    data.opSetInput(op,sub3->getOut(),0);
+    data.opSetInput(op,pieceop->getIn(1),1);
+  }
+  return true;
+}
+
 /// \class RuleHumptyDumpty
 /// \brief Simplify break and rejoin:  `concat( sub(V,c), sub(V,0) )  =>  V`
 ///
 /// There is also the variation:
 ///  - `concat( sub(V,c), sub(V,d) )  => sub(V,d)`
+///
+/// Also piece form:
+///  - `concat( sub(V,c), concat( sub(V,0),W ) ) => concat( V,W )`
+///  - `concat( sub(V,c), concat( sub(V,d),W ) ) => concat( sub(V,d),W )`
 void RuleHumptyDumpty::getOpList(vector<uint4> &oplist) const
 
 {
@@ -4804,6 +4851,7 @@ int4 RuleHumptyDumpty::applyOp(PcodeOp *op,Funcdata &data)
   vn2 = op->getIn(1);
   if (!vn2->isWritten()) return 0;
   sub2 = vn2->getDef();
+  if (sub2->code() == CPUI_PIECE) return pieceForm(op, data);
   if (sub2->code() != CPUI_SUBPIECE) return 0; // from piece2
 
   root = sub1->getIn(0);
