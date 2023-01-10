@@ -10614,11 +10614,25 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
     curbl = evaluateBlock(curbl, values, result, data);
   }
 
+  Varnode *objinitval = insertlist[0]->getIn(1);
+  while (objinitval->getDef()->code() == CPUI_MULTIEQUAL) {
+    objinitval = objinitval->getDef()->getIn(0);
+  }
+
   PcodeOp *curop = (PcodeOp *)0;
   // Results preparation loop
   for (int4 i=0;i<counts;++i) {
     curop = result[i];
-    if (curop == (PcodeOp *) 0) return 0; // TODO create subpiece of itself at this index and put in result instead of null
+    if (curop == (PcodeOp *) 0) {
+      curop = data.newOp(2, endOp->getAddr()); // create subpiece of itself at this index
+      data.opSetOpcode(curop, CPUI_SUBPIECE);
+      data.opSetInput(curop, objinitval, 0);
+      int4 indexsz = insertlist[0]->getIn(3)->getSize(); // use index size from insertind
+      Varnode *input = data.newConstant(indexsz, multiplier * i);
+      data.opSetInput(curop, input, 1);
+      data.newUniqueOut(multiplier, curop);
+      result[i] = curop; // and put in result instead of null
+    }
     data.opInsertBefore(curop, endOp);
   }
 
