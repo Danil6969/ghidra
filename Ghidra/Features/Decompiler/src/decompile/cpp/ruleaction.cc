@@ -1729,7 +1729,7 @@ int4 RuleAndCompare::applyOp(PcodeOp *op,Funcdata &data)
     return 0;
   }
 
-  if (basevn->getSize() > 8) return 0; // No array masking is allowed
+  if (basevn->getSize() > sizeof(uintb)) return 0; // No array masking is allowed
   if (baseconst == calc_mask(andvn->getSize())) return 0;	// Degenerate AND
   if (basevn->isFree()) return 0;
 
@@ -4253,7 +4253,7 @@ int4 RuleConcatCommute::applyOp(PcodeOp *op,Funcdata &data)
   OpCode opc;
   uintb val;
 
-  if (op->getOut()->getSize() > 8) return 0; // No array masking is allowed
+  if (op->getOut()->getSize() > sizeof(uintb)) return 0; // No array masking is allowed
   for(int4 i=0;i<2;++i) {
     vn = op->getIn(i);
     if (!vn->isWritten()) continue;
@@ -4547,7 +4547,7 @@ int4 RuleConcatZero::applyOp(PcodeOp *op,Funcdata &data)
 {
   if (!op->getIn(1)->isConstant()) return 0;
   if (op->getIn(1)->getOffset() != 0) return 0;
-  if (op->getOut()->getSize() > 8) return 0; // No array shifts are allowed
+  if (op->getOut()->getSize() > sizeof(uintb)) return 0; // No array shifts are allowed
 
   int4 sa = 8*op->getIn(1)->getSize();
   Varnode *highvn = op->getIn(0);
@@ -4622,7 +4622,7 @@ int4 RuleSubZext::applyOp(PcodeOp *op,Funcdata &data)
   PcodeOp *subop;
   uintb val;
 
-  if (op->getOut()->getSize() > 8) return 0; // No array masking is allowed
+  if (op->getOut()->getSize() > sizeof(uintb)) return 0; // No array masking is allowed
   subvn = op->getIn(0);
   if (!subvn->isWritten()) return 0;
   subop = subvn->getDef();
@@ -6752,7 +6752,7 @@ int4 RuleSubRight::applyOp(PcodeOp *op,Funcdata &data)
     return 0;
   }
 
-  if (op->getIn(0)->getSize() > 8) return 0; // No array shifts are allowed
+  if (op->getIn(0)->getSize() > sizeof(uintb)) return 0; // No array shifts are allowed
 
   int4 c = op->getIn(1)->getOffset();
   if (c==0) return 0;		// SUBPIECE is not least sig
