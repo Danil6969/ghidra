@@ -759,7 +759,7 @@ addr32: [RIP + simm32]					is bit64=1 & mod=0 & r_m=4; index=4 & base=5; simm32 
 Addr32_64: [EIP + simm32]				is mod=0 & r_m=5; simm32 & EIP & pcRelSimm32 { export *[const]:8 pcRelSimm32; }
 Addr32_64: [imm32]						is mod=0 & r_m=4; index=4 & base=5; imm32    { export *[const]:8 imm32; }
 Addr32_64: addr32						is addr32									 { tmp:8 = sext(addr32); export tmp; }
-
+	
 @endif
 
 # 64-bit addressing modes   (the offset portion)
