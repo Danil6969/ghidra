@@ -6443,6 +6443,13 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
     Datatype *subType = baseType->getSubType(offset,&offset); // Get field at pointer's offset
     if (subType==(Datatype *)0) return 0;
     if (subType->getSize() < movesize) return 0;	// Subtype is too small to handle LOAD/STORE
+    if (subType->getMetatype() == TYPE_PTR) {
+      Datatype *subBase = ((TypePointer *) subType)->getPtrTo();
+      if (subBase == baseType) {
+        if (op->getIn(1)->getDef()->code() == CPUI_PTRSUB) return 0;		// Already has one PTRSUB, why need more if datatype is the same?
+        // prevents infinite loop in cases when struct contains pointers to the same type as itself
+      }
+    }
 //    if (baseType->getSize() == movesize) {
       // If we reach here, move is same size as the structure, which is the same size as
       // the first element.
