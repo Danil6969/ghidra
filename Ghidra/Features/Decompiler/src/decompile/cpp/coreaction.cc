@@ -2908,7 +2908,8 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
   else if (vn->isMapped()) {
     // If NOT addrtied but is still mapped, there must be either a first use (register) mapping
     // or a dynamic mapping causing the bit to be set. In either case, it should probably be explicit
-    return -1;
+    // if not PTRSUB of course (see "maxref = 1000000" comment)
+    if (def->code() != CPUI_PTRSUB) return -1;
   }
   else if (vn->isProtoPartial() && def->code() != CPUI_PIECE) {
     // Varnode is part of structure. Write to structure should be an explicit statement
