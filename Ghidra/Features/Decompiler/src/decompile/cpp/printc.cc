@@ -480,7 +480,10 @@ void PrintC::opConv(const PcodeOp *op)
 void PrintC::opTypeCast(const PcodeOp *op)
 
 {
-  if (!option_nocasts && op->getOut()->getHigh()->getType()->getName() != op->getIn(0)->getHigh()->getType()->getName()) {
+  string outTypeName = op->getOut()->getHigh()->getType()->getName();
+  string inTypeName = op->getIn(0)->getHigh()->getType()->getName();
+  bool nameEquals = !outTypeName.empty() && outTypeName == inTypeName; // Types may be inequal if name is empty
+  if (!option_nocasts && !nameEquals) {
     bool outArr = op->getOut()->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
     bool inArr  = op->getIn(0)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
     bool addr = !inArr && outArr && !op->getIn(0)->isConstant() && !op->getIn(0)->isImplied();
