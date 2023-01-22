@@ -8260,22 +8260,20 @@ define pcodeop rsqrtss;
 :RSQRTSS         XmmReg1, m32      is vexMode=0 &  $(PRE_F3) & byte=0x0F; byte=0x52; XmmReg1 ... & m32 { XmmReg1 = rsqrtss(XmmReg1, m32); }
 :RSQRTSS         XmmReg1, XmmReg2 is vexMode=0 &  $(PRE_F3) & byte=0x0F; byte=0x52; xmmmod = 3 & XmmReg1 & XmmReg2 { XmmReg1 = rsqrtss(XmmReg1, XmmReg2); }
 
+# determine the total shift required by the bit fields in a qword shuffle opcode
+OrderQ0: order0	is imm8 [ order0 = (( imm8       & 0x1) << 6); ] { export *[const]:1 order0; } 
+OrderQ1: order1	is imm8 [ order1 = (((imm8 >> 1) & 0x1) << 6); ] { export *[const]:1 order1; } 
+
 :SHUFPD          XmmReg1, m128, imm8     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0xC6; XmmReg1 ... & m128; imm8 & Order0 & Order1
 {
-    local m128_c0 = m128[0,32];
-    local m128_c1 = m128[32,32];
-    local m128_c2 = m128[64,32];
-    local m128_c3 = m128[96,32];
+    shifted:16 = XmmReg1 >> OrderQ0;   
+    tempA:8 = shifted:8;
 
-    local xmm_c0 = XmmReg1[0,32];
-    local xmm_c1 = XmmReg1[32,32];
-    local xmm_c2 = XmmReg1[64,32];
-    local xmm_c3 = XmmReg1[96,32];
+    shifted = m128 >> OrderQ1;   
+    tempB:8 = shifted:8;
 
-    shuffle_4(XmmReg1[0,32],Order0,xmm_c0,xmm_c1,xmm_c2,xmm_c3);
-    shuffle_4(XmmReg1[32,32],Order1,xmm_c0,xmm_c1,xmm_c2,xmm_c3);
-    shuffle_4(XmmReg1[64,32],Order2,m128_c0,m128_c1,m128_c2,m128_c3);
-    shuffle_4(XmmReg1[96,32],Order3,m128_c0,m128_c1,m128_c2,m128_c3);
+    XmmReg1[0,64] = tempA;
+    XmmReg1[64,64] = tempB;
 }
 
 :SHUFPD          XmmReg1, XmmReg2, imm8  is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0xC6; xmmmod=3 & XmmReg1 & XmmReg2; imm8 & OrderQ0 & OrderQ1
