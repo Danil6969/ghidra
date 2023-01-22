@@ -8264,7 +8264,7 @@ define pcodeop rsqrtss;
 OrderQ0: order0	is imm8 [ order0 = (( imm8       & 0x1) << 6); ] { export *[const]:1 order0; } 
 OrderQ1: order1	is imm8 [ order1 = (((imm8 >> 1) & 0x1) << 6); ] { export *[const]:1 order1; } 
 
-:SHUFPD          XmmReg1, m128, imm8     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0xC6; XmmReg1 ... & m128; imm8 & Order0 & Order1
+:SHUFPD          XmmReg1, m128, imm8     is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0xC6; XmmReg1 ... & m128; imm8 & OrderQ0 & OrderQ1
 {
     shifted:16 = XmmReg1 >> OrderQ0;   
     tempA:8 = shifted:8;
