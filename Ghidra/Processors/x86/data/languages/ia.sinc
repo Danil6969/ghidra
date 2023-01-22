@@ -8288,7 +8288,7 @@ OrderQ1: order1	is imm8 [ order1 = (((imm8 >> 1) & 0x1) << 6); ] { export *[cons
     XmmReg1[64,64] = tempB;
 }
 
-:SHUFPS  XmmReg1, m128, imm8  is vexMode=0 & mandover=0 & byte=0x0F; byte=0xC6; (m128 & XmmReg1 ...); imm8 & OrderD0 & OrderD1 & OrderD2 & OrderD3
+:SHUFPS  XmmReg1, m128, imm8  is vexMode=0 & mandover=0 & byte=0x0F; byte=0xC6; (m128 & XmmReg1 ...); imm8 & Order0 & Order1 & Order2 & Order3
 {
     local m128_c0 = m128[0,32];
     local m128_c1 = m128[32,32];
@@ -8306,7 +8306,7 @@ OrderQ1: order1	is imm8 [ order1 = (((imm8 >> 1) & 0x1) << 6); ] { export *[cons
     shuffle_4(XmmReg1[96,32],Order3,m128_c0,m128_c1,m128_c2,m128_c3);
 }
 
-:SHUFPS  XmmReg1, XmmReg2, imm8  is vexMode=0 & mandover=0 & byte=0x0F; byte=0xC6; xmmmod=3 & XmmReg1 & XmmReg2; imm8 & OrderD0 & OrderD1 & OrderD2 & OrderD3
+:SHUFPS  XmmReg1, XmmReg2, imm8  is vexMode=0 & mandover=0 & byte=0x0F; byte=0xC6; xmmmod=3 & XmmReg1 & XmmReg2; imm8 & Order0 & Order1 & Order2 & Order3
 {
     local xmm1_c0 = XmmReg1[0,32];
     local xmm1_c1 = XmmReg1[32,32];
