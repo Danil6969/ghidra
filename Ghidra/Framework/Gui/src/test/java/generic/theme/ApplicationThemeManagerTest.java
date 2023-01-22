@@ -23,12 +23,10 @@ import java.awt.Font;
 import java.net.URL;
 import java.util.*;
 
-import javax.swing.Icon;
-import javax.swing.JLabel;
+import javax.swing.*;
 import javax.swing.plaf.UIResource;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 import generic.theme.builtin.*;
 import resources.ResourceManager;
@@ -73,12 +71,18 @@ public class ApplicationThemeManagerTest {
 		themeManager = new DummyApplicationThemeManager();
 	}
 
+	@After
+	public void cleanupUIDefaults() {
+		UIDefaults defaults = UIManager.getDefaults();
+		defaults.clear();
+	}
+
 	@Test
 	public void testDarkThemeColorOverride() {
 		GColor gColor = new GColor("color.test.bg");
 
 		assertColor(WHITE, gColor);
-		themeManager.setTheme(new GTheme("Test", LafType.FLAT_DARK, true));
+		themeManager.setTheme(new GTheme("Test", LafType.FLAT_DARK));
 		assertEquals(BLACK, gColor);
 
 		themeManager.setTheme(new GTheme("Test2"));
@@ -135,7 +139,7 @@ public class ApplicationThemeManagerTest {
 		assertColor(WHITE, gColor);
 
 		defaultValues.addColor(new ColorValue("color.test.bg", YELLOW));
-		themeManager.reloadApplicationDefaults();
+		themeManager.restoreThemeValues();
 		assertEquals(YELLOW, gColor);
 	}
 
@@ -187,7 +191,7 @@ public class ApplicationThemeManagerTest {
 
 	@Test
 	public void testGetSupportedThemes() {
-		Set<GTheme> supportedThemes = themeManager.getSupportedThemes();
+		List<GTheme> supportedThemes = themeManager.getSupportedThemes();
 		// since we put mac specific and windows specific themes, they can't all be here
 		// regardless of the current platform
 		assertTrue(supportedThemes.size() < themes.size());
@@ -348,21 +352,21 @@ public class ApplicationThemeManagerTest {
 		}
 
 		@Override
-		protected ThemeDefaultsProvider getThemeDefaultsProvider() {
-			return new ThemeDefaultsProvider() {
+		protected ApplicationThemeDefaults getApplicationDefaults() {
+			return new ApplicationThemeDefaults() {
 
 				@Override
-				public GThemeValueMap getDefaults() {
+				public GThemeValueMap getLightValues() {
 					return defaultValues;
 				}
 
 				@Override
-				public GThemeValueMap getDarkDefaults() {
+				public GThemeValueMap getDarkValues() {
 					return darkDefaultValues;
 				}
 
 				@Override
-				public GThemeValueMap getLookAndFeelDefaults(LafType lafType) {
+				public GThemeValueMap getLookAndFeelValues(LafType lafType) {
 					return null;
 				}
 

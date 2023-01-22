@@ -81,7 +81,7 @@ public class ThemeUtilsTest extends AbstractDockingTest {
 	@Test
 	public void testImportThemeWithCurrentChangesCancelled() throws IOException {
 		assertEquals("Nimbus Theme", themeManager.getActiveTheme().getName());
-		themeManager.setColor("Panel.background", testColor);
+		themeManager.setColor("laf.color.Panel.background", testColor);
 		assertTrue(themeManager.hasThemeChanges());
 
 		File themeFile = createThemeFile("Bob");
@@ -99,7 +99,7 @@ public class ThemeUtilsTest extends AbstractDockingTest {
 		assertEquals("Nimbus Theme", themeManager.getActiveTheme().getName());
 
 		// make a change in the current theme, so you get asked to save
-		themeManager.setColor("Panel.background", testColor);
+		themeManager.setColor("laf.color.Panel.background", testColor);
 		assertTrue(themeManager.hasThemeChanges());
 
 		File themeFile = createThemeFile("Bob");
@@ -107,7 +107,13 @@ public class ThemeUtilsTest extends AbstractDockingTest {
 		OptionDialog dialog = waitForDialogComponent(OptionDialog.class);
 		assertNotNull(dialog);
 		assertEquals("Save Theme Changes?", dialog.getTitle());
+		pressButtonByText(dialog, "Save");
+
+		dialog = waitForDialogComponent(OptionDialog.class);
+		assertNotNull(dialog);
+		assertEquals("Unmodifiable Theme", dialog.getTitle());
 		pressButtonByText(dialog, "Yes");
+
 		InputDialog inputDialog = waitForDialogComponent(InputDialog.class);
 		assertNotNull(inputDialog);
 		runSwing(() -> inputDialog.setValue("Joe"));
@@ -122,7 +128,7 @@ public class ThemeUtilsTest extends AbstractDockingTest {
 		assertEquals("Nimbus Theme", themeManager.getActiveTheme().getName());
 
 		// make a change in the current theme, so you get asked to save
-		themeManager.setColor("Panel.background", testColor);
+		themeManager.setColor("laf.color.Panel.background", testColor);
 		assertTrue(themeManager.hasThemeChanges());
 
 		File bobThemeFile = createThemeFile("Bob");
@@ -131,7 +137,7 @@ public class ThemeUtilsTest extends AbstractDockingTest {
 		OptionDialog dialog = waitForDialogComponent(OptionDialog.class);
 		assertNotNull(dialog);
 		assertEquals("Save Theme Changes?", dialog.getTitle());
-		pressButtonByText(dialog, "No");
+		pressButtonByText(dialog, "Abort");
 		waitForSwing();
 		assertEquals("Bob", themeManager.getActiveTheme().getName());
 	}

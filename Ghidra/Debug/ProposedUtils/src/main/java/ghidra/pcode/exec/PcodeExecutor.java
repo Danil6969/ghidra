@@ -35,7 +35,7 @@ import ghidra.program.model.pcode.Varnode;
  * An executor of p-code programs
  * 
  * <p>
- * This is the kernel of SLEIGH expression evaluation and p-code emulation. For a complete example
+ * This is the kernel of Sleigh expression evaluation and p-code emulation. For a complete example
  * of a p-code emulator, see {@link PcodeEmulator}.
  *
  * @param <T> the type of values processed by the executor
@@ -68,7 +68,7 @@ public class PcodeExecutor<T> {
 	}
 
 	/**
-	 * Get the executor's SLEIGH language (processor model)
+	 * Get the executor's Sleigh language (processor model)
 	 * 
 	 * @return the language
 	 */
@@ -215,12 +215,12 @@ public class PcodeExecutor<T> {
 			badOp(op);
 			return;
 		}
-		if (b instanceof UnaryOpBehavior) {
-			executeUnaryOp(op, (UnaryOpBehavior) b);
+		if (b instanceof UnaryOpBehavior unOp) {
+			executeUnaryOp(op, unOp);
 			return;
 		}
-		if (b instanceof BinaryOpBehavior) {
-			executeBinaryOp(op, (BinaryOpBehavior) b);
+		if (b instanceof BinaryOpBehavior binOp) {
+			executeBinaryOp(op, binOp);
 			return;
 		}
 		switch (op.getOpcode()) {
@@ -240,7 +240,7 @@ public class PcodeExecutor<T> {
 				executeIndirectBranch(op, frame);
 				return;
 			case PcodeOp.CALL:
-				executeCall(op, frame);
+				executeCall(op, frame, library);
 				return;
 			case PcodeOp.CALLIND:
 				executeIndirectCall(op, frame);
@@ -334,8 +334,9 @@ public class PcodeExecutor<T> {
 	 * 
 	 * @param space the address space to be loaded from
 	 * @param offset the offset about to be loaded from
+	 * @param size the size in bytes to be loaded
 	 */
-	protected void checkLoad(AddressSpace space, T offset) {
+	protected void checkLoad(AddressSpace space, T offset, int size) {
 	}
 
 	/**
@@ -348,13 +349,13 @@ public class PcodeExecutor<T> {
 		AddressSpace space = language.getAddressFactory().getAddressSpace(spaceID);
 		Varnode inOffset = op.getInput(1);
 		T offset = state.getVar(inOffset, reason);
-		checkLoad(space, offset);
-		Varnode outvar = op.getOutput();
+		Varnode outVar = op.getOutput();
+		checkLoad(space, offset, outVar.getSize());
 
-		T out = state.getVar(space, offset, outvar.getSize(), true, reason);
-		T mod = arithmetic.modAfterLoad(outvar.getSize(), inOffset.getSize(), offset,
-			outvar.getSize(), out);
-		state.setVar(outvar, mod);
+		T out = state.getVar(space, offset, outVar.getSize(), true, reason);
+		T mod = arithmetic.modAfterLoad(outVar.getSize(), inOffset.getSize(), offset,
+			outVar.getSize(), out);
+		state.setVar(outVar, mod);
 	}
 
 	/**
@@ -362,8 +363,9 @@ public class PcodeExecutor<T> {
 	 * 
 	 * @param space the address space to be stored to
 	 * @param offset the offset about to be stored to
+	 * @param size the size in bytes to be stored
 	 */
-	protected void checkStore(AddressSpace space, T offset) {
+	protected void checkStore(AddressSpace space, T offset, int size) {
 	}
 
 	/**
@@ -376,8 +378,8 @@ public class PcodeExecutor<T> {
 		AddressSpace space = language.getAddressFactory().getAddressSpace(spaceID);
 		Varnode inOffset = op.getInput(1);
 		T offset = state.getVar(inOffset, reason);
-		checkStore(space, offset);
 		Varnode valVar = op.getInput(2);
+		checkStore(space, offset, valVar.getSize());
 
 		T val = state.getVar(valVar, reason);
 		T mod = arithmetic.modBeforeStore(valVar.getSize(), inOffset.getSize(), offset,
@@ -506,7 +508,7 @@ public class PcodeExecutor<T> {
 	 * @param op the op
 	 * @param frame the frame
 	 */
-	public void executeCall(PcodeOp op, PcodeFrame frame) {
+	public void executeCall(PcodeOp op, PcodeFrame frame, PcodeUseropLibrary<T> library) {
 		Address target = op.getInput(0).getAddress();
 		branchToOffset(arithmetic.fromConst(target.getOffset(), pointerSize), frame);
 		branchToAddress(target);

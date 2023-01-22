@@ -30,7 +30,6 @@ import ghidra.app.plugin.core.debug.service.model.launch.DebuggerProgramLaunchOf
 import ghidra.app.script.GhidraScript;
 import ghidra.app.script.GhidraState;
 import ghidra.app.services.*;
-import ghidra.app.services.DebuggerStateEditingService.StateEditingMode;
 import ghidra.app.services.DebuggerStateEditingService.StateEditor;
 import ghidra.dbg.AnnotatedDebuggerAttributeListener;
 import ghidra.dbg.DebuggerObjectModel;
@@ -766,9 +765,9 @@ public interface FlatDebuggerAPI {
 	}
 
 	/**
-	 * Apply the given SLEIGH patch to the emulator
+	 * Apply the given Sleigh patch to the emulator
 	 * 
-	 * @param sleigh the SLEIGH source, without terminating semicolon
+	 * @param sleigh the Sleigh source, without terminating semicolon
 	 * @param monitor a monitor for the emulation
 	 * @return true if successful, false otherwise
 	 * @throws CancelledException if the user cancelled via the given monitor
@@ -1491,7 +1490,7 @@ public interface FlatDebuggerAPI {
 	default LaunchResult launch(DebuggerProgramLaunchOffer offer, String commandLine,
 			TaskMonitor monitor) {
 		try {
-			return waitOn(offer.launchProgram(monitor, false, new LaunchConfigurator() {
+			return waitOn(offer.launchProgram(monitor, PromptMode.NEVER, new LaunchConfigurator() {
 				@Override
 				public Map<String, ?> configureLauncher(TargetLauncher launcher,
 						Map<String, ?> arguments, RelPrompt relPrompt) {
@@ -1514,7 +1513,7 @@ public interface FlatDebuggerAPI {
 	 */
 	default LaunchResult launch(DebuggerProgramLaunchOffer offer, TaskMonitor monitor) {
 		try {
-			return waitOn(offer.launchProgram(monitor, false));
+			return waitOn(offer.launchProgram(monitor, PromptMode.NEVER));
 		}
 		catch (InterruptedException | ExecutionException | TimeoutException e) {
 			// TODO: This is not ideal, since it's likely partially completed

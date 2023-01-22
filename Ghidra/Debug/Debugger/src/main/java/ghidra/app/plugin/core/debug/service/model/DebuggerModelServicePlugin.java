@@ -40,6 +40,7 @@ import ghidra.app.plugin.core.debug.mapping.*;
 import ghidra.app.plugin.core.debug.service.model.launch.DebuggerProgramLaunchOffer;
 import ghidra.app.plugin.core.debug.service.model.launch.DebuggerProgramLaunchOpinion;
 import ghidra.app.services.*;
+import ghidra.app.services.DebuggerTraceManagerService.ActivationCause;
 import ghidra.async.AsyncFence;
 import ghidra.dbg.*;
 import ghidra.dbg.target.*;
@@ -61,8 +62,15 @@ import ghidra.util.classfinder.ClassSearcher;
 import ghidra.util.datastruct.CollectionChangeListener;
 import ghidra.util.datastruct.ListenerSet;
 
-@PluginInfo(shortDescription = "Debugger models manager service", description = "Manage debug sessions, connections, and trace recording", category = PluginCategoryNames.DEBUGGER, packageName = DebuggerPluginPackage.NAME, status = PluginStatus.HIDDEN, servicesRequired = {}, servicesProvided = {
-	DebuggerModelService.class, })
+@PluginInfo(
+	shortDescription = "Debugger models manager service",
+	description = "Manage debug sessions, connections, and trace recording",
+	category = PluginCategoryNames.DEBUGGER,
+	packageName = DebuggerPluginPackage.NAME,
+	status = PluginStatus.HIDDEN,
+	servicesRequired = {},
+	servicesProvided = {
+		DebuggerModelService.class, })
 public class DebuggerModelServicePlugin extends Plugin
 		implements DebuggerModelServiceInternal, ApplicationLevelOnlyPlugin {
 
@@ -239,7 +247,10 @@ public class DebuggerModelServicePlugin extends Plugin
 			}
 			model.addModelListener(forRemovalAndFocusListener);
 			TargetObject root = model.getModelRoot();
-			if (!root.isValid()) {
+			// root == null, probably means we're between model construction
+			// and root construction, but the model was not closed, so no need
+			// to invalidate
+			if (root != null && !root.isValid()) {
 				forRemovalAndFocusListener.invalidated(root, root,
 					"Invalidated before or during add to service");
 			}
@@ -449,7 +460,8 @@ public class DebuggerModelServicePlugin extends Plugin
 		if (traceManager != null) {
 			Trace trace = recorder.getTrace();
 			traceManager.openTrace(trace);
-			traceManager.activateTrace(trace);
+			traceManager.activate(traceManager.resolveTrace(trace),
+				ActivationCause.ACTIVATE_DEFAULT);
 		}
 		return recorder;
 	}
@@ -629,14 +641,24 @@ public class DebuggerModelServicePlugin extends Plugin
 	}
 
 	protected CompletableFuture<DebuggerObjectModel> doShowConnectDialog(PluginTool tool,
-			DebuggerModelFactory factory) {
-		CompletableFuture<DebuggerObjectModel> future = connectDialog.reset(factory);
+			DebuggerModelFactory factory, Program program) {
+		CompletableFuture<DebuggerObjectModel> future = connectDialog.reset(factory, program);
 		tool.showDialog(connectDialog);
 		return future;
 	}
 
 	@Override
+	public CompletableFuture<DebuggerObjectModel> showConnectDialog() {
+		return doShowConnectDialog(tool, null, null);
+	}
+
+	@Override
+	public CompletableFuture<DebuggerObjectModel> showConnectDialog(Program program) {
+		return doShowConnectDialog(tool, null, program);
+	}
+
+	@Override
 	public CompletableFuture<DebuggerObjectModel> showConnectDialog(DebuggerModelFactory factory) {
-		return doShowConnectDialog(tool, factory);
+		return doShowConnectDialog(tool, factory, null);
 	}
 }
