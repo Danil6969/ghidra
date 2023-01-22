@@ -8267,15 +8267,15 @@ define pcodeop rsqrtss;
     local m128_c2 = m128[64,32];
     local m128_c3 = m128[96,32];
 
-    local xmm_c0 = XmmReg[0,32];
-    local xmm_c1 = XmmReg[32,32];
-    local xmm_c2 = XmmReg[64,32];
-    local xmm_c3 = XmmReg[96,32];
+    local xmm_c0 = XmmReg1[0,32];
+    local xmm_c1 = XmmReg1[32,32];
+    local xmm_c2 = XmmReg1[64,32];
+    local xmm_c3 = XmmReg1[96,32];
 
-    shuffle_4(XmmReg[0,32],Order0,xmm_c0,xmm_c1,xmm_c2,xmm_c3);
-    shuffle_4(XmmReg[32,32],Order1,xmm_c0,xmm_c1,xmm_c2,xmm_c3);
-    shuffle_4(XmmReg[64,32],Order2,m128_c0,m128_c1,m128_c2,m128_c3);
-    shuffle_4(XmmReg[96,32],Order3,m128_c0,m128_c1,m128_c2,m128_c3);
+    shuffle_4(XmmReg1[0,32],Order0,xmm_c0,xmm_c1,xmm_c2,xmm_c3);
+    shuffle_4(XmmReg1[32,32],Order1,xmm_c0,xmm_c1,xmm_c2,xmm_c3);
+    shuffle_4(XmmReg1[64,32],Order2,m128_c0,m128_c1,m128_c2,m128_c3);
+    shuffle_4(XmmReg1[96,32],Order3,m128_c0,m128_c1,m128_c2,m128_c3);
 }
 
 :SHUFPD          XmmReg1, XmmReg2, imm8  is vexMode=0 & $(PRE_66) & byte=0x0F; byte=0xC6; xmmmod=3 & XmmReg1 & XmmReg2; imm8 & OrderQ0 & OrderQ1
@@ -8292,22 +8292,20 @@ define pcodeop rsqrtss;
 
 :SHUFPS  XmmReg1, m128, imm8  is vexMode=0 & mandover=0 & byte=0x0F; byte=0xC6; (m128 & XmmReg1 ...); imm8 & OrderD0 & OrderD1 & OrderD2 & OrderD3
 {
-    shifted:16 = XmmReg1 >> OrderD0;   
-    tempA:4 = shifted:4;
-    
-    shifted = XmmReg1 >> OrderD1;   
-    tempB:4 = shifted:4;
+    local m128_c0 = m128[0,32];
+    local m128_c1 = m128[32,32];
+    local m128_c2 = m128[64,32];
+    local m128_c3 = m128[96,32];
 
-    shifted = m128 >> OrderD2;   
-    tempC:4 = shifted:4;
+    local xmm_c0 = XmmReg1[0,32];
+    local xmm_c1 = XmmReg1[32,32];
+    local xmm_c2 = XmmReg1[64,32];
+    local xmm_c3 = XmmReg1[96,32];
 
-    shifted = m128 >> OrderD3;   
-    tempD:4 = shifted:4;
-
-    XmmReg1[0,32] = tempA;
-    XmmReg1[32,32] = tempB;
-    XmmReg1[64,32] = tempC;
-    XmmReg1[96,32] = tempD;
+    shuffle_4(XmmReg1[0,32],Order0,xmm_c0,xmm_c1,xmm_c2,xmm_c3);
+    shuffle_4(XmmReg1[32,32],Order1,xmm_c0,xmm_c1,xmm_c2,xmm_c3);
+    shuffle_4(XmmReg1[64,32],Order2,m128_c0,m128_c1,m128_c2,m128_c3);
+    shuffle_4(XmmReg1[96,32],Order3,m128_c0,m128_c1,m128_c2,m128_c3);
 }
 
 :SHUFPS  XmmReg1, XmmReg2, imm8  is vexMode=0 & mandover=0 & byte=0x0F; byte=0xC6; xmmmod=3 & XmmReg1 & XmmReg2; imm8 & OrderD0 & OrderD1 & OrderD2 & OrderD3
