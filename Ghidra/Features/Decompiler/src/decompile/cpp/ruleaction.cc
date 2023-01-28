@@ -4810,6 +4810,7 @@ bool RuleHumptyDumpty::pieceForm(PcodeOp *op,Funcdata &data)
 
   sub1 = vn1->getDef();
   sub2 = vn2->getDef();
+  if (sub2 == (PcodeOp *)0) return false;
   if (sub2->code() != CPUI_SUBPIECE) return false;
 
   root = sub1->getIn(0);
