@@ -132,9 +132,7 @@ task buildHelp(type: JavaExec, dependsOn: indexHelp) {
 	group rootProject.GHIDRA_GROUP
 	description "      Builds the help for this module.  [gradle/helpProject.gradle]\n"	
 
-	outputs.upToDateWhen {false} // TODO remove this. we should be able to get the inputs right
-								// the issue is if docs get changed in a dependant module,
-								// this modules needs to know to rebuild
+	// outputs.upToDateWhen {false} // shouldn't do that as it hurts sleighCompile cacheability
 
 	File helpRootDir = file('src/main/help/help')	
 	File outputDir = file('build/help/main/help')
