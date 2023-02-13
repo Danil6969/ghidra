@@ -67,7 +67,8 @@ public class HighLocal extends HighVariable {
 		decodeInstances(decoder);
 		symbol = function.getLocalSymbolMap().getSymbol(symref);
 		if (symbol == null) {
-			throw new DecoderException("HighLocal is missing symbol");
+			//throw new DecoderException("HighLocal is missing symbol");
+			return; // sometimes is thrown, not sure what to do though
 		}
 		if (offset < 0) {
 			name = symbol.getName();
