@@ -1597,7 +1597,7 @@ class RuleByteLoop : public Rule {
   public:
     PcodeOp *dynamicInsert;
     VarnodeValues(void) { dynamicInsert = (PcodeOp *)0; }
-    pair<Varnode *,uintb> getEntry(Varnode *key);
+    map<Varnode *,uintb>::iterator getEntry(Varnode *key);
     bool contains(Varnode *key);
     void putValue(Varnode *key,uintb value);
     uintb getValue(Varnode *key);
