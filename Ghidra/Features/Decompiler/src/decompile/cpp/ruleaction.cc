@@ -10266,7 +10266,7 @@ int4 RuleXorSwap::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
-pair<Varnode *,uintb> RuleByteLoop::VarnodeValues::getEntry(Varnode *key)
+map<Varnode *,uintb>::iterator RuleByteLoop::VarnodeValues::getEntry(Varnode *key)
 
 {
   map<Varnode *,uintb>::iterator iter;
@@ -10274,17 +10274,17 @@ pair<Varnode *,uintb> RuleByteLoop::VarnodeValues::getEntry(Varnode *key)
     Varnode *vn = (*iter).first;
     if (vn->getAddr()!=key->getAddr()) continue;
     if (vn->getSize()!=key->getSize()) continue;
-    return (*iter);
+    return iter;
   }
-  return *vals.end();
+  return vals.end();
 }
 
 bool RuleByteLoop::VarnodeValues::contains(Varnode *key)
 
 {
   if (key->isConstant()) return true;
-  pair<Varnode *,uintb> end=*vals.end();
-  return getEntry(key)!=end;
+  map<Varnode *,uintb>::iterator end = vals.end();
+  return getEntry(key) != end;
 }
 
 void RuleByteLoop::VarnodeValues::putValue(Varnode *key,uintb value)
@@ -10292,7 +10292,7 @@ void RuleByteLoop::VarnodeValues::putValue(Varnode *key,uintb value)
 {
   if (key->getSize() > 8) return; // large varnodes aren't supported
   if (key == (Varnode *)0) return;
-  if (contains(key)) vals.erase(getEntry(key).first); // must deduplicate entries
+  if (contains(key)) vals.erase((*getEntry(key)).first); // must deduplicate entries
   vals[key]=value;
 }
 
@@ -10305,7 +10305,7 @@ uintb RuleByteLoop::VarnodeValues::getValue(Varnode *key)
 {
   if (key->isConstant()) return key->getOffset();
   if (!contains(key)) return 0;
-  return getEntry(key).second;
+  return (*getEntry(key)).second;
 }
 
 BlockBasic *RuleByteLoop::getFallthru(PcodeOp *op)
