@@ -10283,8 +10283,7 @@ bool RuleByteLoop::VarnodeValues::contains(Varnode *key)
 
 {
   if (key->isConstant()) return true;
-  map<Varnode *,uintb>::iterator end = vals.end();
-  return getEntry(key) != end;
+  return getEntry(key) != vals.end();
 }
 
 void RuleByteLoop::VarnodeValues::putValue(Varnode *key,uintb value)
@@ -10305,7 +10304,7 @@ uintb RuleByteLoop::VarnodeValues::getValue(Varnode *key)
 {
   if (key->isConstant()) return key->getOffset();
   if (!contains(key)) return 0;
-  return (*getEntry(key)).second;
+  return getEntry(key)->second;
 }
 
 /// \brief Initialize counts and counterVn
@@ -10400,7 +10399,7 @@ bool RuleByteLoop::initExtractInsertListsMultiplier(Varnode *counterVn,uintb cou
   if (insertlist[0]->getOut() == (Varnode *)0) return false;
   if (insertlist[0]->getOut()->loneDescend() == (PcodeOp *)0) return false;
   if (insertlist[0]->getOut()->loneDescend()->code() != CPUI_MULTIEQUAL) return false;
-  // The multiplier is number of bytes
+  // The multiplier is number of bytes of each array element
   // The counts are number of performed operations
   if (insertlist[0]->getIn(2)->getSize() != multiplier) return false;
   if (insertlist[0]->getOut()->getSize() != insertlist[0]->getIn(1)->getSize()) return false;
@@ -10409,6 +10408,91 @@ bool RuleByteLoop::initExtractInsertListsMultiplier(Varnode *counterVn,uintb cou
   if (counts < 2) return false;
 
   return true;
+}
+
+map<Varnode *,vector<char>>::iterator RuleByteLoop::LargeVarnodeValues::getEntry(Varnode *key)
+
+{
+  map<Varnode *,vector<char>>::iterator iter;
+  for(iter=vals.begin();iter!=vals.end();++iter) {
+    Varnode *vn = (*iter).first;
+    if (vn->getAddr()!=key->getAddr()) continue;
+    if (vn->getSize()!=key->getSize()) continue;
+    return iter;
+  }
+  return vals.end();
+}
+
+bool RuleByteLoop::LargeVarnodeValues::contains(Varnode *key)
+
+{
+  return getEntry(key) != vals.end();
+}
+
+vector<char> RuleByteLoop::LargeVarnodeValues::getValue(Varnode *key)
+
+{
+  if (!contains(key)) return vector<char>();
+  return getEntry(key)->second;
+}
+
+/// \brief compute and save value to the vals map
+vector<char> RuleByteLoop::LargeVarnodeValues::fetchValue(Varnode *key)
+
+{
+  if (contains(key)) return getValue(key);
+  vector<char> res; // empty vector
+  if (key->isConstant()) {
+    uintb val = key->getOffset();
+    for (int4 i=0;i<key->getSize();++i) {
+      char r = (val >> (8*i)) & 0xff;
+      res.push_back(r);
+    }
+    vals[key] = res;
+    return res;
+  }
+  PcodeOp *curop = key->getDef();
+  if (curop == (PcodeOp *)0) return res;
+  OpCode opc = curop->code();
+  vector<char> in0,in1;
+  int4 sz;
+  switch (opc) {
+    case CPUI_PIECE:
+      in0 = fetchValue(curop->getIn(0));
+      in1 = fetchValue(curop->getIn(1));
+      if (in0.empty() || in1.empty()) return res;
+      for (int4 i=0;i<in1.size();++i) {
+        res.push_back(in1[i]);
+      }
+      for (int4 i=0;i<in0.size();++i) {
+        res.push_back(in0[i]);
+      }
+      return res;
+    case CPUI_INT_ZEXT:
+      in0 = fetchValue(curop->getIn(0));
+      if (in0.empty()) return res;
+      for (int4 i=0;i<in0.size();++i) {
+        res.push_back(in0[i]);
+      }
+      sz = curop->getOut()->getSize() - curop->getIn(0)->getSize();
+      for (int4 i=0;i<sz;++i) {
+        res.push_back(0);
+      }
+      vals[key] = res;
+      return res;
+    default:
+      return res;
+  }
+  return res;
+}
+
+void RuleByteLoop::collectLargeVarnodeValues()
+
+{
+  for (int4 i = 0; i < extractlist.size(); ++i) {
+    PcodeOp *curop = extractlist[i];
+    largevalues.fetchValue(curop->getIn(1));
+  }
 }
 
 BlockBasic *RuleByteLoop::getFallthru(PcodeOp *op)
@@ -10431,7 +10515,7 @@ BlockBasic *RuleByteLoop::getNonFallthru(PcodeOp *op)
   return (BlockBasic *)(op->isFallthruTrue() ? op->getParent()->getFalseOut() : op->getParent()->getTrueOut());
 }
 
-BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,VarnodeValues &values,vector<PcodeOp*> &result,Funcdata &data)
+BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,vector<PcodeOp*> &result,Funcdata &data)
 
 {
   list<PcodeOp *>::iterator iter;
@@ -10458,7 +10542,7 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,VarnodeValues &values,vec
 	}
       }
     }
-    if (out != (Varnode *)0 && out->getSize() > 8) continue;
+    if (out != (Varnode *)0 && out->getSize() > sizeof(uintb)) continue;
     uintb res,in0,in1,in2,mask,bit1,bit2;
     string nm;
     switch (opc) {
@@ -10485,6 +10569,7 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,VarnodeValues &values,vec
 	  if (!values.contains(op->getIn(2))) return (BlockBasic *)0;
 	  if (out == (Varnode *)0) continue;
 	  in2 = values.getValue(op->getIn(2));
+          if (in2 > sizeof(uintb)) continue;
 	  if (op->getIn(1)->isReadOnly()) {
 	    if (op->getIn(1)->getAddr().isBigEndian()) {
 	      in2 = op->getIn(1)->getSize() - op->getOut()->getSize() - in2;
@@ -10493,23 +10578,26 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,VarnodeValues &values,vec
 	    res = mem.getValue(op->getIn(1)->getOffset() + in2,op->getOut()->getSize());
 	    values.putValue(out,res);
 	  }
+	  else if (largevalues.contains(op->getIn(1))) {
+	    ;
+	  }
 	  else if (op->getOut()->loneDescend() != (PcodeOp *)0) {
 	    PcodeOp *insertOp = op->getOut()->loneDescend();
-            insertOp = op->getOut()->loneDescend();
-	    while (insertOp != (PcodeOp *)0 && insertOp->code() == CPUI_MULTIEQUAL) {
-              insertOp = insertOp->getOut()->loneDescend();
-            }
-            if (insertOp != insertlist[0]) return (BlockBasic *)0;
-            if (!result.empty()) {
-              PcodeOp *newOp = data.newOp(2, endOp->getAddr());
-              data.opSetOpcode(newOp, CPUI_SUBPIECE);
-              Varnode *input = op->getIn(1);
-              data.opSetInput(newOp, input, 0);
-              input = data.newConstant(op->getIn(2)->getSize(), in2);
-              data.opSetInput(newOp, input, 1);
-              data.newUniqueOut(multiplier, newOp);
-              values.dynamicInsert = newOp;
-            }
+	    insertOp = op->getOut()->loneDescend();
+	    while (insertOp != (PcodeOp *) 0 && insertOp->code() == CPUI_MULTIEQUAL) {
+	      insertOp = insertOp->getOut()->loneDescend();
+	    }
+	    if (insertOp != insertlist[0]) continue;
+	    if (!result.empty()) {
+	      PcodeOp *newOp = data.newOp(2, endOp->getAddr());
+	      data.opSetOpcode(newOp, CPUI_SUBPIECE);
+	      Varnode *input = op->getIn(1);
+	      data.opSetInput(newOp, input, 0);
+	      input = data.newConstant(op->getIn(2)->getSize(), in2);
+	      data.opSetInput(newOp, input, 1);
+	      data.newUniqueOut(multiplier, newOp);
+	      values.dynamicInsert = newOp;
+	    }
 	  }
 	}
 	break;
@@ -10655,7 +10743,8 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   multiplier = 0;
   if (!initExtractInsertListsMultiplier(counterVn, counts)) return 0;
 
-  VarnodeValues values;
+  collectLargeVarnodeValues();
+
   values.putValue(counterVn,0);
   BlockBasic *curbl = (BlockBasic *)condBlock;
   BlockBasic *endbl = getNonFallthru(branchOp);
@@ -10664,7 +10753,7 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   while (curbl != endbl) {
     if (curbl == (BlockBasic *)0)
       return 0;
-    curbl = evaluateBlock(curbl,values,result,data); // This just validates code without changes
+    curbl = evaluateBlock(curbl,result,data); // This just validates code without changes
   }
 
   for (int4 i=0;i<counts;++i) {
@@ -10674,7 +10763,7 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   values.putValue(counterVn,0);
   curbl = (BlockBasic *)condBlock;
   while (curbl != endbl) {
-    curbl = evaluateBlock(curbl,values,result,data);
+    curbl = evaluateBlock(curbl,result,data);
   }
 
   Varnode *objinitval = insertlist[0]->getIn(1);
