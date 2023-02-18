@@ -1592,8 +1592,8 @@ public:
 class RuleByteLoop : public Rule {
   vector<PcodeOp *> extractlist;
   vector<PcodeOp *> insertlist;
-  intb multiplier;
-  PcodeOp *endOp;
+  intb multiplier = 0;
+  PcodeOp *endOp = (PcodeOp *)0;
   class VarnodeValues {
     map<Varnode *,uintb> vals;
   public:
@@ -1604,12 +1604,23 @@ class RuleByteLoop : public Rule {
     void putValue(Varnode *key,uintb value);
     uintb getValue(Varnode *key);
   };
+  class LargeVarnodeValues {
+    map<Varnode *,vector<char>> vals;
+  public:
+    map<Varnode *,vector<char>>::iterator getEntry(Varnode *key);
+    bool contains(Varnode *key);
+    vector<char> fetchValue(Varnode *key);
+    vector<char> getValue(Varnode *key);
+  };
+  VarnodeValues values;
+  LargeVarnodeValues largevalues;
   bool setCountsCountervn(PcodeOp *condOp,uintb &counts,Varnode *&counterVn);
   bool setInitOp(Varnode *counterVn,PcodeOp *&initOp);
   bool initExtractInsertListsMultiplier(Varnode *counterVn,uintb counts);
+  void collectLargeVarnodeValues();
   BlockBasic *getFallthru(PcodeOp *op);
   BlockBasic *getNonFallthru(PcodeOp *op);
-  BlockBasic *evaluateBlock(BlockBasic *bl,VarnodeValues &values,vector<PcodeOp*> &result,Funcdata &data);
+  BlockBasic *evaluateBlock(BlockBasic *bl,vector<PcodeOp*> &result,Funcdata &data);
 public:
   RuleByteLoop(const string &g) : Rule(g,0,"byteloop") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
