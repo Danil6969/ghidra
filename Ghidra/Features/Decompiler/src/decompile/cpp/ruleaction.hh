@@ -1590,6 +1590,8 @@ public:
 };
 
 class RuleByteLoop : public Rule {
+  vector<PcodeOp *> extractlist;
+  vector<PcodeOp *> insertlist;
   intb multiplier;
   PcodeOp *endOp;
   class VarnodeValues {
@@ -1602,14 +1604,14 @@ class RuleByteLoop : public Rule {
     void putValue(Varnode *key,uintb value);
     uintb getValue(Varnode *key);
   };
+  bool setCountsCountervn(PcodeOp *condOp,uintb &counts,Varnode *&counterVn);
+  bool setInitOp(Varnode *counterVn,PcodeOp *&initOp);
+  bool initExtractInsertListsMultiplier(Varnode *counterVn,uintb counts);
   BlockBasic *getFallthru(PcodeOp *op);
   BlockBasic *getNonFallthru(PcodeOp *op);
   BlockBasic *evaluateBlock(BlockBasic *bl,VarnodeValues &values,vector<PcodeOp*> &result,Funcdata &data);
 public:
-  RuleByteLoop(const string &g) : Rule(g,0,"byteloop") {
-    multiplier = 1;
-    endOp = (PcodeOp *)0;
-  }		///< Constructor
+  RuleByteLoop(const string &g) : Rule(g,0,"byteloop") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
     return new RuleByteLoop(getGroup());
