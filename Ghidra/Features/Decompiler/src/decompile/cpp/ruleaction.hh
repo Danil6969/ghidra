@@ -1605,12 +1605,12 @@ class RuleByteLoop : public Rule {
     uintb getValue(Varnode *key);
   };
   class LargeVarnodeValues {
-    map<Varnode *,vector<char>> vals;
+    map<Varnode *,vector<uint1>> vals;
   public:
-    map<Varnode *,vector<char>>::iterator getEntry(Varnode *key);
+    map<Varnode *,vector<uint1>>::iterator getEntry(Varnode *key);
     bool contains(Varnode *key);
-    vector<char> fetchValue(Varnode *key);
-    vector<char> getValue(Varnode *key);
+    vector<uint1> fetchValue(Varnode *key);
+    uintb getValue(Varnode *key,uintb off,int4 sz);
   };
   VarnodeValues values;
   LargeVarnodeValues largevalues;
