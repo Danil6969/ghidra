@@ -10410,10 +10410,10 @@ bool RuleByteLoop::initExtractInsertListsMultiplier(Varnode *counterVn,uintb cou
   return true;
 }
 
-map<Varnode *,vector<char>>::iterator RuleByteLoop::LargeVarnodeValues::getEntry(Varnode *key)
+map<Varnode *,vector<uint1>>::iterator RuleByteLoop::LargeVarnodeValues::getEntry(Varnode *key)
 
 {
-  map<Varnode *,vector<char>>::iterator iter;
+  map<Varnode *,vector<uint1>>::iterator iter;
   for(iter=vals.begin();iter!=vals.end();++iter) {
     Varnode *vn = (*iter).first;
     if (vn->getAddr()!=key->getAddr()) continue;
@@ -10429,23 +10429,30 @@ bool RuleByteLoop::LargeVarnodeValues::contains(Varnode *key)
   return getEntry(key) != vals.end();
 }
 
-vector<char> RuleByteLoop::LargeVarnodeValues::getValue(Varnode *key)
+uintb RuleByteLoop::LargeVarnodeValues::getValue(Varnode *key,uintb off,int4 sz)
 
 {
-  if (!contains(key)) return vector<char>();
-  return getEntry(key)->second;
+  uintb val = 0;
+  if (!contains(key)) return val;
+  if (sz > sizeof(uintb)) return val;
+  vector<uint1> a = getEntry(key)->second;
+  if (off + sz > a.size()) return val;
+  for (int4 i=0;i<sz;++i) {
+    val |= a[off+i]<<(i*8);
+  }
+  return val;
 }
 
 /// \brief compute and save value to the vals map
-vector<char> RuleByteLoop::LargeVarnodeValues::fetchValue(Varnode *key)
+vector<uint1> RuleByteLoop::LargeVarnodeValues::fetchValue(Varnode *key)
 
 {
-  if (contains(key)) return getValue(key);
-  vector<char> res; // empty vector
+  if (contains(key)) return getEntry(key)->second;
+  vector<uint1> res; // empty vector
   if (key->isConstant()) {
     uintb val = key->getOffset();
     for (int4 i=0;i<key->getSize();++i) {
-      char r = (val >> (8*i)) & 0xff;
+      char r = val >> (8*i);
       res.push_back(r);
     }
     vals[key] = res;
@@ -10454,7 +10461,7 @@ vector<char> RuleByteLoop::LargeVarnodeValues::fetchValue(Varnode *key)
   PcodeOp *curop = key->getDef();
   if (curop == (PcodeOp *)0) return res;
   OpCode opc = curop->code();
-  vector<char> in0,in1;
+  vector<uint1> in0,in1;
   int4 sz;
   switch (opc) {
     case CPUI_PIECE:
@@ -10467,6 +10474,7 @@ vector<char> RuleByteLoop::LargeVarnodeValues::fetchValue(Varnode *key)
       for (int4 i=0;i<in0.size();++i) {
         res.push_back(in0[i]);
       }
+      vals[key] = res;
       return res;
     case CPUI_INT_ZEXT:
       in0 = fetchValue(curop->getIn(0));
@@ -10569,21 +10577,22 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,vector<PcodeOp*> &result,
 	  if (!values.contains(op->getIn(2))) return (BlockBasic *)0;
 	  if (out == (Varnode *)0) continue;
 	  in2 = values.getValue(op->getIn(2));
-          if (in2 > sizeof(uintb)) continue;
+          if (out->getSize() > sizeof(uintb)) continue;
 	  if (op->getIn(1)->isReadOnly()) {
 	    if (op->getIn(1)->getAddr().isBigEndian()) {
-	      in2 = op->getIn(1)->getSize() - op->getOut()->getSize() - in2;
+	      in2 = op->getIn(1)->getSize() - out->getSize() - in2;
 	    }
 	    MemoryImage mem(op->getIn(1)->getSpace(),4,16,data.getArch()->loader);
 	    res = mem.getValue(op->getIn(1)->getOffset() + in2,op->getOut()->getSize());
 	    values.putValue(out,res);
 	  }
 	  else if (largevalues.contains(op->getIn(1))) {
-	    ;
+	    res = largevalues.getValue(op->getIn(1),in2,out->getSize());
+	    values.putValue(out,res);
 	  }
 	  else if (op->getOut()->loneDescend() != (PcodeOp *)0) {
-	    PcodeOp *insertOp = op->getOut()->loneDescend();
-	    insertOp = op->getOut()->loneDescend();
+	    PcodeOp *insertOp = out->loneDescend();
+	    insertOp = out->loneDescend();
 	    while (insertOp != (PcodeOp *) 0 && insertOp->code() == CPUI_MULTIEQUAL) {
 	      insertOp = insertOp->getOut()->loneDescend();
 	    }
