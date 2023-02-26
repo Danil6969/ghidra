@@ -17,18 +17,9 @@
 package ghidra.pcode.utils;
 
 import ghidra.program.model.address.Address;
-import ghidra.program.model.lang.InjectContext;
-import ghidra.program.model.lang.InjectPayload;
-import ghidra.program.model.lang.PcodeInjectLibrary;
-import ghidra.program.model.lang.PrototypeModel;
-import ghidra.program.model.listing.Function;
-import ghidra.program.model.listing.FunctionSignature;
-import ghidra.program.model.listing.Instruction;
-import ghidra.program.model.listing.Program;
-import ghidra.program.model.pcode.DataTypeSymbol;
-import ghidra.program.model.pcode.HighFunctionDBUtil;
-import ghidra.program.model.pcode.PcodeOp;
-import ghidra.program.model.pcode.Varnode;
+import ghidra.program.model.lang.*;
+import ghidra.program.model.listing.*;
+import ghidra.program.model.pcode.*;
 import ghidra.program.model.symbol.Symbol;
 
 import java.util.ArrayList;
@@ -56,10 +47,14 @@ public class InjectionUtils {
 			InjectContext con = snippetLibrary.buildInjectContext();
 			con.baseAddr = instr.getMinAddress();
 			con.nextAddr = con.baseAddr.add(instr.getDefaultFallThroughOffset());
-			PcodeOp[] pcodeOps = payload.getPcode(program, con);
-			if(pcodeOps.length == 0)
-				pcodeOps = null;
-			return pcodeOps;
+			try {
+				PcodeOp[] pcodeOps = payload.getPcode(program, con);
+				if(pcodeOps.length == 0) {
+					return null;
+				}
+				return pcodeOps;
+			}
+			catch (Exception e) {}
 		}
 		return null;
 	}
@@ -111,10 +106,14 @@ public class InjectionUtils {
 			InjectContext con = snippetLibrary.buildInjectContext();
 			con.baseAddr = instr.getMinAddress();
 			con.nextAddr = con.baseAddr.add(instr.getDefaultFallThroughOffset());
-			PcodeOp[] pcodeOps = payload.getPcode(program, con);
-			if(pcodeOps.length == 0)
-				pcodeOps = null;
-			return pcodeOps;
+			try {
+				PcodeOp[] pcodeOps = payload.getPcode(program, con);
+				if (pcodeOps.length == 0) {
+					return null;
+				}
+				return pcodeOps;
+			}
+			catch (Exception e) {}
 		}
 		return null;
 	}
@@ -150,10 +149,13 @@ public class InjectionUtils {
 				con.output = new ArrayList();
 				con.output.add(pcode.getOutput());
 			}
-			PcodeOp[] pcodeOps = payload.getPcode(program, con);
-			if (pcodeOps.length == 0)
-				pcodeOps = null;
-			return pcodeOps;
+			try {
+				PcodeOp[] pcodeOps = payload.getPcode(program, con);
+				if (pcodeOps.length == 0)
+					pcodeOps = null;
+				return pcodeOps;
+			}
+			catch (Exception e) {}
 		}
 		return null;
 	}
