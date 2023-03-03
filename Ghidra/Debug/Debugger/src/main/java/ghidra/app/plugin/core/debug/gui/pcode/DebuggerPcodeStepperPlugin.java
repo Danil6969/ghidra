@@ -29,7 +29,7 @@ import ghidra.framework.plugintool.util.PluginStatus;
 	description = "GUI to single-step emulation of p-code",
 	category = PluginCategoryNames.DEBUGGER,
 	packageName = DebuggerPluginPackage.NAME,
-	status = PluginStatus.UNSTABLE,
+	status = PluginStatus.RELEASED,
 	eventsConsumed = {
 		TraceActivatedPluginEvent.class,
 	},
