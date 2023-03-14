@@ -549,6 +549,9 @@ public class EmulatorHelper implements MemoryFaultHandler, EmulatorConfiguration
 			if (t instanceof CancelledException) {
 				throw (CancelledException) t;
 			}
+			Msg.error(this,
+				"Emulation failure at " + emulator.getExecuteAddress() + ": " + program.getName(),
+				t);
 		}
 	}
 
