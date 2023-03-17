@@ -236,8 +236,8 @@
   </prototype>
   <resolveprototype name="__fastcall/__thiscall/__stdcall">
      <model name="__stdcall"/>      <!-- The default case -->
+     <model name="__thiscall"/>     <!-- Used frequently -->
      <model name="__fastcall"/>
-     <model name="__thiscall"/>
   </resolveprototype>
   <eval_current_prototype name="__fastcall/__thiscall/__stdcall"/>
 
