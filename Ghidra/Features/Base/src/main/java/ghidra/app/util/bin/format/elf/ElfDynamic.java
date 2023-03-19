@@ -121,6 +121,14 @@ public class ElfDynamic {
     }
 
     /**
+     * Sets the value of this dynamic. The value could be an address or a number.
+     * @param value the new value dynamic
+     */
+    public void setValue(long value) {
+        this.d_val = value;
+    }
+
+    /**
      * A convenience method for getting a string representing the d_tag value.
      * For example, if d_tag == DT_SYMTAB, then this method returns "DT_SYMTAB".
      * @return a string representing the d_tag value
