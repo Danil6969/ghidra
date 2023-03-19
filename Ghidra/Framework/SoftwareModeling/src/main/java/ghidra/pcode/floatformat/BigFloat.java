@@ -151,6 +151,21 @@ public strictfp class BigFloat implements Comparable<BigFloat> {
 	}
 
 	/**
+	 * Return the BigFloat with the given number of bits representing the given BigInteger.
+	 *
+	 * @param fracbits number of fractional bits
+	 * @param expbits number of bits in the exponent
+	 * @param i an integer
+	 * @return a BigFloat representing i
+	 */
+	public static BigFloat valueOf(int fracbits, int expbits, BigInteger i) {
+		BigFloat f = new BigFloat(fracbits, expbits, FloatKind.FINITE, i.signum() >= 0 ? +1 : -1,
+				i.abs(), fracbits);
+		f.scaleUpTo(fracbits + 1);
+		return f;
+	}
+
+	/**
 	 * Return the BigFloat with the given number of bits representing zero.
 	 * 
 	 * @param fracbits number of fractional bits
