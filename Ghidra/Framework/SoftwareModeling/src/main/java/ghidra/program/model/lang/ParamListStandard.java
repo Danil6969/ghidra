@@ -74,7 +74,8 @@ public class ParamListStandard implements ParamList {
 			if (status[grp] >= 0) continue;
 			AddressSpace spc = element.getSpace();
 			if (spc.getType() == AddressSpace.TYPE_JOIN) {
-				Varnode[] pieces = element.getJoinRecord();
+				int sz = element.getSize();
+				Varnode[] pieces = element.getJoinPieces(sz);
 				usedVarnodes.addAll(Arrays.asList(pieces));
 			}
 			else {
@@ -90,12 +91,15 @@ public class ParamListStandard implements ParamList {
 			ParamEntry element) {
 		AddressSpace spc = element.getSpace();
 		Varnode[] varnodes;
-		if (spc.getType() == AddressSpace.TYPE_JOIN)
-			varnodes = element.getJoinRecord();
-		else
+		if (spc.getType() == AddressSpace.TYPE_JOIN) {
+			int sz = element.getSize();
+			varnodes = element.getJoinPieces(sz);
+		}
+		else {
 			varnodes = new Varnode[] {
 				new Varnode(spc.getAddress(element.getAddressBase()), element.getSize())
 			};
+		}
 		for (Varnode varnode1 : varnodes)
 			for (Varnode varnode2 : takenUpVarnodes)
 				if (varnode1.intersects(varnode2))
