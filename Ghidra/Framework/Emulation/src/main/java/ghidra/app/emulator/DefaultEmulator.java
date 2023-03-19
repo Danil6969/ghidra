@@ -28,6 +28,7 @@ import ghidra.program.disassemble.Disassembler;
 import ghidra.program.model.address.*;
 import ghidra.program.model.lang.*;
 import ghidra.program.model.listing.Instruction;
+import ghidra.program.model.listing.Program;
 import ghidra.util.*;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
@@ -59,6 +60,9 @@ public class DefaultEmulator implements Emulator {
 	private MemoryPageBank registerState;
 	private FilteredMemoryState memState;
 	private ghidra.pcode.emulate.BreakTableCallBack breakTable;
+	private Program program;
+	private ConstantPool cpool;
+	private ManagedMemory managedMemory;
 	private Emulate emulator;
 
 	private boolean emuHalt = true;
@@ -101,7 +105,10 @@ public class DefaultEmulator implements Emulator {
 		initMemState(mstate);
 
 		breakTable = new BreakTableCallBack(language);
-		emulator = new Emulate(language, memState, breakTable);
+		program = cfg.getProgram();
+		cpool = cfg.getConstantPool();
+		managedMemory = cfg.getManagedMemory();
+		emulator = new Emulate(program, language, memState, breakTable, cpool, managedMemory);
 
 		try {
 			setExecuteAddress(initialPC);
@@ -412,7 +419,7 @@ public class DefaultEmulator implements Emulator {
 		Address addr = getExecuteAddress();
 		EmulateMemoryStateBuffer memBuffer = new EmulateMemoryStateBuffer(memState, addr);
 
-		Disassembler disassembler = Disassembler.getDisassembler(language, addrFactory,
+		Disassembler disassembler = Disassembler.getDisassembler(program, language, addrFactory,
 			TaskMonitor.DUMMY, null);
 
 		boolean stopOnError = false;
