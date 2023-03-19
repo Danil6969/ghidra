@@ -317,10 +317,25 @@ public class ElfProgramHeader
 	 * the ELF file.
 	 * @param offset the new offset value
 	 */
-	void setOffset(long offset) {
+	public void setOffset(long offset) {
 		this.p_offset = offset;
 	}
-	
+
+	/**
+	 * Sets the file and memory size.
+	 * Note: the file size can be less than or
+	 * equal to the memory size. It cannot be larger.
+	 * If the file size is less than the memory size,
+	 * then the rest of the space is considered to be
+	 * uninitialized.
+	 * @param fileSize the new file size
+	 * @param memSize  the new memory size
+	 */
+	public void setSize(long fileSize, long memSize) {
+		p_filesz = fileSize;
+		p_memsz = memSize;
+	}
+
 	/**
 	 * On systems for which physical addressing is relevant, this member is reserved for the
 	 * segment's physical address. Because System V ignores physical addressing for application
