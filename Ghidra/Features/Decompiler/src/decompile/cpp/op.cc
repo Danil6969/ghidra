@@ -132,7 +132,6 @@ bool PcodeOp::isPureCall(void) const
 bool PcodeOp::isCollapsible(void) const
 
 {
-  if (code() == CPUI_COPY) return false;
   if ((flags & PcodeOp::nocollapse)!=0) return false;
   if (!isAssignment()) return false;
   if (inrefs.size()==0) return false;
