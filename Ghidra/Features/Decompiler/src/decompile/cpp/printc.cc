@@ -419,7 +419,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
       pushOp(&hidden,op);
       pushVn(op->getIn(0),op,mods);
     }
-    else if (op->getIn(0)->isConstant() || op->getIn(0)->isImplied()) {
+    else if (needsToArr(op->getIn(0))) {
       pushOp(&function_call,op);
       s << name << op->getIn(0)->getSize();
       pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
@@ -436,7 +436,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
       pushOp(&hidden,op);
       pushVn(op->getIn(1),op,mods);
     }
-    else if (op->getIn(1)->isConstant() || op->getIn(1)->isImplied()) {
+    else if (needsToArr(op->getIn(1))) {
       pushOp(&function_call,op);
       s << name << op->getIn(1)->getSize();
       pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
@@ -454,7 +454,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
       pushOp(&hidden,op);
       pushVn(op->getIn(0),op,mods);
     }
-    else if (op->getIn(0)->isConstant() || op->getIn(0)->isImplied()) {
+    else if (needsToArr(op->getIn(0))) {
       pushOp(&function_call,op);
       s << name << op->getIn(0)->getSize();
       pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
@@ -494,13 +494,13 @@ void PrintC::opTypeCast(const PcodeOp *op)
   if (!option_nocasts && !nameEquals) {
     bool outArr = op->getOut()->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
     bool inArr  = op->getIn(0)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
-    bool addr = !inArr && outArr && !op->getIn(0)->isConstant() && !op->getIn(0)->isImplied();
+    bool addr = !inArr && outArr && !needsToArr(op->getIn(0));
     if (!addr)
       pushOp(&function_call,op);
     if (inArr && !outArr)
       pushAtom(Atom("CASTARR",optoken,EmitMarkup::no_color,op)); // cast with dereference
     else if (!inArr && outArr) {
-      if (op->getIn(0)->isConstant() || op->getIn(0)->isImplied()) {
+      if (needsToArr(op->getIn(0))) {
 	ostringstream s;
 	s << "TOARR" << op->getOut()->getSize();
 	pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op)); // cast with array allocation on stack
@@ -513,7 +513,7 @@ void PrintC::opTypeCast(const PcodeOp *op)
     if (!addr)
       pushOp(&comma,op);
     pushVn(op->getIn(0),op,mods);
-    if (!inArr && outArr && (op->getIn(0)->isConstant() || op->getIn(0)->isImplied()))
+    if (!inArr && outArr && needsToArr(op->getIn(0)))
       pushType(op->getIn(0)->getHigh()->getType()); // TOARR prints input type
     else if (!addr)
       pushType(op->getOut()->getHigh()->getType()); // anything else prints output type except address
@@ -754,7 +754,7 @@ void PrintC::opExtractInd(const PcodeOp *op)
     pushOp(&hidden, op);
     pushVn(op->getIn(1), op, mods);
   }
-  else if (op->getIn(1)->isConstant() || op->getIn(1)->isImplied()) {
+  else if (needsToArr(op->getIn(1))) {
     pushOp(&function_call, op);
     s << name << op->getIn(1)->getSize();
     pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
@@ -798,7 +798,7 @@ void PrintC::opInsertInd(const PcodeOp *op)
     pushOp(&hidden, op);
     pushVn(op->getIn(1), op, mods);
   }
-  else if (op->getIn(1)->isConstant() || op->getIn(1)->isImplied()) {
+  else if (needsToArr(op->getIn(1))) {
     pushOp(&function_call, op);
     s << name << op->getIn(1)->getSize();
     pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
@@ -814,7 +814,7 @@ void PrintC::opInsertInd(const PcodeOp *op)
     pushOp(&hidden, op);
     pushVn(op->getIn(2), op, mods);
   }
-  else if (op->getIn(2)->isConstant() || op->getIn(2)->isImplied()) {
+  else if (needsToArr(op->getIn(2))) {
     pushOp(&function_call,op);
     s << name << op->getIn(2)->getSize();
     pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
