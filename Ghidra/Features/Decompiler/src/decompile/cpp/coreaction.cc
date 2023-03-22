@@ -2832,10 +2832,8 @@ bool ActionMarkExplicit::isArrFunc(PcodeOp *op)
 
 {
   uint4 opc = op->code();
-  if (opc == CPUI_INT_ZEXT)
-      return true;
-  if (opc == CPUI_INT_SEXT)
-      return true;
+  if (opc == CPUI_INT_ZEXT) return true;
+  if (opc == CPUI_INT_SEXT) return true;
   if (opc == CPUI_PIECE) return true;
   if (opc == CPUI_SUBPIECE) return true;
   if (opc == CPUI_CALLOTHER) {
@@ -2939,17 +2937,17 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
   }
 
   for(iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
-    PcodeOp *op = *iter;
-    uint4 opc = op->code();
+    PcodeOp *useOp = *iter;
+    uint4 opc = useOp->code();
     bool isIndexVn = false;
     if (opc == CPUI_CALLOTHER) {
-      string nm = op->getOpcode()->getOperatorName(op);
+      string nm = useOp->getOpcode()->getOperatorName(useOp);
       if (nm == Funcdata::extractind)
-        isIndexVn = (vn == op->getIn(2));
+        isIndexVn = (vn == useOp->getIn(2));
       else if (nm == Funcdata::insertind)
-        isIndexVn = (vn == op->getIn(3));
+        isIndexVn = (vn == useOp->getIn(3));
     }
-    if (isArrFunc(op) && !isIndexVn) return -1;
+    if (isArrFunc(useOp) && !isIndexVn) return -1;
     if ((opc == CPUI_CALL || opc == CPUI_CALLIND || opc == CPUI_CALLOTHER) && isArrFunc(def)) return -1;
     if (def->code() == CPUI_INT_ADD && opc == CPUI_LOAD) return -1;
   }
