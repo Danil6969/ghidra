@@ -44,6 +44,9 @@
         </pentry>
       </input>
       <output>
+        <pentry minsize="4" maxsize="10" metatype="float" extension="float">
+          <register name="ST0"/>
+        </pentry>
         <pentry minsize="1" maxsize="4">
           <register name="EAX"/>
         </pentry>
@@ -69,6 +72,9 @@
       </pentry>
     </input>
     <output>
+      <pentry minsize="4" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="EAX"/>
       </pentry>
@@ -97,6 +103,9 @@
       </pentry>
     </input>
     <output>
+      <pentry minsize="4" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="EAX"/>
       </pentry>
