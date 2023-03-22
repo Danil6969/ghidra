@@ -371,6 +371,15 @@ bool PrintC::needsToArr(const Varnode *vn) const
 {
   if (vn->isConstant()) return true;
   if (vn->isImplied()) return true;
+  HighVariable *high = vn->getHigh();
+  if (high == (HighVariable *)0) return true; // Every explicit vn must have its highvariable
+  Symbol *sym = high->getSymbol();
+  if (sym == (Symbol *)0) return true; // Every explicit vn must have its symbol
+  int4 symsz = sym->getType()->getSize();
+  int4 vnsz = vn->getSize();
+  // If sizes don't match additional operators will be inserted
+  // so TOARR is must be printed anyway
+  if (symsz != vnsz) return true;
   return false;
 }
 
