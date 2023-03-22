@@ -366,6 +366,14 @@ bool PrintC::checkArrayDeref(const Varnode *vn) const
   return true;
 }
 
+bool PrintC::needsToArr(const Varnode *vn) const
+
+{
+  if (vn->isConstant()) return true;
+  if (vn->isImplied()) return true;
+  return false;
+}
+
 /// This is used for expression that require functional syntax, where the name of the
 /// function is the name of the operator. The inputs to the p-code op form the roots
 /// of the comma separated list of \e parameters within the syntax.
