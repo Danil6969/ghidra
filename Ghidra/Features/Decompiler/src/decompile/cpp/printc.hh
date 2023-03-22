@@ -170,6 +170,7 @@ protected:
   virtual bool doEmitWideCharPrefix(void) const;
   
   bool checkArrayDeref(const Varnode *vn) const;	///< Determine whether a LOAD/STORE expression requires pointer '*' syntax
+  bool needsToArr(const Varnode *vn) const;		///< Determine whether TOARR is required because of rvalue restrictions
   void emitStructDefinition(const TypeStruct *ct);	///< Emit the definition of a \e structure data-type
   void emitEnumDefinition(const TypeEnum *ct);		///< Emit the definition of an \e enumeration data-type
   void emitPrototypeOutput(const FuncProto *proto,const Funcdata *fd);	///< Emit the output data-type of a function prototype
