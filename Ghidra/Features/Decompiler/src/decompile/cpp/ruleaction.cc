@@ -10580,7 +10580,7 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,vector<PcodeOp*> &result,
 	  if (out == (Varnode *)0) continue;
 	  in2 = values.getValue(op->getIn(2));
           if (out->getSize() > sizeof(uintb)) continue;
-	  if (op->getIn(1)->isReadOnly()) {
+	  if (cachereadonly&&op->getIn(1)->isReadOnly()) {
 	    if (op->getIn(1)->getAddr().isBigEndian()) {
 	      in2 = op->getIn(1)->getSize() - out->getSize() - in2;
 	    }
@@ -10737,6 +10737,7 @@ void RuleByteLoop::getOpList(vector<uint4> &oplist) const
 int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
 
 {
+  cachereadonly = data.getArch()->readonlypropagate;
   PcodeOp *branchOp = op;
   FlowBlock *condBlock = branchOp->getParent();
   if (!condBlock->hasLoopIn()) return 0;
