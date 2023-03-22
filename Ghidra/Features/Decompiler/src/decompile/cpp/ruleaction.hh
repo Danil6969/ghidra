@@ -1590,6 +1590,7 @@ public:
 };
 
 class RuleByteLoop : public Rule {
+  bool cachereadonly;
   vector<PcodeOp *> extractlist;
   vector<PcodeOp *> insertlist;
   intb multiplier = 0;
