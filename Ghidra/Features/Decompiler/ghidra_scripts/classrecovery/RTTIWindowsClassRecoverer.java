@@ -26,6 +26,7 @@ import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.flatapi.FlatProgramAPI;
 import ghidra.program.model.address.*;
 import ghidra.program.model.data.*;
+import ghidra.program.model.lang.CompilerSpecID;
 import ghidra.program.model.listing.*;
 import ghidra.program.model.mem.MemoryAccessException;
 import ghidra.program.model.mem.MemoryBlock;
@@ -192,9 +193,23 @@ public class RTTIWindowsClassRecoverer extends RTTIClassRecoverer {
 	}
 
 	private boolean isVisualStudioOrClangPe() {
-		return program.getExecutableFormat().equals(PeLoader.PE_NAME) &&
-			(program.getCompiler().equals(CompilerEnum.VisualStudio.toString()) ||
-				program.getCompiler().equals(CompilerEnum.Clang.toString()));
+		CompilerSpecID compilerSpecID = program.getCompilerSpec().getCompilerSpecID();
+		String compilerIdString = compilerSpecID.getIdAsString();
+		String compilerString = program.getCompiler();
+
+		boolean compilerIdMatches = "windows".equals(compilerIdString);
+		compilerIdMatches |= "clangwindows".equals(compilerIdString);
+
+		boolean compilerStringMatches = compilerString.equals(CompilerEnum.VisualStudio.toString());
+		compilerStringMatches |= compilerString.equals(CompilerEnum.Clang.toString());
+
+		boolean res = program.getExecutableFormat().equals(PeLoader.PE_NAME); // Check executable format
+		res &= compilerIdMatches;
+
+		// This one may fail even though program can be valid, just skip for now
+		// res &= compilerStringMatches;
+
+		return res;
 	}
 
 	private boolean hasTypeInfoVftable() throws CancelledException {
