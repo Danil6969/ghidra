@@ -24,6 +24,7 @@ import ghidra.app.util.bin.format.pe.Constants;
 import ghidra.app.util.opinion.BinaryLoader;
 import ghidra.app.util.opinion.PeLoader;
 import ghidra.app.util.opinion.PeLoader.CompilerOpinion.CompilerEnum;
+import ghidra.program.model.lang.CompilerSpecID;
 import ghidra.program.model.listing.Program;
 
 public class PEUtil {
@@ -55,9 +56,23 @@ public class PEUtil {
 	}
 
 	static public boolean isVisualStudioOrClangPe(Program program) {
-		return program.getExecutableFormat().equals(PeLoader.PE_NAME) &&
-			(program.getCompiler().equals(CompilerEnum.VisualStudio.toString()) ||
-				program.getCompiler().equals(CompilerEnum.Clang.toString()));
+		CompilerSpecID compilerSpecID = program.getCompilerSpec().getCompilerSpecID();
+		String compilerIdString = compilerSpecID.getIdAsString();
+		String compilerString = program.getCompiler();
+
+		boolean compilerIdMatches = "windows".equals(compilerIdString);
+		compilerIdMatches |= "clangwindows".equals(compilerIdString);
+
+		boolean compilerStringMatches = compilerString.equals(CompilerEnum.VisualStudio.toString());
+		compilerStringMatches |= compilerString.equals(CompilerEnum.Clang.toString());
+
+		boolean res = program.getExecutableFormat().equals(PeLoader.PE_NAME); // Check executable format
+		res &= compilerIdMatches;
+
+		// This one may fail even though program can be valid, just skip for now
+		// res &= compilerStringMatches;
+
+		return res;
 	}
 
 }
