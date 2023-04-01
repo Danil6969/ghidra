@@ -102,6 +102,7 @@ void TypeOp::registerInstructions(vector<TypeOp *> &inst,TypeFactory *tlst,
   inst[CPUI_INSERT] = new TypeOpInsert(tlst);
   inst[CPUI_EXTRACT] = new TypeOpExtract(tlst);
   inst[CPUI_POPCOUNT] = new TypeOpPopcount(tlst);
+  inst[CPUI_LZCOUNT] = new TypeOpLzcount(tlst);
 }
 
 /// Change basic data-type info (signed vs unsigned) and operator names ( '>>' vs '>>>' )
@@ -1978,6 +1979,12 @@ string TypeOpPiece::getOperatorName(const PcodeOp *op) const
   return s.str();
 }
 
+Datatype *TypeOpPiece::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
+
+{
+  return (Datatype *)0;		// Never need a cast into a PIECE
+}
+
 Datatype *TypeOpPiece::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
 
 {
@@ -2003,6 +2010,12 @@ string TypeOpSubpiece::getOperatorName(const PcodeOp *op) const
 
   s << name << dec << op->getIn(0)->getSize() << '_' << op->getOut()->getSize();
   return s.str();
+}
+
+Datatype *TypeOpSubpiece::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
+
+{
+  return (Datatype *)0;		// Never need a cast into a SUBPIECE
 }
 
 Datatype *TypeOpSubpiece::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
@@ -2402,4 +2415,11 @@ TypeOpPopcount::TypeOpPopcount(TypeFactory *t)
 {
   opflags = PcodeOp::unary;
   behave = new OpBehaviorPopcount();
+}
+
+TypeOpLzcount::TypeOpLzcount(TypeFactory *t)
+  : TypeOpFunc(t,CPUI_LZCOUNT,"LZCOUNT",TYPE_INT,TYPE_UNKNOWN)
+{
+  opflags = PcodeOp::unary;
+  behave = new OpBehaviorLzcount();
 }
