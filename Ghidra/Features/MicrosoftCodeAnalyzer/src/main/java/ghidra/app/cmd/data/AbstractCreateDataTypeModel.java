@@ -121,10 +121,20 @@ public abstract class AbstractCreateDataTypeModel {
 		CompilerSpecID compilerSpecID = program.getCompilerSpec().getCompilerSpecID();
 		String compilerIdString = compilerSpecID.getIdAsString();
 		String compilerString = program.getCompiler();
-		return ("windows".equals(compilerIdString) || "clangwindows".equals(compilerIdString)) &&
-			program.getExecutableFormat().equals(PeLoader.PE_NAME) &&
-			(compilerString.equals(CompilerEnum.VisualStudio.toString()) ||
-				compilerString.equals(CompilerEnum.Clang.toString()));
+
+		boolean compilerIdMatches = "windows".equals(compilerIdString);
+		compilerIdMatches |= "clangwindows".equals(compilerIdString);
+
+		boolean compilerStringMatches = compilerString.equals(CompilerEnum.VisualStudio.toString());
+		compilerStringMatches |= compilerString.equals(CompilerEnum.Clang.toString());
+
+		boolean res = program.getExecutableFormat().equals(PeLoader.PE_NAME); // Check executable format
+		res &= compilerIdMatches;
+
+		// This one may fail even though program can be valid, just skip for now
+		// res &= compilerStringMatches;
+
+		return res;
 	}
 
 	/**
