@@ -15,7 +15,7 @@
  */
 package ghidra.program.model.data;
 
-public class UINTPTR_TDataType extends AbstractIntegerDataType {
+public class UINTPTR_TDataType extends AbstractUnsignedIntegerDataType {
 
 	private static final long serialVersionUID = 1L;
 
@@ -27,7 +27,7 @@ public class UINTPTR_TDataType extends AbstractIntegerDataType {
 	}
 
 	public UINTPTR_TDataType(DataTypeManager dtm) {
-		super("uintptr_t", false, dtm);
+		super("uintptr_t", dtm);
 	}
 
 	@Override
