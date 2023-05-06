@@ -92,7 +92,7 @@ public class InjectionUtils {
 				catch (IllegalArgumentException e) {}
 				if (datsym != null) {
 					FunctionSignature dt = (FunctionSignature) datsym.getDataType();
-					nm = dt.getGenericCallingConvention().getDeclarationName();
+					nm = dt.getCallingConventionName();
 				}
 			}
 		}
