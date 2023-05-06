@@ -344,14 +344,6 @@ public class FloatFormat {
 			bf.unscaled.shiftLeft(effective_frac_size - bf.fracbits), bf.scale);
 	}
 
-	public BigFloat getBigFloat(BigDecimal b) {
-		b = b.stripTrailingZeros();
-		BigFloat bf = BigFloat.valueOf(frac_size, exp_size, b.unscaledValue());
-		BigFloat div = BigFloat.valueOf(frac_size, exp_size, BigInteger.TEN.pow(b.scale()));
-		bf.div(div);
-		return bf;
-	}
-
 	/**
 	 * Decode {@code encoding} to a BigFloat using this format.
 	 * 
@@ -1226,6 +1218,8 @@ public class FloatFormat {
 		if (val.equals(BigDecimal.ZERO)) {
 			return BigFloat.zero(effective_frac_size, exp_size);
 		}
+		
+		value = value.stripTrailingZeros();
 
 		BigFloat bf;
 		int scale10 = val.scale();
@@ -1270,13 +1264,13 @@ public class FloatFormat {
 	}
 
 	public BigInteger opLog(BigInteger a) { // binary logarithm of a
-		BigFloat fa = getHostFloat(a);
+		BigFloat fa = decodeBigFloat(a);
 		fa.log2();
 		return getEncoding(fa);
 	}
 
 	public BigInteger opExp(BigInteger a) { // binary logarithm of a
-		BigFloat fa = getHostFloat(a);
+		BigFloat fa = decodeBigFloat(a);
 		fa.exp2();
 		return getEncoding(fa);
 	}
