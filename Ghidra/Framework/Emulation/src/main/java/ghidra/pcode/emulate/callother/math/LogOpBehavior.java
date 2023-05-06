@@ -33,7 +33,7 @@ public class LogOpBehavior implements OpBehaviorOther {
 		MemoryState memoryState = emu.getMemoryState();
 		BigInteger in = memoryState.getBigInteger(inputs[1], true);
 		FloatFormat format = FloatFormatFactory.getFloatFormat(inputs[1].getSize());
-		BigDecimal res = BigDecimalUtil.log(new BigDecimal("2.0"), format.getHostFloat(in).toBigDecimal());
+		BigDecimal res = BigDecimalUtil.log(new BigDecimal("2.0"), format.decodeBigFloat(in).toBigDecimal());
 		BigInteger encoding = format.getEncoding(format.getBigFloat(res));
 		memoryState.setValue(out, encoding);
 	}
