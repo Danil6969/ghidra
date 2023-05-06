@@ -16,11 +16,13 @@
 /// \file printc.hh
 /// \brief Classes to support the c-language back-end of the decompiler
 
-#ifndef __PRINTC__
-#define __PRINTC__
+#ifndef __PRINTC_HH__
+#define __PRINTC_HH__
 
 #include "printlanguage.hh"
 #include "comment.hh"
+
+namespace ghidra {
 
 class FuncProto;
 class JumpTable;
@@ -350,4 +352,5 @@ public:
   virtual void callback(Emit *emit);
 };
 
+} // End namespace ghidra
 #endif

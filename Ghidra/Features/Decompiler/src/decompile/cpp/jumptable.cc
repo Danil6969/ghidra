@@ -17,6 +17,9 @@
 #include "emulate.hh"
 #include "flow.hh"
 
+namespace ghidra {
+
+
 AttributeId ATTRIB_LABEL = AttributeId("label",131);
 AttributeId ATTRIB_NUM = AttributeId("num",132);
 
@@ -341,9 +344,14 @@ bool JumpValuesRangeDefault::contains(uintb val) const
 bool JumpValuesRangeDefault::initializeForReading(void) const
 
 {
-  if (range.getSize()==0) return false;
-  curval = range.getMin();
-  lastvalue = false;
+  if (range.getSize()==0) {
+    curval = extravalue;
+    lastvalue = true;
+  }
+  else {
+    curval = range.getMin();
+    lastvalue = false;
+  }
   return true;
 }
 
@@ -2686,8 +2694,7 @@ bool JumpTable::recoverLabels(Funcdata *fd)
   return multistagerestart;
 }
 
-/// Clear out any data that is specific to a Funcdata instance.  The address table is not cleared
-/// if it was recovered, and override information is left intact.
+/// Clear out any data that is specific to a Funcdata instance.
 /// Right now this is only getting called, when the jumptable is an override in order to clear out derived data.
 void JumpTable::clear(void)
 
@@ -2702,12 +2709,14 @@ void JumpTable::clear(void)
     delete jmodel;
     jmodel = (JumpModel *)0;
   }
+  addresstable.clear();
   block2addr.clear();
   lastBlock = -1;
   label.clear();
   loadpoints.clear();
   indirect = (PcodeOp *)0;
   switchVarConsume = ~((uintb)0);
+  defaultBlock = -1;
   recoverystage = 0;
   // -opaddress- -maxtablesize- -maxaddsub- -maxleftright- -maxext- -collectloads- are permanent
 }
@@ -2811,3 +2820,5 @@ bool JumpTable::checkForMultistage(Funcdata *fd)
   }
   return false;
 }
+
+} // End namespace ghidra

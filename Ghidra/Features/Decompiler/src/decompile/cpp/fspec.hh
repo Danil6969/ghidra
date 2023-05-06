@@ -16,11 +16,13 @@
 /// \file fspec.hh
 /// \brief Definitions for specifying functions prototypes
 
-#ifndef __CPUI_FSPEC__
-#define __CPUI_FSPEC__
+#ifndef __FSPEC_HH__
+#define __FSPEC_HH__
 
 #include "op.hh"
 #include "rangemap.hh"
+
+namespace ghidra {
 
 class JoinRecord;
 
@@ -1607,11 +1609,15 @@ class FuncCallSpecs : public FuncProto {
   Varnode *buildParam(Funcdata &data,Varnode *vn,ProtoParameter *param,Varnode *stackref);
   int4 transferLockedInputParam(ProtoParameter *param);
   PcodeOp *transferLockedOutputParam(ProtoParameter *param);
-  bool transferLockedInput(vector<Varnode *> &newinput);
-  bool transferLockedOutput(Varnode *&newoutput);
+  bool transferLockedInput(vector<Varnode *> &newinput,const FuncProto &source);
+  bool transferLockedOutput(Varnode *&newoutput,const FuncProto &source);
   void commitNewInputs(Funcdata &data,vector<Varnode *> &newinput);
   void commitNewOutputs(Funcdata &data,Varnode *newout);
   void collectOutputTrialVarnodes(vector<Varnode *> &trialvn);
+  void setStackPlaceholderSlot(int4 slot) { stackPlaceholderSlot = slot;
+      if (isinputactive) activeinput.setPlaceholderSlot(); }	///< Set the slot of the stack-pointer placeholder
+  void clearStackPlaceholderSlot(void) {
+    stackPlaceholderSlot = -1; if (isinputactive) activeinput.freePlaceholderSlot(); }	///< Release the stack-pointer placeholder
 public:
   enum {
     offset_unknown = 0xBADBEEF					///< "Magic" stack offset indicating the offset is unknown
@@ -1631,10 +1637,6 @@ public:
   int4 getParamshift(void) const { return paramshift; }		///< Get the parameter shift for this call site
   int4 getMatchCallCount(void) const { return matchCallCount; }	///< Get the number of calls the caller makes to \b this sub-function
   int4 getStackPlaceholderSlot(void) const { return stackPlaceholderSlot; }	///< Get the slot of the stack-pointer placeholder
-  void setStackPlaceholderSlot(int4 slot) { stackPlaceholderSlot = slot;
-      if (isinputactive) activeinput.setPlaceholderSlot(); }	///< Set the slot of the stack-pointer placeholder
-  void clearStackPlaceholderSlot(void) {
-    stackPlaceholderSlot = -1; if (isinputactive) activeinput.freePlaceholderSlot(); }	///< Release the stack-pointer placeholder
 
   void initActiveInput(void);			 ///< Turn on analysis recovering input parameters
   void clearActiveInput(void) { isinputactive = false; }	///< Turn off analysis recovering input parameters
@@ -1653,6 +1655,7 @@ public:
   void deindirect(Funcdata &data,Funcdata *newfd);
   void forceSet(Funcdata &data,const FuncProto &fp);
   void insertPcode(Funcdata &data);
+  void createPlaceholder(Funcdata &data,AddrSpace *spacebase);
   void resolveSpacebaseRelative(Funcdata &data,Varnode *phvn);
   void abortSpacebaseRelative(Funcdata &data);
   void finalInputCheck(void);
@@ -1721,4 +1724,5 @@ inline bool EffectRecord::operator!=(const EffectRecord &op2) const
   return (type != op2.type);
 }
 
+} // End namespace ghidra
 #endif

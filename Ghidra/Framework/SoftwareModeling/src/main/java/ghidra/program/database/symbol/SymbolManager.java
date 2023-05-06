@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 
 import db.*;
+import db.util.ErrorHandler;
 import ghidra.program.database.*;
 import ghidra.program.database.code.CodeManager;
 import ghidra.program.database.external.ExternalManagerDB;
@@ -63,6 +64,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 	private LabelHistoryAdapter historyAdapter;
 
 	private DBObjectCache<SymbolDB> cache;
+	private ErrorHandler errHandler;
 	private ProgramDB program;
 	private ReferenceDBManager refManager;
 	private NamespaceManager namespaceMgr;
@@ -81,22 +83,26 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 	 * @param handle the database handler
 	 * @param addrMap the address map.
 	 * @param openMode the open mode.
+	 * @param errHandler database error handler
 	 * @param lock the program synchronization lock
 	 * @param monitor the progress monitor used when upgrading.
 	 * @throws CancelledException if the user cancels the upgrade.
 	 * @throws IOException if a database io error occurs.
 	 * @throws VersionException if the database version doesn't match the current version.
 	 */
-	public SymbolManager(DBHandle handle, AddressMap addrMap, int openMode, Lock lock,
-			TaskMonitor monitor) throws CancelledException, IOException, VersionException {
+	public SymbolManager(DBHandle handle, AddressMap addrMap, int openMode, ErrorHandler errHandler,
+			Lock lock, TaskMonitor monitor)
+			throws CancelledException, IOException, VersionException {
 
 		this.addrMap = addrMap;
+		this.errHandler = errHandler;
 		this.lock = lock;
 		dynamicSymbolAddressMap = new AddressMapImpl((byte) 0x40, addrMap.getAddressFactory());
 		initializeAdapters(handle, openMode, monitor);
 		cache = new DBObjectCache<>(100);
 
-		variableStorageMgr = new VariableStorageManagerDB(handle, addrMap, openMode, lock, monitor);
+		variableStorageMgr =
+			new VariableStorageManagerDB(handle, addrMap, openMode, errHandler, lock, monitor);
 
 		if (openMode == DBConstants.UPGRADE &&
 			OldVariableStorageManagerDB.isOldVariableStorageManagerUpgradeRequired(handle)) {
@@ -140,7 +146,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 		this.program = program;
 		refManager = program.getReferenceManager();
 		namespaceMgr = program.getNamespaceManager();
-		variableStorageMgr.setProgram(program);
+		variableStorageMgr.setProgramArchitecture(program);
 	}
 
 	@Override
@@ -175,6 +181,14 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 				processOldVariableAddresses(monitor);
 			}
 		}
+	}
+
+	/**
+	 * Get the variable storage manager used by this symbol table
+	 * @return varable storage manager
+	 */
+	public VariableStorageManager getVariableStorageManager() {
+		return variableStorageMgr;
 	}
 
 	/**
@@ -229,7 +243,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 			adapter.getSymbols(AddressSpace.EXTERNAL_SPACE.getMinAddress(),
 				AddressSpace.EXTERNAL_SPACE.getMaxAddress(), true);
 		while (symbolRecordIterator.hasNext()) {
-			monitor.checkCanceled();
+			monitor.checkCancelled();
 			DBRecord rec = symbolRecordIterator.next();
 			rec.setByteValue(SymbolDatabaseAdapter.SYMBOL_TYPE_COL, SymbolType.LABEL.getID());
 			adapter.updateSymbolRecord(rec);
@@ -257,7 +271,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 
 		RecordIterator symbolRecordIterator = adapter.getSymbols();
 		while (symbolRecordIterator.hasNext()) {
-			monitor.checkCanceled();
+			monitor.checkCancelled();
 			monitor.setProgress(++cnt);
 			DBRecord rec = symbolRecordIterator.next();
 			long addr = rec.getLongValue(SymbolDatabaseAdapter.SYMBOL_ADDR_COL);
@@ -319,7 +333,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 			Address curVarAddr = null;
 			long curDataTypeId = -1;
 			while (recIter.hasNext()) {
-				monitor.checkCanceled();
+				monitor.checkCancelled();
 				DBRecord rec = recIter.next();
 				Address addr =
 					addrMap.decodeAddress(rec.getLongValue(SymbolDatabaseAdapter.SYMBOL_ADDR_COL));
@@ -389,7 +403,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 
 		RecordIterator iter = table.iterator();
 		while (iter.hasNext()) {
-			monitor.checkCanceled();
+			monitor.checkCancelled();
 			DBRecord rec = iter.next();
 			Address addr = oldAddrMap.decodeAddress(rec.getKey());
 			refManager.addExternalEntryPointRef(addr);
@@ -420,7 +434,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 
 		RecordIterator iter = table.iterator();
 		while (iter.hasNext()) {
-			monitor.checkCanceled();
+			monitor.checkCancelled();
 			DBRecord rec = iter.next();
 			Address addr = oldAddrMap.decodeAddress(rec.getLongValue(OLD_SYMBOL_ADDR_COL));
 			Namespace namespace = namespaceMgr.getNamespaceContaining(addr);
@@ -1579,7 +1593,7 @@ public class SymbolManager implements SymbolTable, ManagerDB {
 	}
 
 	void dbError(IOException e) {
-		program.dbError(e);
+		errHandler.dbError(e);
 	}
 
 	void validateSource(String name, Address address, SymbolType symbolType, SourceType source) {

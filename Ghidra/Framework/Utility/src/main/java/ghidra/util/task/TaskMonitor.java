@@ -116,11 +116,11 @@ public interface TaskMonitor {
 	public boolean isIndeterminate();
 
 	/**
-	 * (Use {@link #checkCancelled()} instead)
-	 *
-	 * Check to see if this monitor has been cancelled.
+	 * Check to see if this monitor has been cancelled
 	 * @throws CancelledException if monitor has been cancelled
+	 * @deprecated Use {@link #checkCancelled()} instead
 	 */
+	@Deprecated(since = "10.3")
 	public void checkCanceled() throws CancelledException;
 
 	/**
@@ -128,7 +128,7 @@ public interface TaskMonitor {
 	 * @throws CancelledException if monitor has been cancelled
 	 */
 	public default void checkCancelled() throws CancelledException {
-		// note: call checkCanceled() until it is removed; this produces the least number of changes
+		// note: call checkCancelled() until it is removed; this produces the least number of changes
 		checkCanceled();
 	}
 
@@ -174,17 +174,17 @@ public interface TaskMonitor {
 	public boolean isCancelEnabled();
 
 	/**
-	 * (Use {@link #clearCancelled()} instead)
-	 * <p>
 	 * Clear the cancellation so that this TaskMonitor may be reused
+	 * @deprecated Use {@link #clearCancelled()} instead
 	 */
+	@Deprecated(since = "10.3")
 	public void clearCanceled();
 
 	/**
 	 * Clear the cancellation so that this TaskMonitor may be reused
 	 */
 	public default void clearCancelled() {
-		// note: call clearCanceled() until it is removed; this produces the least number of changes
+		// note: call clearCancelled() until it is removed; this produces the least number of changes
 		clearCanceled();
 	}
 }

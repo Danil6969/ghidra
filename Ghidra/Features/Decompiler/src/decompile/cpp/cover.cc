@@ -16,6 +16,8 @@
 #include "cover.hh"
 #include "block.hh"
 
+namespace ghidra {
+
 const CoverBlock Cover::emptyBlock;
 
 /// PcodeOp objects and a CoverBlock start/stop boundaries have
@@ -563,3 +565,5 @@ void Cover::print(ostream &s) const
     s << endl;
   }
 }
+
+} // End namespace ghidra

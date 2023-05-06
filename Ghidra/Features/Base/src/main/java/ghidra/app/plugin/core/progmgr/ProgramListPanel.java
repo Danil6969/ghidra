@@ -31,7 +31,7 @@ import javax.swing.text.Document;
 
 import docking.widgets.list.GListCellRenderer;
 import generic.theme.GColor;
-import generic.theme.GThemeDefaults.Colors.Java;
+import generic.theme.GThemeDefaults.Colors;
 import ghidra.program.model.listing.Program;
 
 /**
@@ -115,8 +115,13 @@ class ProgramListPanel extends JPanel {
 		listModel = new DefaultListModel<>();
 		initListModel();
 		programList = new JList<>(listModel);
-		programList.setBackground(BACKGROUND_COLOR);
-		programList.setForeground(FOREGROUND_COLOR);
+
+		// Some LaFs use different selection colors depending on whether the list has focus.  This
+		// list does not get focus, so the selection color does not look correct when interacting 
+		// with the list.   Setting the color here updates the list to always use the focused
+		// selected color.
+		programList.setSelectionBackground(new GColor("system.color.bg.selected.view"));
+
 		programList.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
 		programList.addMouseMotionListener(new MouseMotionAdapter() {
 			@Override
@@ -149,7 +154,7 @@ class ProgramListPanel extends JPanel {
 
 		// add some padding around the panel
 		Border innerBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5);
-		Border outerBorder = BorderFactory.createLineBorder(Java.BORDER);
+		Border outerBorder = BorderFactory.createLineBorder(Colors.BORDER);
 		Border compoundBorder = BorderFactory.createCompoundBorder(outerBorder, innerBorder);
 		setBorder(compoundBorder);
 
@@ -259,5 +264,6 @@ class ProgramListPanel extends JPanel {
 
 			return this;
 		}
+
 	}
 }

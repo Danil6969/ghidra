@@ -16,6 +16,7 @@
 package docking.theme.gui;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Supplier;
@@ -37,13 +38,14 @@ import ghidra.util.table.column.GColumnRenderer;
  * Table model for theme colors
  */
 public class ThemeColorTableModel extends GDynamicColumnTableModel<ColorValue, Object> {
-	private List<ColorValue> colors;
+	protected List<ColorValue> colors;
 	private GThemeValueMap currentValues;
 	private GThemeValueMap themeValues;
 	private GThemeValueMap defaultValues;
 	private GThemeValueMap lightDefaultValues;
 	private GThemeValueMap darkDefaultValues;
 	private GThemeValuesCache valuesCache;
+	private boolean showSystemValues;
 
 	public ThemeColorTableModel(GThemeValuesCache valuesProvider) {
 		super(new ServiceProviderStub());
@@ -51,12 +53,21 @@ public class ThemeColorTableModel extends GDynamicColumnTableModel<ColorValue, O
 		load();
 	}
 
+	public void setShowSystemValues(boolean show) {
+		this.showSystemValues = show;
+	}
+
+	public boolean isShowingSystemValues() {
+		return showSystemValues;
+	}
+
 	/**
-	 * Reloads the just the current values shown in the table. Called whenever a color changes.
-	 */
+		 * Reloads the just the current values shown in the table. Called whenever a color changes.
+		 */
 	public void reloadCurrent() {
 		currentValues = valuesCache.getCurrentValues();
 		colors = currentValues.getColors();
+		filter();
 		fireTableDataChanged();
 	}
 
@@ -81,6 +92,27 @@ public class ThemeColorTableModel extends GDynamicColumnTableModel<ColorValue, O
 		lightDefaultValues = valuesCache.getLightValues();
 		darkDefaultValues = valuesCache.getDarkValues();
 
+		filter();
+	}
+
+	protected void filter() {
+
+		List<ColorValue> filtered = new ArrayList<>();
+
+		for (ColorValue colorValue : colors) {
+			String id = colorValue.getId();
+			if (showSystemValues) {
+				filtered.add(colorValue);
+				continue;
+			}
+
+			if (!Gui.isSystemId(id)) {
+				filtered.add(colorValue);
+			}
+
+		}
+
+		colors = filtered;
 	}
 
 	@Override
@@ -266,5 +298,6 @@ public class ThemeColorTableModel extends GDynamicColumnTableModel<ColorValue, O
 		}
 	}
 
-	private record ResolvedColor(String id, String refId, Color color) { /**/ }
+	private record ResolvedColor(String id, String refId, Color color) {
+		/**/ }
 }

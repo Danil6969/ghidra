@@ -188,7 +188,7 @@ public class AutoAnalysisPlugin extends Plugin implements AutoAnalysisManagerLis
 
 		// check if this is the first time this program is being analyzed. If so,
 		// schedule a callback when it is completed to send a FirstTimeAnalyzedPluginEvent
-		boolean isAnalyzed = GhidraProgramUtilities.isAnalyzedFlagSet(program);
+		boolean isAnalyzed = GhidraProgramUtilities.isAnalyzed(program);
 		if (!isAnalyzed) {
 			analysisMgr.addListener(new FirstTimeAnalyzedCallback());
 		}
@@ -263,8 +263,8 @@ public class AutoAnalysisPlugin extends Plugin implements AutoAnalysisManagerLis
 
 	private void programActivated(Program program) {
 		program.getOptions(StoredAnalyzerTimes.OPTIONS_LIST)
-			.registerOption(StoredAnalyzerTimes.OPTION_NAME, OptionType.CUSTOM_TYPE, null, null,
-				"Cumulative analysis task times", new StoredAnalyzerTimesPropertyEditor());
+				.registerOption(StoredAnalyzerTimes.OPTION_NAME, OptionType.CUSTOM_TYPE, null, null,
+					"Cumulative analysis task times", new StoredAnalyzerTimesPropertyEditor());
 
 	}
 
@@ -282,6 +282,7 @@ public class AutoAnalysisPlugin extends Plugin implements AutoAnalysisManagerLis
 		tool.clearStatusInfo();
 		Options options = tool.getOptions(GhidraOptions.CATEGORY_AUTO_ANALYSIS);
 		boolean showDialog = options.getBoolean(SHOW_ANALYSIS_OPTIONS, true);
+
 		if (!showDialog) {
 			return true;
 		}

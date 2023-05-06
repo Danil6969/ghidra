@@ -22,7 +22,7 @@ import java.util.*;
 import docking.widgets.fieldpanel.field.*;
 import docking.widgets.fieldpanel.support.FieldLocation;
 import ghidra.GhidraOptions;
-import ghidra.app.util.HighlightProvider;
+import ghidra.app.util.ListingHighlightProvider;
 import ghidra.app.util.pcode.AttributedStringPcodeFormatter;
 import ghidra.app.util.viewer.field.*;
 import ghidra.app.util.viewer.format.FieldFormatModel;
@@ -59,7 +59,7 @@ public class PcodeFieldFactory extends FieldFactory {
 	}
 
 	public PcodeFieldFactory(String name, FieldFormatModel model,
-			HighlightProvider highlightProvider, Options displayOptions, Options fieldOptions) {
+			ListingHighlightProvider highlightProvider, Options displayOptions, Options fieldOptions) {
 
 		super(name, model, highlightProvider, displayOptions, fieldOptions);
 		setWidth(300);
@@ -71,7 +71,7 @@ public class PcodeFieldFactory extends FieldFactory {
 	}
 
 	@Override
-	public FieldFactory newInstance(FieldFormatModel myModel, HighlightProvider highlightProvider,
+	public FieldFactory newInstance(FieldFormatModel myModel, ListingHighlightProvider highlightProvider,
 			ToolOptions options, ToolOptions fieldOptions) {
 		return new PcodeFieldFactory(FIELD_NAME, myModel, highlightProvider, options, fieldOptions);
 	}
