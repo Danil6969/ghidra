@@ -3259,50 +3259,6 @@ define pcodeop vtestpd_avx ;
 	# TODO set flags AF, CF, PF, SF, ZF
 }
 
-# VZEROALL 5-563 PAGE 2387 LINE 122405
-define pcodeop vzeroall_avx ;
-:VZEROALL  is $(VEX_NONE) & $(VEX_L256) & $(VEX_PRE_NONE) & $(VEX_0F) & $(VEX_WIG); byte=0x77
-{
-	ZMM0 = zext(0:$(SIZE));
-	ZMM1 = zext(0:$(SIZE));
-	ZMM2 = zext(0:$(SIZE));
-	ZMM3 = zext(0:$(SIZE));
-	ZMM4 = zext(0:$(SIZE));
-	ZMM5 = zext(0:$(SIZE));
-	ZMM6 = zext(0:$(SIZE));
-	ZMM7 = zext(0:$(SIZE));
-	ZMM8 = zext(0:$(SIZE));
-	ZMM9 = zext(0:$(SIZE));
-	ZMM10 = zext(0:$(SIZE));
-	ZMM11 = zext(0:$(SIZE));
-	ZMM12 = zext(0:$(SIZE));
-	ZMM13 = zext(0:$(SIZE));
-	ZMM14 = zext(0:$(SIZE));
-	ZMM15 = zext(0:$(SIZE));
-}
-
-# VZEROUPPER 5-565 PAGE 2389 LINE 122480
-define pcodeop vzeroupper_avx ;
-:VZEROUPPER  is $(VEX_NONE) & $(VEX_L128) & $(VEX_PRE_NONE) & $(VEX_0F) & $(VEX_WIG); byte=0x77
-{
-	ZMM0 = zext(XMM0);
-	ZMM1 = zext(XMM1);
-	ZMM2 = zext(XMM2);
-	ZMM3 = zext(XMM3);
-	ZMM4 = zext(XMM4);
-	ZMM5 = zext(XMM5);
-	ZMM6 = zext(XMM6);
-	ZMM7 = zext(XMM7);
-	ZMM8 = zext(XMM8);
-	ZMM9 = zext(XMM9);
-	ZMM10 = zext(XMM10);
-	ZMM11 = zext(XMM11);
-	ZMM12 = zext(XMM12);
-	ZMM13 = zext(XMM13);
-	ZMM14 = zext(XMM14);
-	ZMM15 = zext(XMM15);
-}
-
 # XORPD 5-596 PAGE 2420 LINE 123828
 define pcodeop vxorpd_avx ;
 :VXORPD XmmReg1, vexVVVV_XmmReg, XmmReg2_m128 is $(VEX_NDS) & $(VEX_L128) & $(VEX_PRE_66) & $(VEX_0F) & $(VEX_WIG) & vexVVVV_XmmReg; byte=0x57; (XmmReg1 & YmmReg1) ... & XmmReg2_m128
