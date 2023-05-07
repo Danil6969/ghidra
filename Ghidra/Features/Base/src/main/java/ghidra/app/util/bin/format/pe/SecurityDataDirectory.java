@@ -109,7 +109,14 @@ public class SecurityDataDirectory extends DataDirectory implements ByteArrayCon
 		}
 
         while (certSize > 0 && certSize < NTHeader.MAX_SANE_COUNT) {
-			SecurityCertificate cert = SecurityCertificate.read(reader, certOffset, certSize);
+			SecurityCertificate cert = null;
+			try {
+				cert = SecurityCertificate.read(reader, certOffset, certSize);
+			}
+			catch (IOException e) {
+				Msg.warn(this, "Certificate unreadable. Uninitialized bytes?");
+				return false;
+			}
 			if (cert == null) {
             	return false;
             }
