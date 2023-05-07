@@ -214,74 +214,70 @@
 # VZEROALL 5-563 PAGE 2387 LINE 122405
 :VZEROALL  is $(VEX_NONE) & $(VEX_L256) & $(VEX_PRE_NONE) & $(VEX_0F) & $(VEX_WIG); byte=0x77
 {
-    YMM0[0,64] = 0:8; YMM0[64,64] = 0:8; YMM0[128,64] = 0:8; YMM0[192,64] = 0:8;
-    YMM1[0,64] = 0:8; YMM1[64,64] = 0:8; YMM1[128,64] = 0:8; YMM1[192,64] = 0:8;
-    YMM2[0,64] = 0:8; YMM2[64,64] = 0:8; YMM2[128,64] = 0:8; YMM2[192,64] = 0:8;
-    YMM3[0,64] = 0:8; YMM3[64,64] = 0:8; YMM3[128,64] = 0:8; YMM3[192,64] = 0:8;
-    YMM4[0,64] = 0:8; YMM4[64,64] = 0:8; YMM4[128,64] = 0:8; YMM4[192,64] = 0:8;
-    YMM5[0,64] = 0:8; YMM5[64,64] = 0:8; YMM5[128,64] = 0:8; YMM5[192,64] = 0:8;
-    YMM6[0,64] = 0:8; YMM6[64,64] = 0:8; YMM6[128,64] = 0:8; YMM6[192,64] = 0:8;
-    YMM7[0,64] = 0:8; YMM7[64,64] = 0:8; YMM7[128,64] = 0:8; YMM7[192,64] = 0:8;
-    #TODO: Zmm
+    ZMM0 = zext(0:$(SIZE));
+    ZMM1 = zext(0:$(SIZE));
+    ZMM2 = zext(0:$(SIZE));
+    ZMM3 = zext(0:$(SIZE));
+    ZMM4 = zext(0:$(SIZE));
+    ZMM5 = zext(0:$(SIZE));
+    ZMM6 = zext(0:$(SIZE));
+    ZMM7 = zext(0:$(SIZE));
 }
 
 @ifdef IA64
 :VZEROALL  is $(LONGMODE_ON) & $(VEX_NONE) & $(VEX_L256) & $(VEX_PRE_NONE) & $(VEX_0F) & $(VEX_WIG); byte=0x77
 {
-    YMM0[0,64] = 0:8; YMM0[64,64] = 0:8; YMM0[128,64] = 0:8; YMM0[192,64] = 0:8;
-    YMM1[0,64] = 0:8; YMM1[64,64] = 0:8; YMM1[128,64] = 0:8; YMM1[192,64] = 0:8;
-    YMM2[0,64] = 0:8; YMM2[64,64] = 0:8; YMM2[128,64] = 0:8; YMM2[192,64] = 0:8;
-    YMM3[0,64] = 0:8; YMM3[64,64] = 0:8; YMM3[128,64] = 0:8; YMM3[192,64] = 0:8;
-    YMM4[0,64] = 0:8; YMM4[64,64] = 0:8; YMM4[128,64] = 0:8; YMM4[192,64] = 0:8;
-    YMM5[0,64] = 0:8; YMM5[64,64] = 0:8; YMM5[128,64] = 0:8; YMM5[192,64] = 0:8;
-    YMM6[0,64] = 0:8; YMM6[64,64] = 0:8; YMM6[128,64] = 0:8; YMM6[192,64] = 0:8;
-    YMM7[0,64] = 0:8; YMM7[64,64] = 0:8; YMM7[128,64] = 0:8; YMM7[192,64] = 0:8;
-    YMM8[0,64] = 0:8; YMM8[64,64] = 0:8; YMM8[128,64] = 0:8; YMM8[192,64] = 0:8;
-    YMM9[0,64] = 0:8; YMM9[64,64] = 0:8; YMM9[128,64] = 0:8; YMM9[192,64] = 0:8;
-    YMM10[0,64] = 0:8; YMM10[64,64] = 0:8; YMM10[128,64] = 0:8; YMM10[192,64] = 0:8;
-    YMM11[0,64] = 0:8; YMM11[64,64] = 0:8; YMM11[128,64] = 0:8; YMM11[192,64] = 0:8;
-    YMM12[0,64] = 0:8; YMM12[64,64] = 0:8; YMM12[128,64] = 0:8; YMM12[192,64] = 0:8;
-    YMM13[0,64] = 0:8; YMM13[64,64] = 0:8; YMM13[128,64] = 0:8; YMM13[192,64] = 0:8;
-    YMM14[0,64] = 0:8; YMM14[64,64] = 0:8; YMM14[128,64] = 0:8; YMM14[192,64] = 0:8;
-    YMM15[0,64] = 0:8; YMM15[64,64] = 0:8; YMM15[128,64] = 0:8; YMM15[192,64] = 0:8;
-    #TODO: Zmm
+    ZMM0 = zext(0:$(SIZE));
+    ZMM1 = zext(0:$(SIZE));
+    ZMM2 = zext(0:$(SIZE));
+    ZMM3 = zext(0:$(SIZE));
+    ZMM4 = zext(0:$(SIZE));
+    ZMM5 = zext(0:$(SIZE));
+    ZMM6 = zext(0:$(SIZE));
+    ZMM7 = zext(0:$(SIZE));
+    ZMM8 = zext(0:$(SIZE));
+    ZMM9 = zext(0:$(SIZE));
+    ZMM10 = zext(0:$(SIZE));
+    ZMM11 = zext(0:$(SIZE));
+    ZMM12 = zext(0:$(SIZE));
+    ZMM13 = zext(0:$(SIZE));
+    ZMM14 = zext(0:$(SIZE));
+    ZMM15 = zext(0:$(SIZE));
 }
 @endif
 
 # VZEROUPPER 5-565 PAGE 2389 LINE 122480
 :VZEROUPPER  is $(VEX_NONE) & $(VEX_L128) & $(VEX_PRE_NONE) & $(VEX_0F) & $(VEX_WIG); byte=0x77
 {
-    YMM0[128,64] = 0:8; YMM0[192,64] = 0:8;
-    YMM1[128,64] = 0:8; YMM1[192,64] = 0:8;
-    YMM2[128,64] = 0:8; YMM2[192,64] = 0:8;
-    YMM3[128,64] = 0:8; YMM3[192,64] = 0:8;
-    YMM4[128,64] = 0:8; YMM4[192,64] = 0:8;
-    YMM5[128,64] = 0:8; YMM5[192,64] = 0:8;
-    YMM6[128,64] = 0:8; YMM6[192,64] = 0:8;
-    YMM7[128,64] = 0:8; YMM7[192,64] = 0:8;
-    #TODO: Zmm
+    ZMM0 = zext(XMM0);
+    ZMM1 = zext(XMM1);
+    ZMM2 = zext(XMM2);
+    ZMM3 = zext(XMM3);
+    ZMM4 = zext(XMM4);
+    ZMM5 = zext(XMM5);
+    ZMM6 = zext(XMM6);
+    ZMM7 = zext(XMM7);
 }
 
 @ifdef IA64
 :VZEROUPPER  is $(LONGMODE_ON) & $(VEX_NONE) & $(VEX_L128) & $(VEX_PRE_NONE) & $(VEX_0F) & $(VEX_WIG); byte=0x77
 {
-    YMM0[128,64] = 0:8; YMM0[192,64] = 0:8;
-    YMM1[128,64] = 0:8; YMM1[192,64] = 0:8;
-    YMM2[128,64] = 0:8; YMM2[192,64] = 0:8;
-    YMM3[128,64] = 0:8; YMM3[192,64] = 0:8;
-    YMM4[128,64] = 0:8; YMM4[192,64] = 0:8;
-    YMM5[128,64] = 0:8; YMM5[192,64] = 0:8;
-    YMM6[128,64] = 0:8; YMM6[192,64] = 0:8;
-    YMM7[128,64] = 0:8; YMM7[192,64] = 0:8;
-    YMM8[128,64] = 0:8; YMM8[192,64] = 0:8;
-    YMM9[128,64] = 0:8; YMM9[192,64] = 0:8;
-    YMM10[128,64] = 0:8; YMM10[192,64] = 0:8;
-    YMM11[128,64] = 0:8; YMM11[192,64] = 0:8;
-    YMM12[128,64] = 0:8; YMM12[192,64] = 0:8;
-    YMM13[128,64] = 0:8; YMM13[192,64] = 0:8;
-    YMM14[128,64] = 0:8; YMM14[192,64] = 0:8;
-    YMM15[128,64] = 0:8; YMM15[192,64] = 0:8;
-    #TODO: Zmm
+    ZMM0 = zext(XMM0);
+    ZMM1 = zext(XMM1);
+    ZMM2 = zext(XMM2);
+    ZMM3 = zext(XMM3);
+    ZMM4 = zext(XMM4);
+    ZMM5 = zext(XMM5);
+    ZMM6 = zext(XMM6);
+    ZMM7 = zext(XMM7);
+    ZMM8 = zext(XMM8);
+    ZMM9 = zext(XMM9);
+    ZMM10 = zext(XMM10);
+    ZMM11 = zext(XMM11);
+    ZMM12 = zext(XMM12);
+    ZMM13 = zext(XMM13);
+    ZMM14 = zext(XMM14);
+    ZMM15 = zext(XMM15);
 }
 @endif
 
