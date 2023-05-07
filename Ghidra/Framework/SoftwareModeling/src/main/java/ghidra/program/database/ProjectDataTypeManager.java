@@ -64,7 +64,7 @@ public class ProjectDataTypeManager extends StandAloneDataTypeManager
 	 * @throws VersionException if the database does not match the expected version.
 	 * @throws IOException if a database I/O error occurs.
 	 */
-	ProjectDataTypeManager(DataTypeArchiveDB dataTypeArchive, DBHandle handle, int openMode,
+	public ProjectDataTypeManager(DataTypeArchiveDB dataTypeArchive, DBHandle handle, int openMode,
 			ErrorHandler errHandler, Lock lock,
 			TaskMonitor monitor) throws CancelledException, VersionException, IOException {
 		super(handle, openMode, errHandler, lock, monitor);
