@@ -60,6 +60,10 @@ public class PEUtil {
 		String compilerIdString = compilerSpecID.getIdAsString();
 		String compilerString = program.getCompiler();
 
+		if (compilerString == null) {
+			return false;
+		}
+
 		boolean compilerIdMatches = "windows".equals(compilerIdString);
 		compilerIdMatches |= "clangwindows".equals(compilerIdString);
 
