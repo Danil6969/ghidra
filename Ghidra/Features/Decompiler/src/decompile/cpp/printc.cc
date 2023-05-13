@@ -2119,8 +2119,10 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
   //                       globalstruct.(arrayfield[0])
   vector<PartialSymbolEntry> stack;
   Datatype *finalcast = (Datatype *)0;
-  bool skipBase = false;
-  
+  Datatype *casttype = (Datatype *)0;
+  bool printPartial = false;
+  bool outArr = true;
+
   Datatype *ct = sym->getType();
 
   while(ct != (Datatype *)0) {
@@ -2193,14 +2195,17 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       }
     }
     if (!succeeded) {		// Subtype was not good
-      stack.emplace_back();
-      PartialSymbolEntry &entry(stack.back());
-      entry.token = &object_member;
-      if (sz == 0)
-        sz = ct->getSize() - off;
-      entry.fieldname = unnamedField(off, sz);	// If nothing else works, generate artificial field name
-      entry.field = (const TypeField *)0;
-      entry.hilite = EmitMarkup::no_color;
+      casttype = vn->getHigh()->getType();
+      if (casttype == (Datatype *)0 && op->getOpcode()->getOpcode() == CPUI_COPY)
+	casttype = op->getIn(0)->getType();
+      if (casttype != (Datatype *)0)
+	outArr = casttype->getMetatype() == TYPE_ARRAY;
+      if (!outArr) {
+	pushOp(&function_call,op);
+	pushAtom(Atom("CASTARR",optoken,EmitMarkup::no_color,op)); // cast with dereference;
+	pushOp(&comma,op);
+      }
+      printPartial = true;
       ct = (Datatype *)0;
     }
   }
@@ -2209,17 +2214,29 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
     pushOp(&typecast,op);
     pushType(finalcast);
   }
+  if (printPartial) {
+    pushOp(&function_call,op);
+    ostringstream s;
+    s << "PARTIAL";
+    pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+    pushOp(&comma,op);
+  }
   // Push these on the RPN stack in reverse order
   for(int4 i=stack.size()-1;i>=0;--i)
     pushOp(stack[i].token,op);
-  if (!skipBase)
-    pushSymbol(sym,vn,op);	// Push base symbol name
+  pushSymbol(sym,vn,op);	// Push base symbol name
   for(int4 i=0;i<stack.size();++i) {
     const TypeField *field = stack[i].field;
     if (field == (const TypeField *)0)
       pushAtom(Atom(stack[i].fieldname,syntax,stack[i].hilite,op));
     else
       pushAtom(Atom(stack[i].fieldname,fieldtoken,stack[i].hilite,stack[i].parent,field->ident,op));
+  }
+  if (printPartial) {
+    push_integer(off,4, false,0,op);
+  }
+  if (!outArr) {
+    pushType(casttype);
   }
 }
 
@@ -3626,6 +3643,7 @@ string PrintC::genericTypeName(const Datatype *ct)
   case TYPE_PARTIALUNION:
     tpu = (TypePartialUnion *) ct;
     s << tpu->getStripped()->getName();
+    return s.str();
   default:
     s << "BADTYPE";
     return s.str();
