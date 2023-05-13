@@ -61,7 +61,7 @@ jobs:
       - name: Repack Ghidra archive with additions
         shell: pwsh
         run: |
-          Compress-Archive -Path "${{ github.workspace }}/exploded/ghidra_10.3_DEV" -DestinationPath ghidra.zip
+          Compress-Archive -Path "${{ github.workspace }}/exploded/ghidra_10.4_DEV" -DestinationPath ghidra.zip
           mkdir -p public/builds/
           cp ghidra.zip ghidra-${{ matrix.os }}.zip
 
