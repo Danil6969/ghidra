@@ -19,6 +19,9 @@
       <set name="DF" val="0"/>
     </tracked_set>
   </context_data>
+  <volatile outputop="write" inputop="read">
+    <range space="register" first="0x10a0" last="0x10a1"/>
+  </volatile>
   <register_data>
     <register name="DR0" group="DEBUG"/>
     <register name="DR1" group="DEBUG"/>
