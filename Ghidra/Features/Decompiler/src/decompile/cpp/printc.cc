@@ -371,8 +371,7 @@ bool PrintC::checkArrayDeref(const Varnode *vn) const
 bool PrintC::needsToArr(const Varnode *vn) const
 
 {
-  if (vn->getType()->getMetatype() == TYPE_PARTIALUNION) return false;  // Unions should always be printed without TOARR
-  if (vn->getType()->getMetatype() == TYPE_PARTIALSTRUCT) return false; // Structs should always be printed without TOARR
+  if (vn->getType()->getMetatype() == TYPE_PARTIALUNION) return false; // Unions should always be printed without TOARR
   if (vn->isConstant()) return true;
   if (vn->isImplied()) return true;
   HighVariable *high = vn->getHigh();
@@ -3607,6 +3606,7 @@ string PrintC::genericTypeName(const Datatype *ct)
 
 {
   ostringstream s;
+  TypePartialUnion *tpu;
   switch(ct->getMetatype()) {
   case TYPE_INT:
     s << "unkint";
@@ -3623,6 +3623,9 @@ string PrintC::genericTypeName(const Datatype *ct)
   case TYPE_FLOAT:
     s << "unkfloat";
     break;
+  case TYPE_PARTIALUNION:
+    tpu = (TypePartialUnion *) ct;
+    s << tpu->getStripped()->getName();
   default:
     s << "BADTYPE";
     return s.str();
