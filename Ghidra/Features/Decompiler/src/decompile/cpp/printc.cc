@@ -371,6 +371,8 @@ bool PrintC::checkArrayDeref(const Varnode *vn) const
 bool PrintC::needsToArr(const Varnode *vn) const
 
 {
+  if (vn->getType()->getMetatype() == TYPE_PARTIALUNION) return false;  // Unions should always be printed without TOARR
+  if (vn->getType()->getMetatype() == TYPE_PARTIALSTRUCT) return false; // Structs should always be printed without TOARR
   if (vn->isConstant()) return true;
   if (vn->isImplied()) return true;
   HighVariable *high = vn->getHigh();
@@ -2192,34 +2194,15 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       }
     }
     if (!succeeded) {		// Subtype was not good
-      pushOp(&function_call,op);
-      Datatype *outtype = vn->getHigh()->getType();
-      if (outtype == (Datatype *)0 && op->getOpcode()->getOpcode() == CPUI_COPY)
-	outtype = op->getIn(0)->getType();
-      bool outArr = true;
-      if (outtype != (Datatype *)0)
-	outArr = outtype->getMetatype() == TYPE_ARRAY;
-      ostringstream s;
-      s << "PARTIAL";
-      if (!outArr)
-	s << "T";
-      pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
-      s.str("");
-      pushOp(&comma,op);
-      if (sym->getType()->getMetatype() != TYPE_ARRAY) {
-	pushOp(&addressof,op);
-      }
-      pushSymbol(sym,vn,op);
-      s << off;
-      if (outArr)
-	pushAtom(Atom(s.str(),vartoken,EmitMarkup::const_color,op,vn));
-      else {
-	pushOp(&comma,op);
-	pushAtom(Atom(s.str(),vartoken,EmitMarkup::const_color,op,vn));
-	pushType(outtype);
-      }
+      stack.emplace_back();
+      PartialSymbolEntry &entry(stack.back());
+      entry.token = &object_member;
+      if (sz == 0)
+        sz = ct->getSize() - off;
+      entry.fieldname = unnamedField(off, sz);	// If nothing else works, generate artificial field name
+      entry.field = (const TypeField *)0;
+      entry.hilite = EmitMarkup::no_color;
       ct = (Datatype *)0;
-      skipBase = true;
     }
   }
 
