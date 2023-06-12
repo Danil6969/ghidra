@@ -764,10 +764,11 @@ string TypeOpCallother::getOperatorName(const PcodeOp *op) const
   return res.str();
 }
 
-bool TypeOpCallother::isFloatFunc(const PcodeOp *op) const
+bool TypeOpCallother::isFloatFunc(const PcodeOp *op)
 
 {
-  string nm = TypeOpCallother::getOperatorName(op);
+  if (op->code() != CPUI_CALLOTHER) return false;
+  string nm = op->getOpcode()->getOperatorName(op);
   // Generic transcendental functions
   if (nm.substr(0,3) == "exp") return true;
   if (nm.substr(0,3) == "log") return true;
@@ -785,6 +786,18 @@ bool TypeOpCallother::isFloatFunc(const PcodeOp *op) const
   if (nm.substr(0,4) == "tanh") return true;
   // Special trigonometric functions (may add more of these in future)
   if (nm.substr(0,5) == "atan2") return true;
+  return false;
+}
+
+bool TypeOpCallother::isSpecialFunc(const PcodeOp *op)
+
+{
+  if (op->code() != CPUI_CALLOTHER) return false;
+  string nm = op->getOpcode()->getOperatorName(op);
+  if (nm == "try") return true;
+  if (nm == "catch") return true;
+  if (nm == "except") return true;
+  if (nm == "finally") return true;
   return false;
 }
 
