@@ -1038,6 +1038,21 @@ void LoopBody::clearMarks(vector<FlowBlock *> &body)
     body[i]->clearMark();
 }
 
+bool CollapseStructure::hasSpecialFunc(FlowBlock *bl)
+
+{
+  BlockCopy *blcopy = dynamic_cast<BlockCopy *>(bl);
+  if (blcopy == (BlockCopy *)0) return false;
+  BlockBasic *blbasic = dynamic_cast<BlockBasic *>(blcopy->subBlock(0));
+  if (blbasic == (BlockBasic *)0) return false;
+  list<PcodeOp *>::const_iterator iter;
+  for(iter=blbasic->beginOp();iter!=blbasic->endOp();++iter) {
+    PcodeOp *op = *iter;
+    if (TypeOpCallother::isSpecialFunc(op)) return true;
+  }
+  return false;
+}
+
 /// \brief Mark FlowBlocks \b only reachable from a given root
 ///
 /// For a given root FlowBlock, find all the FlowBlocks that can only be reached from it,
@@ -1310,6 +1325,9 @@ bool CollapseStructure::ruleBlockOr(FlowBlock *bl)
   if (bl->isGotoOut(0)) return false;
   if (bl->isGotoOut(1)) return false;
   if (bl->isSwitchOut()) return false;
+  for(i=0;i<2;++i) {
+    if (hasSpecialFunc(bl->getOut(i))) return false;
+  }
   // NOTE: complex behavior can happen in the first block because we (may) only
   // print the branch
   //  if (bl->isComplex()) return false; // Control flow too complicated for condition
