@@ -315,7 +315,8 @@ public:
   virtual void push(PrintLanguage *lng,const PcodeOp *op,const PcodeOp *readOp) const { lng->opCallother(op); }
   virtual void printRaw(ostream &s,const PcodeOp *op);
   virtual string getOperatorName(const PcodeOp *op) const;
-  virtual bool isFloatFunc(const PcodeOp *op) const;
+  static bool isFloatFunc(const PcodeOp *op);
+  static bool isSpecialFunc(const PcodeOp *op);
   virtual Datatype *getInputLocal(const PcodeOp *op,int4 slot) const;
   virtual Datatype *getOutputLocal(const PcodeOp *op) const;
 };
