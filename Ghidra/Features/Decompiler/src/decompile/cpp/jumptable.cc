@@ -1366,12 +1366,12 @@ bool JumpBasic::foldInOneGuard(Funcdata *fd,GuardRecord &guard,JumpTable *jump)
   BlockBasic *cbranchblock = cbranch->getParent();
   if (cbranchblock->getFlipPath()) // Based on whether out branches have been flipped
     indpath = 1 - indpath;	// get actual path to indirect block
+  if (cbranchblock->sizeOut() != 2) return false; // In which case, we can't fold it in, must be before getOut()
   BlockBasic *guardtarget = (BlockBasic *)cbranchblock->getOut(1-indpath);
   bool change = false;
   int4 pos;
 
   // Its possible the guard branch has been converted between the switch recovery and now
-  if (cbranchblock->sizeOut() != 2) return false; // In which case, we can't fold it in
   BlockBasic *switchbl = jump->getIndirectOp()->getParent();
   for(pos=0;pos<switchbl->sizeOut();++pos)
     if (switchbl->getOut(pos) == guardtarget) break;
