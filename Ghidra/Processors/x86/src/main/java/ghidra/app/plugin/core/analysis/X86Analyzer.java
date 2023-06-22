@@ -45,16 +45,16 @@ public class X86Analyzer extends ConstantPropagationAnalyzer {
 	}
 
 	private final byte[] INITARRAY = new byte[] {
-		(byte) 0xfe, (byte) 0x8a, (byte) 0x1b, (byte) 0xcd, (byte) 0x4b, // L2T bytes
-		(byte) 0x78, (byte) 0x9a, (byte) 0xd4, (byte) 0x00, (byte) 0x40,
-		(byte) 0xbb, (byte) 0xf0, (byte) 0x17, (byte) 0x5c, (byte) 0x29, // L2E bytes
-		(byte) 0x3b, (byte) 0xaa, (byte) 0xb8, (byte) 0xff, (byte) 0x3f,
-		(byte) 0x34, (byte) 0xc2, (byte) 0x68, (byte) 0x21, (byte) 0xa2, //  PI bytes
-		(byte) 0xda, (byte) 0x0f, (byte) 0xc9, (byte) 0x00, (byte) 0x40,
-		(byte) 0x98, (byte) 0xf7, (byte) 0xcf, (byte) 0xfb, (byte) 0x84, // LG2 bytes
-		(byte) 0x9a, (byte) 0x20, (byte) 0x9a, (byte) 0xfd, (byte) 0x3f,
-		(byte) 0xab, (byte) 0x79, (byte) 0xcf, (byte) 0xd1, (byte) 0xf7, // LN2 bytes
-		(byte) 0x17, (byte) 0x72, (byte) 0xb1, (byte) 0xfe, (byte) 0x3f,
+		(byte) 0xfe, (byte) 0x8a, (byte) 0x1b, (byte) 0xcd, (byte) 0x4b, // L2T bytes, decimal value is:
+		(byte) 0x78, (byte) 0x9a, (byte) 0xd4, (byte) 0x00, (byte) 0x40, // 3.3219280948873623478083405569094566089916042983531951904296875
+		(byte) 0xbb, (byte) 0xf0, (byte) 0x17, (byte) 0x5c, (byte) 0x29, // L2E bytes, decimal value is:
+		(byte) 0x3b, (byte) 0xaa, (byte) 0xb8, (byte) 0xff, (byte) 0x3f, // 1.442695040888963407279231565549793003810918889939785003662109375
+		(byte) 0x34, (byte) 0xc2, (byte) 0x68, (byte) 0x21, (byte) 0xa2, // PI bytes, decimal value is:
+		(byte) 0xda, (byte) 0x0f, (byte) 0xc9, (byte) 0x00, (byte) 0x40, // 3.141592653589793238295968524909085317631252110004425048828125
+		(byte) 0x98, (byte) 0xf7, (byte) 0xcf, (byte) 0xfb, (byte) 0x84, // LG2 bytes, decimal value is:
+		(byte) 0x9a, (byte) 0x20, (byte) 0x9a, (byte) 0xfd, (byte) 0x3f, // 0.30102999566398119519854137404735183736192993819713592529296875
+		(byte) 0xab, (byte) 0x79, (byte) 0xcf, (byte) 0xd1, (byte) 0xf7, // LN2 bytes, decimal value is:
+		(byte) 0x17, (byte) 0x72, (byte) 0xb1, (byte) 0xfe, (byte) 0x3f, // 0.6931471805599453093744803655607000791860627941787242889404296875
 	};
 
 	private void updateFPUConstants(Program program) {
