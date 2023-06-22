@@ -4227,8 +4227,8 @@ define pcodeop xtest;
 #
 # floating point instructions
 #
-define pcodeop exp;
-:F2XM1          is vexMode=0 & byte=0xD9; byte=0xF0                 { one:4 = 1; tmp:10 = int2float(one); ST0 = exp(ST0) f- tmp; } # compute 2^x-1
+define pcodeop exp2;
+:F2XM1          is vexMode=0 & byte=0xD9; byte=0xF0                 { one:4 = 1; tmp:10 = int2float(one); ST0 = exp2(ST0) f- tmp; }
 
 :FABS           is vexMode=0 & byte=0xD9; byte=0xE1                 { ST0 = abs(ST0); }
 
@@ -4545,7 +4545,7 @@ define pcodeop tan;
   FPULastInstructionOpcode = 0x0000;
 }
 
-:FSCALE		    is vexMode=0 & byte=0xD9; byte=0xFD			{ ST0 = ST0 f* exp(ST1); }
+:FSCALE		    is vexMode=0 & byte=0xD9; byte=0xFD			{ ST0 = ST0 f* exp2(ST1); }
 
 define pcodeop sin;
 :FSIN		    is vexMode=0 & byte=0xD9; byte=0xFE			{ ST0 = sin(ST0); }
@@ -4881,17 +4881,17 @@ define pcodeop getsig;
 define pcodeop getexp;
 :FXTRACT        is vexMode=0 & byte=0xD9; byte=0xF4                 { significand:10 = getsig(ST0); exponent:10 = getexp(ST0); ST0 = exponent; fpushv(significand); }
 
-define pcodeop log;
+define pcodeop log2;
 :FYL2X          is vexMode=0 & byte=0xD9; byte=0xF1
 {
 	setDE_ST0ST1();
 	setZE_ST0();
-	local log2st0 = log(ST0);
+	local log2st0 = log2(ST0);
 	ST1 = ST1 f* log2st0;
 	fpop();
 }
 
-:FYL2XP1        is vexMode=0 & byte=0xD9; byte=0xF9                 { one:4 = 1; tmp:10 = int2float(one); log2st0:10 = log(ST0 f+ tmp); ST1 = ST1 f* log2st0; fpop(); }
+:FYL2XP1        is vexMode=0 & byte=0xD9; byte=0xF9                 { one:4 = 1; tmp:10 = int2float(one); log2st0:10 = log2(ST0 f+ tmp); ST1 = ST1 f* log2st0; fpop(); }
 
 
 #
