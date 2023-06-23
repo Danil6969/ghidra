@@ -4228,7 +4228,14 @@ define pcodeop xtest;
 # floating point instructions
 #
 define pcodeop exp2;
-:F2XM1          is vexMode=0 & byte=0xD9; byte=0xF0                 { one:4 = 1; tmp:10 = int2float(one); ST0 = exp2(ST0) f- tmp; }
+:F2XM1          is vexMode=0 & byte=0xD9; byte=0xF0
+{
+  zero:10 = int2float(0:4);
+  PE = PE || (ST0 f!= zero); # always inexact unless input is zero
+
+  one:10 = int2float(1:4);
+  ST0 = exp2(ST0) f- one;
+}
 
 :FABS           is vexMode=0 & byte=0xD9; byte=0xE1                 { ST0 = abs(ST0); }
 
@@ -4299,7 +4306,13 @@ define pcodeop convert_bcd;
 :FUCOMIP ST0, freg  is vexMode=0 & byte=0xDF; frow=14 & fpage=1 & freg & ST0        { fcomi(freg); fpop(); }             
                                                                  
 define pcodeop cos;
-:FCOS			    is vexMode=0 & byte=0xD9; byte=0xFF					{ ST0 = cos(ST0); }
+:FCOS			    is vexMode=0 & byte=0xD9; byte=0xFF
+{
+  zero:10 = int2float(0:4);
+  PE = PE || (ST0 f!= zero); # always inexact unless input is zero
+
+  ST0 = cos(ST0);
+}
                                                                  
 :FDECSTP		    is vexMode=0 & byte=0xD9; byte=0xF6					{ fdec(); C0 = 0; }  #Clear C0
 
@@ -4548,9 +4561,30 @@ define pcodeop tan;
 :FSCALE		    is vexMode=0 & byte=0xD9; byte=0xFD			{ ST0 = ST0 f* exp2(ST1); }
 
 define pcodeop sin;
-:FSIN		    is vexMode=0 & byte=0xD9; byte=0xFE			{ ST0 = sin(ST0); }
-:FSINCOS	    is vexMode=0 & byte=0xD9; byte=0xFB			{ tmp:10 = cos(ST0); ST0 = sin(ST0); fpushv(tmp); }
-:FSQRT          is vexMode=0 & byte=0xD9; byte=0xFA                 { ST0 = sqrt(ST0); }
+:FSIN		    is vexMode=0 & byte=0xD9; byte=0xFE
+{
+  zero:10 = int2float(0:4);
+  PE = PE || (ST0 f!= zero); # always inexact unless input is zero
+
+  ST0 = sin(ST0);
+}
+:FSINCOS	    is vexMode=0 & byte=0xD9; byte=0xFB
+{
+  zero:10 = int2float(0:4);
+  PE = PE || (ST0 f!= zero); # always inexact unless input is zero
+
+  tmp:10 = cos(ST0);
+  ST0 = sin(ST0);
+  fpushv(tmp);
+}
+:FSQRT          is vexMode=0 & byte=0xD9; byte=0xFA
+{
+  zero:10 = int2float(0:4);
+  PE = PE || ((sqrt(ST0) * sqrt(ST0) f!= ST0) && (ST0 f> zero));
+  # if st0 is less than zero then nan is produced but it's considered as an exact result though
+
+  ST0 = sqrt(ST0);
+}
 
 :FST spec_m32   is vexMode=0 & byte=0xD9; (mod != 0b11 & reg_opcode=2) ... & spec_m32            { spec_m32 = float2float(ST0); }     
 :FST spec_m64   is vexMode=0 & byte=0xDD; reg_opcode=2 ... & spec_m64            { spec_m64 = float2float(ST0); }     
@@ -4619,8 +4653,7 @@ define pcodeop sin;
 :FXAM           is vexMode=0 & byte=0xD9; byte=0xE5
 {
   # this is not an exact implementation, but gets the sign and zero tests right
-  izero:4 = 0;
-  fzero:10 = int2float(izero);
+  fzero:10 = int2float(0:4);
   
   # did not know how test for infinity or empty
   C0 = nan(ST0);
@@ -4891,7 +4924,7 @@ define pcodeop log2;
 	fpop();
 }
 
-:FYL2XP1        is vexMode=0 & byte=0xD9; byte=0xF9                 { one:4 = 1; tmp:10 = int2float(one); log2st0:10 = log2(ST0 f+ tmp); ST1 = ST1 f* log2st0; fpop(); }
+:FYL2XP1        is vexMode=0 & byte=0xD9; byte=0xF9                 { one:10 = int2float(1:4); log2st0:10 = log2(ST0 f+ one); ST1 = ST1 f* log2st0; fpop(); }
 
 
 #
