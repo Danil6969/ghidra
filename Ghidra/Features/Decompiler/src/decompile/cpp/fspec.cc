@@ -5693,6 +5693,8 @@ bool FuncCallSpecs::setInputBytesConsumed(int4 slot,int4 val) const
   int4 oldVal = inputConsume[slot];
   if (oldVal == 0 || val < oldVal)
     inputConsume[slot] = val;
+  else
+    return false; // Change is only made if inputConsume[slot] was assigned
   return (oldVal != val);
 }
 
