@@ -861,6 +861,12 @@ void Merge::mergeIndirect(PcodeOp *indop)
     if (merge(invn0->getHigh(),outvn->getHigh(),false))
       return;
   }
+  if (!merge(indop->getIn(0)->getHigh(), outvn->getHigh(), false)) {
+    mergeOp(indop); // Have to merge anyway
+    return;
+  } else
+    return;
+
   snipIndirect(indop);		// If we cannot merge, the only thing that can go
 				// wrong with an input trim, is if the output of
 				// indop is involved in the input to the op causing
