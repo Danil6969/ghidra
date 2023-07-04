@@ -6370,6 +6370,7 @@ bool RulePtrArith::replaceMultiplier(Varnode *vn,Funcdata &data)
   if (otherop->code() == CPUI_INT_ZEXT) {
     otherop = otherop->getIn(0)->getDef();
   }
+  if (otherop == (PcodeOp *)0) return false;
   if (otherop->code() != CPUI_INT_MULT) return false;
   if (!otherop->getIn(1)->isConstant()) return false;
   Varnode *input = otherop->getIn(0);
