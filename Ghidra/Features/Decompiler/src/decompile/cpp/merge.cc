@@ -861,12 +861,6 @@ void Merge::mergeIndirect(PcodeOp *indop)
     if (merge(invn0->getHigh(),outvn->getHigh(),false))
       return;
   }
-  if (!merge(indop->getIn(0)->getHigh(), outvn->getHigh(), false)) {
-    mergeOp(indop); // Have to merge anyway
-    return;
-  } else
-    return;
-
   snipIndirect(indop);		// If we cannot merge, the only thing that can go
 				// wrong with an input trim, is if the output of
 				// indop is involved in the input to the op causing
@@ -884,7 +878,7 @@ void Merge::mergeIndirect(PcodeOp *indop)
   if (!mergeTestRequired(outvn->getHigh(),indop->getIn(0)->getHigh()) ||
       (!merge(indop->getIn(0)->getHigh(),outvn->getHigh(),false))) // Try merge again
     //  if (!merge(indop->Input(0)->High(),outvn->High()))
-    throw LowlevelError("Unable to merge address forced indirect");
+    mergeOp(indop); // Have to merge anyway
 }
 
 /// \brief Force the merge of input and output Varnodes to MULTIEQUAL and INDIRECT ops
