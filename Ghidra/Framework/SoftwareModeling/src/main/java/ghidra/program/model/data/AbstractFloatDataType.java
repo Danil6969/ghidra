@@ -169,7 +169,7 @@ public abstract class AbstractFloatDataType extends BuiltIn {
 		if (value == null) {
 			return "??";
 		}
-		return floatFormat != null ? floatFormat.toDecimalString(value, true) : value.toString();
+		return floatFormat != null ? floatFormat.toDecimalString(value, false) : value.toString();
 	}
 
 	@Override
