@@ -1167,7 +1167,7 @@ public class BigFloat implements Comparable<BigFloat> {
 			return special;
 		}
 		BigDecimal bd = toBigDecimal();
-		bd = bd.round(getDefaultDisplayContext(fracbits));
+		bd = bd.stripTrailingZeros();
 		return bd.toString();
 	}
 
@@ -1183,7 +1183,7 @@ public class BigFloat implements Comparable<BigFloat> {
 			return special;
 		}
 		BigDecimal bd = toBigDecimal();
-		bd = bd.round(displayContext);
+		bd = bd.stripTrailingZeros();
 		return bd.toString();
 	}
 
@@ -1204,7 +1204,7 @@ public class BigFloat implements Comparable<BigFloat> {
 			return special;
 		}
 		BigDecimal bd = toBigDecimal();
-		bd = bd.round(ff.getDisplayContext());
+		bd = bd.stripTrailingZeros();
 
 		String str = bd.toString();
 		int precision = bd.precision();
