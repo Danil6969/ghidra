@@ -217,8 +217,7 @@ uintb FloatFormat::getNaNEncoding(bool sgn) const
 void FloatFormat::calcPrecision(void)
 
 {
-  float val = frac_size * 0.30103;
-  decimal_precision = (int4)floor(val + 0.5);
+  decimal_precision = 100;
 }
 
 /// \param encoding is the encoding value
