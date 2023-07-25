@@ -1204,7 +1204,12 @@ public class BigFloat implements Comparable<BigFloat> {
 			return special;
 		}
 		BigDecimal bd = toBigDecimal();
-		bd = bd.stripTrailingZeros();
+		if (compact) {
+			bd = bd.round(ff.getDisplayContext());
+		}
+		else {
+			bd = bd.stripTrailingZeros();
+		}
 
 		String str = bd.toString();
 		int precision = bd.precision();
