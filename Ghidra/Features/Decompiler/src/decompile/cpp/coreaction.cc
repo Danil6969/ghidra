@@ -2916,7 +2916,8 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
   if (def->isCall()) {
     if ((def->code() == CPUI_NEW)&&(def->numInput() == 1))
       return -2;		// Explicit, but may need special printing
-    return -1;
+    if (!TypeOpCallother::isSpecialFunc(def))
+      return -1;
   }
   HighVariable *high = vn->getHigh();
   if ((high!=(HighVariable *)0)&&(high->numInstances()>1)) return -1; // Must not be merged at all
