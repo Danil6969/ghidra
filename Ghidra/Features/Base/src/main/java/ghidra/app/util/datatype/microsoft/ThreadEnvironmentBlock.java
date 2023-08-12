@@ -71,9 +71,9 @@ public class ThreadEnvironmentBlock {
 	private DataType HANDLE;
 	private DataType GUID;
 	private StructureDataType CLIENT_ID;
- 	private UnionDataType DUMMYUNIONTYPE;
- 	private StructureDataType NT_TIB;
- 	private DataType PNT_TIB;
+	private UnionDataType DUMMYUNIONTYPE;
+	private StructureDataType NT_TIB;
+	private DataType PNT_TIB;
 
 	public static final String BLOCK_NAME = "tdb";
 
