@@ -71,6 +71,9 @@ public class ThreadEnvironmentBlock {
 	private DataType HANDLE;
 	private DataType GUID;
 	private StructureDataType CLIENT_ID;
+ 	private UnionDataType DUMMYUNIONTYPE;
+ 	private StructureDataType NT_TIB;
+ 	private DataType PNT_TIB;
 
 	public static final String BLOCK_NAME = "tdb";
 
@@ -215,6 +218,25 @@ public class ThreadEnvironmentBlock {
 		CLIENT_ID = new StructureDataType("CLIENT_ID", 0);
 		CLIENT_ID.add(HANDLE, HANDLE.getLength(), "UniqueProcess", null);
 		CLIENT_ID.add(HANDLE, HANDLE.getLength(), "UniqueThread", null);
+		DUMMYUNIONTYPE = new UnionDataType("NT_TIB::DUMMYUNIONTYPE");
+		DUMMYUNIONTYPE.add(PVOID, PVOID.getLength(), "FiberData", null);
+		DUMMYUNIONTYPE.add(ULONG, ULONG.getLength(), "Version", null);
+		NT_TIB = new StructureDataType("NT_TIB", 0);
+
+		if (is64Bit) {
+			PNT_TIB = new Pointer64DataType(NT_TIB);
+		}
+		else {
+			PNT_TIB = new Pointer32DataType(NT_TIB);
+		}
+
+		NT_TIB.add(PVOID, PVOID.getLength(), "ExceptionList", null);
+		NT_TIB.add(PVOID, PVOID.getLength(), "StackBase", null);
+		NT_TIB.add(PVOID, PVOID.getLength(), "StackLimit", null);
+		NT_TIB.add(PVOID, PVOID.getLength(), "SubSystemTib", null);
+		NT_TIB.add(DUMMYUNIONTYPE, DUMMYUNIONTYPE.getLength(), "DUMMYUNIONNAME", null);
+		NT_TIB.add(PVOID, PVOID.getLength(), "ArbitraryUserPointer", null);
+		NT_TIB.add(PNT_TIB, PNT_TIB.getLength(), "Self", null);
 	}
 
 	/**
@@ -225,14 +247,8 @@ public class ThreadEnvironmentBlock {
 	 */
 	private void create(LayDown laydown) {
 
-		// TIB
-		laydown.addEntry(0, 0, "ExceptionList", PVOID);
-		laydown.addEntry(4, 8, "StackBase", PVOID);
-		laydown.addEntry(8, 0x10, "StackLimit", PVOID);
-		laydown.addEntry(0x0c, 0x18, "SubSystemTib", PVOID);
-		laydown.addEntry(0x10, 0x20, "FiberData", PVOID);
-		laydown.addEntry(0x14, 0x28, "ArbitraryUserPointer", PVOID);
-		laydown.addEntry(0x18, 0x30, "Self", PVOID);
+		// NtTib
+		laydown.addEntry(0, 0, "NtTib", NT_TIB);
 
 		laydown.addEntry(0x1c, 0x38, "EnvironmentPointer", PVOID);
 		laydown.addEntry(0x20, 0x40, "ClientId", CLIENT_ID);
@@ -808,7 +824,7 @@ public class ThreadEnvironmentBlock {
 		block1.setWrite(true);
 		LayDownFlat laydown = new LayDownFlat(program, tebAddress, is64Bit);
 		create(laydown);
-		Data data = program.getListing().getDataAt(tebAddress.add(is64Bit ? 0x30 : 0x18));
+		Data data = program.getListing().getDataAt(tebAddress).getComponent(6);
 		markDataAsConstant(data);
 	}
 
