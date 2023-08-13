@@ -831,7 +831,13 @@ Datatype *TypeOpCallother::getOutputLocal(const PcodeOp *op) const
 
 {
   if (TypeOpCallother::isFloatFunc(op)) {
-    Datatype *res = tlst->getBase(op->getOut()->getSize(), TYPE_FLOAT);
+    Datatype *res = tlst->getBase(op->getOut()->getSize(),TYPE_FLOAT);
+    if (res != (Datatype *)0)
+      return res;
+  }
+
+  if (TypeOpCallother::isSpecialFunc(op)) {
+    Datatype *res = tlst->getBase(1,TYPE_BOOL);
     if (res != (Datatype *)0)
       return res;
   }
