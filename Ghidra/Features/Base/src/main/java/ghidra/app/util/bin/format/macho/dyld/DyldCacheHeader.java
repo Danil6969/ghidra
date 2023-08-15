@@ -768,7 +768,7 @@ public class DyldCacheHeader implements StructConverter {
 		}
 	}
 
-	private void parseLocalSymbolsInfo(boolean shouldParse, MessageLog log, TaskMonitor monitor)
+	public void parseLocalSymbolsInfo(boolean shouldParse, MessageLog log, TaskMonitor monitor)
 			throws CancelledException {
 		if (!shouldParse || localSymbolsOffset == 0) {
 			return;
@@ -777,7 +777,8 @@ public class DyldCacheHeader implements StructConverter {
 		monitor.initialize(1);
 		try {
 			reader.setPointerIndex(localSymbolsOffset);
-			localSymbolsInfo = new DyldCacheLocalSymbolsInfo(reader, architecture);
+			boolean use64bitOffsets = imagesOffsetOld == 0;
+			localSymbolsInfo = new DyldCacheLocalSymbolsInfo(reader, architecture, use64bitOffsets);
 			localSymbolsInfo.parse(log, monitor);
 			monitor.incrementProgress(1);
 		}

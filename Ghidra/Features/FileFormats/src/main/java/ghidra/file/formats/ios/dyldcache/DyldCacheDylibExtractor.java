@@ -152,6 +152,9 @@ public class DyldCacheDylibExtractor {
 				// the DYLIB we are extracting, resulting in a significantly smaller file.
 				if (segment == linkEditSegment) {
 					for (LoadCommand cmd : machoHeader.getLoadCommands()) {
+						if (cmd instanceof SymbolTableCommand symbolTable) {
+							symbolTable.addSymbols(getLocalSymbols(splitDyldCache));
+						}
 						int offset = cmd.getLinkerDataOffset();
 						int size = cmd.getLinkerDataSize();
 						if (offset == 0 || size == 0) {
@@ -192,8 +195,14 @@ public class DyldCacheDylibExtractor {
 				}
 				byte[] bytes;
 				if (segment == linkEditSegment) {
-					bytes =
-						createPackedLinkEditSegment(segmentProvider, packedLinkEditSize);
+					bytes = createPackedLinkEditSegment(segmentProvider, packedLinkEditSize);
+
+					// We don't want our packed __LINKEDIT segment to overlap with other DYLIB's
+					// that might get extracted and added to the same program.  Rather than
+					// computing the optimal address it should go at (which will required looking
+					// at every other DYLIB in the cache which is slow), just make the address very
+					// far away from the other DYLIB's
+					segment.setVMaddress(textSegment.getVMaddress() << 4);
 				}
 				else {
 					bytes = segmentProvider.readBytes(segment.getFileOffset(), segmentSize);
@@ -218,6 +227,18 @@ public class DyldCacheDylibExtractor {
 		}
 
 		/**
+		 * Gets a {@link List} of local {@link NList symbol}s for the DYLIB being extracted
+		 * 
+		 * @param splitDyldCache The {@link SplitDyldCache}
+		 * @return A {@link List} of local {@link NList symbol}s (could be empty)
+		 */
+		private List<NList> getLocalSymbols(SplitDyldCache splitDyldCache) {
+			long base = splitDyldCache.getBaseAddress();
+			DyldCacheLocalSymbolsInfo info = splitDyldCache.getLocalSymbolInfo();
+			return info != null ? info.getNList(textSegment.getVMaddress() - base) : List.of();
+		}
+
+		/**
 		 * Creates a packed __LINKEDIT segment array
 		 * 
 		 * @param linkEditSegmentProvider The {@link ByteProvider} that contains the __LINKEDIT
@@ -233,16 +254,14 @@ public class DyldCacheDylibExtractor {
 			for (LoadCommand cmd : packedLinkEditDataStarts.keySet()) {
 				if (cmd instanceof SymbolTableCommand symbolTable &&
 					symbolTable.getNumberOfSymbols() > 0) {
-					byte[] packedSymbolStringTable = new byte[cmd.getLinkerDataSize()];
 					List<NList> symbols = symbolTable.getSymbols();
+					byte[] packedSymbolStringTable = new byte[NList.getSize(symbols)];
 					int nlistIndex = 0;
 					int stringIndex = symbols.get(0).getSize() * symbols.size();
 					int stringIndexOrig = stringIndex;
 					for (NList nlist : symbols) {
-						byte[] nlistArray = nlistToArray(nlist, stringIndex);
+						byte[] nlistArray = nlistToArray(nlist, stringIndex - stringIndexOrig);
 						byte[] stringArray = nlist.getString().getBytes(StandardCharsets.US_ASCII);
-						System.arraycopy(toBytes(stringIndex - stringIndexOrig, 4), 0, nlistArray,
-							0, 4);
 						System.arraycopy(nlistArray, 0, packedSymbolStringTable, nlistIndex,
 							nlistArray.length);
 						System.arraycopy(stringArray, 0, packedSymbolStringTable, stringIndex,
@@ -352,13 +371,17 @@ public class DyldCacheDylibExtractor {
 		 */
 		private void fixupSegment(SegmentCommand segment, boolean is64bit) throws IOException {
 			long adjustment = packedSegmentAdjustments.getOrDefault(segment, 0);
-			if (segment.getFileOffset() > 0) {
-				fixup(segment.getStartIndex() + (is64bit ? 0x28 : 0x20), adjustment,
-					is64bit ? 8 : 4, segment);
+			if (segment.getVMaddress() > 0) {
+				set(segment.getStartIndex() + (is64bit ? 0x18 : 0x18), segment.getVMaddress(),
+					is64bit ? 8 : 4);
 			}
 			if (segment.getVMsize() > 0) {
 				set(segment.getStartIndex() + (is64bit ? 0x20 : 0x1c), segment.getVMsize(),
 					is64bit ? 8 : 4);
+			}
+			if (segment.getFileOffset() > 0) {
+				fixup(segment.getStartIndex() + (is64bit ? 0x28 : 0x20), adjustment,
+					is64bit ? 8 : 4, segment);
 			}
 			if (segment.getFileSize() > 0) {
 				set(segment.getStartIndex() + (is64bit ? 0x30 : 0x24), segment.getFileSize(),
@@ -394,11 +417,13 @@ public class DyldCacheDylibExtractor {
 			if (cmd.getSymbolOffset() > 0) {
 				long symbolOffset = fixup(cmd.getStartIndex() + 0x8, getLinkEditAdjustment(cmd), 4,
 					linkEditSegment);
+				set(cmd.getStartIndex() + 0xc, cmd.getNumberOfSymbols(), 4);
 				if (cmd.getStringTableOffset() > 0) {
 					if (cmd.getNumberOfSymbols() > 0) {
 						set(cmd.getStartIndex() + 0x10,
 							symbolOffset + cmd.getNumberOfSymbols() * cmd.getSymbolAt(0).getSize(),
 							4);
+						set(cmd.getStartIndex() + 0x14, cmd.getStringTableSize(), 4);
 					}
 					else {
 						set(cmd.getStartIndex() + 0x10, symbolOffset, 4);
