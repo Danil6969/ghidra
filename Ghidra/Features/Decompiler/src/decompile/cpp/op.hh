@@ -161,6 +161,8 @@ public:
   const SeqNum &getSeqNum(void) const { return start; }	///< Get the sequence number associated with this op
   list<PcodeOp *>::iterator getInsertIter(void) const { return insertiter; } ///< Get position within alive/dead list
   list<PcodeOp *>::iterator getBasicIter(void) const { return basiciter; } ///< Get position within basic block
+  /// \brief Check whether indicated varnode is used as input
+  bool containsInput(const Varnode *vn) const { int4 i,n; n=inrefs.size(); for(i=0;i<n;++i) if (inrefs[i]==vn) return true; return false; }
   /// \brief Get the slot number of the indicated input varnode
   int4 getSlot(const Varnode *vn) const { int4 i,n; n=inrefs.size(); for(i=0;i<n;++i) if (inrefs[i]==vn) break; return i; }
   int4 getRepeatSlot(const Varnode *vn,int4 firstSlot,list<PcodeOp *>::const_iterator iter) const;
