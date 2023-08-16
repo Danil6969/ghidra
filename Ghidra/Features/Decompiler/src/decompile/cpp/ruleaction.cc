@@ -10687,7 +10687,7 @@ bool RuleByteLoop::initExtractInsertListsMultiplier(Varnode *counterVn,uintb cou
       Varnode *multVn = curop->getIn(slot);
       if (multVn->isConstant()) {
         intb off = multVn->getOffset();
-        sign_extend(off,8*multVn->getSize()-1);
+        off = sign_extend(off,8*multVn->getSize()-1);
         if (off < 0) {
           multiplier = -off;
           curop = curop->getOut()->loneDescend();
@@ -11169,7 +11169,7 @@ Varnode *RuleOpToAdrr::getSubtractedIndex(Varnode *arrvn,Varnode *indexvn,Varnod
       if (offsetop != (PcodeOp *)0 && offsetop->code() == CPUI_INT_MULT) {
         if (offsetop->getIn(1)->isConstant()) {
           intb off = offsetop->getIn(1)->getOffset();
-          sign_extend(off,8*offsetop->getIn(1)->getSize()-1);
+          off = sign_extend(off,8*offsetop->getIn(1)->getSize()-1);
           if (off == -1) {
             isAlreadySub = true;
           }
