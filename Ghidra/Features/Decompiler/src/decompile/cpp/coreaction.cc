@@ -41,6 +41,8 @@ class StackSolver {
   void propagate(int4 varnum,int4 val);	///< Propagate solution for one variable to other variables
 public:
   void solve(void);		///< Solve the system of equations
+  int4 extraLoopCounts(PcodeOp *op);
+  int4 loopStackChange(PcodeOp *op);
   void build(const Funcdata &data,AddrSpace *id,int4 spcbase);	///< Build the system of equations
   int4 getNumVariables(void) const { return vnlist.size(); }	///< Get the number of variables in the system
   Varnode *getVariable(int4 i) const { return vnlist[i]; }	///< Get the i-th Varnode variable
@@ -138,6 +140,128 @@ void StackSolver::solve(void)
   } while(count > 0);
 }
 
+/// Determine counts of loop except first iteration
+/// \param op is the last op which changes stack pointer and is inside loop
+int4 StackSolver::extraLoopCounts(PcodeOp *op)
+
+{
+  if (op == (PcodeOp *)0) return 0;
+  BlockBasic *parent = op->getParent();
+  if (parent == (BlockBasic *)0) return 0;
+  if (!parent->hasLoopIn()) return 0;
+
+  PcodeOp *branchop = parent->lastOp();
+  if (branchop->code() != CPUI_CBRANCH) return 0;
+
+  PcodeOp *conditionop = branchop->getIn(1)->getDef();
+  Varnode *constvn = (Varnode *)0;
+
+  Varnode *addvn = (Varnode *)0;
+  Varnode *multivn = (Varnode *)0;
+  Varnode *copyvn = (Varnode *)0;
+  PcodeOp *addop;
+  PcodeOp *multiop;
+  PcodeOp *copyop;
+
+  intb endval;
+  intb startval;
+  intb incval;
+  intb counts;
+  int4 addslot;
+
+  switch (conditionop->code()) {
+    case CPUI_INT_NOTEQUAL:
+      if (conditionop->getIn(0)->isConstant()) {
+        constvn = conditionop->getIn(0);
+        addvn = conditionop->getIn(1);
+      }
+      if (conditionop->getIn(1)->isConstant()) {
+        constvn = conditionop->getIn(1);
+        addvn = conditionop->getIn(0);
+      }
+      if (constvn == (Varnode *)0) return 0;
+      if (addvn == (Varnode *)0) return 0;
+      endval = constvn->getOffset();
+      endval = sign_extend(endval,8*constvn->getSize()-1);
+
+      addop = addvn->getDef();
+      if (addop == (PcodeOp *)0) return 0;
+      if (addop->code() != CPUI_INT_ADD) return 0;
+      constvn = (Varnode *)0;
+      if (addop->getIn(0)->isConstant()) {
+        constvn = addop->getIn(0);
+        multivn = addop->getIn(1);
+      }
+      if (addop->getIn(1)->isConstant()) {
+        constvn = addop->getIn(1);
+        multivn = addop->getIn(0);
+      }
+      if (constvn == (Varnode *)0) return 0;
+      incval = constvn->getOffset();
+      incval = sign_extend(incval,8*constvn->getSize()-1);
+
+      multiop = multivn->getDef();
+      if (multiop == (PcodeOp *)0) return 0;
+      if (multiop->code() != CPUI_MULTIEQUAL) return 0;
+      if (multiop->numInput() != 2) return 0;
+      if (!multiop->containsInput(addvn)) return 0;
+      addslot = multiop->getSlot(addvn);
+      copyvn = multiop->getIn(1-addslot);
+
+      copyop = copyvn->getDef();
+      if (copyop == (PcodeOp *)0) return 0;
+      if (copyop->code() != CPUI_COPY) return 0;
+      constvn = copyop->getIn(0);
+      if (!constvn->isConstant()) return 0;
+      startval = constvn->getOffset();
+      startval = sign_extend(startval,8*constvn->getSize()-1);
+
+      // Validate counter change sign
+      if (incval == 0) return 0;
+      if (startval == endval) return 0;
+      if (incval > 0 && startval > endval) return 0;
+      if (incval < 0 && startval < endval) return 0;
+
+      // Make sure to not jump over endval
+      // endval and startval difference must be divisible by incval
+      if (((endval-startval)%incval)!=0) return 0;
+
+      // Calculate repeat counts
+      counts = 0;
+      for (intb i=startval;i!=endval;i+=incval) {
+        counts++;
+      }
+      return counts - 1;
+    default:
+      return 0;
+  }
+  return 0;
+}
+
+/// Determine stack change inside loop during each iteration
+/// \param op is the last op which changes stack pointer and is inside loop
+int4 StackSolver::loopStackChange(PcodeOp *op) {
+  if (op == (PcodeOp *)0) return 0;
+  Varnode *constvn = (Varnode *)0;
+  Varnode *othervn = (Varnode *)0;
+  OpCode opc = op->code();
+  switch (opc) {
+    case CPUI_INT_ADD:
+      othervn = op->getIn(0);
+      constvn = op->getIn(1);
+      if (othervn->isConstant()) {
+        constvn = othervn;
+        othervn = op->getIn(1);
+      }
+      if (!constvn->isConstant()) return 0;
+      if (othervn->getAddr() != spacebase) return 0;
+      return constvn->getOffset();
+    default:
+      return 0;
+  }
+  return 0;
+}
+
 /// Collect references to the stack-pointer as variables, and examine their defining PcodeOps
 /// to determine equations and coefficient.
 /// \param data is the function being analyzed
@@ -222,10 +346,16 @@ void StackSolver::build(const Funcdata &data,AddrSpace *id,int4 spcbase)
       for(int4 j=0;j<op->numInput();++j) {
 	othervn = op->getIn(j);
 	if (othervn->getAddr() != spacebase) { missedvariables += 1; continue; }
+	int4 rhsoffset = 0;
+	PcodeOp *otherop = othervn->getDef();
+	int4 extracounts = extraLoopCounts(otherop);
+	if (extracounts > 0) {
+	  rhsoffset = loopStackChange(otherop) * extracounts;
+	}
 	iter = lower_bound(vnlist.begin(),vnlist.end(),othervn,Varnode::comparePointers);
 	eqn.var1 = i;
 	eqn.var2 = iter-vnlist.begin();
-	eqn.rhs = 0;
+	eqn.rhs = rhsoffset;
 	eqs.push_back(eqn);
       }
     }
