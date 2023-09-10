@@ -57,6 +57,10 @@ public class TEBAnalyzer extends AbstractAnalyzer {
 		if (!program.getLanguageID().getIdAsString().startsWith("x86")) {
 			return false;
 		}
+		String compilerIdString = program.getCompilerSpec().getCompilerSpecID().getIdAsString().toLowerCase();
+		if (compilerIdString.equals("borlanddelphi")) {
+			return true; // Also allow delphi programs to be analyzed
+		}
 		return PEUtil.isVisualStudioOrClangPe(program);
 	}
 
