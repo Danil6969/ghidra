@@ -27,7 +27,7 @@ public class X86EmulateInstructionStateModifier extends EmulateInstructionStateM
 
 		registerPcodeOpBehavior("extractind", new ExtractIndexedOpBehavior());
 		registerPcodeOpBehavior("insertind", new InsertIndexedOpBehavior());
-		registerPcodeOpBehavior("log", new LogOpBehavior());
+		registerPcodeOpBehavior("log2", new LogOpBehavior());
 	}
 
 }
