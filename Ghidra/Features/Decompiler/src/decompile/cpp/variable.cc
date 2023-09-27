@@ -728,8 +728,9 @@ bool HighVariable::hasName(void) const
     if (indirectonly) return false;
     Varnode *vn = getInputVarnode();
     if (!vn->isIllegalInput()) { // A leftover unaff illegal input gets named
-      if (vn->isSpacebase())	// A legal input, unaff, gets named
-	return false;		// Unless it is the stackpointer
+      if (vn->isSpacebase()) {	// A legal input, unaff, gets named
+	//return false;		// Unless it is the stackpointer
+      }
     }
   }
   return true;
