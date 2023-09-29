@@ -2913,6 +2913,32 @@ void ActionNameVars::lookForFuncParamNames(Funcdata &data,const vector<Varnode *
   }
 }
 
+PcodeOp *ActionNameVars::getCopyOp(Varnode *vn)
+
+{
+  list<PcodeOp *>::const_iterator iter;
+  for(iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
+    PcodeOp *op = *iter;
+    if (op->code() == CPUI_COPY)
+      return op;
+  }
+  return (PcodeOp *)0;
+}
+
+void ActionNameVars::createSurrogates(Varnode *vn,Funcdata &data)
+
+{
+  PcodeOp *op;
+  while (op = getCopyOp(vn),op != (PcodeOp *)0) {
+    Varnode *in = op->getIn(0);
+    vector<Varnode *> inlist;
+    inlist.push_back(in);
+    inlist.push_back(data.newConstant(in->getSize(), 0));
+    data.opSetAllInput(op,inlist);
+    data.opSetOpcode(op,CPUI_PTRSUB);
+  }
+}
+
 /// \brief Link symbols associated with a given \e spacebase Varnode
 ///
 /// Look for PTRSUB ops which indicate a symbol reference within the address space
@@ -2925,6 +2951,7 @@ void ActionNameVars::linkSpacebaseSymbol(Varnode *vn,Funcdata &data,vector<Varno
 
 {
   if (!vn->isConstant() && !vn->isInput()) return;
+  createSurrogates(vn,data);
   list<PcodeOp *>::const_iterator iter;
   for(iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
     PcodeOp *op = *iter;
