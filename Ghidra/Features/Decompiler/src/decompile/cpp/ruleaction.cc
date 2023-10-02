@@ -10588,8 +10588,6 @@ int4 RuleLzcountShiftBool::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
-
-
 // Returns change of counter or 0 if not a valid counter vn
 intb RulePointerComparison::getCounterIncrement(Varnode *vn)
 
