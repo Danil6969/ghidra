@@ -10588,6 +10588,242 @@ int4 RuleLzcountShiftBool::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
+
+
+// Returns change of counter or 0 if not a valid counter vn
+intb RulePointerComparison::getCounterIncrement(Varnode *vn)
+
+{
+  PcodeOp *op = vn->getDef();
+  if (op == (PcodeOp *)0) return 0;
+  if (op->code() == CPUI_PTRADD) {
+    op = op->getIn(0)->getDef();
+  }
+
+  PcodeOp *multiop = op;
+  if (multiop == (PcodeOp *)0) return 0;
+  if (multiop->code() != CPUI_MULTIEQUAL) return 0;
+
+  PcodeOp *addop = multiop->getIn(1)->getDef();
+  if (addop == (PcodeOp *)0) return 0;
+  if (addop->code() != CPUI_PTRADD) return 0;
+  if (addop->getIn(0)->getDef() != multiop) return 0; // Must loop to multi
+
+  Varnode *in1 = addop->getIn(1);
+  Varnode *in2 = addop->getIn(2);
+  // The increment must be a constant
+  if (!in1->isConstant()) return 0;
+  if (!in2->isConstant()) return 0;
+  intb val1 = sign_extend(in1->getOffset(),8*in1->getSize()-1);
+  intb val2 = sign_extend(in2->getOffset(),8*in2->getSize()-1);
+  return val1*val2;
+}
+
+Varnode *RulePointerComparison::getSpacebase(Varnode* vn)
+
+{
+  Varnode *currentVn = vn;
+  while (!currentVn->isSpacebase()) {
+    PcodeOp *op = currentVn->getDef();
+    if (op == (PcodeOp *)0) {
+      return (Varnode *)0;
+    }
+    Varnode *in1,*in2;
+    intb val1,val2;
+    switch (op->code()) {
+      case CPUI_PTRADD:
+      case CPUI_PTRSUB:
+      case CPUI_INT_ADD:
+        currentVn = op->getIn(0);
+        break;
+      default:
+        return (Varnode *)0;
+    }
+  }
+  return currentVn;
+}
+
+// This goes right to spacebase register and sums up everything on its way
+bool RulePointerComparison::getOffset(Varnode* vn,intb &offset)
+
+{
+  offset = 0;
+  Varnode *currentVn = vn;
+  while (!currentVn->isSpacebase()) {
+    PcodeOp *op = currentVn->getDef();
+    if (op == (PcodeOp *)0) {
+      offset = 0;
+      return false;
+    }
+    Varnode *in1,*in2;
+    intb val1,val2;
+    switch (op->code()) {
+      case CPUI_PTRADD:
+        in1 = op->getIn(1);
+        in2 = op->getIn(2);
+        if (!in1->isConstant()) return false;
+        if (!in2->isConstant()) return false;
+        val1 = sign_extend(in1->getOffset(),8*in1->getSize()-1); // Cannot fetch constant
+        val2 = sign_extend(in2->getOffset(),8*in2->getSize()-1); // Cannot fetch constant
+        offset += val1*val2;
+        currentVn = op->getIn(0);
+        break;
+      case CPUI_PTRSUB:
+        in1 = op->getIn(1);
+        if (!in1->isConstant()) return false; // Cannot fetch constant
+        val1 = sign_extend(in1->getOffset(),8*in1->getSize()-1);
+        offset += val1;
+        currentVn = op->getIn(0);
+        break;
+      case CPUI_INT_ADD:
+        in1 = op->getIn(1);
+        if (!in1->isConstant()) return false; // Cannot fetch constant
+        val1 = sign_extend(in1->getOffset(),8*in1->getSize()-1);
+        offset += val1;
+        currentVn = op->getIn(0);
+        break;
+      default:
+        offset = 0; // Either not implemented or not supported
+        return false;
+    }
+  }
+  return true;
+}
+
+/// \brief Calculate difference between end and begin reference values
+///
+/// \param op is main pcodeop
+/// \param referenceSlot is slot of end varnode
+/// \param difference is reference to store difference
+/// \return true if valid false otherwise
+bool RulePointerComparison::getDifference(PcodeOp *op,int4 referenceSlot,intb &difference)
+
+{
+  difference = 0;
+  Varnode *otherVn = op->getIn(1-referenceSlot);
+  Varnode *endVn = op->getIn(referenceSlot);
+  intb endOffset;
+  if (!getOffset(endVn,endOffset)) return false;
+
+  PcodeOp *otherOp = otherVn->getDef();
+  if (otherOp == (PcodeOp *)0) return false;
+  if (otherOp->code() == CPUI_PTRADD) {
+    otherOp = otherOp->getIn(0)->getDef();
+  }
+
+  PcodeOp *multiop = otherOp;
+  if (multiop == (PcodeOp *)0) return 0;
+  if (multiop->code() != CPUI_MULTIEQUAL) return 0;
+
+  Varnode *beginVn = multiop->getIn(0);
+  intb beginOffset;
+  if (!getOffset(beginVn,beginOffset)) return false;
+
+  difference = endOffset - beginOffset;
+  return true;
+}
+
+PcodeOp *RulePointerComparison::getNewOp(PcodeOp *op,Funcdata &data,Varnode *input,intb change)
+
+{
+  intb endOffset;
+  if (!getOffset(input,endOffset)) return (PcodeOp *)0;
+  Varnode *invn = getSpacebase(input);
+  if (invn == (Varnode *)0) return (PcodeOp *)0;
+  return data.newOpBefore(op, CPUI_PTRSUB, invn,data.newConstant(input->getSize(),endOffset+change));
+}
+
+// pointer variable < reference value
+// increment and difference are positive
+bool RulePointerComparison::form1(PcodeOp *op,Funcdata &data,bool is_signed)
+
+{
+  if (is_signed) {
+    if (op->code() != CPUI_INT_SLESS) return false;
+  }
+  else {
+    if (op->code() != CPUI_INT_LESS) return false;
+  }
+  intb increment = getCounterIncrement(op->getIn(0));
+  if (increment <= 0) return false;
+  intb difference;
+  if (!getDifference(op,1,difference)) return false; // Reference value isn't valid
+  if (difference <= 0) return false;
+  intb change = 0;
+  intb remainder = difference % increment;
+  if (remainder == 0) {
+    change = -increment;
+  }
+  else {
+    change = -remainder;
+  }
+  PcodeOp *newop = getNewOp(op, data, op->getIn(1), change);
+  if (newop == (PcodeOp *)0) return false;
+  if (is_signed) {
+    data.opSetOpcode(op,CPUI_INT_SLESSEQUAL);
+  }
+  else {
+    data.opSetOpcode(op,CPUI_INT_LESSEQUAL);
+  }
+  data.opSetInput(op, newop->getOut(),1);
+  return true;
+}
+
+// reference value < pointer variable
+// increment and difference are negative
+bool RulePointerComparison::form2(PcodeOp *op,Funcdata &data,bool is_signed)
+
+{
+  if (is_signed) {
+    if (op->code() != CPUI_INT_SLESS) return false;
+  }
+  else {
+    if (op->code() != CPUI_INT_LESS) return false;
+  }
+  intb increment = getCounterIncrement(op->getIn(1));
+  if (increment >= 0) return false;
+  intb difference;
+  if (!getDifference(op,0,difference)) return false; // Reference value isn't valid
+  if (difference >= 0) return false;
+  intb change = 0;
+  intb remainder = (-difference) % (-increment);
+  if (remainder == 0) {
+    change = -increment;
+  }
+  else {
+    change = remainder;
+  }
+  PcodeOp *newop = getNewOp(op, data, op->getIn(0), change);
+  if (newop == (PcodeOp *)0) return false;
+  if (is_signed) {
+    data.opSetOpcode(op,CPUI_INT_SLESSEQUAL);
+  }
+  else {
+    data.opSetOpcode(op,CPUI_INT_LESSEQUAL);
+  }
+  data.opSetInput(op, newop->getOut(),0);
+  return true;
+}
+
+void RulePointerComparison::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_LESS);
+  oplist.push_back(CPUI_INT_SLESS);
+}
+
+int4 RulePointerComparison::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  bool is_signed = false;
+  if (op->code() == CPUI_INT_SLESS) {
+    is_signed = true;
+  }
+  if (form1(op,data,is_signed)) return 1;
+  if (form2(op,data,is_signed)) return 1;
+  return 0;
+}
+
 map<Varnode *,uintb>::iterator RuleByteLoop::VarnodeValues::getEntry(Varnode *key)
 
 {
