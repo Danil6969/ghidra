@@ -1647,6 +1647,24 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 
+class RulePointerComparison : public Rule {
+  intb getCounterIncrement(Varnode *vn);
+  Varnode *getSpacebase(Varnode* vn);
+  bool getOffset(Varnode* vn,intb &offset);
+  bool getDifference(PcodeOp *op,int4 referenceSlot,intb &difference);
+  PcodeOp *getNewOp(PcodeOp *op,Funcdata &data,Varnode *input,intb change);
+  bool form1(PcodeOp *op,Funcdata &data,bool is_signed);
+  bool form2(PcodeOp *op,Funcdata &data,bool is_signed);
+public:
+  RulePointerComparison(const string &g) : Rule(g,0,"pointercomparison") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RulePointerComparison(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
 class RuleByteLoop : public Rule {
   bool cachereadonly;
   vector<PcodeOp *> extractlist;
