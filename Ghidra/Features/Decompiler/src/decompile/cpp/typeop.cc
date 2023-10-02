@@ -1053,6 +1053,19 @@ TypeOpIntSlessEqual::TypeOpIntSlessEqual(TypeFactory *t)
   behave = new OpBehaviorIntSlessEqual();
 }
 
+Datatype *TypeOpIntSlessEqual::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  const Varnode *invn = op->getIn(slot);
+  Datatype *invnType = invn->getType();
+  if (invnType->getMetatype() == TYPE_PTR) {
+    TypePointer *pointer = (TypePointer *)invnType;
+    Datatype *dt = tlst->getBase(invn->getSize(),TYPE_INT,"intptr_t");
+    return dt;
+  }
+  return tlst->getBase(op->getIn(slot)->getSize(),TYPE_INT);
+}
+
 Datatype *TypeOpIntSlessEqual::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
 
 {
