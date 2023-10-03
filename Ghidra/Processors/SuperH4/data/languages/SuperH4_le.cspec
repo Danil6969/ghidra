@@ -125,4 +125,101 @@
       </killedbycall>
     </prototype>
   </default_proto>
+  <prototype name="__internal" extrapop="0" stackshift="0" strategy="register">
+    <input>
+      <pentry minsize="1" maxsize="4" metatype="float">
+        <register name="fr5"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4" metatype="float">
+        <register name="fr4"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4" metatype="float">
+        <register name="fr7"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4" metatype="float">
+        <register name="fr6"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4" metatype="float">
+        <register name="fr9"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4" metatype="float">
+        <register name="fr8"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4" metatype="float">
+        <register name="fr11"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4" metatype="float">
+        <register name="fr10"/>
+      </pentry>
+      <pentry minsize="5" maxsize="8" metatype="float">
+        <register name="dr4"/>
+      </pentry>
+      <pentry minsize="5" maxsize="8" metatype="float">
+        <register name="dr6"/>
+      </pentry>
+      <pentry minsize="5" maxsize="8" metatype="float">
+        <register name="dr8"/>
+      </pentry>
+      <pentry minsize="5" maxsize="8" metatype="float">
+        <register name="dr10"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4">
+        <register name="r4"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4">
+        <register name="r5"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4">
+        <register name="r6"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4">
+        <register name="r7"/>
+      </pentry>
+      <pentry minsize="1" maxsize="500" align="4">
+        <addr offset="0" space="stack"/>
+      </pentry>
+    </input>
+    <output>
+      <pentry minsize="1" maxsize="4" metatype="float">
+        <register name="fr0"/>
+      </pentry>
+      <pentry minsize="5" maxsize="8" metatype="float">
+        <register name="dr0"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4">
+        <register name="r0"/>
+      </pentry>
+      <pentry minsize="5" maxsize="8">
+        <addr space="join" piece1="r1" piece2="r0"/>
+      </pentry>
+    </output>
+    <unaffected>
+      <register name="r15"/>
+      <register name="r14"/>
+      <register name="r13"/>
+      <register name="r12"/>
+      <register name="r11"/>
+      <register name="r10"/>
+      <register name="r9"/>
+      <register name="r8"/>
+      <register name="r3"/>
+    </unaffected> 
+    <killedbycall>
+      <register name="r0"/>
+      <register name="r1"/>
+      <register name="r2"/>
+      <register name="fr0"/>
+      <register name="fr1"/>
+      <register name="fr2"/>
+      <register name="fr3"/>
+      <register name="MACH"/>
+      <register name="MACL"/>
+      <register name="PR"/>
+      <register name="FPUL"/>
+      <register name="S"/>
+      <register name="M"/>
+      <register name="Q"/>
+      <register name="T"/>
+    </killedbycall>
+  </prototype>
 </compiler_spec>
