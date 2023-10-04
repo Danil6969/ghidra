@@ -488,7 +488,7 @@ void PrintC::opConv(const PcodeOp *op)
 {
   if (!option_nocasts) {
     pushOp(&typecast,op);
-    pushType(op->getOut()->getHigh()->getType());
+    pushType(op->getOut()->getHighTypeDefFacing());
   }
   pushVn(op->getIn(0),op,mods);
 }
