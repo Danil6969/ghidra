@@ -434,8 +434,9 @@ int4 ParamEntry::getSlot(const Address &addr,int4 skip) const
 /// Return an invalid address if the size is too small or if there are not enough slots left.
 /// \param slotnum is a reference to used slots (which will be updated)
 /// \param sz is the size of the parameter to allocated
+/// \param typeAlign is the required byte alignment for the parameter
 /// \return the address of the new parameter (or an invalid address)
-Address ParamEntry::getAddrBySlot(int4 &slotnum,int4 sz) const
+Address ParamEntry::getAddrBySlot(int4 &slotnum,int4 sz,int4 typeAlign) const
 
 {
   Address res;			// Start with an invalid result
@@ -453,6 +454,11 @@ Address ParamEntry::getAddrBySlot(int4 &slotnum,int4 sz) const
     }
   }
   else {
+    if (typeAlign > alignment) {
+      int4 tmp = (slotnum * alignment) % typeAlign;
+      if (tmp != 0)
+	slotnum += (typeAlign - tmp) / alignment;	// Waste slots to achieve typeAlign
+    }
     int4 slotsused = sz / alignment; // How many slots does a -sz- byte object need
     if ( (sz % alignment) != 0)
       slotsused += 1;
@@ -741,7 +747,7 @@ Address ParamListStandard::assignAddress(const Datatype *tp,vector<int4> &status
     if ((curEntry.getType() != TYPE_UNKNOWN) && tp->getMetatype() != curEntry.getType())
       continue;			// Wrong type
 
-    Address res = curEntry.getAddrBySlot(status[grp],tp->getSize());
+    Address res = curEntry.getAddrBySlot(status[grp],tp->getAlignSize(),tp->getAlignment());
     if (res.isInvalid()) continue; // If -tp- doesn't fit an invalid address is returned
     if (curEntry.isExclusion()) {
       const vector<int4> &groupSet(curEntry.getAllGroups());
@@ -888,7 +894,7 @@ void ParamListStandard::buildTrialMap(ParamActive *active) const
 	continue;
       int4 sz = curentry->isExclusion() ? curentry->getSize() : curentry->getAlign();
       int4 nextslot = 0;
-      Address addr = curentry->getAddrBySlot(nextslot,sz);
+      Address addr = curentry->getAddrBySlot(nextslot,sz,1);
       int4 trialpos = active->getNumTrials();
       bool overlaps;
       if (curentry->getSpace()->getType() == IPTR_JOIN)
@@ -925,7 +931,7 @@ void ParamListStandard::buildTrialMap(ParamActive *active) const
       for(int4 j=0;j<slotlist.size();++j) {
 	if (slotlist[j] == 0) {
 	  int4 nextslot = j;	// Make copy of j, so that getAddrBySlot can change it
-	  Address addr = curentry->getAddrBySlot(nextslot,curentry->getAlign());
+	  Address addr = curentry->getAddrBySlot(nextslot,curentry->getAlign(),1);
 	  int4 trialpos = active->getNumTrials();
 	  active->registerTrial(addr,curentry->getAlign());
 	  ParamTrial &paramtrial(active->getTrial(trialpos));

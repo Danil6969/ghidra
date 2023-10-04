@@ -24,7 +24,9 @@ import java.util.List;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
+import generic.test.category.NightlyCategory;
 import ghidra.app.plugin.core.debug.utils.ManagedDomainObject;
 import ghidra.dbg.target.TargetExecutionStateful.TargetExecutionState;
 import ghidra.dbg.testutil.DummyProc;
@@ -37,11 +39,12 @@ import ghidra.trace.model.memory.TraceMemorySpace;
 import ghidra.trace.model.target.TraceObject;
 import ghidra.trace.model.time.TraceSnapshot;
 
+@Category(NightlyCategory.class) // this may actually be an @PortSensitive test
 public class GdbHooksTest extends AbstractGdbTraceRmiTest {
 	private static final long RUN_TIMEOUT_MS = 20000;
 	private static final long RETRY_MS = 500;
 
-	record GdbAndTrace(GdbAndHandler conn, ManagedDomainObject mdo) implements AutoCloseable {
+	record GdbAndTrace(GdbAndConnection conn, ManagedDomainObject mdo) implements AutoCloseable {
 		public void execute(String cmd) {
 			conn.execute(cmd);
 		}
@@ -59,7 +62,7 @@ public class GdbHooksTest extends AbstractGdbTraceRmiTest {
 
 	@SuppressWarnings("resource")
 	protected GdbAndTrace startAndSyncGdb() throws Exception {
-		GdbAndHandler conn = startAndConnectGdb();
+		GdbAndConnection conn = startAndConnectGdb();
 		try {
 			// TODO: Why does using 'set arch' cause a hang at quit?
 			conn.execute("""
@@ -140,7 +143,7 @@ public class GdbHooksTest extends AbstractGdbTraceRmiTest {
 	}
 
 	protected long lastSnap(GdbAndTrace conn) {
-		return conn.conn.handler().getLastSnapshot(tb.trace);
+		return conn.conn.connection().getLastSnapshot(tb.trace);
 	}
 
 	@Test

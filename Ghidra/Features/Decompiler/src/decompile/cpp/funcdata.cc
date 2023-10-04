@@ -29,7 +29,8 @@ const string Funcdata::addrof = "addrof";
 const string Funcdata::extractind = "extractind";
 const string Funcdata::insertind = "insertind";
 
-/// \param nm is the (base) name of the function
+/// \param nm is the (base) name of the function, as a formal symbol
+/// \param disp is the name used when displaying the function name in output
 /// \param scope is Symbol scope associated with the function
 /// \param addr is the entry address for the function
 /// \param sym is the symbol representing the function

@@ -27,12 +27,14 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import generic.Unique;
-import ghidra.app.plugin.core.debug.service.rmi.trace.TraceRmiAcceptor;
-import ghidra.app.plugin.core.debug.service.rmi.trace.TraceRmiHandler;
+import generic.test.category.NightlyCategory;
 import ghidra.app.plugin.core.debug.utils.ManagedDomainObject;
 import ghidra.dbg.util.PathPredicates;
+import ghidra.debug.api.tracermi.TraceRmiAcceptor;
+import ghidra.debug.api.tracermi.TraceRmiConnection;
 import ghidra.framework.model.DomainFile;
 import ghidra.program.model.address.*;
 import ghidra.program.model.lang.RegisterValue;
@@ -46,6 +48,7 @@ import ghidra.trace.model.target.*;
 import ghidra.trace.model.time.TraceSnapshot;
 import ghidra.util.Msg;
 
+@Category(NightlyCategory.class) // this may actually be an @PortSensitive test
 public class LldbCommandsTest extends AbstractLldbTraceRmiTest {
 
 	//@Test
@@ -53,9 +56,9 @@ public class LldbCommandsTest extends AbstractLldbTraceRmiTest {
 		TraceRmiAcceptor acceptor = traceRmi.acceptOne(null);
 		Msg.info(this,
 			"Use: ghidra_trace_connect " + sockToStringForLldb(acceptor.getAddress()));
-		TraceRmiHandler handler = acceptor.accept();
-		Msg.info(this, "Connected: " + sockToStringForLldb(handler.getRemoteAddress()));
-		handler.waitClosed();
+		TraceRmiConnection connection = acceptor.accept();
+		Msg.info(this, "Connected: " + sockToStringForLldb(connection.getRemoteAddress()));
+		connection.waitClosed();
 		Msg.info(this, "Closed");
 	}
 
@@ -134,7 +137,7 @@ public class LldbCommandsTest extends AbstractLldbTraceRmiTest {
 					ghidra_trace_connect %s
 					file bash
 					script ghidralldb.util.set_convenience_variable('ghidra-language','Toy:BE:64:default')
-					script ghidralldb.util.set_convenience_varaible('ghidra-compiler','default')
+					script ghidralldb.util.set_convenience_variable('ghidra-compiler','default')
 					ghidra_trace_start myToy
 					quit
 					"""
@@ -1217,7 +1220,7 @@ public class LldbCommandsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testPutFrames() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			conn.execute("file bash");
 			conn.execute("ghidra_trace_start");
 			conn.execute("ghidra_trace_txstart 'Tx'");
@@ -1253,7 +1256,7 @@ public class LldbCommandsTest extends AbstractLldbTraceRmiTest {
 				%s
 				ghidra_trace_connect %s
 				""".formatted(PREAMBLE, addr);
-		try (LldbAndHandler conn = startAndConnectLldb(scriptSupplier)) {
+		try (LldbAndConnection conn = startAndConnectLldb(scriptSupplier)) {
 			conn.execute("script print('FINISHED')");
 			conn.execute("quit");
 		}

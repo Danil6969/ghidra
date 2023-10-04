@@ -181,21 +181,6 @@ public class FloatFormat {
 		return minValue;
 	}
 
-	// Create a double given sign, 8-byte normalized mantissa, and unbiased scale
-	static double createDouble(boolean sgn, long mantissa, int scale) {
-		long exp = scale + 1023;
-		long bits = mantissa >>> 11;// 11 = 64 (long size) - 52 (frac size)  - 1 (jbit))
-		if (exp != 1) { // normal
-			bits &= 0xfffffffffffffL;
-			bits |= exp << 52;
-		}
-
-		if (sgn) {
-			bits |= 0x8000000000000000L;
-		}
-		return Double.longBitsToDouble(bits);
-	}
-
 	FloatKind extractKind(long encoding) {
 		int exp = extractExponentCode(encoding);
 		if (exp == maxexponent) {
@@ -264,8 +249,7 @@ public class FloatFormat {
 
 	// set sign bit and return the result if size <= 8
 	private long setSign(long x, boolean sign) {
-		if (!sign)
-		 {
+		if (!sign) {
 			return x; // Assume bit is already zero
 		}
 		long mask = 1;
@@ -300,8 +284,7 @@ public class FloatFormat {
 
 	public BigFloat getBigZero(boolean sgn) {
 		return new BigFloat(effective_frac_size, exp_size, FloatKind.FINITE, sgn ? -1 : +1,
-			BigInteger.ZERO,
-			2 - (1 << (exp_size - 1)));
+			BigInteger.ZERO, 2 - (1 << (exp_size - 1)));
 	}
 
 	public BigInteger getBigInfinityEncoding(boolean sgn) {
@@ -399,7 +382,7 @@ public class FloatFormat {
 		int exp = extractExponentCode(encoding);
 		long frac = extractFractionalCode(encoding);
 		FloatKind kind = extractKind(encoding);
-	
+
 		int scale;
 		long unscaled = frac;
 		if (kind == FloatKind.FINITE) {
@@ -422,6 +405,16 @@ public class FloatFormat {
 
 	// Convert floating point encoding into host's double if size <= 8
 	public double decodeHostFloat(long encoding) {
+
+		if (size == 8) { // assume IEEE-754 8-byte format which matches Java double encoding
+			return Double.longBitsToDouble(encoding);
+		}
+
+		if (size > 8) {
+			throw new UnsupportedOperationException(
+				"method not supported for float size of " + size);
+		}
+
 		boolean sgn = extractSign(encoding);
 		int exp = extractExponentCode(encoding);
 		long frac = extractFractionalCode(encoding);
@@ -440,15 +433,42 @@ public class FloatFormat {
 			return Double.NaN;
 		}
 
-		// Get unbiased scale and normalized mantissa
 		exp -= bias;
-		long mantissa = frac << (8 * 8 - frac_size);
-		if (!subnormal && jbitimplied) {
-			mantissa >>= 1; // Make room for 1 jbit
-			mantissa |= 0x8000000000000000L; // set bit in at top of normalized frac
+
+		long msbit = 1 << (frac_size - 1); // most-significant fractional/mantissa bit
+
+		if (!subnormal && !jbitimplied) {
+			frac &= ~msbit; // remove explicit jbit
+			frac <<= 1;
+			--exp;
 		}
 
-		return createDouble(sgn, mantissa, exp);
+		if (subnormal) {
+			// attempt to normalize
+			exp = -bias;
+
+			while (exp > -1023 && (frac & msbit) == 0 && frac != 0) {
+				frac <<= 1;
+				--exp;
+			}
+
+			// establish implied jbit
+			if (exp > -1023 && (frac & msbit) != 0 && frac != 0) {
+				frac <<= 1;
+			}
+			else {
+				--exp;
+			}
+
+			// mask-off implied jbit
+			frac &= ~-(1 << frac_size);
+		}
+
+		exp += 1023;
+		frac <<= 52 - frac_size;
+
+		long encodedDouble = (sgn ? (1L << 63) : 0) | ((long) exp << 52) | frac;
+		return Double.longBitsToDouble(encodedDouble);
 	}
 
 	public BigFloat decodeBigFloat(BigInteger encoding) {
@@ -1136,7 +1156,7 @@ public class FloatFormat {
 		fa.round();
 		return getEncoding(fa);
 	}
-	
+
 	public BigFloat getBigFloat(BigInteger value) {
 
 		if (size == 8) {

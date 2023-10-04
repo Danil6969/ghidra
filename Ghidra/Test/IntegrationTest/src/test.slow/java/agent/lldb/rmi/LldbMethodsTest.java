@@ -22,14 +22,15 @@ import static org.junit.Assert.*;
 import java.util.*;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import generic.Unique;
-import ghidra.app.plugin.core.debug.service.rmi.trace.RemoteMethod;
-import ghidra.app.plugin.core.debug.service.rmi.trace.ValueDecoder;
+import generic.test.category.NightlyCategory;
 import ghidra.app.plugin.core.debug.utils.ManagedDomainObject;
 import ghidra.dbg.testutil.DummyProc;
 import ghidra.dbg.util.PathPattern;
 import ghidra.dbg.util.PathPredicates;
+import ghidra.debug.api.tracermi.RemoteMethod;
 import ghidra.program.model.address.*;
 import ghidra.program.model.lang.RegisterValue;
 import ghidra.trace.database.ToyDBTraceBuilder;
@@ -42,14 +43,14 @@ import ghidra.trace.model.modules.TraceModule;
 import ghidra.trace.model.target.TraceObject;
 import ghidra.trace.model.target.TraceObjectValue;
 
+@Category(NightlyCategory.class) // this may actually be an @PortSensitive test
 public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testExecuteCapture() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			RemoteMethod execute = conn.getMethod("execute");
-			assertEquals(false,
-				execute.parameters().get("to_string").defaultValue().get(ValueDecoder.DEFAULT));
+			assertEquals(false, execute.parameters().get("to_string").getDefaultValue());
 			assertEquals("test\n",
 				execute.invoke(Map.of("cmd", "script print('test')", "to_string", true)));
 		}
@@ -57,7 +58,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testExecute() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			conn.execute("kill");
 		}
@@ -68,7 +69,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testRefreshAvailable() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			conn.execute("ghidra_trace_start");
 			txCreate(conn, "Available");
 
@@ -91,7 +92,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testRefreshBreakpoints() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -129,7 +130,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testRefreshProcBreakpoints() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 			txPut(conn, "breakpoints");
@@ -167,7 +168,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testRefreshProcWatchpoints() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "all");
 
@@ -214,7 +215,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testRefreshProcesses() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			conn.execute("ghidra_trace_start");
 			txCreate(conn, "Processes");
 			txCreate(conn, "Processes[1]");
@@ -238,7 +239,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testRefreshEnvironment() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			String path = "Processes[].Environment";
 			start(conn, "bash");
 			txPut(conn, "all");
@@ -261,7 +262,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testRefreshThreads() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			String path = "Processes[].Threads";
 			start(conn, "bash");
 			txCreate(conn, path);
@@ -281,7 +282,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testRefreshStack() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			String path = "Processes[].Threads[].Stack";
 			conn.execute("file bash");
 			conn.execute("ghidra_trace_start");
@@ -310,7 +311,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testRefreshRegisters() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			String path = "Processes[].Threads[].Stack[].Registers";
 			start(conn, "bash");
 			conn.execute("ghidra_trace_txstart 'Tx'");
@@ -339,7 +340,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testRefreshMappings() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			String path = "Processes[].Memory";
 			start(conn, "bash");
 			txCreate(conn, path);
@@ -361,7 +362,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testRefreshModules() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			String path = "Processes[].Modules";
 			start(conn, "bash");
 			txCreate(conn, path);
@@ -384,7 +385,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testActivateThread() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			// TODO:  need to find this file (same issue in LldbHookTests
 			String dproc = DummyProc.which("expCloneExit");
 			conn.execute("file " + dproc);
@@ -419,7 +420,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testActivateFrame() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			conn.execute("file bash");
 			conn.execute("ghidra_trace_start");
 			txPut(conn, "processes");
@@ -451,7 +452,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testRemoveProcess() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -472,7 +473,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 	public void testAttachObj() throws Exception {
 		String sleep = DummyProc.which("expTraceableSleep");
 		try (DummyProc dproc = DummyProc.run(sleep)) {
-			try (LldbAndHandler conn = startAndConnectLldb()) {
+			try (LldbAndConnection conn = startAndConnectLldb()) {
 				conn.execute("ghidra_trace_start");
 				txPut(conn, "available");
 				txPut(conn, "processes");
@@ -497,7 +498,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 	public void testAttachPid() throws Exception {
 		String sleep = DummyProc.which("expTraceableSleep");
 		try (DummyProc dproc = DummyProc.run(sleep)) {
-			try (LldbAndHandler conn = startAndConnectLldb()) {
+			try (LldbAndConnection conn = startAndConnectLldb()) {
 				conn.execute("ghidra_trace_start");
 				txPut(conn, "processes");
 
@@ -517,7 +518,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testDetach() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 			//conn.execute("process attach -p %d".formatted(dproc.pid));
@@ -538,7 +539,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testLaunchEntry() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			conn.execute("ghidra_trace_start");
 			txPut(conn, "processes");
 
@@ -560,7 +561,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test //Not clear how to send interrupt
 	public void testLaunch() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			conn.execute("ghidra_trace_start");
 			txPut(conn, "processes");
 
@@ -591,7 +592,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testKill() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -611,7 +612,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testStepInto() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -645,7 +646,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testStepOver() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			conn.execute("file bash");
 			conn.execute("ghidra_trace_start");
 			txPut(conn, "processes");
@@ -679,7 +680,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	//@Test Not obvious "thread until -a" works (and definitely requires debug info")
 	public void testAdvance() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 
 			RemoteMethod step_ext = conn.getMethod("step_ext");
@@ -704,7 +705,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testFinish() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			conn.execute("file bash");
 			conn.execute("ghidra_trace_start");
 			txPut(conn, "processes");
@@ -732,7 +733,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testReturn() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			conn.execute("file bash");
 			conn.execute("ghidra_trace_start");
 			txPut(conn, "processes");
@@ -760,7 +761,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testBreakAddress() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -781,7 +782,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testBreakExpression() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -801,7 +802,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 	//@Test  stderr getting populated with warning about exhausted hardware breakpoints
 	//   Are hardware breakpoints available on our VMs?
 	public void testBreakHardwareAddress() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -822,7 +823,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	//@Test There appear to be issues with hardware register availability in our virtual environments
 	public void testBreakHardwareExpression() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -843,7 +844,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testBreakReadRange() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -867,7 +868,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testBreakReadExpression() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -887,7 +888,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testBreakWriteRange() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -911,7 +912,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testBreakWriteExpression() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -931,7 +932,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testBreakAccessRange() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -955,7 +956,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testBreakAccessExpression() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -976,7 +977,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 	// NB: not really equivalent to gdb's "catch" but...
 	@Test
 	public void testBreakException() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -995,7 +996,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testToggleBreakpoint() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			conn.execute("file bash");
 			conn.execute("ghidra_trace_start");
 			txPut(conn, "processes");
@@ -1019,7 +1020,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testToggleBreakpointLocation() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			conn.execute("file bash");
 			conn.execute("ghidra_trace_start");
 			txPut(conn, "processes");
@@ -1045,7 +1046,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testDeleteBreakpoint() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			conn.execute("file bash");
 			conn.execute("ghidra_trace_start");
 			txPut(conn, "processes");
@@ -1069,7 +1070,7 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 
 	@Test
 	public void testDeleteWatchpoint() throws Exception {
-		try (LldbAndHandler conn = startAndConnectLldb()) {
+		try (LldbAndConnection conn = startAndConnectLldb()) {
 			start(conn, "bash");
 			txPut(conn, "processes");
 
@@ -1095,31 +1096,31 @@ public class LldbMethodsTest extends AbstractLldbTraceRmiTest {
 		}
 	}
 
-	private void start(LldbAndHandler conn, String obj) {
+	private void start(LldbAndConnection conn, String obj) {
 		conn.execute("file " + obj);
 		conn.execute("ghidra_trace_start");
 		conn.execute("process launch --stop-at-entry");
 	}
 
-	private void txPut(LldbAndHandler conn, String obj) {
+	private void txPut(LldbAndConnection conn, String obj) {
 		conn.execute("ghidra_trace_txstart 'Tx'");
 		conn.execute("ghidra_trace_put_" + obj);
 		conn.execute("ghidra_trace_txcommit");
 	}
 
-	private void txCreate(LldbAndHandler conn, String path) {
+	private void txCreate(LldbAndConnection conn, String path) {
 		conn.execute("ghidra_trace_txstart 'Fake'");
 		conn.execute("ghidra_trace_create_obj %s".formatted(path));
 		conn.execute("ghidra_trace_txcommit");
 	}
 
-	private void breakAt(LldbAndHandler conn, String fn) {
+	private void breakAt(LldbAndConnection conn, String fn) {
 		conn.execute("ghidra_trace_sync_enable");
 		conn.execute("breakpoint set -n " + fn);
 		conn.execute("run");
 	}
 
-	private int getDepth(LldbAndHandler conn) {
+	private int getDepth(LldbAndConnection conn) {
 		String[] split = conn.executeCapture("bt").split("\n");
 		int initDepth = 0;
 		for (String str : split) {

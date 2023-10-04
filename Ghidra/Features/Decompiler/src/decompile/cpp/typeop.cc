@@ -1256,7 +1256,7 @@ Datatype *TypeOpIntAdd::propagateAddIn2Out(Datatype *alttype,TypeFactory *typegr
 {
   TypePointer *pointer = (TypePointer *)alttype;
   uintb offset;
-  int4 command = propagateAddPointer(offset,op,inslot,pointer->getPtrTo()->getSize());
+  int4 command = propagateAddPointer(offset,op,inslot,pointer->getPtrTo()->getAlignSize());
   if (command == 2) return op->getOut()->getTempType(); // Doesn't look like a good pointer add
   TypePointer *parent = (TypePointer *)0;
   int8 parentOff;
@@ -1383,7 +1383,7 @@ Datatype *TypeOpIntSub::getOutputToken(const PcodeOp *op,CastStrategy *castStrat
 TypeOpIntCarry::TypeOpIntCarry(TypeFactory *t)
   : TypeOpFunc(t,CPUI_INT_CARRY,"CARRY",TYPE_BOOL,TYPE_UINT)
 {
-  opflags = PcodeOp::binary;
+  opflags = PcodeOp::binary | PcodeOp::commutative;
   addlflags = arithmetic_op;
   behave = new OpBehaviorIntCarry();
 }
@@ -1399,7 +1399,7 @@ string TypeOpIntCarry::getOperatorName(const PcodeOp *op) const
 TypeOpIntScarry::TypeOpIntScarry(TypeFactory *t)
   : TypeOpFunc(t,CPUI_INT_SCARRY,"SCARRY",TYPE_BOOL,TYPE_INT)
 {
-  opflags = PcodeOp::binary;
+  opflags = PcodeOp::binary | PcodeOp::commutative;
   behave = new OpBehaviorIntScarry();
 }
 

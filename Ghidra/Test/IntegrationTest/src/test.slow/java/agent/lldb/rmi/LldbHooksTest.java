@@ -15,8 +15,7 @@
  */
 package agent.lldb.rmi;
 
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 import java.nio.ByteBuffer;
@@ -25,7 +24,9 @@ import java.util.Objects;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
+import generic.test.category.NightlyCategory;
 import ghidra.app.plugin.core.debug.utils.ManagedDomainObject;
 import ghidra.dbg.testutil.DummyProc;
 import ghidra.dbg.util.PathPattern;
@@ -38,11 +39,12 @@ import ghidra.trace.model.memory.TraceMemorySpace;
 import ghidra.trace.model.target.TraceObject;
 import ghidra.trace.model.time.TraceSnapshot;
 
+@Category(NightlyCategory.class) // this may actually be an @PortSensitive test
 public class LldbHooksTest extends AbstractLldbTraceRmiTest {
 	private static final long RUN_TIMEOUT_MS = 20000;
 	private static final long RETRY_MS = 500;
 
-	record LldbAndTrace(LldbAndHandler conn, ManagedDomainObject mdo) implements AutoCloseable {
+	record LldbAndTrace(LldbAndConnection conn, ManagedDomainObject mdo) implements AutoCloseable {
 		public void execute(String cmd) {
 			conn.execute(cmd);
 		}
@@ -60,7 +62,7 @@ public class LldbHooksTest extends AbstractLldbTraceRmiTest {
 
 	@SuppressWarnings("resource")
 	protected LldbAndTrace startAndSyncLldb() throws Exception {
-		LldbAndHandler conn = startAndConnectLldb();
+		LldbAndConnection conn = startAndConnectLldb();
 		try {
 			// TODO: Why does using 'set arch' cause a hang at quit?
 			conn.execute(
@@ -77,7 +79,7 @@ public class LldbHooksTest extends AbstractLldbTraceRmiTest {
 	}
 
 	protected long lastSnap(LldbAndTrace conn) {
-		return conn.conn.handler().getLastSnapshot(tb.trace);
+		return conn.conn.connection().getLastSnapshot(tb.trace);
 	}
 
 	// TODO: This passes if you single-step through it but fails on some transactional stuff if run

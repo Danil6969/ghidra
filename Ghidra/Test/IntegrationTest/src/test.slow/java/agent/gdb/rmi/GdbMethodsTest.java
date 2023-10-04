@@ -23,15 +23,16 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import db.Transaction;
 import generic.Unique;
-import ghidra.app.plugin.core.debug.service.rmi.trace.RemoteMethod;
-import ghidra.app.plugin.core.debug.service.rmi.trace.ValueDecoder;
+import generic.test.category.NightlyCategory;
 import ghidra.app.plugin.core.debug.utils.ManagedDomainObject;
 import ghidra.dbg.testutil.DummyProc;
 import ghidra.dbg.util.PathPattern;
 import ghidra.dbg.util.PathPredicates;
+import ghidra.debug.api.tracermi.RemoteMethod;
 import ghidra.program.model.address.*;
 import ghidra.program.model.data.Float10DataType;
 import ghidra.program.model.lang.Register;
@@ -48,21 +49,21 @@ import ghidra.trace.model.modules.TraceModule;
 import ghidra.trace.model.target.TraceObject;
 import ghidra.trace.model.target.TraceObjectValue;
 
+@Category(NightlyCategory.class) // this may actually be an @PortSensitive test
 public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testExecuteCapture() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			RemoteMethod execute = conn.getMethod("execute");
-			assertEquals(false,
-				execute.parameters().get("to_string").defaultValue().get(ValueDecoder.DEFAULT));
+			assertEquals(false, execute.parameters().get("to_string").getDefaultValue());
 			assertEquals("test", execute.invoke(Map.of("cmd", "echo test", "to_string", true)));
 		}
 	}
 
 	@Test
 	public void testExecute() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			RemoteMethod execute = conn.getMethod("execute");
 			execute.invoke(Map.of("cmd", """
 					file bash
@@ -77,7 +78,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testRefreshAvailable() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					ghidra trace start
 					ghidra trace tx-open "Fake" 'ghidra trace create-obj Available'""");
@@ -100,7 +101,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testRefreshBreakpoints() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -154,7 +155,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testRefreshInfBreakpoints() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -208,7 +209,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testRefreshInferiors() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					add-inferior
 					ghidra trace start
@@ -232,7 +233,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testRefreshEnvironment() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			String path = "Inferiors[1].Environment";
 			conn.execute("""
 					file bash
@@ -257,7 +258,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testRefreshThreads() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			String path = "Inferiors[1].Threads";
 			conn.execute("""
 					file bash
@@ -279,7 +280,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testRefreshStack() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			String path = "Inferiors[1].Threads[1].Stack";
 			conn.execute("""
 					file bash
@@ -313,7 +314,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 		String count = IntStream.iterate(0, i -> i < 32, i -> i + 1)
 				.mapToObj(Integer::toString)
 				.collect(Collectors.joining(",", "{", "}"));
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			String path = "Inferiors[1].Threads[1].Stack[0].Registers";
 			conn.execute("""
 					file bash
@@ -358,7 +359,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testRefreshMappings() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			String path = "Inferiors[1].Memory";
 			conn.execute("""
 					file bash
@@ -382,7 +383,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testRefreshModules() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			String path = "Inferiors[1].Modules";
 			conn.execute("""
 					file bash
@@ -407,7 +408,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testActivateInferior() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					add-inferior
 					ghidra trace start
@@ -434,7 +435,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testActivateThread() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					add-inferior
 					ghidra trace start
@@ -471,7 +472,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testActivateFrame() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -505,7 +506,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testDeleteInferior() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					add-inferior
 					ghidra trace start
@@ -528,7 +529,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 	public void testAttachObj() throws Exception {
 		String sleep = DummyProc.which("expTraceableSleep");
 		try (DummyProc proc = DummyProc.run(sleep)) {
-			try (GdbAndHandler conn = startAndConnectGdb()) {
+			try (GdbAndConnection conn = startAndConnectGdb()) {
 				conn.execute("""
 						ghidra trace start
 						ghidra trace tx-open Init 'ghidra trace put-available'
@@ -553,7 +554,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 	public void testAttachPid() throws Exception {
 		String sleep = DummyProc.which("expTraceableSleep");
 		try (DummyProc proc = DummyProc.run(sleep)) {
-			try (GdbAndHandler conn = startAndConnectGdb()) {
+			try (GdbAndConnection conn = startAndConnectGdb()) {
 				conn.execute("""
 						ghidra trace start
 						ghidra trace tx-open Init 'ghidra trace put-inferiors'""");
@@ -575,7 +576,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 	public void testDetach() throws Exception {
 		String sleep = DummyProc.which("expTraceableSleep");
 		try (DummyProc proc = DummyProc.run(sleep)) {
-			try (GdbAndHandler conn = startAndConnectGdb()) {
+			try (GdbAndConnection conn = startAndConnectGdb()) {
 				conn.execute("""
 						ghidra trace start
 						%s
@@ -599,7 +600,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testLaunchMain() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					ghidra trace start
 					%s
@@ -623,7 +624,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testLaunchLoader() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					ghidra trace start
 					%s
@@ -647,7 +648,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testLaunchRun() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					ghidra trace start
 					%s
@@ -676,7 +677,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testKill() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -700,7 +701,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testResumeInterrupt5() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			RemoteMethod resume = conn.getMethod("resume");
 			RemoteMethod interrupt = conn.getMethod("interrupt");
 			conn.execute("""
@@ -749,7 +750,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testStepInto() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -780,7 +781,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testStepOver() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -811,7 +812,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testStepOut() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -839,7 +840,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testStepAdvance() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -867,7 +868,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testStepReturn() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -894,7 +895,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testBreakSwExecuteAddress() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -918,7 +919,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testBreakSwExecuteExpression() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -940,7 +941,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testBreakHwExecuteAddress() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -965,7 +966,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testBreakHwExecuteExpression() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -988,7 +989,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testBreakReadRange() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -1015,7 +1016,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testBreakReadExpression() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -1038,7 +1039,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testBreakWriteRange() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -1065,7 +1066,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testBreakWriteExpression() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -1088,7 +1089,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testBreakAccessRange() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -1115,7 +1116,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testBreakAccessExpression() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -1138,7 +1139,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testBreakEvent() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -1161,7 +1162,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testToggleBreakpoint() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -1187,7 +1188,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testToggleBreakpointLocation() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
@@ -1229,7 +1230,7 @@ public class GdbMethodsTest extends AbstractGdbTraceRmiTest {
 
 	@Test
 	public void testDeleteBreakpoint() throws Exception {
-		try (GdbAndHandler conn = startAndConnectGdb()) {
+		try (GdbAndConnection conn = startAndConnectGdb()) {
 			conn.execute("""
 					file bash
 					ghidra trace start
