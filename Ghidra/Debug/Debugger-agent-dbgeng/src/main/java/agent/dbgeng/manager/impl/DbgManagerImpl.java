@@ -317,13 +317,13 @@ public class DbgManagerImpl implements DbgManager {
 		}
 	}
 
-	public DbgProcessImpl getProcessComputeIfAbsent(DebugProcessId id, long pid, boolean fire) {
+	public DbgProcessImpl getProcessComputeIfAbsent(DebugProcessId id, long pid, String name, boolean fire) {
 		synchronized (processes) {
 			if (processes.containsKey(id)) {
 				DbgProcessImpl existingProc = processes.get(id);
 				return existingProc;
 			}
-			DbgProcessImpl process = new DbgProcessImpl(this, id, pid);
+			DbgProcessImpl process = new DbgProcessImpl(this, id, pid, name);
 			process.add();
 			if (fire) {
 				getEventListeners().fire.processAdded(process, DbgCause.Causes.UNCLAIMED);
@@ -359,6 +359,7 @@ public class DbgManagerImpl implements DbgManager {
 		}
 	}
 
+	@Override
 	public DbgSessionImpl getSessionComputeIfAbsent(DebugSessionId id, boolean fire) {
 		synchronized (sessions) {
 			if (!sessions.containsKey(id) && id.value() >= 0) {
@@ -1403,13 +1404,13 @@ public class DbgManagerImpl implements DbgManager {
 	@Override
 	public CompletableFuture<Void> addMemory(DbgModuleMemory region) {
 		memory.put(region.getId(), region);
-		return AsyncUtils.NIL;
+		return AsyncUtils.nil();
 	}
 
 	@Override
 	public CompletableFuture<Void> removeMemory(Long id) {
 		memory.remove(id);
-		return AsyncUtils.NIL;
+		return AsyncUtils.nil();
 	}
 
 	@Override
@@ -1622,7 +1623,7 @@ public class DbgManagerImpl implements DbgManager {
 			//getEventListeners().fire.promptChanged(prompt);
 			continuation.complete(command);
 			setContinuation(null);
-			return AsyncUtils.NIL;
+			return AsyncUtils.nil();
 		}
 		return execute(
 			new DbgConsoleExecCommand(this, command, DbgConsoleExecCommand.Output.CONSOLE))
@@ -1737,7 +1738,8 @@ public class DbgManagerImpl implements DbgManager {
 			return null;
 		} else {
 			int pid = so.getCurrentProcessSystemId();
-			return getProcessComputeIfAbsent(id, pid, true);
+			String name = so.getCurrentProcessExecutableName();
+			return getProcessComputeIfAbsent(id, pid, name, true);
 		}
 	}
 
@@ -1757,14 +1759,15 @@ public class DbgManagerImpl implements DbgManager {
 		DebugSystemObjects so = getSystemObjects();
 		currentSession = eventSession = getSessionComputeIfAbsent(esid, true);
 		if (kernelMode) {
-			DbgProcessImpl cp = getProcessComputeIfAbsent(new DebugSystemProcessRecord(epid.value()), -1, true);
+			DbgProcessImpl cp = getProcessComputeIfAbsent(new DebugSystemProcessRecord(epid.value()), -1, null, true);
 			cp.setOffset(so.getCurrentProcessDataOffset());
+			cp.setExecutableName(so.getCurrentProcessExecutableName());
 			currentProcess = eventProcess = cp;
 			if (currentProcess.getId().isSystem()) {
 				execute(new DbgResolveProcessCommand(this, currentProcess)).thenAccept(proc -> {
 					currentProcess = eventProcess = proc;
 					// As you now have both pid & offset, update the id==pid version
-					DbgProcessImpl mirror = getProcessComputeIfAbsent(new DebugProcessRecord(proc.getPid()), proc.getPid(), true);
+					DbgProcessImpl mirror = getProcessComputeIfAbsent(new DebugProcessRecord(proc.getPid()), proc.getPid(), null, true);
 					if (mirror != null) {
 						mirror.setOffset(currentProcess.getOffset());
 						currentProcess = eventProcess = mirror;
@@ -1789,11 +1792,15 @@ public class DbgManagerImpl implements DbgManager {
 			}
 		} else {
 			currentProcess =
-				eventProcess = getProcessComputeIfAbsent(epid, so.getCurrentProcessSystemId(), true);
+				eventProcess = getProcessComputeIfAbsent(epid, so.getCurrentProcessSystemId(), so.getCurrentProcessExecutableName(), true);
 			currentThread = eventThread = getThreadComputeIfAbsent(etid, (DbgProcessImpl) eventProcess,
 				so.getCurrentThreadSystemId(), false);
 			getEventListeners().fire.threadSelected(eventThread, null, Causes.UNCLAIMED);
 		}
+	}
+	
+	public DebugStatus getStatus() {
+		return status;
 	}
 
 }
