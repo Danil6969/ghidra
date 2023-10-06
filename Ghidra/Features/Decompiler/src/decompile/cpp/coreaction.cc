@@ -154,14 +154,15 @@ int4 StackSolver::extraLoopCounts(PcodeOp *op)
   if (branchop->code() != CPUI_CBRANCH) return 0;
 
   PcodeOp *conditionop = branchop->getIn(1)->getDef();
+  if (conditionop == (PcodeOp *)0) return 0;
   Varnode *constvn = (Varnode *)0;
 
   Varnode *addvn = (Varnode *)0;
   Varnode *multivn = (Varnode *)0;
   Varnode *copyvn = (Varnode *)0;
-  PcodeOp *addop;
-  PcodeOp *multiop;
-  PcodeOp *copyop;
+  PcodeOp *addop = (PcodeOp *)0;
+  PcodeOp *multiop = (PcodeOp *)0;
+  PcodeOp *copyop = (PcodeOp *)0;
 
   intb endval;
   intb startval;
