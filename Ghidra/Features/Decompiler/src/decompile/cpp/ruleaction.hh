@@ -1647,6 +1647,19 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 
+class RulePointerIntAdd : public Rule {
+  intb getCounterIncrement(PcodeOp *op);
+  bool hasPointerUsages(vector<PcodeOp *> ops);
+public:
+  RulePointerIntAdd(const string &g) : Rule(g,0,"pointerintadd") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RulePointerIntAdd(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
 class RulePointerComparison : public Rule {
   intb getCounterIncrement(Varnode *vn);
   Varnode *getSpacebase(Varnode* vn);
