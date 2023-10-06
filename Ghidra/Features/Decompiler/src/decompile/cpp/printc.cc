@@ -2291,7 +2291,7 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       pushAtom(Atom(stack[i].fieldname,fieldtoken,stack[i].hilite,stack[i].parent,field->ident,op));
   }
   if (printPartial) {
-    push_integer(off,4, false,0,op);
+    push_integer(off,4,false,tag,(Varnode *)0,op);
   }
   if (!outArr) {
     pushType(casttype);
@@ -2655,7 +2655,7 @@ inline void PrintC::pushTypePointerRel(const PcodeOp *op)
   TypePointer *ptype = (TypePointer *) in0->getHighTypeReadFacing(op);
   TypePointerRel *ptrel = (TypePointerRel *) ptype;
   int4 off = ptrel->getPointerOffset();
-  push_integer(off,4,true,(Varnode *)0,op);
+  push_integer(off,4,true,syntax,(Varnode *)0,op);
 }
 
 void PrintC::docTypeDefinitions(const TypeFactory *typegrp)
