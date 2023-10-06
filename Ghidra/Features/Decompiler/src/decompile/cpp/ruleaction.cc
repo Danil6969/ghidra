@@ -10602,6 +10602,81 @@ int4 RuleLzcountShiftBool::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
+intb RulePointerIntAdd::getCounterIncrement(PcodeOp *op)
+
+{
+  PcodeOp *multiop = op->getIn(0)->getDef();
+  if (multiop == (PcodeOp *)0) return 0;
+  if (multiop->code() != CPUI_MULTIEQUAL) return 0;
+  // Check multi inputs
+  Varnode *invn0 = multiop->getIn(0);
+  Varnode *invn1 = multiop->getIn(1);
+  // Skip copy if presented
+  if (invn0->getDef() != (PcodeOp *)0) {
+    if (invn0->getDef()->code() == CPUI_COPY) {
+      invn0 = invn0->getDef()->getIn(0);
+    }
+  }
+  // Must be 0 constant
+  if (!invn0->isConstant()) return 0;
+  if (invn0->getOffset() != 0) return 0;
+  // Must loop to intadd
+  if (invn1->getDef() != op) return 0;
+
+  if (!op->getIn(1)->isConstant()) return 0;
+  return op->getIn(1)->getOffset();
+}
+
+bool RulePointerIntAdd::hasPointerUsages(vector<PcodeOp *> ops)
+
+{
+  for (vector<PcodeOp *>::const_iterator iter=ops.begin();iter!=ops.end();++iter) {
+    PcodeOp *op = *iter;
+    if (op->code() != CPUI_INT_ADD) continue;
+    Varnode *out = op->getOut();
+    if (out == (Varnode *)0) continue;
+    PcodeOp *descend = out->loneDescend();
+    if (descend == (PcodeOp *)0) continue;
+    if (descend->code() == CPUI_LOAD) return true;
+    if (descend->code() == CPUI_STORE) return true;
+  }
+  return false;
+}
+
+void RulePointerIntAdd::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_ADD);
+}
+
+int4 RulePointerIntAdd::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  intb increment = getCounterIncrement(op);
+  if (increment == 0) return 0;
+  if (increment == 1) return 0;
+  PcodeOp *multiop = op->getIn(0)->getDef();
+  Varnode *out = multiop->getOut();
+  // Collect descends
+  vector<PcodeOp *> descends;
+  for(list<PcodeOp *>::const_iterator iter=out->beginDescend();iter!=out->endDescend();++iter) {
+    PcodeOp *descend = *iter;
+    if (descend == op) continue;
+    descends.push_back(descend);
+  }
+  if (!hasPointerUsages(descends)) return 0;
+  Varnode *invn1 = op->getIn(1);
+  data.opSetInput(op,data.newConstant(invn1->getSize(),1),1);
+  PcodeOp *nextop = multiop->nextOp();
+  PcodeOp *newop = data.newOpBefore(nextop,CPUI_INT_MULT,out,data.newConstant(out->getSize(),increment));
+  for(vector<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
+    PcodeOp *descend = *iter;
+    int4 slot = descend->getSlot(out);
+    data.opSetInput(descend,newop->getOut(),slot);
+  }
+  return 1;
+}
+
 // Returns change of counter or 0 if not a valid counter vn
 intb RulePointerComparison::getCounterIncrement(Varnode *vn)
 
