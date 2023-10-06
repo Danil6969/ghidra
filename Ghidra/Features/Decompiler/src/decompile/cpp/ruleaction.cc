@@ -9267,6 +9267,7 @@ bool RuleConditionalMove::BoolExpress::initialize(Varnode *vn)
   case CPUI_FLOAT_LESS:
   case CPUI_FLOAT_LESSEQUAL:
   case CPUI_FLOAT_NAN:
+    if (op->numInput() != 2) return false;
     in0 = op->getIn(0);
     in1 = op->getIn(1);
     optype = 2;
