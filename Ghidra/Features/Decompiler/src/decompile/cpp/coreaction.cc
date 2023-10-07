@@ -351,7 +351,10 @@ void StackSolver::build(const Funcdata &data,AddrSpace *id,int4 spcbase)
 	PcodeOp *otherop = othervn->getDef();
 	int4 extracounts = extraLoopCounts(otherop);
 	if (extracounts > 0) {
-	  rhsoffset = loopStackChange(otherop) * extracounts;
+          int4 change = loopStackChange(otherop);
+          if (change > 0) {
+            rhsoffset = change * extracounts;
+          }
 	}
 	iter = lower_bound(vnlist.begin(),vnlist.end(),othervn,Varnode::comparePointers);
 	eqn.var1 = i;
