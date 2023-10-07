@@ -981,7 +981,7 @@ bool Funcdata::syncVarnodesWithSymbol(VarnodeLocSet::const_iterator &iter,uint4 
       }
     }
     else if ((vnflags & mask) != fl) { // We have a change
-      if (ct == (Datatype *)0) {
+      if (ct == (Datatype *)0 && fl != 0) {
 	if ((vnflags & Varnode::mapped) != (fl & Varnode::mapped)) {
 	  return false; // Avoid infinite action repetition if datatype cannot be assigned
 	}
