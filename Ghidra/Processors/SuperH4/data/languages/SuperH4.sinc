@@ -136,6 +136,11 @@ define register offset=2560 size=1 [
 	FPSCR_FR
 ];
 
+# Undocumented registers
+define register offset=3072 size=1 [
+	LDST
+];
+
 @define T_FLAG  "T"
 @define S_FLAG  "S"
 @define IMASK   "IMASK"
@@ -2235,6 +2240,31 @@ define pcodeop mac_wOp;
 :mov.l r0, U_0t_gbr_at_4    is OP_2=0xc2 & U_0t_gbr_at_4 & r0 {
 
 	*:4 ( U_0t_gbr_at_4 ) = r0; # NOTE U_0t_4_at_gbr_r0_1 units is bytes
+}
+
+
+# Data Transfer
+# pattern 0000nnnn01110011
+# text    movco.l R0,@Rn
+# arch    arch_sh_up
+:movco.l r0, N_0t_at1    is OP_0=0x0 & N_0t_at1 & OP_4=0x73 & r0 {
+
+	T = LDST;
+	if (!T) goto <end>;
+	*:4 ( N_0t_at1 ) = r0;
+<end>
+	LDST = 0;
+}
+
+
+# Data Transfer
+# pattern 0000mmmm01100011
+# text    movli.l @Rm,R0
+# arch    arch_sh_up
+:movli.l N_0t_at1, r0    is OP_0=0x0 & N_0t_at1 & OP_4=0x63 & r0 {
+
+	LDST = 1;
+	r0 = *:4 ( N_0t_at1 );
 }
 
 
