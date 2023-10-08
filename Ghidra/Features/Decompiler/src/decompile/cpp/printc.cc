@@ -2021,12 +2021,12 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
       pushAtom(Atom("TOARR",optoken,EmitMarkup::no_color,op));
       pushOp(&comma,op);
     }
-    push_integer(val,ct->getSize(),false,vn,op);
+    push_integer(val,ct->getSize(),false,tag,vn,op);
     if (!option_nocasts) {
       pushOp(&comma, op);
       Datatype *dt = glb->types->getBase(ct->getSize(), TYPE_UINT);
       pushType(dt);
-      push_integer(ct->getSize(),ct->getSize(),false,vn,op);
+      push_integer(ct->getSize(),ct->getSize(),false,tag,vn,op);
     }
     return;
   case TYPE_SPACEBASE:
