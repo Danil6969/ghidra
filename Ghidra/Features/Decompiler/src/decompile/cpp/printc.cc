@@ -2015,9 +2015,22 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
   case TYPE_FLOAT:
     push_float(val,ct->getSize(),tag,vn,op);
     return;
+  case TYPE_ARRAY:
+    if (!option_nocasts) {
+      pushOp(&function_call,op);
+      pushAtom(Atom("TOARR",optoken,EmitMarkup::no_color,op));
+      pushOp(&comma,op);
+    }
+    push_integer(val,ct->getSize(),false,vn,op);
+    if (!option_nocasts) {
+      pushOp(&comma, op);
+      Datatype *dt = glb->types->getBase(ct->getSize(), TYPE_UINT);
+      pushType(dt);
+      push_integer(ct->getSize(),ct->getSize(),false,vn,op);
+    }
+    return;
   case TYPE_SPACEBASE:
   case TYPE_CODE:
-  case TYPE_ARRAY:
   case TYPE_STRUCT:
   case TYPE_UNION:
   case TYPE_PARTIALSTRUCT:
