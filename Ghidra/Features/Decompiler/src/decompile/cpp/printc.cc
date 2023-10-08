@@ -2026,14 +2026,21 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
   }
   // Default printing
   if (!option_nocasts) {
+    pushOp(&function_call,op);
+    pushAtom(Atom("CAST",optoken,EmitMarkup::no_color,op));
+    pushOp(&comma,op);
     pushOp(&typecast,op);
-    pushType(ct);
+    Datatype *dt = glb->types->getBase(ct->getSize(), TYPE_UINT); // If we print constant as unsigned then we probably want to convert it to unsigned datatype
+    pushType(dt);
   }
   pushMod();
   if (!isSet(force_dec))
     setMod(force_hex);
   push_integer(val,ct->getSize(),false,tag,vn,op);
   popMod();
+  if (!option_nocasts) {
+    pushType(ct);
+  }
 }
 
 bool PrintC::pushEquate(uintb val,int4 sz,const EquateSymbol *sym,const Varnode *vn,const PcodeOp *op)
