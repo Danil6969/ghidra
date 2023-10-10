@@ -1648,8 +1648,10 @@ public:
 };
 
 class RulePointerIntAdd : public Rule {
-  intb getCounterIncrement(PcodeOp *op);
   bool hasPointerUsages(vector<PcodeOp *> ops);
+  PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
+  Varnode *getCounterInitVarnode(PcodeOp *multiop);
+  intb getCounterIncrement(PcodeOp *op);
 public:
   RulePointerIntAdd(const string &g) : Rule(g,0,"pointerintadd") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
