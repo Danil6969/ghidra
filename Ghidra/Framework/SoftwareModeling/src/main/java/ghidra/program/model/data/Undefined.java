@@ -34,7 +34,8 @@ public abstract class Undefined extends BuiltIn {
 				new Undefined[] { Undefined1DataType.dataType, Undefined2DataType.dataType,
 					Undefined3DataType.dataType, Undefined4DataType.dataType,
 					Undefined5DataType.dataType, Undefined6DataType.dataType,
-					Undefined7DataType.dataType, Undefined8DataType.dataType };
+					Undefined7DataType.dataType, Undefined8DataType.dataType,
+					Undefined9DataType.dataType, Undefined10DataType.dataType };
 		}
 		return undefinedTypes;
 	}
