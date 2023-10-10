@@ -1400,7 +1400,7 @@ void Architecture::resetDefaultsInternal(void)
   trim_recurse_max = 5;
   max_implied_ref = 2;		// 2 is best, in specific cases a higher number might be good
   max_term_duplication = 2;	// 2 and 3 (4) are reasonable
-  max_basetype_size = 8;	// Needs to be 8 or bigger
+  max_basetype_size = 10;	// Needs to be 10 or bigger
   flowoptions = FlowInfo::error_toomanyinstructions;
   max_instructions = 100000;
   infer_pointers = true;
