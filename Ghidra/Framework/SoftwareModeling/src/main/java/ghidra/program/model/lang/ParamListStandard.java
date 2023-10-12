@@ -70,8 +70,15 @@ public class ParamListStandard implements ParamList {
 	private ArrayList<Varnode> collectUsedVarnodes(int[] status) {
 		ArrayList<Varnode> usedVarnodes = new ArrayList<Varnode>();
 		for (ParamEntry element : entry) {
-			int grp = element.getGroup();
-			if (status[grp] >= 0) continue;
+			int[] groups = element.getAllGroups();
+			// Must use all groups
+			boolean usesAllGroups = true;
+			for (int grp : groups) {
+				if (status[grp] >= 0) {
+					usesAllGroups = false;
+				}
+			}
+			if (!usesAllGroups) continue;
 			AddressSpace spc = element.getSpace();
 			if (spc.getType() == AddressSpace.TYPE_JOIN) {
 				int sz = element.getSize();
