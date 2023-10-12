@@ -744,14 +744,15 @@ bool ParamListStandard::overlapsTakenUpVarnodes(vector<Varnode> &takenUpVarnodes
 Address ParamListStandard::assignAddress(const Datatype *tp,vector<int4> &status) const
 
 {
-  //vector<Varnode> takenUpVarnodes;
-  //collectUsedVarnodes(takenUpVarnodes,status);
+  vector<Varnode> takenUpVarnodes;
+  collectUsedVarnodes(takenUpVarnodes,status);
   list<ParamEntry>::const_iterator iter;
   for(iter=entry.begin();iter!=entry.end();++iter) {
     const ParamEntry &curEntry( *iter );
     int4 grp = curEntry.getGroup();
     if (status[grp]<0) continue;
-    //if (!takenUpVarnodes.empty() && overlapsTakenUpVarnodes(takenUpVarnodes,curEntry)) continue;
+    if (!takenUpVarnodes.empty() && overlapsTakenUpVarnodes(takenUpVarnodes,curEntry))
+      continue;
     if ((curEntry.getType() != TYPE_UNKNOWN) && tp->getMetatype() != curEntry.getType())
       continue;			// Wrong type
 
