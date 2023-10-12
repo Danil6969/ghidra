@@ -675,8 +675,16 @@ void ParamListStandard::collectUsedVarnodes(vector<Varnode> &res,vector<int4> &s
   list<ParamEntry>::const_iterator iter;
   for(iter=entry.begin();iter!=entry.end();++iter) {
     const ParamEntry &curEntry( *iter );
-    int4 grp = curEntry.getGroup();
-    if (status[grp]>=0) continue;
+    vector<int4> groups = curEntry.getAllGroups();
+    // Must use all groups
+    bool usesAllGroups = true;
+    for(int4 i=0;i<groups.size();++i) {
+      int4 grp = groups[i];
+      if (status[grp]>=0) {
+        usesAllGroups = false;
+      }
+    }
+    if (!usesAllGroups) continue;
     AddrSpace *spc = curEntry.getSpace();
     if (spc->getType() == IPTR_JOIN) {
       JoinRecord *joinrec = curEntry.getJoinRecord();
