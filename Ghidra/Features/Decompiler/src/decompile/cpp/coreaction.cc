@@ -5607,7 +5607,7 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop->addRule( new RuleShiftBitops("analysis") );
 	actprop->addRule( new RuleRightShiftAnd("analysis") );
 	actprop->addRule( new RuleNotDistribute("analysis") );
-	actprop->addRule( new RuleHighOrderAnd("analysis") );
+	//actprop->addRule( new RuleHighOrderAnd("analysis") );
 	actprop->addRule( new RuleAndDistribute("analysis") );
 	actprop->addRule( new RuleAndCommute("analysis") );
 	actprop->addRule( new RuleAndPiece("analysis") );
