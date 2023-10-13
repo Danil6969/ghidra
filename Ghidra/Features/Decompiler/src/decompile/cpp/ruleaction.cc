@@ -314,6 +314,11 @@ int4 RuleAndMask::applyOp(PcodeOp *op,Funcdata &data)
   int4 size = op->getOut()->getSize();
   Varnode *vn;
 
+  PcodeOp *def = op->getIn(0)->getDef();
+  // Must check some ops which may produce unpredictable mask values
+  if (def != (PcodeOp *)0) {
+    if (def->code() == CPUI_INT_ADD) return 0;
+  }
   if (size > sizeof(uintb)) return 0; // FIXME: uintb should be arbitrary precision
   mask1 = op->getIn(0)->getNZMask();
   if (mask1 == 0)
