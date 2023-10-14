@@ -1598,6 +1598,7 @@ Datatype *TypeOpIntRight::getInputCast(const PcodeOp *op,int4 slot,const CastStr
     int4 promoType = castStrategy->intPromotionType(vn);
     if (promoType != CastStrategy::NO_PROMOTION && ((promoType & CastStrategy::UNSIGNED_EXTENSION)==0))
       return reqtype;
+    reqtype = tlst->getBaseNoChar(vn->getSize(),TYPE_UINT); // Must be unsigned
     return castStrategy->castStandard(reqtype,curtype,true,true);
   }
   return TypeOpBinary::getInputCast(op,slot,castStrategy);
@@ -1640,6 +1641,7 @@ Datatype *TypeOpIntSright::getInputCast(const PcodeOp *op,int4 slot,const CastSt
     int4 promoType = castStrategy->intPromotionType(vn);
     if (promoType != CastStrategy::NO_PROMOTION && ((promoType & CastStrategy::SIGNED_EXTENSION)==0))
       return reqtype;
+    reqtype = tlst->getBaseNoChar(vn->getSize(),TYPE_INT); // Must be signed
     return castStrategy->castStandard(reqtype,curtype,true,true);
   }
   return TypeOpBinary::getInputCast(op,slot,castStrategy);
