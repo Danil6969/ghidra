@@ -127,12 +127,12 @@ public class MachoProgramBuilder {
 		processStubs();
 		processUndefinedSymbols();
 		processAbsoluteSymbols();
-		List<Address> chainedFixups = processChainedFixups(machoHeader);
-		processBindings(false);
+		List<String> libraryPaths = processLibraries();
+		List<Address> chainedFixups = processChainedFixups(libraryPaths);
+		processBindings(false, libraryPaths);
 		processSectionRelocations();
 		processExternalRelocations();
 		processLocalRelocations();
-		processLibraries();
 		processEncryption();
 		processUnsupportedLoadCommands();
 
@@ -196,32 +196,26 @@ public class MachoProgramBuilder {
 		}
 
 		// Create memory blocks for segments.
-		ListIterator<SegmentCommand> it = header.getAllSegments().listIterator();
-		while (it.hasNext()) {
-			int i = it.nextIndex();
-			final SegmentCommand segment = it.next();
-
+		for (SegmentCommand segment : header.getAllSegments()) {
 			if (monitor.isCancelled()) {
 				break;
 			}
 
 			if (segment.getFileSize() > 0 && (allowZeroAddr || segment.getVMaddress() != 0)) {
-				String segmentName = segment.getSegmentName();
-				if (segmentName.isBlank()) {
-					segmentName = "SEGMENT." + i;
-				}
-				if (createMemoryBlock(segmentName, space.getAddress(segment.getVMaddress()),
-					segment.getFileOffset(), segment.getFileSize(), segmentName, source,
-					segment.isRead(), segment.isWrite(), segment.isExecute(), false) == null) {
+				if (createMemoryBlock(segment.getSegmentName(),
+					space.getAddress(segment.getVMaddress()), segment.getFileOffset(),
+					segment.getFileSize(), segment.getSegmentName(), source, segment.isRead(),
+					segment.isWrite(), segment.isExecute(), false) == null) {
 					log.appendMsg(String.format("Failed to create block: %s 0x%x 0x%x",
 						segment.getSegmentName(), segment.getVMaddress(), segment.getVMsize()));
 				}
 				if (segment.getVMsize() > segment.getFileSize()) {
 					// Pad the remaining address range with uninitialized data
-					if (createMemoryBlock(segmentName,
+					if (createMemoryBlock(segment.getSegmentName(),
 						space.getAddress(segment.getVMaddress()).add(segment.getFileSize()), 0,
-						segment.getVMsize() - segment.getFileSize(), segmentName, source,
-						segment.isRead(), segment.isWrite(), segment.isExecute(), true) == null) {
+						segment.getVMsize() - segment.getFileSize(), segment.getSegmentName(),
+						source, segment.isRead(), segment.isWrite(), segment.isExecute(),
+						true) == null) {
 						log.appendMsg(String.format("Failed to create block: %s 0x%x 0x%x",
 							segment.getSegmentName(), segment.getVMaddress(), segment.getVMsize()));
 					}
@@ -341,11 +335,7 @@ public class MachoProgramBuilder {
 	 */
 	protected void fixupProgramTree() throws Exception {
 		ProgramModule rootModule = listing.getDefaultRootModule();
-		ListIterator<SegmentCommand> it = machoHeader.getAllSegments().listIterator();
-		while (it.hasNext()) {
-			int i = it.nextIndex();
-			SegmentCommand segment = it.next();
-
+		for (SegmentCommand segment : machoHeader.getAllSegments()) {
 			if (segment.getVMsize() == 0) {
 				continue;
 			}
@@ -361,9 +351,6 @@ public class MachoProgramBuilder {
 			// section fragments, it will represent the parts of the segment that weren't in any
 			// section.
 			String segmentName = segment.getSegmentName();
-			if (segmentName.isBlank()) {
-				segmentName = "SEGMENT." + i;
-			}
 			String noSectionsName = segmentName + " <no section>";
 			ProgramFragment segmentFragment = null;
 			for (Group group : rootModule.getChildren()) {
@@ -742,18 +729,19 @@ public class MachoProgramBuilder {
 		}
 	}
 
-	public List<Address> processChainedFixups(MachHeader header) throws Exception {
-		DyldChainedFixups dyldChainedFixups = new DyldChainedFixups(program, header, log, monitor);
+	public List<Address> processChainedFixups(List<String> libraryPaths) throws Exception {
+		DyldChainedFixups dyldChainedFixups =
+			new DyldChainedFixups(program, machoHeader, libraryPaths, log, monitor);
 		return dyldChainedFixups.processChainedFixups();
 	}
 
-	protected void processBindings(boolean doClassic) throws Exception {
+	protected void processBindings(boolean doClassic, List<String> libraryPaths) throws Exception {
 
 		List<DyldInfoCommand> commands = machoHeader.getLoadCommands(DyldInfoCommand.class);
 		for (DyldInfoCommand command : commands) {
-			processBindings(command.getBindingTable());
-			processBindings(command.getLazyBindingTable());
-			processBindings(command.getWeakBindingTable());
+			processBindings(command.getBindingTable(), libraryPaths);
+			processBindings(command.getLazyBindingTable(), libraryPaths);
+			processBindings(command.getWeakBindingTable(), libraryPaths);
 		}
 
 		if (commands.size() == 0 && doClassic) {
@@ -777,7 +765,7 @@ public class MachoProgramBuilder {
 		}
 	}
 
-	private void processBindings(BindingTable bindingTable) throws Exception {
+	private void processBindings(BindingTable bindingTable, List<String> libraryPaths) throws Exception {
 		DataConverter converter = DataConverter.getInstance(program.getLanguage().isBigEndian());
 		SymbolTable symbolTable = program.getSymbolTable();
 
@@ -787,7 +775,7 @@ public class MachoProgramBuilder {
 		
 		if (threadedBindings != null) {
 			DyldChainedFixups dyldChainedFixups =
-				new DyldChainedFixups(program, machoHeader, log, monitor);
+				new DyldChainedFixups(program, machoHeader, libraryPaths, log, monitor);
 			DyldChainedImports chainedImports = new DyldChainedImports(bindings);
 			for (Binding threadedBinding : threadedBindings) {
 				List<Address> fixedAddresses = new ArrayList<>();
@@ -819,6 +807,8 @@ public class MachoProgramBuilder {
 				Address addr =
 					space.getAddress(segments.get(binding.getSegmentIndex()).getVMaddress() +
 						binding.getSegmentOffset());
+				
+				fixupExternalLibrary(binding.getLibraryOrdinal(), symbol, libraryPaths);
 
 				boolean success = false;
 				try {
@@ -834,6 +824,20 @@ public class MachoProgramBuilder {
 							.add(addr, success ? Status.APPLIED_OTHER : Status.FAILURE,
 								binding.getType(), null, bytes.length, binding.getSymbolName());
 				}
+			}
+		}
+	}
+
+	private void fixupExternalLibrary(int libraryOrdinal, Symbol symbol, List<String> libraryPaths)
+			throws InvalidInputException {
+		ExternalManager extManager = program.getExternalManager();
+		int libraryIndex = libraryOrdinal - 1;
+		if (libraryIndex >= 0 && libraryIndex < libraryPaths.size()) {
+			Library library = extManager.getExternalLibrary(libraryPaths.get(libraryIndex));
+			ExternalLocation loc =
+				extManager.getUniqueExternalLocation(Library.UNKNOWN, symbol.getName());
+			if (loc != null) {
+				loc.setName(library, symbol.getName(), SourceType.IMPORTED);
 			}
 		}
 	}
@@ -1143,15 +1147,16 @@ public class MachoProgramBuilder {
  		performRelocations(relocationMap);
 	}
 
-	protected void processLibraries() throws Exception {
+	protected List<String> processLibraries() throws Exception {
 		monitor.setMessage("Processing libraries...");
 
 		Options props = program.getOptions(Program.PROGRAM_INFO);
 		int libraryIndex = 0;
+		List<String> libraryPaths = new ArrayList<>();
 
 		for (LoadCommand command : machoHeader.getLoadCommands()) {
 			if (monitor.isCancelled()) {
-				return;
+				return libraryPaths;
 			}
 
 			String libraryPath = null;
@@ -1168,6 +1173,7 @@ public class MachoProgramBuilder {
 			}
 
 			if (libraryPath != null) {
+				libraryPaths.add(libraryPath);
 				int index = libraryPath.lastIndexOf("/");
 				String libraryName = index != -1 ? libraryPath.substring(index + 1) : libraryPath;
 				if (!libraryName.equals(program.getName())) {
@@ -1182,6 +1188,8 @@ public class MachoProgramBuilder {
 		if (program.getSymbolTable().getLibrarySymbol(Library.UNKNOWN) == null) {
 			program.getSymbolTable().createExternalLibrary(Library.UNKNOWN, SourceType.IMPORTED);
 		}
+		
+		return libraryPaths;
 	}
 
 	/**
