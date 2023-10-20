@@ -513,9 +513,9 @@ public abstract class AbstractIntegerDataType extends BuiltIn implements ArraySt
 				if (size == dataOrganization.getShortSize()) {
 					return ShortDataType.dataType.clone(dtm);
 				}
-				if (size == dataOrganization.getLongSize()) {
+				/*if (size == dataOrganization.getLongSize()) {
 					return LongDataType.dataType.clone(dtm);
-				}
+				}*/
 				if (size == dataOrganization.getLongLongSize()) {
 					return LongLongDataType.dataType.clone(dtm);
 				}
@@ -540,10 +540,10 @@ public abstract class AbstractIntegerDataType extends BuiltIn implements ArraySt
 				if (index >= 0 && index < 8) {
 					dataTypes[index] = LongLongDataType.dataType.clone(dtm);
 				}
-				index = dataOrganization.getLongSize() - 1;
+				/*index = dataOrganization.getLongSize() - 1;
 				if (index >= 0 && index < 8) {
 					dataTypes[index] = LongDataType.dataType.clone(dtm);
-				}
+				}*/
 				index = dataOrganization.getShortSize() - 1;
 				if (index >= 0 && index < 8) {
 					dataTypes[index] = ShortDataType.dataType.clone(dtm);
@@ -585,9 +585,9 @@ public abstract class AbstractIntegerDataType extends BuiltIn implements ArraySt
 				if (size == dataOrganization.getShortSize()) {
 					return UnsignedShortDataType.dataType.clone(dtm);
 				}
-				if (size == dataOrganization.getLongSize()) {
+				/*if (size == dataOrganization.getLongSize()) {
 					return UnsignedLongDataType.dataType.clone(dtm);
-				}
+				}*/
 				if (size == dataOrganization.getLongLongSize()) {
 					return UnsignedLongLongDataType.dataType.clone(dtm);
 				}
@@ -612,10 +612,10 @@ public abstract class AbstractIntegerDataType extends BuiltIn implements ArraySt
 				if (index >= 0 && index < 8) {
 					dataTypes[index] = UnsignedLongLongDataType.dataType.clone(dtm);
 				}
-				index = dataOrganization.getLongSize() - 1;
+				/*index = dataOrganization.getLongSize() - 1;
 				if (index >= 0 && index < 8) {
 					dataTypes[index] = UnsignedLongDataType.dataType.clone(dtm);
-				}
+				}*/
 				index = dataOrganization.getShortSize() - 1;
 				if (index >= 0 && index < 8) {
 					dataTypes[index] = UnsignedShortDataType.dataType.clone(dtm);
