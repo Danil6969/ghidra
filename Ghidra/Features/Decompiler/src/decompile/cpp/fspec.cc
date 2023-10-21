@@ -5287,11 +5287,12 @@ void FuncCallSpecs::deindirect(Funcdata &data,Funcdata *newfd)
     if (isOverride())	// If we are overridden at the call-site
       return;		// Don't use the discovered function prototype
 
-    if (lateRestriction(newproto,newinput,newoutput)) {
+    // Seems to be very buggy and unfinished
+    /*if (lateRestriction(newproto,newinput,newoutput)) {
       commitNewInputs(data,newinput);
       commitNewOutputs(data,newoutput);
       return;	// We have successfully updated the prototype, don't restart
-    }
+    }*/
   }
   data.setRestartPending(true);
 }
