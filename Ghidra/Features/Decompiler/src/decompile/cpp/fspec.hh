@@ -567,8 +567,8 @@ protected:
   AddrSpace *spacebase;			///< Address space containing relative offset parameters
   const ParamEntry *findEntry(const Address &loc,int4 size) const;	///< Given storage location find matching ParamEntry
   vector<Varnode> collectUsedVarnodes(vector<int4> &status) const;
-  bool overlapsTakenUpVarnodes(vector<Varnode> &takenUpVarnodes,Address &loc,int4 size) const;
-  bool overlapsTakenUpVarnodes(vector<Varnode> &takenUpVarnodes,const ParamEntry &curEntry) const;
+  bool overlapsTakenUpVarnodes(const vector<Varnode> &takenUpVarnodes,Address &loc,int4 size) const;
+  bool overlapsTakenUpVarnodes(const vector<Varnode> &takenUpVarnodes,const ParamEntry &curEntry) const;
   Address assignAddress(const Datatype *tp,vector<int4> &status) const;	///< Assign storage for given parameter data-type
   const ParamEntry *selectUnreferenceEntry(int4 grp,type_metatype prefType) const;	///< Select entry to fill an unreferenced param
   void buildTrialMap(ParamActive *active) const;	///< Build map from parameter trials to model ParamEntrys
