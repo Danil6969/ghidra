@@ -1447,15 +1447,29 @@ void Heritage::guardCalls(uint4 fl,const Address &addr,int4 size,vector<Varnode 
     if (fc->isInputActive() && tryregister) {
       int4 inputCharacter = fc->characterizeAsInputParam(transAddr,size);
       if (inputCharacter == ParamEntry::contains_justified) {	// Call could be using this range as an input parameter
-	// May not work properly in case of join storage
-	/*ParamActive *active = fc->getActiveInput();
-	if (active->whichTrial(transAddr,size)<0) { // If not already a trial
+	// Check if fully written in case no guard is required at all
+        bool needsGuard = true;
+        FuncProto &proto = fd->getFuncProto();
+        int4 num = proto.numParams();
+        for (int4 i=0;i<num;++i) {
+          ProtoParameter *param = proto.getParam(i);
+          Address paramAddr = param->getAddress();
+          int4 paramSize = param->getSize();
+          if (paramAddr==transAddr) {
+            if (paramSize>=size) {
+              needsGuard = false; // Already defined at the start of the function
+            }
+          }
+        }
+
+        ParamActive *active = fc->getActiveInput();
+	if (needsGuard&&active->whichTrial(transAddr,size)<0) { // If not already a trial
 	  PcodeOp *op = fc->getOp();
 	  active->registerTrial(transAddr,size);
 	  Varnode *vn = fd->newVarnode(size,addr);
 	  vn->setActiveHeritage();
 	  fd->opInsertInput(op,vn,op->numInput());
-	}*/
+	}
       }
       else if (inputCharacter == ParamEntry::contained_by)	// Call may be using part of this range as an input parameter
 	guardCallOverlappingInput(fc, addr, transAddr, size);
