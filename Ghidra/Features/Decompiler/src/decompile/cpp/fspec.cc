@@ -706,7 +706,20 @@ vector<Varnode> ParamListStandard::collectUsedVarnodes(vector<int4> &status) con
   return usedVarnodes;
 }
 
-bool ParamListStandard::overlapsTakenUpVarnodes(vector<Varnode> &takenUpVarnodes,const ParamEntry &curEntry) const
+bool ParamListStandard::overlapsTakenUpVarnodes(const vector<Varnode> &takenUpVarnodes,Address &loc,int4 size) const
+
+{
+  AddrSpace *space = loc.getSpace();
+  uintb offset = loc.getOffset();
+  Varnode vn(size,Address(space,offset),(Datatype *)0);
+  vector<Varnode>::const_iterator iter;
+  for(iter=takenUpVarnodes.begin();iter!=takenUpVarnodes.end();++iter) {
+    if (vn.intersects(*iter)) return true;
+  }
+  return false;
+}
+
+bool ParamListStandard::overlapsTakenUpVarnodes(const vector<Varnode> &takenUpVarnodes,const ParamEntry &curEntry) const
 
 {
   AddrSpace *spc = curEntry.getSpace();
@@ -801,19 +814,6 @@ void ParamListStandard::assignMap(const vector<Datatype *> &proto,TypeFactory &t
     if (res.back().addr.isInvalid())
       throw ParamUnassignedError("Cannot assign parameter address for " + proto[i]->getName());
   }
-}
-
-bool ParamListStandard::overlapsTakenUpVarnodes(vector<Varnode> &takenUpVarnodes,Address &loc,int4 size) const
-
-{
-  AddrSpace *space = loc.getSpace();
-  uintb offset = loc.getOffset();
-  Varnode vn(size,Address(space,offset),(Datatype *)0);
-  vector<Varnode>::const_iterator iter;
-  for(iter=takenUpVarnodes.begin();iter!=takenUpVarnodes.end();++iter) {
-    if (vn.intersects(*iter)) return true;
-  }
-  return false;
 }
 
 /// From among the ParamEntrys matching the given \e group, return the one that best matches
