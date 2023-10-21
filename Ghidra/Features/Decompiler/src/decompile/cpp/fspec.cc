@@ -669,9 +669,10 @@ int4 ParamListStandard::characterizeAsParam(const Address &loc,int4 size) const
   return ParamEntry::no_containment;
 }
 
-void ParamListStandard::collectUsedVarnodes(vector<Varnode> &res,vector<int4> &status) const
+vector<Varnode> ParamListStandard::collectUsedVarnodes(vector<int4> &status) const
 
 {
+  vector<Varnode> usedVarnodes;
   list<ParamEntry>::const_iterator iter;
   for(iter=entry.begin();iter!=entry.end();++iter) {
     const ParamEntry &curEntry( *iter );
@@ -681,7 +682,7 @@ void ParamListStandard::collectUsedVarnodes(vector<Varnode> &res,vector<int4> &s
     for(int4 i=0;i<groups.size();++i) {
       int4 grp = groups[i];
       if (status[grp]>=0) {
-        usesAllGroups = false;
+	usesAllGroups = false;
       }
     }
     if (!usesAllGroups) continue;
@@ -693,15 +694,16 @@ void ParamListStandard::collectUsedVarnodes(vector<Varnode> &res,vector<int4> &s
 	uint4 size = vndata.size;
 	uintb offset = vndata.offset;
 	AddrSpace *space = vndata.space;
-	res.push_back(Varnode(size,Address(space,offset),(Datatype *)0));
+	usedVarnodes.push_back(Varnode(size,Address(space,offset),(Datatype *)0));
       }
     }
     else {
       uint4 size = curEntry.getSize();
       uintb offset = curEntry.getBase();
-      res.push_back(Varnode(size,Address(spc,offset),(Datatype *)0));
+      usedVarnodes.push_back(Varnode(size,Address(spc,offset),(Datatype *)0));
     }
   }
+  return usedVarnodes;
 }
 
 bool ParamListStandard::overlapsTakenUpVarnodes(vector<Varnode> &takenUpVarnodes,const ParamEntry &curEntry) const
@@ -744,8 +746,7 @@ bool ParamListStandard::overlapsTakenUpVarnodes(vector<Varnode> &takenUpVarnodes
 Address ParamListStandard::assignAddress(const Datatype *tp,vector<int4> &status) const
 
 {
-  vector<Varnode> takenUpVarnodes;
-  collectUsedVarnodes(takenUpVarnodes,status);
+  vector<Varnode> takenUpVarnodes = collectUsedVarnodes(status);
   list<ParamEntry>::const_iterator iter;
   for(iter=entry.begin();iter!=entry.end();++iter) {
     const ParamEntry &curEntry( *iter );
