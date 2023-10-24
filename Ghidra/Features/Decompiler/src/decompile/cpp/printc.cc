@@ -1998,8 +1998,15 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
     throw LowlevelError("Cannot have a constant of type void");
   case TYPE_PTR:
   case TYPE_PTRREL:
-    if (option_NULL&&(val==0)) { // A null pointer
-      pushAtom(Atom(nullToken,vartoken,EmitMarkup::var_color,op,vn));
+    if (val==0) { // A null/zero pointer
+      if (option_NULL) { // Null literal
+        pushAtom(Atom(nullToken,vartoken,EmitMarkup::var_color,op,vn));
+      }
+      else { // Casted zero
+        pushOp(&typecast,op);
+        pushType(ct);
+        push_integer(val,ct->getSize(),false,tag,vn,op);
+      }
       return;
     }
     subtype = ((TypePointer *)ct)->getPtrTo();
@@ -2044,7 +2051,7 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
     pushOp(&comma,op);
     pushOp(&typecast,op);
     Datatype *dt = glb->types->getBase(ct->getSize(), TYPE_UINT); // If we print constant as unsigned then we probably want to convert it to unsigned datatype
-    // Override name if named
+    // Override name if required
     if (ct->getMetatype() == TYPE_PTR) {
       dt = glb->types->getBase(ct->getSize(), TYPE_UINT,"uintptr_t"); // use "uintptr_t" name instead
     }
