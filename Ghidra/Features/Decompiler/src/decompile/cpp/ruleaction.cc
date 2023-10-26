@@ -4612,6 +4612,11 @@ int4 RuleConcatZero::applyOp(PcodeOp *op,Funcdata &data)
   if (!op->getIn(1)->isConstant()) return 0;
   if (op->getIn(1)->getOffset() != 0) return 0;
   if (op->getOut()->getSize() > sizeof(uintb)) return 0; // No array shifts are allowed
+  Datatype *outDt = op->getOut()->getType();
+  if (outDt != (Datatype *)0) {
+    if (outDt->getMetatype() == TYPE_STRUCT) return 0; // Don't touch structures
+  }
+
 
   int4 sa = 8*op->getIn(1)->getSize();
   Varnode *highvn = op->getIn(0);
