@@ -1233,11 +1233,6 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
       break;
     case CPUI_PIECE:
       // Pointers get concatenated in structures
-    case CPUI_INT_EQUAL:
-    case CPUI_INT_NOTEQUAL:
-    case CPUI_INT_LESS:
-    case CPUI_INT_LESSEQUAL:
-      // A comparison with a constant could be a pointer
       if (!glb->infer_pointers)
 	return (SymbolEntry *)0;
       break;
