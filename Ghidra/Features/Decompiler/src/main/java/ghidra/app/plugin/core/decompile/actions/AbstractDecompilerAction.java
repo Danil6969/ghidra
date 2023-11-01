@@ -81,9 +81,15 @@ public abstract class AbstractDecompilerAction extends DockingAction {
 	 * @return the structure/union which contains this field
 	 */
 	public static Composite getCompositeDataType(ClangToken tok) {
-		// We already know tok is a ClangFieldToken
-		ClangFieldToken fieldtok = (ClangFieldToken) tok;
-		DataType dt = fieldtok.getDataType();
+		DataType dt = null;
+		if (tok instanceof ClangFieldToken) {
+			// tok is a ClangFieldToken
+			ClangFieldToken fieldtok = (ClangFieldToken) tok;
+			dt = fieldtok.getDataType();
+		}
+		if (tok instanceof ClangVariableToken) {
+			dt = tok.getHighVariable().getDataType();
+		}
 		if (dt == null) {
 			return null;
 		}

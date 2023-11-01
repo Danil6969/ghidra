@@ -22,6 +22,7 @@ import docking.widgets.OkDialog;
 import docking.widgets.OptionDialog;
 import ghidra.app.decompiler.ClangFieldToken;
 import ghidra.app.decompiler.ClangToken;
+import ghidra.app.decompiler.ClangVariableToken;
 import ghidra.app.plugin.core.decompile.DecompilerActionContext;
 import ghidra.app.util.HelpTopics;
 import ghidra.program.model.address.Address;
@@ -63,11 +64,15 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 		}
 
 		ClangToken tokenAtCursor = context.getTokenAtCursor();
-		if (!(tokenAtCursor instanceof ClangFieldToken)) {
-			return false;
+		if (tokenAtCursor instanceof ClangFieldToken) {
+			Composite composite = getCompositeDataType(tokenAtCursor);
+			return (composite instanceof Union);
 		}
-		Composite composite = getCompositeDataType(tokenAtCursor);
-		return (composite instanceof Union);
+		if (tokenAtCursor instanceof ClangVariableToken) {
+			DataType dt = tokenAtCursor.getHighVariable().getDataType();
+			return dt instanceof Union;
+		}
+		return false;
 	}
 
 	/**
