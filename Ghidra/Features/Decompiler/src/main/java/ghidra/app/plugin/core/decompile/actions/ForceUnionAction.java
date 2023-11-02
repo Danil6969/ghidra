@@ -79,6 +79,11 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 		}
 		if (tokenAtCursor instanceof ClangVariableToken) {
 			DataType dt = tokenAtCursor.getHighVariable().getDataType();
+			if (dt instanceof PartialUnion) {
+				PartialUnion partialUnion = (PartialUnion) dt;
+				partialUnion = (PartialUnion) dt;
+				dt = partialUnion.getParent();
+			}
 			return (dt instanceof Union);
 		}
 		return false;
@@ -126,6 +131,26 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 			dt = ((TypeDef) dt).getBaseDataType();
 		}
 		return (dt == unionDt) ? dt : null;
+	}
+
+	private void determineUnionType(ClangToken tokenAtCursor) {
+		unionDt = null;
+		Composite composite = getCompositeDataType(tokenAtCursor);
+		if (composite instanceof Union) {
+			unionDt = (Union) composite;
+			return;
+		}
+		if (composite instanceof Structure) {
+			ClangFieldToken fieldToken = (ClangFieldToken) tokenAtCursor;
+			Structure structure = (Structure) composite;
+			int offset = fieldToken.getOffset();
+			DataTypeComponent component = structure.getDataTypeAt(offset);
+			DataType dt = component.getDataType();
+			if (dt instanceof Union) {
+				unionDt = (Union) dt;
+				return;
+			}
+		}
 	}
 
 	/**
@@ -288,26 +313,11 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 		Program program = context.getProgram();
 		ClangToken tokenAtCursor = context.getTokenAtCursor();
 		HighFunction highFunction = context.getHighFunction();
-		unionDt = null;
-		Composite composite = getCompositeDataType(tokenAtCursor);
-		if (composite instanceof Union) {
-			unionDt = (Union) composite;
-		}
-		if (composite instanceof Structure) {
-			ClangFieldToken fieldToken = (ClangFieldToken) tokenAtCursor;
-			Structure structure = (Structure) composite;
-			int offset = fieldToken.getOffset();
-			DataTypeComponent component = structure.getDataTypeAt(offset);
-			DataType dt = component.getDataType();
-			if (dt instanceof Union) {
-				unionDt = (Union) dt;
-			}
-		}
+		determineUnionType(tokenAtCursor);
 		if (unionDt == null) {
 			Msg.showError(this, null, "Force Union failed", "Could not recover union datatype");
 			return;
 		}
-
 		determineFacet(tokenAtCursor);
 		if (accessOp == null || accessVn == null) {
 			Msg.showError(this, null, "Force Union failed", "Could not recover p-code op");
