@@ -88,6 +88,7 @@ public abstract class AbstractDecompilerAction extends DockingAction {
 			dt = fieldtok.getDataType();
 		}
 		if (tok instanceof ClangVariableToken) {
+			// tok is a ClangVariableToken
 			dt = tok.getHighVariable().getDataType();
 		}
 		if (dt == null) {
