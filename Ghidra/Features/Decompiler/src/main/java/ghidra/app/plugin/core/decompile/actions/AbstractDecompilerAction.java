@@ -94,6 +94,9 @@ public abstract class AbstractDecompilerAction extends DockingAction {
 		if (dt == null) {
 			return null;
 		}
+		if (dt instanceof PartialUnion) {
+			dt = ((PartialUnion) dt).getParent();
+		}
 		if (dt instanceof TypeDef) {
 			dt = ((TypeDef) dt).getBaseDataType();
 		}
