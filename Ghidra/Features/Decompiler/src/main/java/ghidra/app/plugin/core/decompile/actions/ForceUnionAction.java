@@ -133,6 +133,10 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 		return (dt == unionDt) ? dt : null;
 	}
 
+	/**
+	 * Determine the datatype for the union token.
+	 * @param tokenAtCursor is the display token selected by the user
+	 */
 	private void determineUnionType(ClangToken tokenAtCursor) {
 		unionDt = null;
 		Composite composite = getCompositeDataType(tokenAtCursor);
