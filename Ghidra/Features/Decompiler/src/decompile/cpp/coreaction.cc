@@ -3076,7 +3076,7 @@ int4 ActionNameVars::apply(Funcdata &data)
   linkSymbols(data, namerec);
   data.getScopeLocal()->recoverNameRecommendationsForSymbols(); // Make sure recommended names hit before subfunc
   lookForBadJumpTables(data);
-  lookForFuncParamNames(data,namerec);
+  //lookForFuncParamNames(data,namerec);
 
   int4 base = 1;
   for(uint4 i=0;i<namerec.size();++i) {
