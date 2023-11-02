@@ -66,11 +66,20 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 		ClangToken tokenAtCursor = context.getTokenAtCursor();
 		if (tokenAtCursor instanceof ClangFieldToken) {
 			Composite composite = getCompositeDataType(tokenAtCursor);
+			if (composite instanceof Structure) {
+				// It may be a union field inside struct
+				ClangFieldToken fieldToken = (ClangFieldToken) tokenAtCursor;
+				Structure structure = (Structure) composite;
+				int offset = fieldToken.getOffset();
+				DataTypeComponent component = structure.getDataTypeAt(offset);
+				DataType dt = component.getDataType();
+				return (dt instanceof Union);
+			}
 			return (composite instanceof Union);
 		}
 		if (tokenAtCursor instanceof ClangVariableToken) {
 			DataType dt = tokenAtCursor.getHighVariable().getDataType();
-			return dt instanceof Union;
+			return (dt instanceof Union);
 		}
 		return false;
 	}
@@ -263,7 +272,25 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 		Program program = context.getProgram();
 		ClangToken tokenAtCursor = context.getTokenAtCursor();
 		HighFunction highFunction = context.getHighFunction();
-		unionDt = (Union) getCompositeDataType(tokenAtCursor);
+		unionDt = null;
+		Composite composite = getCompositeDataType(tokenAtCursor);
+		if (composite instanceof Union) {
+			unionDt = (Union) composite;
+		}
+		if (composite instanceof Structure) {
+			ClangFieldToken fieldToken = (ClangFieldToken) tokenAtCursor;
+			Structure structure = (Structure) composite;
+			int offset = fieldToken.getOffset();
+			DataTypeComponent component = structure.getDataTypeAt(offset);
+			DataType dt = component.getDataType();
+			if (dt instanceof Union) {
+				unionDt = (Union) dt;
+			}
+		}
+		if (unionDt == null) {
+			Msg.showError(this, null, "Force Union failed", "Could not recover union datatype");
+			return;
+		}
 		determineFacet(tokenAtCursor);
 		if (accessOp == null || accessVn == null) {
 			Msg.showError(this, null, "Force Union failed", "Could not recover p-code op");
