@@ -139,6 +139,22 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 	 */
 	private void determineFacet(ClangToken tokenAtCursor) {
 		accessOp = tokenAtCursor.getPcodeOp();
+
+		if (accessOp.getOpcode() == PcodeOp.PTRSUB) {
+			parentDt = typeIsUnionRelated(accessOp.getInput(0));
+			if (parentDt == null) {
+				parentDt = typeIsUnionRelated(accessOp.getOutput());
+				if (parentDt != null) {
+					// We already have union in this op so adjust it to descend
+					Varnode tmpVn = accessOp.getOutput();
+					PcodeOp tmpOp = tmpVn.getLoneDescend();
+					if (tmpOp != null) {
+						accessOp = tmpOp;
+					}
+				}
+			}
+		}
+
 		int opcode = accessOp.getOpcode();
 		if (opcode == PcodeOp.PTRSUB) {
 			parentDt = typeIsUnionRelated(accessOp.getInput(0));
@@ -291,6 +307,7 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 			Msg.showError(this, null, "Force Union failed", "Could not recover union datatype");
 			return;
 		}
+
 		determineFacet(tokenAtCursor);
 		if (accessOp == null || accessVn == null) {
 			Msg.showError(this, null, "Force Union failed", "Could not recover p-code op");
