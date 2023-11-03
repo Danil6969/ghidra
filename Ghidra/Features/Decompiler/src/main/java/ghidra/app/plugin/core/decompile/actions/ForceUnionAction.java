@@ -78,6 +78,9 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 			return (composite instanceof Union);
 		}
 		if (tokenAtCursor instanceof ClangVariableToken) {
+			if (tokenAtCursor.getHighVariable() == null) {
+				return false;
+			}
 			DataType dt = tokenAtCursor.getHighVariable().getDataType();
 			if (dt instanceof PartialUnion) {
 				PartialUnion partialUnion = (PartialUnion) dt;
