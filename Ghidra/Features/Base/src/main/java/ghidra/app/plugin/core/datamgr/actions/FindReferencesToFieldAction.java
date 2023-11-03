@@ -131,6 +131,10 @@ public class FindReferencesToFieldAction extends DockingAction {
 			}
 			String fieldName = dataTypeComponent.getFieldName();
 			if (StringUtils.isBlank(fieldName)) {
+				// Try to use default name
+				fieldName = dataTypeComponent.getDefaultFieldName();
+			}
+			if (StringUtils.isBlank(fieldName)) {
 				continue;
 			}
 			names.add(fieldName);
