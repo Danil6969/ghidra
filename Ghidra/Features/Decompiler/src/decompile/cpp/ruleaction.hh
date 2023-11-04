@@ -1671,6 +1671,7 @@ class RulePointerComparison : public Rule {
   PcodeOp *getNewOp(PcodeOp *op,Funcdata &data,Varnode *input,intb change);
   bool form1(PcodeOp *op,Funcdata &data,bool is_signed);
   bool form2(PcodeOp *op,Funcdata &data,bool is_signed);
+  bool form3(PcodeOp *op,Funcdata &data);
 public:
   RulePointerComparison(const string &g) : Rule(g,0,"pointercomparison") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
