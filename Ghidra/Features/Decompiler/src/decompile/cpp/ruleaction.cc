@@ -10927,7 +10927,7 @@ PcodeOp *RulePointerComparison::getNewOp(PcodeOp *op,Funcdata &data,Varnode *inp
   if (!getOffset(input,endOffset)) return (PcodeOp *)0;
   Varnode *invn = getSpacebase(input);
   if (invn == (Varnode *)0) return (PcodeOp *)0;
-  return data.newOpBefore(op, CPUI_PTRSUB, invn,data.newConstant(input->getSize(),endOffset+change));
+  return data.newOpBefore(op,CPUI_PTRSUB,invn,data.newConstant(input->getSize(),endOffset+change));
 }
 
 // pointer variable < reference value
@@ -10954,7 +10954,7 @@ bool RulePointerComparison::form1(PcodeOp *op,Funcdata &data,bool is_signed)
   else {
     change = -remainder;
   }
-  PcodeOp *newop = getNewOp(op, data, op->getIn(1), change);
+  PcodeOp *newop = getNewOp(op,data,op->getIn(1),change);
   if (newop == (PcodeOp *)0) return false;
   if (is_signed) {
     data.opSetOpcode(op,CPUI_INT_SLESSEQUAL);
@@ -10962,7 +10962,7 @@ bool RulePointerComparison::form1(PcodeOp *op,Funcdata &data,bool is_signed)
   else {
     data.opSetOpcode(op,CPUI_INT_LESSEQUAL);
   }
-  data.opSetInput(op, newop->getOut(),1);
+  data.opSetInput(op,newop->getOut(),1);
   return true;
 }
 
@@ -10990,7 +10990,7 @@ bool RulePointerComparison::form2(PcodeOp *op,Funcdata &data,bool is_signed)
   else {
     change = remainder;
   }
-  PcodeOp *newop = getNewOp(op, data, op->getIn(0), change);
+  PcodeOp *newop = getNewOp(op,data,op->getIn(0),change);
   if (newop == (PcodeOp *)0) return false;
   if (is_signed) {
     data.opSetOpcode(op,CPUI_INT_SLESSEQUAL);
@@ -10998,7 +10998,7 @@ bool RulePointerComparison::form2(PcodeOp *op,Funcdata &data,bool is_signed)
   else {
     data.opSetOpcode(op,CPUI_INT_LESSEQUAL);
   }
-  data.opSetInput(op, newop->getOut(),0);
+  data.opSetInput(op,newop->getOut(),0);
   return true;
 }
 
@@ -11041,10 +11041,17 @@ bool RulePointerComparison::form3(PcodeOp *op,Funcdata &data)
       change = -remainder;
     }
   }
-  PcodeOp *newop = getNewOp(op, data, op->getIn(1), change);
+  Varnode *invn = op->getIn(0);
+  PcodeOp *newop = getNewOp(op,data,op->getIn(1),change);
   if (newop == (PcodeOp *)0) return false;
   data.opSetOpcode(op,CPUI_INT_LESSEQUAL);
-  data.opSetInput(op, newop->getOut(),1);
+  if (isnegative) {
+    data.opSetInput(op,newop->getOut(),0);
+    data.opSetInput(op,invn,1);
+  }
+  else {
+    data.opSetInput(op,newop->getOut(),1);
+  }
   return false;
 }
 
