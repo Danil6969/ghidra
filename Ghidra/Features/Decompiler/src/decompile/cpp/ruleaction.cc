@@ -6380,6 +6380,7 @@ void RulePtrArith::unlinkAddOp(PcodeOp *op,int4 slot,Funcdata &data) {
   return;
 }
 
+// Simplify constants multiplication
 bool RulePtrArith::replaceMultiplier(Varnode *vn,Funcdata &data)
 
 {
@@ -6403,6 +6404,45 @@ bool RulePtrArith::replaceMultiplier(Varnode *vn,Funcdata &data)
   input = data.newConstant(vn1->getSize(), off);
   data.opSetInput(op, input, 1);
   return true;
+}
+
+// Don't process negative cast pattern which is used to implement dynamic cast from inner class to outer
+bool RulePtrArith::isNegativeCast(PcodeOp *op,int4 slot)
+
+{
+  Varnode *offVn = op->getIn(1 - slot);
+  if (!offVn->isConstant()) return false;
+  intb off = sign_extend(offVn->getOffset(),offVn->getSize()*8-1);
+
+  Varnode *vn = op->getIn(slot);
+  Datatype *datatype = vn->getTypeDefFacing();
+  if (datatype == (Datatype *)0) return false;
+  if (datatype->getMetatype() != TYPE_PTR) return false;
+  TypePointer *pointerDatatype = (TypePointer *) datatype;
+  datatype = pointerDatatype->getPtrTo();
+  if (datatype == (Datatype *)0) return false;
+  if (datatype->getMetatype() != TYPE_STRUCT) return false;
+  TypeStruct *innerStruct = (TypeStruct *)datatype;
+
+  vn = op->getOut();
+  datatype = vn->getTypeDefFacing();
+  if (datatype == (Datatype *)0) return false;
+  if (datatype->getMetatype() != TYPE_PTR) return false;
+  pointerDatatype = (TypePointer *) datatype;
+  datatype = pointerDatatype->getPtrTo();
+  if (datatype == (Datatype *)0) return false;
+  if (datatype->getMetatype() != TYPE_STRUCT) return false;
+  TypeStruct *outerStruct = (TypeStruct *)datatype;
+
+  vector<TypeField>::const_iterator iter = outerStruct->beginField();
+  while(iter!=outerStruct->endField()) {
+    TypeField field = *iter;
+    iter++;
+    if (field.offset != -off) continue;
+    if (field.type != innerStruct) continue;
+    return true;
+  }
+  return false;
 }
 
 /// \class RulePtrArith
@@ -6459,6 +6499,7 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
     return 1;
   }
 
+  if (isNegativeCast(op,slot)) return 0;
   AddTreeState state(data,op,slot);
   if (state.apply()) return 1;
   if (state.initAlternateForm()) {
