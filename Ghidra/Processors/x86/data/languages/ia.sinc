@@ -86,11 +86,10 @@ define register offset=0x10a0 size=2   [ FPUControlWord FPUStatusWord FPUTagWord
                                          FPULastInstructionOpcode ];
 define register offset=0x10a8 size=$(SIZE)   [ FPUDataPointer FPUInstructionPointer ];
 define register offset=0x10b8 size=2  [ FPUPointerSelector FPUDataSelector]; #FCS FDS
-define register offset=0x10c0 size=1   [ IE DE ZE OE UE PE StF ESum TOP B ]; # Define fpu exception flags
-define register offset=0x10ca size=1   [ FPUAllocationByte ];
-define register offset=0x10c8 size=2  [ FPUPointerSelector FPUDataSelector]; #FCS FDS
 # FCS is not modeled, deprecated as 0.
 # FDS is not modeled, deprecated as 0.
+define register offset=0x10c0 size=1   [ IE DE ZE OE UE PE StF ESum TOP B ]; # Define fpu exception flags
+define register offset=0x10ca size=1   [ FPUAllocationByte ];
   
 # Floating point registers - as they are in 32-bit protected mode
 # See overlapping MM registers below
