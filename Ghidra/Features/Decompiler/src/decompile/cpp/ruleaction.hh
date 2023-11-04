@@ -1039,6 +1039,7 @@ class RulePtrArith : public Rule {
   static void unlinkAddOp(PcodeOp *op,int4 slot,Funcdata &data);
   static bool replaceMultiplier(Varnode* multvn,Funcdata &data);
   static bool verifyPreferredPointer(PcodeOp *op,int4 slot);
+  static bool isNegativeCast(PcodeOp *op,int4 slot);
 public:
   RulePtrArith(const string &g) : Rule(g, 0, "ptrarith") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
