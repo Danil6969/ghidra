@@ -11002,11 +11002,58 @@ bool RulePointerComparison::form2(PcodeOp *op,Funcdata &data,bool is_signed)
   return true;
 }
 
+// pointer variable != reference value
+bool RulePointerComparison::form3(PcodeOp *op,Funcdata &data)
+
+{
+  if (op->code() != CPUI_INT_NOTEQUAL) return false;
+  intb increment = getCounterIncrement(op->getIn(0));
+  if (increment == 0) return false;
+  intb difference;
+  if (!getDifference(op,1,difference)) return false; // Reference value isn't valid
+  if (difference == 0) return false;
+  bool isnegative;
+  if (difference > 0 && increment > 0) {
+    isnegative = false;
+  }
+  else if (difference < 0 && increment < 0) {
+    isnegative = true;
+  }
+  else {
+    return false; // Directions don't match
+  }
+  intb change = 0;
+  intb remainder;
+  if (isnegative) {
+    remainder = (-difference) % (-increment);
+  }
+  else {
+    remainder = difference % increment;
+  }
+  if (remainder == 0) {
+    change = -increment;
+  }
+  else {
+    if (isnegative) {
+      change = remainder;
+    }
+    else {
+      change = -remainder;
+    }
+  }
+  PcodeOp *newop = getNewOp(op, data, op->getIn(1), change);
+  if (newop == (PcodeOp *)0) return false;
+  data.opSetOpcode(op,CPUI_INT_LESSEQUAL);
+  data.opSetInput(op, newop->getOut(),1);
+  return false;
+}
+
 void RulePointerComparison::getOpList(vector<uint4> &oplist) const
 
 {
   oplist.push_back(CPUI_INT_LESS);
   oplist.push_back(CPUI_INT_SLESS);
+  oplist.push_back(CPUI_INT_NOTEQUAL);
 }
 
 int4 RulePointerComparison::applyOp(PcodeOp *op,Funcdata &data)
@@ -11018,6 +11065,7 @@ int4 RulePointerComparison::applyOp(PcodeOp *op,Funcdata &data)
   }
   if (form1(op,data,is_signed)) return 1;
   if (form2(op,data,is_signed)) return 1;
+  if (form3(op,data)) return 1;
   return 0;
 }
 
