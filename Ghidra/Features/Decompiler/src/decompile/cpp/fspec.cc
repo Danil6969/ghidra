@@ -4544,14 +4544,14 @@ void FuncProto::decode(Decoder &decoder,Architecture *glb)
       seenextrapop = true;
       readextrapop = decoder.readSignedIntegerExpectString("unknown", ProtoModel::extrapop_unknown);
       try {
-        string modelname = decoder.readString(); // In case there is also a name of convention
-        if (modelname.size()==0 || modelname == "default")
-          mod = glb->defaultfp;	// Use the default model
-        else {
-          mod = glb->getModel(modelname);
-          if (mod == (ProtoModel *)0)	// Model name is unrecognized
-            mod = glb->createUnknownModel(modelname);	// Create model with placeholder behavior
-        }
+	string modelname = decoder.readString(); // In case there is also a name of convention
+	if (modelname.size()==0 || modelname == "default")
+	  mod = glb->defaultfp;	// Use the default model
+	else {
+	  mod = glb->getModel(modelname);
+	  if (mod == (ProtoModel *)0)	// Model name is unrecognized
+	    mod = glb->createUnknownModel(modelname);	// Create model with placeholder behavior
+	}
       } catch(DecoderError &err) {} // Skip if there is no calling convention
     }
     else if (attribId == ATTRIB_MODELLOCK) {
