@@ -233,7 +233,7 @@ protected:
   virtual void emitFunctionDeclaration(const Funcdata *fd);
   virtual void emitTypeDefinition(const Datatype *ct);
   virtual bool checkPrintNegation(const Varnode *vn);
-  void pushTypePointerRel(const PcodeOp *op);
+  void pushTypePointerRel(const PcodeOp *op,const Varnode *vn,uint4 m);
 public:
   PrintC(Architecture *g,const string &nm="c-language");	///< Constructor
   void setNULLPrinting(bool val) { option_NULL = val; }		///< Toggle the printing of a 'NULL' token
