@@ -4891,7 +4891,7 @@ bool RuleHumptyDumpty::pieceForm(PcodeOp *op,Funcdata &data)
     data.opSetInput(op,root,0);
     data.opSetInput(op,pieceop->getIn(1),1);
   }
-  else {                        // Pieced together a larger part of the whole
+  else {	// Pieced together a larger part of the whole
     PcodeOp *sub3 = data.newOp(2,op->getAddr());
     data.opSetOpcode(sub3,CPUI_SUBPIECE);
     data.opSetInput(sub3,root,0);
@@ -6563,8 +6563,8 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
     if (subType->getMetatype() == TYPE_PTR) {
       Datatype *subBase = ((TypePointer *) subType)->getPtrTo();
       if (subBase == baseType) {
-        if (op->getIn(1)->getDef()->code() == CPUI_PTRSUB) return 0;		// Already has one PTRSUB, why need more if datatype is the same?
-        // prevents infinite loop in cases when struct contains pointers to the same type as itself
+	if (op->getIn(1)->getDef()->code() == CPUI_PTRSUB) return 0;		// Already has one PTRSUB, why need more if datatype is the same?
+	// prevents infinite loop in cases when struct contains pointers to the same type as itself
       }
     }
 //    if (baseType->getSize() == movesize) {
@@ -10692,8 +10692,8 @@ PcodeOp *RulePointerIntAdd::getCounterInitOp(PcodeOp *multiop,int4 &slot)
     if (initop->code() == CPUI_INT_MULT) {
       Varnode *avn = initop->getIn(1);
       if (avn->isConstant()) {
-        slot = 1;
-        return initop;
+	slot = 1;
+	return initop;
       }
     }
   }
@@ -10831,10 +10831,10 @@ Varnode *RulePointerComparison::getSpacebase(Varnode* vn)
       case CPUI_PTRADD:
       case CPUI_PTRSUB:
       case CPUI_INT_ADD:
-        currentVn = op->getIn(0);
-        break;
+	currentVn = op->getIn(0);
+	break;
       default:
-        return (Varnode *)0;
+	return (Varnode *)0;
     }
   }
   return currentVn;
@@ -10856,32 +10856,32 @@ bool RulePointerComparison::getOffset(Varnode* vn,intb &offset)
     intb val1,val2;
     switch (op->code()) {
       case CPUI_PTRADD:
-        in1 = op->getIn(1);
-        in2 = op->getIn(2);
-        if (!in1->isConstant()) return false;
-        if (!in2->isConstant()) return false;
-        val1 = sign_extend(in1->getOffset(),8*in1->getSize()-1); // Cannot fetch constant
-        val2 = sign_extend(in2->getOffset(),8*in2->getSize()-1); // Cannot fetch constant
-        offset += val1*val2;
-        currentVn = op->getIn(0);
-        break;
+	in1 = op->getIn(1);
+	in2 = op->getIn(2);
+	if (!in1->isConstant()) return false;
+	if (!in2->isConstant()) return false;
+	val1 = sign_extend(in1->getOffset(),8*in1->getSize()-1); // Cannot fetch constant
+	val2 = sign_extend(in2->getOffset(),8*in2->getSize()-1); // Cannot fetch constant
+	offset += val1*val2;
+	currentVn = op->getIn(0);
+	break;
       case CPUI_PTRSUB:
-        in1 = op->getIn(1);
-        if (!in1->isConstant()) return false; // Cannot fetch constant
-        val1 = sign_extend(in1->getOffset(),8*in1->getSize()-1);
-        offset += val1;
-        currentVn = op->getIn(0);
-        break;
+	in1 = op->getIn(1);
+	if (!in1->isConstant()) return false; // Cannot fetch constant
+	val1 = sign_extend(in1->getOffset(),8*in1->getSize()-1);
+	offset += val1;
+	currentVn = op->getIn(0);
+	break;
       case CPUI_INT_ADD:
-        in1 = op->getIn(1);
-        if (!in1->isConstant()) return false; // Cannot fetch constant
-        val1 = sign_extend(in1->getOffset(),8*in1->getSize()-1);
-        offset += val1;
-        currentVn = op->getIn(0);
-        break;
+	in1 = op->getIn(1);
+	if (!in1->isConstant()) return false; // Cannot fetch constant
+	val1 = sign_extend(in1->getOffset(),8*in1->getSize()-1);
+	offset += val1;
+	currentVn = op->getIn(0);
+	break;
       default:
-        offset = 0; // Either not implemented or not supported
-        return false;
+	offset = 0; // Either not implemented or not supported
+	return false;
     }
   }
   return true;
@@ -11174,33 +11174,33 @@ bool RuleByteLoop::initExtractInsertListsMultiplier(Varnode *counterVn,uintb cou
       int4 slot = 1 - curop->getSlot(counterVn);
       Varnode *multVn = curop->getIn(slot);
       if (multVn->isConstant()) {
-        intb off = multVn->getOffset();
-        off = sign_extend(off,8*multVn->getSize()-1);
-        if (off < 0) {
-          multiplier = -off;
-          curop = curop->getOut()->loneDescend();
-          if (curop == (PcodeOp *)0) return false;
-          if (curop->code() != CPUI_INT_ADD) return false;
-          curop = curop->getOut()->loneDescend();
-          if (curop == (PcodeOp *)0) return false;
-        }
-        else if (off > 0) {
-          multiplier = off;
-          curop = curop->getOut()->loneDescend();
-          if (curop == (PcodeOp *)0) return false;
-        }
-        else
-          return false;
+	intb off = multVn->getOffset();
+	off = sign_extend(off,8*multVn->getSize()-1);
+	if (off < 0) {
+	  multiplier = -off;
+	  curop = curop->getOut()->loneDescend();
+	  if (curop == (PcodeOp *)0) return false;
+	  if (curop->code() != CPUI_INT_ADD) return false;
+	  curop = curop->getOut()->loneDescend();
+	  if (curop == (PcodeOp *)0) return false;
+	}
+	else if (off > 0) {
+	  multiplier = off;
+	  curop = curop->getOut()->loneDescend();
+	  if (curop == (PcodeOp *)0) return false;
+	}
+	else
+	  return false;
       }
     }
     if (curop->code() == CPUI_CALLOTHER) {
       string nm = curop->getOpcode()->getOperatorName(curop);
       if (nm == Funcdata::extractind && curop->getOut() != (Varnode *)0) {
-        if (curop->numInput() != 3) return false;
-        extractlist.push_back(curop);
+	if (curop->numInput() != 3) return false;
+	extractlist.push_back(curop);
       }
       else if (nm == Funcdata::insertind && insertlist.empty()) // Don't add another insertind to the list if already have one, take another rule pass instead
-        insertlist.push_back(curop);
+	insertlist.push_back(curop);
     }
   }
 
@@ -11279,10 +11279,10 @@ vector<uint1> RuleByteLoop::LargeVarnodeValues::fetchValue(Varnode *key)
       in1 = fetchValue(curop->getIn(1));
       if (in0.empty() || in1.empty()) return res;
       for (int4 i=0;i<in1.size();++i) {
-        res.push_back(in1[i]);
+	res.push_back(in1[i]);
       }
       for (int4 i=0;i<in0.size();++i) {
-        res.push_back(in0[i]);
+	res.push_back(in0[i]);
       }
       vals[key] = res;
       return res;
@@ -11290,11 +11290,11 @@ vector<uint1> RuleByteLoop::LargeVarnodeValues::fetchValue(Varnode *key)
       in0 = fetchValue(curop->getIn(0));
       if (in0.empty()) return res;
       for (int4 i=0;i<in0.size();++i) {
-        res.push_back(in0[i]);
+	res.push_back(in0[i]);
       }
       sz = curop->getOut()->getSize() - curop->getIn(0)->getSize();
       for (int4 i=0;i<sz;++i) {
-        res.push_back(0);
+	res.push_back(0);
       }
       vals[key] = res;
       return res;
@@ -11343,12 +11343,12 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,vector<PcodeOp*> &result,
     Varnode *out = op->getOut();
     if (opc == CPUI_CALLOTHER && op->getOpcode()->getOperatorName(op) == Funcdata::insertind) {
       if (!result.empty()) {
-        uintb in3 = values.getValue(op->getIn(3));
-        if (values.dynamicInsert != (PcodeOp *)0) {
-          result[in3] = values.dynamicInsert;
-          values.dynamicInsert = (PcodeOp *)0;
-          continue;
-        }
+	uintb in3 = values.getValue(op->getIn(3));
+	if (values.dynamicInsert != (PcodeOp *)0) {
+	  result[in3] = values.dynamicInsert;
+	  values.dynamicInsert = (PcodeOp *)0;
+	  continue;
+	}
 	else if (values.contains(op->getIn(2))) {
 	  Varnode *newVn = data.newConstant(multiplier, values.getValue(op->getIn(2)));
 	  PcodeOp *newOp = data.newOp(1, endOp->getAddr());
@@ -11387,7 +11387,7 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,vector<PcodeOp*> &result,
 	  if (!values.contains(op->getIn(2))) return (BlockBasic *)0;
 	  if (out == (Varnode *)0) continue;
 	  in2 = values.getValue(op->getIn(2));
-          if (out->getSize() > sizeof(uintb)) continue;
+	  if (out->getSize() > sizeof(uintb)) continue;
 	  if (cachereadonly&&op->getIn(1)->isReadOnly()) {
 	    if (op->getIn(1)->getAddr().isBigEndian()) {
 	      in2 = op->getIn(1)->getSize() - out->getSize() - in2;
@@ -11439,23 +11439,23 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,vector<PcodeOp*> &result,
 	values.putValue(out,res);
 	break;
       case CPUI_INT_SLESS:
-        if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
-        if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
-        if (out == (Varnode *)0) return (BlockBasic *)0;
-        in0 = values.getValue(op->getIn(0));
-        in1 = values.getValue(op->getIn(1));
-        mask = 0x80;
-        mask <<= 8 * (op->getIn(0)->getSize() - 1);
-        bit1 = in0 & mask;
-        bit2 = in1 & mask;
-        if (bit1 != bit2) {
-          res = (bit1 != 0) ? 1 : 0;
-        }
-        else {
-          res = (in0 < in1) ? 1 : 0;
-        }
-        values.putValue(out,res);
-        break;
+	if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
+	if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
+	if (out == (Varnode *)0) return (BlockBasic *)0;
+	in0 = values.getValue(op->getIn(0));
+	in1 = values.getValue(op->getIn(1));
+	mask = 0x80;
+	mask <<= 8 * (op->getIn(0)->getSize() - 1);
+	bit1 = in0 & mask;
+	bit2 = in1 & mask;
+	if (bit1 != bit2) {
+	  res = (bit1 != 0) ? 1 : 0;
+	}
+	else {
+	  res = (in0 < in1) ? 1 : 0;
+	}
+	values.putValue(out,res);
+	break;
       case CPUI_INT_LESS:
 	if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
 	if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
@@ -11493,27 +11493,27 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,vector<PcodeOp*> &result,
 	values.putValue(out,res);
 	break;
       case CPUI_INT_SRIGHT:
-        if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
-        if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
-        if (out == (Varnode *)0) return (BlockBasic *)0;
-        in0 = values.getValue(op->getIn(0));
-        in1 = values.getValue(op->getIn(1));
-        if (in1 >= 8*out->getSize()){
-          res = signbit_negative(in0,op->getIn(0)->getSize()) ? calc_mask(out->getSize()) : 0;
-        }
-        else {
-          if (signbit_negative(in0,op->getIn(0)->getSize())) {
-            res = in0 >> in1;
-            mask = calc_mask(op->getIn(1)->getSize());
-            mask = (mask >> in1) ^ mask;
-            res |= mask;
-          }
-          else {
-            res = in0 >> in1;
-          }
-        }
-        values.putValue(out,res);
-        break;
+	if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
+	if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
+	if (out == (Varnode *)0) return (BlockBasic *)0;
+	in0 = values.getValue(op->getIn(0));
+	in1 = values.getValue(op->getIn(1));
+	if (in1 >= 8*out->getSize()){
+	  res = signbit_negative(in0,op->getIn(0)->getSize()) ? calc_mask(out->getSize()) : 0;
+	}
+	else {
+	  if (signbit_negative(in0,op->getIn(0)->getSize())) {
+	    res = in0 >> in1;
+	    mask = calc_mask(op->getIn(1)->getSize());
+	    mask = (mask >> in1) ^ mask;
+	    res |= mask;
+	  }
+	  else {
+	    res = in0 >> in1;
+	  }
+	}
+	values.putValue(out,res);
+	break;
       case CPUI_INT_MULT:
 	if (!values.contains(op->getIn(0))) return (BlockBasic *)0;
 	if (!values.contains(op->getIn(1))) return (BlockBasic *)0;
@@ -11524,7 +11524,7 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,vector<PcodeOp*> &result,
 	values.putValue(out,res);
 	break;
       case CPUI_MULTIEQUAL:
-        break;
+	break;
       default:
 	break;
     }
@@ -11655,13 +11655,13 @@ Varnode *RuleOpToAdrr::getSubtractedIndex(Varnode *arrvn,Varnode *indexvn,Varnod
     if (indexop->getIn(1)->isConstant() && indexop->getIn(1)->getOffset() == index) {
       PcodeOp *offsetop = indexop->getIn(0)->getDef();
       if (offsetop != (PcodeOp *)0 && offsetop->code() == CPUI_INT_MULT) {
-        if (offsetop->getIn(1)->isConstant()) {
-          intb off = offsetop->getIn(1)->getOffset();
-          off = sign_extend(off,8*offsetop->getIn(1)->getSize()-1);
-          if (off == -1) {
-            isAlreadySub = true;
-          }
-        }
+	if (offsetop->getIn(1)->isConstant()) {
+	  intb off = offsetop->getIn(1)->getOffset();
+	  off = sign_extend(off,8*offsetop->getIn(1)->getSize()-1);
+	  if (off == -1) {
+	    isAlreadySub = true;
+	  }
+	}
       }
     }
   }
