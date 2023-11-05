@@ -173,12 +173,12 @@ int4 StackSolver::extraLoopCounts(PcodeOp *op)
   switch (conditionop->code()) {
     case CPUI_INT_NOTEQUAL:
       if (conditionop->getIn(0)->isConstant()) {
-        constvn = conditionop->getIn(0);
-        addvn = conditionop->getIn(1);
+	constvn = conditionop->getIn(0);
+	addvn = conditionop->getIn(1);
       }
       if (conditionop->getIn(1)->isConstant()) {
-        constvn = conditionop->getIn(1);
-        addvn = conditionop->getIn(0);
+	constvn = conditionop->getIn(1);
+	addvn = conditionop->getIn(0);
       }
       if (constvn == (Varnode *)0) return 0;
       if (addvn == (Varnode *)0) return 0;
@@ -190,12 +190,12 @@ int4 StackSolver::extraLoopCounts(PcodeOp *op)
       if (addop->code() != CPUI_INT_ADD) return 0;
       constvn = (Varnode *)0;
       if (addop->getIn(0)->isConstant()) {
-        constvn = addop->getIn(0);
-        multivn = addop->getIn(1);
+	constvn = addop->getIn(0);
+	multivn = addop->getIn(1);
       }
       if (addop->getIn(1)->isConstant()) {
-        constvn = addop->getIn(1);
-        multivn = addop->getIn(0);
+	constvn = addop->getIn(1);
+	multivn = addop->getIn(0);
       }
       if (constvn == (Varnode *)0) return 0;
       incval = constvn->getOffset();
@@ -230,7 +230,7 @@ int4 StackSolver::extraLoopCounts(PcodeOp *op)
       // Calculate repeat counts
       counts = 0;
       for (intb i=startval;i!=endval;i+=incval) {
-        counts++;
+	counts++;
       }
       return counts - 1;
     default:
@@ -251,8 +251,8 @@ int4 StackSolver::loopStackChange(PcodeOp *op) {
       othervn = op->getIn(0);
       constvn = op->getIn(1);
       if (othervn->isConstant()) {
-        constvn = othervn;
-        othervn = op->getIn(1);
+	constvn = othervn;
+	othervn = op->getIn(1);
       }
       if (!constvn->isConstant()) return 0;
       if (othervn->getAddr() != spacebase) return 0;
@@ -351,10 +351,10 @@ void StackSolver::build(const Funcdata &data,AddrSpace *id,int4 spcbase)
 	PcodeOp *otherop = othervn->getDef();
 	int4 extracounts = extraLoopCounts(otherop);
 	if (extracounts > 0) {
-          int4 change = loopStackChange(otherop);
-          if (change > 0) {
-            rhsoffset = change * extracounts;
-          }
+	  int4 change = loopStackChange(otherop);
+	  if (change > 0) {
+	    rhsoffset = change * extracounts;
+	  }
 	}
 	iter = lower_bound(vnlist.begin(),vnlist.end(),othervn,Varnode::comparePointers);
 	eqn.var1 = i;
@@ -1244,7 +1244,7 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
       Varnode *othervn = op->getIn(1 - slot);
       type_metatype meta = othervn->getTypeDefFacing()->getMetatype();
       if (meta != TYPE_PTR) { // Only infer if another varnode is a pointer
-        return (SymbolEntry *) 0;
+	return (SymbolEntry *) 0;
       }
       needexacthit = false;
       break;
@@ -3210,9 +3210,9 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
     if (opc == CPUI_CALLOTHER) {
       string nm = useOp->getOpcode()->getOperatorName(useOp);
       if (nm == Funcdata::extractind)
-        isIndexVn = (vn == useOp->getIn(2));
+	isIndexVn = (vn == useOp->getIn(2));
       else if (nm == Funcdata::insertind)
-        isIndexVn = (vn == useOp->getIn(3));
+	isIndexVn = (vn == useOp->getIn(3));
     }
     if (isArrFunc(useOp) && !isIndexVn) return -1;
     if ((opc == CPUI_CALL || opc == CPUI_CALLIND || opc == CPUI_CALLOTHER) && isArrFunc(def)) return -1;
