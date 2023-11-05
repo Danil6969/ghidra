@@ -2007,12 +2007,12 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
   case TYPE_PTRREL:
     if (val==0) { // A null/zero pointer
       if (option_NULL) { // Null literal
-        pushAtom(Atom(nullToken,vartoken,EmitMarkup::var_color,op,vn));
+	pushAtom(Atom(nullToken,vartoken,EmitMarkup::var_color,op,vn));
       }
       else { // Casted zero
-        pushOp(&typecast,op);
-        pushType(ct);
-        push_integer(val,ct->getSize(),false,tag,vn,op);
+	pushOp(&typecast,op);
+	pushType(ct);
+	push_integer(val,ct->getSize(),false,tag,vn,op);
       }
       return;
     }
