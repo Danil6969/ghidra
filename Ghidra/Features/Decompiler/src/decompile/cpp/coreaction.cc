@@ -1236,6 +1236,19 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
       if (!glb->infer_pointers)
 	return (SymbolEntry *)0;
       break;
+    case CPUI_INT_EQUAL:
+    case CPUI_INT_NOTEQUAL:
+    case CPUI_INT_LESS:
+    case CPUI_INT_LESSEQUAL:
+    {
+      Varnode *othervn = op->getIn(1 - slot);
+      type_metatype meta = othervn->getTypeDefFacing()->getMetatype();
+      if (meta != TYPE_PTR) { // Only infer if another varnode is a pointer
+        return (SymbolEntry *) 0;
+      }
+      needexacthit = false;
+      break;
+    }
     case CPUI_INT_ADD:
       outvn = op->getOut();
       if (outvn->getTypeDefFacing()->getMetatype()==TYPE_PTR) {
@@ -5587,7 +5600,7 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop->addRule( new RulePullsubIndirect("analysis"));
 	actprop->addRule( new RulePushMulti("nodejoin"));
 	actprop->addRule( new RuleSborrow("analysis") );
-	actprop->addRule( new RuleIntLessEqual("analysis") );
+	//actprop->addRule( new RuleIntLessEqual("analysis") );
 	actprop->addRule( new RuleTrivialArith("analysis") );
 	actprop->addRule( new RuleTrivialBool("analysis") );
 	actprop->addRule( new RuleTrivialShift("analysis") );
