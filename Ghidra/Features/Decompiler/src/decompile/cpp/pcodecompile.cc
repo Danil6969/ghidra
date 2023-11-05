@@ -583,9 +583,6 @@ VarnodeTpl *PcodeCompile::buildTruncatedVarnode(VarnodeTpl *basevn,uint4 bitoffs
   if ((bitoffset % 8) != 0) return (VarnodeTpl *)0;
   if ((numbits % 8) != 0) return (VarnodeTpl *)0;
 
-  // if (basevn->getSpace().isUniqueSpace()) // Do we really want to prevent truncated uniques??
-    // return (VarnodeTpl *)0;
-
   ConstTpl::const_type offset_type = basevn->getOffset().getType();
   if ((offset_type != ConstTpl::real)&&(offset_type != ConstTpl::handle))
     return (VarnodeTpl *)0;
