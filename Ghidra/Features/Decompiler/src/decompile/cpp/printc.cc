@@ -1184,11 +1184,10 @@ void PrintC::opPtrsub(const PcodeOp *op)
       suboff &= calc_mask(ptype->getSize());
       if (suboff == 0) {
 	// Special case where we do not print a field
-	pushTypePointerRel(op);
 	if (flex)
-	  pushVn(in0,op,m | print_load_value);
+	  pushTypePointerRel(op,in0,m | print_load_value);
 	else
-	  pushVn(in0,op,m);
+	  pushTypePointerRel(op,in0,m);
 	return;
       }
     }
@@ -1241,16 +1240,18 @@ void PrintC::opPtrsub(const PcodeOp *op)
 	pushOp(&addressof,op);
 	pushOp(&object_member,op);
 	if (ptrel != (TypePointerRel *)0)
-	  pushTypePointerRel(op);
-	pushVn(in0,op,m | print_load_value);
+	  pushTypePointerRel(op,in0,m | print_load_value);
+	else
+	  pushVn(in0,op,m | print_load_value);
 	pushAtom(Atom(fieldname,fieldtoken,EmitMarkup::no_color,ct,fieldid,op));
       }
       else {			// EMIT  &( )->name
 	pushOp(&addressof,op);
 	pushOp(&pointer_member,op);
 	if (ptrel != (TypePointerRel *)0)
-	  pushTypePointerRel(op);
-	pushVn(in0,op,m);
+	  pushTypePointerRel(op,in0,m);
+	else
+	  pushVn(in0,op,m);
 	pushAtom(Atom(fieldname,fieldtoken,EmitMarkup::no_color,ct,fieldid,op));
       }
     }
@@ -1260,15 +1261,17 @@ void PrintC::opPtrsub(const PcodeOp *op)
       if (flex) {		// EMIT  ( ).name
 	pushOp(&object_member,op);
 	if (ptrel != (TypePointerRel *)0)
-	  pushTypePointerRel(op);
-	pushVn(in0,op,m | print_load_value);
+	  pushTypePointerRel(op,in0,m | print_load_value);
+	else
+	  pushVn(in0,op,m | print_load_value);
 	pushAtom(Atom(fieldname,fieldtoken,EmitMarkup::no_color,ct,fieldid,op));
       }
       else {			// EMIT  ( )->name
 	pushOp(&pointer_member,op);
 	if (ptrel != (TypePointerRel *)0)
-	  pushTypePointerRel(op);
-	pushVn(in0,op,m);
+	  pushTypePointerRel(op,in0,m);
+	else
+	  pushVn(in0,op,m);
 	pushAtom(Atom(fieldname,fieldtoken,EmitMarkup::no_color,ct,fieldid,op));
       }
       if (arrayvalue)
@@ -1328,14 +1331,16 @@ void PrintC::opPtrsub(const PcodeOp *op)
       // Even though there is no valueon, the PTRSUB still acts as a dereference
       if (flex) {		// EMIT ( )
 	if (ptrel != (TypePointerRel *)0)
-	  pushTypePointerRel(op);
-	pushVn(in0,op,m | print_load_value);	// Absorb dereference into in0's defining op
+	  pushTypePointerRel(op,in0,m | print_load_value);
+	else
+	  pushVn(in0,op,m | print_load_value);	// Absorb dereference into in0's defining op
       }
       else {			// EMIT  *( )
 	pushOp(&dereference,op);
 	if (ptrel != (TypePointerRel *)0)
-	  pushTypePointerRel(op);
-	pushVn(in0,op,m);
+	  pushTypePointerRel(op,in0,m);
+	else
+	  pushVn(in0,op,m);
       }
     }
     else {
@@ -1343,16 +1348,18 @@ void PrintC::opPtrsub(const PcodeOp *op)
       if (flex) {		// EMIT  ( )[0]
 	pushOp(&subscript,op);
 	if (ptrel != (TypePointerRel *)0)
-	  pushTypePointerRel(op);
-	pushVn(in0,op,m | print_load_value);		// Absorb one dereference into in0's defining op
+	  pushTypePointerRel(op,in0,m | print_load_value);
+	else
+	  pushVn(in0,op,m | print_load_value);		// Absorb one dereference into in0's defining op
 	push_integer(0,4,false,syntax,(Varnode *)0,op);
       }
       else {			// EMIT  (* )[0]
 	pushOp(&subscript,op);
 	pushOp(&dereference,op);
 	if (ptrel != (TypePointerRel *)0)
-	  pushTypePointerRel(op);
-	pushVn(in0,op,m);
+	  pushTypePointerRel(op,in0,m);
+	else
+	  pushVn(in0,op,m);
 	push_integer(0,4,false,syntax,(Varnode *)0,op);
       }
     }
@@ -2675,18 +2682,21 @@ bool PrintC::checkPrintNegation(const Varnode *vn)
 ///
 /// When a variable has TypePointerRel as its data-type, PTRSUB acts relative to the \e parent
 /// data-type.  We print a specific token to indicate this relative shift is happening.
-/// \param op is is the PTRSUB op
-inline void PrintC::pushTypePointerRel(const PcodeOp *op)
+/// \param op is the PTRSUB op
+/// \param vn is the pointer vn
+/// \param m is the set of printing modifications
+void PrintC::pushTypePointerRel(const PcodeOp *op,const Varnode *vn,uint4 m)
 
 {
-  pushOp(&function_call,op);
-  pushAtom(Atom(typePointerRelToken,optoken,EmitMarkup::funcname_color,op));
-  pushOp(&comma,op);
-  const Varnode *in0 = op->getIn(0);
-  TypePointer *ptype = (TypePointer *) in0->getHighTypeReadFacing(op);
-  TypePointerRel *ptrel = (TypePointerRel *) ptype;
-  int4 off = ptrel->getPointerOffset();
-  push_integer(off,4,true,syntax,(Varnode *)0,op);
+    pushOp(&function_call,op);
+    pushAtom(Atom(typePointerRelToken,optoken,EmitMarkup::funcname_color,op));
+    pushOp(&comma,op);
+    pushVn(vn,op,m);
+    const Varnode *in0 = op->getIn(0);
+    TypePointer *ptype = (TypePointer *) in0->getHighTypeReadFacing(op);
+    TypePointerRel *ptrel = (TypePointerRel *) ptype;
+    int4 off = ptrel->getPointerOffset();
+    push_integer(off,4,true,syntax,(Varnode *)0,op);
 }
 
 void PrintC::docTypeDefinitions(const TypeFactory *typegrp)
