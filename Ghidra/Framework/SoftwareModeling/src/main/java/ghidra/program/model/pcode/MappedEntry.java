@@ -53,6 +53,10 @@ public class MappedEntry extends SymbolEntry {
 
 	@Override
 	public void decode(Decoder decoder) throws DecoderException {
+		if (symbol.type == null) {
+			String nm = symbol.name == null ? "null" : symbol.name;
+			throw new DecoderException("No data-type found for symbol: " + nm);
+		}
 		int sz = symbol.type.getLength();
 		if (sz == 0) {
 			throw new DecoderException(
