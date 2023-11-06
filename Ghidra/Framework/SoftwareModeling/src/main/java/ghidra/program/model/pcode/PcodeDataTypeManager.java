@@ -154,11 +154,13 @@ public class PcodeDataTypeManager {
 				else {
 					// Reaching here, the id indicates a BuiltIn (that is not a core data-type)
 					dt = builtInDataTypes.getDataType(id ^ BUILTIN_ID_HEADER);
-					if (dt == null) { // Also search across all built-in data-types
+					if (dt == null) {
+						// Also search across all built-in data-types
 						Iterator<DataType> allDataTypes = builtInDataTypes.getAllDataTypes();
 						while (allDataTypes.hasNext()) {
 							DataType currentDataType = allDataTypes.next();
-							if (currentDataType.getDisplayName().equals(nm)) { // Examine display name of data-type
+							// Examine display name of data-type
+							if (currentDataType.getDisplayName().equals(nm)) {
 								return currentDataType;
 							}
 						}
