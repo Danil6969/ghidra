@@ -429,6 +429,7 @@ class EnumEditorPanel extends JPanel {
 			tableModel.setLength(length);
 			provider.stateChanged(null);
 		});
+		sizeComboBox.setPreferredSize(new Dimension(35,19));
 
 		JLabel label = new GLabel("Category:", SwingConstants.RIGHT);
 		label.setPreferredSize(new Dimension(descLabel.getPreferredSize()));
