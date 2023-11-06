@@ -6415,7 +6415,7 @@ bool RulePtrArith::isNegativeCast(PcodeOp *op,int4 slot)
   intb off = sign_extend(offVn->getOffset(),offVn->getSize()*8-1);
 
   Varnode *vn = op->getIn(slot);
-  Datatype *datatype = vn->getTypeDefFacing();
+  Datatype *datatype = vn->getTypeReadFacing(op);
   if (datatype == (Datatype *)0) return false;
   if (datatype->getMetatype() != TYPE_PTR) return false;
   TypePointer *pointerDatatype = (TypePointer *) datatype;
@@ -6425,7 +6425,7 @@ bool RulePtrArith::isNegativeCast(PcodeOp *op,int4 slot)
   TypeStruct *innerStruct = (TypeStruct *)datatype;
 
   vn = op->getOut();
-  datatype = vn->getTypeDefFacing();
+  datatype = vn->getTypeReadFacing(op);
   if (datatype == (Datatype *)0) return false;
   if (datatype->getMetatype() != TYPE_PTR) return false;
   pointerDatatype = (TypePointer *) datatype;
