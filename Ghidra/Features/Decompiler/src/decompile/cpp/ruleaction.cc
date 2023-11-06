@@ -11052,7 +11052,7 @@ bool RulePointerComparison::form3(PcodeOp *op,Funcdata &data)
   else {
     data.opSetInput(op,newop->getOut(),1);
   }
-  return false;
+  return true;
 }
 
 void RulePointerComparison::getOpList(vector<uint4> &oplist) const
