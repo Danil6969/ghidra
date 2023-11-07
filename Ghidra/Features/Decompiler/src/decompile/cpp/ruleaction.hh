@@ -1650,7 +1650,6 @@ public:
 };
 
 class RulePointerIntAdd : public Rule {
-  bool hasPointerUsages(vector<PcodeOp *> ops);
   PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
   Varnode *getCounterInitVarnode(PcodeOp *multiop);
   intb getCounterIncrement(PcodeOp *op);
