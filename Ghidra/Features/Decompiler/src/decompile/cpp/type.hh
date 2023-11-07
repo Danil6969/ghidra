@@ -740,6 +740,7 @@ public:
   Datatype *getBaseNoChar(int4 s,type_metatype m);		///< Get atomic type excluding "char"
   Datatype *getBase(int4 s,type_metatype m);			///< Get atomic type
   Datatype *getBase(int4 s,type_metatype m,const string &n);	///< Get named atomic type
+  Datatype *getMemsizeType(int4 s,bool issigned);		///< Get uintptr_t or intptr_t type
   TypeCode *getTypeCode(void);					///< Get an "anonymous" function data-type
   TypePointer *getTypePointerStripArray(int4 s,Datatype *pt,uint4 ws);	///< Construct a pointer data-type, stripping an ARRAY level
   TypePointer *getTypePointer(int4 s,Datatype *pt,uint4 ws);	///< Construct an absolute pointer data-type
