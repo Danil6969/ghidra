@@ -3426,6 +3426,19 @@ Datatype *TypeFactory::getBase(int4 s,type_metatype m,const string &n)
   return findAdd(tmp);
 }
 
+/// Get or create a "uintpt_t" or "intptr_t" type based on sign
+/// \param s is the desired size
+/// \param issigned is the sign of type
+/// \return the memsize datatype
+Datatype *TypeFactory::getMemsizeType(int4 s,bool issigned)
+
+{
+  if (issigned) {
+    return getBase(s,TYPE_INT,"intptr_t");
+  }
+  return getBase(s,TYPE_UINT,"uintptr_t");
+}
+
 /// Retrieve or create the core "code" Datatype object
 /// This has no prototype attached to it and is appropriate for anonymous function pointers.
 /// \return the TypeCode object
