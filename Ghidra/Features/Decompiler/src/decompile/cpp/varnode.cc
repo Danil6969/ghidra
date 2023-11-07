@@ -1119,6 +1119,23 @@ void Varnode::printRaw(ostream &s,const Varnode *vn)
   vn->printRaw(s);
 }
 
+bool Varnode::hasPointerUsages() const
+
+{
+  vector<PcodeOp *> descends;
+  for(list<PcodeOp *>::const_iterator iter=beginDescend();iter!=endDescend();++iter) {
+    PcodeOp *op = *iter;
+    if (op->code() != CPUI_INT_ADD) continue;
+    Varnode *out = op->getOut();
+    if (out == (Varnode *)0) continue;
+    PcodeOp *descend = out->loneDescend();
+    if (descend == (PcodeOp *)0) continue;
+    if (descend->code() == CPUI_LOAD) return true;
+    if (descend->code() == CPUI_STORE) return true;
+  }
+  return false;
+}
+
 /// \param m is the underlying address space manager
 VarnodeBank::VarnodeBank(AddrSpaceManager *m)
   : searchvn(0,Address(Address::m_minimal),(Datatype *)0)
