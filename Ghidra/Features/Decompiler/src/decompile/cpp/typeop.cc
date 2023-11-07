@@ -1435,6 +1435,19 @@ TypeOpInt2Comp::TypeOpInt2Comp(TypeFactory *t)
   behave = new OpBehaviorInt2Comp();
 }
 
+Datatype *TypeOpInt2Comp::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  const Varnode *invn = op->getIn(slot);
+  Datatype *invnType = invn->getType();
+  if (invnType->getMetatype() == TYPE_PTR) {
+    TypePointer *pointer = (TypePointer *)invnType;
+    Datatype *dt = tlst->getMemsizeType(invn->getSize(),false);
+    return dt;
+  }
+  return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
+}
+
 Datatype *TypeOpInt2Comp::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
 
 {
