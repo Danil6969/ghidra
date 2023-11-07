@@ -1021,7 +1021,7 @@ Datatype *TypeOpIntSless::getInputLocal(const PcodeOp *op,int4 slot) const
   Datatype *invnType = invn->getType();
   if (invnType->getMetatype() == TYPE_PTR) {
     TypePointer *pointer = (TypePointer *)invnType;
-    Datatype *dt = tlst->getBase(invn->getSize(),TYPE_INT,"intptr_t");
+    Datatype *dt = tlst->getMemsizeType(invn->getSize(),true);
     return dt;
   }
   return tlst->getBase(op->getIn(slot)->getSize(),TYPE_INT);
@@ -1060,7 +1060,7 @@ Datatype *TypeOpIntSlessEqual::getInputLocal(const PcodeOp *op,int4 slot) const
   Datatype *invnType = invn->getType();
   if (invnType->getMetatype() == TYPE_PTR) {
     TypePointer *pointer = (TypePointer *)invnType;
-    Datatype *dt = tlst->getBase(invn->getSize(),TYPE_INT,"intptr_t");
+    Datatype *dt = tlst->getMemsizeType(invn->getSize(),true);
     return dt;
   }
   return tlst->getBase(op->getIn(slot)->getSize(),TYPE_INT);
@@ -1199,7 +1199,7 @@ Datatype *TypeOpIntAdd::getInputLocal(const PcodeOp *op,int4 slot) const
   Datatype *invnType = invn->getType();
   if (invnType->getMetatype() == TYPE_PTR) {
     TypePointer *pointer = (TypePointer *)invnType;
-    Datatype *dt = tlst->getBase(invn->getSize(),TYPE_UINT,"uintptr_t");
+    Datatype *dt = tlst->getMemsizeType(invn->getSize(),false);
     return dt;
   }
   return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
