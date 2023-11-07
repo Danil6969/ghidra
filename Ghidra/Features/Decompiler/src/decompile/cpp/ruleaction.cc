@@ -6341,50 +6341,39 @@ PcodeOp *RulePtrArith::getOpToUnlink(PcodeOp *op)
 
 {
   Varnode *outVn = op->getOut();
-  PcodeOp *opLoadOrStore = (PcodeOp *)0;
-  PcodeOp *opAdd = (PcodeOp *)0;
-  list<PcodeOp *>::const_iterator iter;
-  for(iter=outVn->beginDescend();iter!=outVn->endDescend();++iter) {
-    PcodeOp *decOp = *iter;
-    OpCode opc = decOp->code();
-    if (opc == CPUI_INT_ADD) {
-      opAdd = decOp;
-    }
-    else if ((opc == CPUI_LOAD || opc == CPUI_STORE) && decOp->getIn(1) == outVn) {
-      opLoadOrStore = decOp;
-    }
-  }
-  if ((opAdd != (PcodeOp *)0) && (opLoadOrStore != (PcodeOp *)0)) {
-    return opAdd;
-  }
-  else {
-    return (PcodeOp *)0;
-  }
+  if (outVn->hasNoDescend()) return (PcodeOp *)0;
+  if (outVn->loneDescend() != (PcodeOp *)0) return (PcodeOp *)0;
+  list<PcodeOp *>::const_iterator iter = outVn->beginDescend();
+  return *iter;
 }
 
-void RulePtrArith::unlinkAddOp(PcodeOp *op,int4 slot,Funcdata &data) {
-  PcodeOp *oldOp = op->getIn(slot)->getDef();
+bool RulePtrArith::unlinkAddOp(PcodeOp *op,Funcdata &data) {
+  if (op == (PcodeOp *)0) return false;
+  if (op->code() != CPUI_INT_ADD) return false;
+  PcodeOp *unlinkop = getOpToUnlink(op);
+  if (unlinkop == (PcodeOp *)0) return false;
+  int4 slot = unlinkop->getSlot(op->getOut());
+  PcodeOp *oldOp = unlinkop->getIn(slot)->getDef();
   OpCode opc = oldOp->code();
   Varnode *oldOut = oldOp->getOut();
   int4 num = oldOp->numInput();
-  PcodeOp *newOp = data.newOp(num, oldOp->getAddr());
-  Varnode *newOut = RulePushPtr::buildVarnodeOut(oldOut, newOp, data);
+  PcodeOp *newOp = data.newOp(num,oldOp->getAddr());
+  Varnode *newOut = RulePushPtr::buildVarnodeOut(oldOut,newOp,data);
   newOut->updateType(oldOut->getType(),false,false);
-  data.opSetOpcode(newOp, opc);
+  data.opSetOpcode(newOp,opc);
   for (int4 i=0;i<num;++i) {
     Varnode *inVn = oldOp->getIn(i);
-    data.opSetInput(newOp, inVn, i);
+    data.opSetInput(newOp,inVn,i);
   }
-  data.opSetInput(op,newOut,slot);
-  data.opInsertBefore(newOp,op);
-  return;
+  data.opSetInput(unlinkop,newOut,slot);
+  data.opInsertBefore(newOp,unlinkop);
+  return true;
 }
 
-// Simplify constants multiplication
-bool RulePtrArith::replaceMultiplier(Varnode *vn,Funcdata &data)
+// Simplify constants multiplication via 2 CPUI_INT_MULT
+bool RulePtrArith::replaceMultiplier(PcodeOp *op,Funcdata &data)
 
 {
-  PcodeOp *op = vn->getDef();
   if (op == (PcodeOp *)0) return false;
   if (op->code() != CPUI_INT_MULT) return false;
   Varnode *vn0 = op->getIn(0);
@@ -6399,11 +6388,31 @@ bool RulePtrArith::replaceMultiplier(Varnode *vn,Funcdata &data)
   if (otherop->code() != CPUI_INT_MULT) return false;
   if (!otherop->getIn(1)->isConstant()) return false;
   Varnode *input = otherop->getIn(0);
-  data.opSetInput(op, input, 0);
-  uintb off = vn1->getOffset() * otherop->getIn(1)->getOffset();
-  input = data.newConstant(vn1->getSize(), off);
-  data.opSetInput(op, input, 1);
+  data.opSetInput(op,input,0);
+  uintb off = vn1->getOffset()*otherop->getIn(1)->getOffset();
+  input = data.newConstant(vn1->getSize(),off);
+  data.opSetInput(op,input,1);
   return true;
+}
+
+bool RulePtrArith::preprocess(PcodeOp *op,Funcdata &data)
+
+{
+  if (op == (PcodeOp *)0) return false;
+  if (op->code() != CPUI_INT_ADD) return false;
+
+  // Check input ops recursively
+  if (preprocess(op->getIn(0)->getDef(),data)) return true;
+  if (preprocess(op->getIn(1)->getDef(),data)) return true;
+
+  // Ensure all multiplier constants are propagated here
+  if (replaceMultiplier(op->getIn(0)->getDef(),data)) return true;
+  if (replaceMultiplier(op->getIn(1)->getDef(),data)) return true;
+
+  // Must split out INT_ADD descendants so RulePushPtr will deal with them
+  if (unlinkAddOp(op,data)) return true;
+
+  return false;
 }
 
 // Don't process negative cast pattern which is used to implement dynamic cast from inner class to outer
@@ -6486,18 +6495,7 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
   if (evaluatePointerExpression(op, slot) != 2) return 0;
   if (!verifyPreferredPointer(op, slot)) return 0;
 
-  if (replaceMultiplier(op->getIn(1), data)) return 1; // Ensure all multiplier constants are propagated here
-
-  PcodeOp *anotheraddop = op->getIn(1)->getDef();
-  if (anotheraddop != (PcodeOp *)0 && anotheraddop->code() == CPUI_INT_ADD) {
-    if (replaceMultiplier(anotheraddop->getIn(0), data)) return 1; // Also check second addition
-  }
-
-  anotheraddop = getOpToUnlink(op);
-  if (anotheraddop != (PcodeOp *)0) { // Must split out INT_ADD descendants so RulePushPtr will deal with them
-    unlinkAddOp(anotheraddop, anotheraddop->getSlot(op->getOut()), data);
-    return 1;
-  }
+  if (preprocess(op,data)) return 1;
 
   if (isNegativeCast(op,slot)) return 0;
   AddTreeState state(data,op,slot);
