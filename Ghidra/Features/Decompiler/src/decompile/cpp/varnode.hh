@@ -345,6 +345,7 @@ public:
   void encode(Encoder &encoder) const; ///< Encode a description of \b this to a stream
   static bool comparePointers(const Varnode *a,const Varnode *b) { return (*a < *b); }	///< Compare Varnodes as pointers
   static void printRaw(ostream &s,const Varnode *vn);	///< Print raw info about a Varnode to stream
+  bool hasPointerUsages() const;
 };
 
 /// \brief A container for Varnode objects from a specific function
