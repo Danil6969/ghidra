@@ -10653,22 +10653,6 @@ int4 RuleLzcountShiftBool::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
-bool RulePointerIntAdd::hasPointerUsages(vector<PcodeOp *> ops)
-
-{
-  for (vector<PcodeOp *>::const_iterator iter=ops.begin();iter!=ops.end();++iter) {
-    PcodeOp *op = *iter;
-    if (op->code() != CPUI_INT_ADD) continue;
-    Varnode *out = op->getOut();
-    if (out == (Varnode *)0) continue;
-    PcodeOp *descend = out->loneDescend();
-    if (descend == (PcodeOp *)0) continue;
-    if (descend->code() == CPUI_LOAD) return true;
-    if (descend->code() == CPUI_STORE) return true;
-  }
-  return false;
-}
-
 PcodeOp *RulePointerIntAdd::getCounterInitOp(PcodeOp *multiop,int4 &slot)
 
 {
@@ -10753,14 +10737,15 @@ int4 RulePointerIntAdd::applyOp(PcodeOp *op,Funcdata &data)
   bool isnegative = increment < 0;
   PcodeOp *multiop = op->getIn(0)->getDef();
   Varnode *out = multiop->getOut();
+  if (!out->hasPointerUsages()) return 0;
   // Collect descends
   vector<PcodeOp *> descends;
   for(list<PcodeOp *>::const_iterator iter=out->beginDescend();iter!=out->endDescend();++iter) {
     PcodeOp *descend = *iter;
-    if (descend == op) continue;
+    if (descend == op)
+      continue;
     descends.push_back(descend);
   }
-  if (!hasPointerUsages(descends)) return 0;
   Varnode *invn1 = op->getIn(1);
   intb val = isnegative ? -1 : 1;
   data.opSetInput(op,data.newConstant(invn1->getSize(),val & calc_mask(invn1->getSize())),1);
