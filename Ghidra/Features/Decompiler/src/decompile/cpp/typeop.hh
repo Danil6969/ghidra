@@ -473,6 +473,7 @@ class TypeOpInt2Comp : public TypeOpUnary {
 public:
   TypeOpInt2Comp(TypeFactory *t);			///< Constructor
   virtual void push(PrintLanguage *lng,const PcodeOp *op,const PcodeOp *readOp) const { lng->opInt2Comp(op); }
+  virtual Datatype *getInputLocal(const PcodeOp *op,int4 slot) const;
   virtual Datatype *getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const;
 };
 
