@@ -1034,8 +1034,19 @@ public:
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
+class RuleUnlinkPtrAdd : public Rule {
+  static PcodeOp *getOpToUnlink(PcodeOp *op);
+  static bool unlinkAddOp(PcodeOp *op,Funcdata &data);
+public:
+  RuleUnlinkPtrAdd(const string &g) : Rule(g, 0, "unlinkptradd") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleUnlinkPtrAdd(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
 class RulePtrArith : public Rule {
-  static bool verifyPreferredPointer(PcodeOp *op,int4 slot);
   static PcodeOp *getOpToUnlink(PcodeOp *op);
   static bool unlinkAddOp(PcodeOp *op,Funcdata &data);
   static bool replaceMultiplier(PcodeOp* op,Funcdata &data);
@@ -1049,6 +1060,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+  static bool verifyPreferredPointer(PcodeOp *op,int4 slot);
   static int4 evaluatePointerExpression(PcodeOp *op,int4 slot);
 };
 class RuleStructOffset0 : public Rule {
