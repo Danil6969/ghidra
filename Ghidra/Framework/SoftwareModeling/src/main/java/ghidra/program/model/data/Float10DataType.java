@@ -35,4 +35,9 @@ public class Float10DataType extends AbstractFloatDataType {
 		return new Float10DataType(dtm);
 	}
 
+	@Override
+	public int getAlignedLength() {
+		return 10;
+	}
+
 }
