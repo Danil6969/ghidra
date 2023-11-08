@@ -5696,6 +5696,71 @@ int4 RuleEqual2Constant::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+PcodeOp *RuleUnlinkPtrAdd::getOpToUnlink(PcodeOp *op)
+
+{
+  Varnode *outVn = op->getOut();
+  if (outVn->hasNoDescend()) return (PcodeOp *)0;
+  if (outVn->loneDescend() != (PcodeOp *)0) return (PcodeOp *)0;
+  list<PcodeOp *>::const_iterator iter = outVn->beginDescend();
+  return *iter;
+}
+
+bool RuleUnlinkPtrAdd::unlinkAddOp(PcodeOp *op,Funcdata &data)
+
+{
+  if (op == (PcodeOp *)0) return false;
+  if (op->code() != CPUI_INT_ADD) return false;
+
+  // Check input ops recursively
+  if (unlinkAddOp(op->getIn(0)->getDef(),data)) return true;
+  if (unlinkAddOp(op->getIn(1)->getDef(),data)) return true;
+
+  PcodeOp *unlinkop = getOpToUnlink(op);
+  if (unlinkop == (PcodeOp *)0) return false;
+  int4 slot = unlinkop->getSlot(op->getOut());
+  PcodeOp *oldOp = unlinkop->getIn(slot)->getDef();
+  OpCode opc = oldOp->code();
+  Varnode *oldOut = oldOp->getOut();
+  int4 num = oldOp->numInput();
+  PcodeOp *newOp = data.newOp(num,oldOp->getAddr());
+  Varnode *newOut = RulePushPtr::buildVarnodeOut(oldOut,newOp,data);
+  newOut->updateType(oldOut->getType(),false,false);
+  data.opSetOpcode(newOp,opc);
+  for (int4 i=0;i<num;++i) {
+    Varnode *inVn = oldOp->getIn(i);
+    data.opSetInput(newOp,inVn,i);
+  }
+  data.opSetInput(unlinkop,newOut,slot);
+  data.opInsertBefore(newOp,unlinkop);
+  return true;
+}
+
+void RuleUnlinkPtrAdd::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_ADD);
+}
+
+int4 RuleUnlinkPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  int4 slot;
+  const Datatype *ct = (const Datatype *)0; // Unnecessary initialization
+
+  if (!data.hasTypeRecoveryStarted()) return 0;
+
+  for(slot=0;slot<op->numInput();++slot) { // Search for pointer type
+    ct = op->getIn(slot)->getTypeReadFacing(op);
+    if (ct->getMetatype() == TYPE_PTR) break;
+  }
+  if (slot == op->numInput()) return 0;
+  if (RulePtrArith::evaluatePointerExpression(op, slot) != 2) return 0;
+  if (!RulePtrArith::verifyPreferredPointer(op, slot)) return 0;
+
+  return unlinkAddOp(op,data);
+}
+
 void AddTreeState::clear(void)
 
 {
@@ -6337,39 +6402,6 @@ int4 RulePtrArith::evaluatePointerExpression(PcodeOp *op,int4 slot)
   return res;
 }
 
-PcodeOp *RulePtrArith::getOpToUnlink(PcodeOp *op)
-
-{
-  Varnode *outVn = op->getOut();
-  if (outVn->hasNoDescend()) return (PcodeOp *)0;
-  if (outVn->loneDescend() != (PcodeOp *)0) return (PcodeOp *)0;
-  list<PcodeOp *>::const_iterator iter = outVn->beginDescend();
-  return *iter;
-}
-
-bool RulePtrArith::unlinkAddOp(PcodeOp *op,Funcdata &data) {
-  if (op == (PcodeOp *)0) return false;
-  if (op->code() != CPUI_INT_ADD) return false;
-  PcodeOp *unlinkop = getOpToUnlink(op);
-  if (unlinkop == (PcodeOp *)0) return false;
-  int4 slot = unlinkop->getSlot(op->getOut());
-  PcodeOp *oldOp = unlinkop->getIn(slot)->getDef();
-  OpCode opc = oldOp->code();
-  Varnode *oldOut = oldOp->getOut();
-  int4 num = oldOp->numInput();
-  PcodeOp *newOp = data.newOp(num,oldOp->getAddr());
-  Varnode *newOut = RulePushPtr::buildVarnodeOut(oldOut,newOp,data);
-  newOut->updateType(oldOut->getType(),false,false);
-  data.opSetOpcode(newOp,opc);
-  for (int4 i=0;i<num;++i) {
-    Varnode *inVn = oldOp->getIn(i);
-    data.opSetInput(newOp,inVn,i);
-  }
-  data.opSetInput(unlinkop,newOut,slot);
-  data.opInsertBefore(newOp,unlinkop);
-  return true;
-}
-
 // Simplify constants multiplication via 2 CPUI_INT_MULT
 bool RulePtrArith::replaceMultiplier(PcodeOp *op,Funcdata &data)
 
@@ -6408,9 +6440,6 @@ bool RulePtrArith::preprocess(PcodeOp *op,Funcdata &data)
   // Ensure all multiplier constants are propagated here
   if (replaceMultiplier(op->getIn(0)->getDef(),data)) return true;
   if (replaceMultiplier(op->getIn(1)->getDef(),data)) return true;
-
-  // Must split out INT_ADD descendants so RulePushPtr will deal with them
-  if (unlinkAddOp(op,data)) return true;
 
   return false;
 }
