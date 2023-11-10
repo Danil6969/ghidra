@@ -72,19 +72,22 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 				Structure structure = (Structure) composite;
 				int offset = fieldToken.getOffset();
 				DataTypeComponent component = structure.getDataTypeAt(offset);
+				if (component == null) {
+					return false;
+				}
 				DataType dt = component.getDataType();
 				return (dt instanceof Union);
 			}
 			return (composite instanceof Union);
 		}
 		if (tokenAtCursor instanceof ClangVariableToken) {
-			if (tokenAtCursor.getHighVariable() == null) {
+			HighVariable high = tokenAtCursor.getHighVariable();
+			if (high == null) {
 				return false;
 			}
-			DataType dt = tokenAtCursor.getHighVariable().getDataType();
+			DataType dt = high.getDataType();
 			if (dt instanceof PartialUnion) {
 				PartialUnion partialUnion = (PartialUnion) dt;
-				partialUnion = (PartialUnion) dt;
 				dt = partialUnion.getParent();
 			}
 			return (dt instanceof Union);
