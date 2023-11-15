@@ -10823,7 +10823,6 @@ int4 RuleLzcountShiftBool::applyOp(PcodeOp *op,Funcdata &data)
 bool RulePointerIntAdd::checkPointerUsages(Varnode *vn)
 
 {
-  vector<PcodeOp *> descends;
   for(list<PcodeOp *>::const_iterator iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
     PcodeOp *op = *iter;
     if (op->code() != CPUI_INT_ADD) continue;
@@ -10831,8 +10830,16 @@ bool RulePointerIntAdd::checkPointerUsages(Varnode *vn)
     if (out == (Varnode *)0) continue;
     PcodeOp *descend = out->loneDescend();
     if (descend == (PcodeOp *)0) continue;
-    if (descend->code() == CPUI_LOAD) return true;
-    if (descend->code() == CPUI_STORE) return true;
+    OpCode opc = descend->code();
+    while (opc == CPUI_INT_ADD) {
+      descend = descend->getOut()->loneDescend();
+      if (descend == (PcodeOp *)0) break;
+      opc = descend->code();
+    }
+    if (descend == (PcodeOp *)0) continue;
+    opc = descend->code();
+    if (opc == CPUI_LOAD) return true;
+    if (opc == CPUI_STORE) return true;
   }
   return false;
 }
@@ -10901,7 +10908,6 @@ intb RulePointerIntAdd::getCounterIncrement(PcodeOp *op)
   if (initvn == (Varnode *)0) return 0;
   // Get multiplier or start value depending on form of initializer
   intb a = sign_extend(initvn->getOffset(),initvn->getSize()*8-1);
-  if (a % b != 0) return 0; // Number a must be divisible by number b
   return off;
 }
 
@@ -10918,8 +10924,23 @@ int4 RulePointerIntAdd::applyOp(PcodeOp *op,Funcdata &data)
   if (increment == 0) return 0;
   if (increment == 1) return 0;
   if (increment == -1) return 0;
-  bool isnegative = increment < 0;
+
   PcodeOp *multiop = op->getIn(0)->getDef();
+  int4 slot;
+  PcodeOp *initop = getCounterInitOp(multiop, slot);
+  if (initop == 0) return 0;
+  Varnode *initvn = initop->getIn(slot);
+
+  intb a = sign_extend(initvn->getOffset(),initvn->getSize()*8-1);
+  bool isnegative = increment < 0;
+  intb b = isnegative ? -increment : increment;
+  bool inferAdd = false;
+  if (a % b != 0) {
+    // Must be a constant if used as a struct offset
+    if (initop->code() == CPUI_INT_MULT) return 0;
+    if (!initop->getIn(slot)->isConstant()) return 0;
+    inferAdd = true;
+  }
   Varnode *out = multiop->getOut();
   if (!checkPointerUsages(out)) return 0;
   // Collect descends
@@ -10932,24 +10953,30 @@ int4 RulePointerIntAdd::applyOp(PcodeOp *op,Funcdata &data)
   }
   Varnode *invn1 = op->getIn(1);
   intb val = isnegative ? -1 : 1;
-  data.opSetInput(op,data.newConstant(invn1->getSize(),val & calc_mask(invn1->getSize())),1);
-  PcodeOp *nextop = multiop->nextOp();
+  int4 sz = invn1->getSize();
+  data.opSetInput(op,data.newConstant(sz,val & calc_mask(sz)),1);
   val = isnegative ? -increment : increment;
-  PcodeOp *newop = data.newOpBefore(nextop,CPUI_INT_MULT,out,data.newConstant(out->getSize(),val & calc_mask(out->getSize())));
+  sz = out->getSize();
+  PcodeOp *multop = data.newOpAfter(multiop,CPUI_INT_MULT,out,data.newConstant(sz,val & calc_mask(sz)));
+  PcodeOp *newop = multop;
+  if (inferAdd) {
+    sz = multop->getOut()->getSize();
+    newop = data.newOpAfter(multop,CPUI_INT_ADD,multop->getOut(),data.newConstant(sz,a & calc_mask(sz)));
+  }
   for(vector<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
     PcodeOp *descend = *iter;
     int4 slot = descend->getSlot(out);
     data.opSetInput(descend,newop->getOut(),slot);
   }
   // Divide initializer too
-  int4 slot;
-  PcodeOp *initop = getCounterInitOp(multiop, slot);
-  Varnode *initvn = initop->getIn(slot);
-  intb a = sign_extend(initvn->getOffset(),initvn->getSize()*8-1);
   if (a != 0) {
-    intb b = isnegative ? -increment : increment;
-    val = a / b;
-    data.opSetInput(initop, data.newConstant(initvn->getSize(), val & calc_mask(initvn->getSize())), slot);
+    if (inferAdd) {
+      data.opSetInput(initop,data.newConstant(initvn->getSize(),0), slot);
+    }
+    else {
+      val = a / b;
+      data.opSetInput(initop,data.newConstant(initvn->getSize(),val & calc_mask(initvn->getSize())),slot);
+    }
   }
   return 1;
 }
