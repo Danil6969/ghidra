@@ -2790,6 +2790,16 @@ ArmPCRelImmed12: reloff		is U23=0 & immed & rotate
   goto [pc];
 } # No unaligned address
 
+# Special return from exception syntax
+:ldr^COND pc,addrmode2 		is $(AMODE) & pc & ARMcond=1 & COND & c2627=1 & B22=0 & L20=1 & Rd=15 & P24=0 & W21=0 & (I25=0 | (I25=1 & c0404=0)) & addrmode2 & offset_12=4
+{
+  build COND;
+  build addrmode2;
+  dest:4=*addrmode2;
+  BXWritePC(dest);
+  return [pc];
+} # No unaligned address
+
 :ldr^COND pc,addrmode2 		is $(AMODE) & pc & ARMcond=1 & COND & c2627=1 & B22=0 & L20=1 & Rd=15 & P24=0 & W21=0 & (I25=0 | (I25=1 & c0404=0)) & addrmode2
 {
   build COND;
