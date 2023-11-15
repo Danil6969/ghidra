@@ -1046,9 +1046,23 @@ public:
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
+class RuleCancelOutPtrAdd : public Rule {
+  static void gatherNegateOps(PcodeOp *op,vector<PcodeOp *> &negateops);
+  static void gatherPossiblePairingOps(Varnode *op,vector<PcodeOp *> &multis,vector<Varnode *> &others);
+  static PcodeOp *getPosition(PcodeOp *op,Varnode *targetVn);
+  static bool processOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *multi,Funcdata &data);
+  static bool findAndProcess(PcodeOp *rootOp,PcodeOp *negateOp,Funcdata &data);
+public:
+  RuleCancelOutPtrAdd(const string &g) : Rule(g, 0, "canceloutptradd") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleCancelOutPtrAdd(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
 class RulePtrArith : public Rule {
-  static PcodeOp *getOpToUnlink(PcodeOp *op);
-  static bool unlinkAddOp(PcodeOp *op,Funcdata &data);
+  static bool verifyPreferredPointer(PcodeOp *op,int4 slot);
   static bool replaceMultiplier(PcodeOp* op,Funcdata &data);
   static bool preprocess(PcodeOp *op,Funcdata &data);
   static bool isNegativeCast(PcodeOp *op,int4 slot);
@@ -1060,7 +1074,6 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
-  static bool verifyPreferredPointer(PcodeOp *op,int4 slot);
   static int4 evaluatePointerExpression(PcodeOp *op,int4 slot);
 };
 class RuleStructOffset0 : public Rule {
@@ -1662,6 +1675,7 @@ public:
 };
 
 class RulePointerIntAdd : public Rule {
+  bool checkPointerUsages(Varnode *vn);
   PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
   Varnode *getCounterInitVarnode(PcodeOp *multiop);
   intb getCounterIncrement(PcodeOp *op);
