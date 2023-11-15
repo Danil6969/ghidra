@@ -626,6 +626,34 @@ PcodeOp *Funcdata::newOpBefore(PcodeOp *follow,OpCode opc,Varnode *in1,Varnode *
   return newop;
 }
 
+/// \brief Create new PcodeOp with 2 or 3 given operands
+///
+/// The new op will have a \e unique space output Varnode and will be inserted before
+/// the given \e follow op.
+/// \param prev is the \e preceding op to insert the new PcodeOp after
+/// \param opc is the op-code of the new PcodeOp
+/// \param in1 is the first operand
+/// \param in2 is the second operand
+/// \param in3 is the optional third param
+/// \return the new PcodeOp
+PcodeOp *Funcdata::newOpAfter(PcodeOp *prev,OpCode opc,Varnode *in1,Varnode *in2,Varnode *in3)
+
+{
+  PcodeOp *newop;
+  int4 sz;
+
+  sz = (in3 == (Varnode *)0) ? 2 : 3;
+  newop = newOp(sz,prev->getAddr());
+  opSetOpcode(newop,opc);
+  newUniqueOut(in1->getSize(),newop);
+  opSetInput(newop,in1,0);
+  opSetInput(newop,in2,1);
+  if (sz==3)
+    opSetInput(newop,in3,2);
+  opInsertAfter(newop,prev);
+  return newop;
+}
+
 /// \brief Create a new CPUI_INDIRECT around a PcodeOp with an indirect effect
 ///
 /// Typically this is used to annotate data-flow, for the given storage range, passing
