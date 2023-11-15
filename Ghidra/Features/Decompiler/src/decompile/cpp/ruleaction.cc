@@ -5745,20 +5745,158 @@ void RuleUnlinkPtrAdd::getOpList(vector<uint4> &oplist) const
 int4 RuleUnlinkPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  int4 slot;
-  const Datatype *ct = (const Datatype *)0; // Unnecessary initialization
+  if (!op->getOut()->hasPointerUsages()) return 0;
+  if (!unlinkAddOp(op,data)) return 0;
+  return 1;
+}
 
-  if (!data.hasTypeRecoveryStarted()) return 0;
+void RuleCancelOutPtrAdd::gatherNegateOps(PcodeOp *op,vector<PcodeOp *> &negateops)
 
-  for(slot=0;slot<op->numInput();++slot) { // Search for pointer type
-    ct = op->getIn(slot)->getTypeReadFacing(op);
-    if (ct->getMetatype() == TYPE_PTR) break;
+{
+  if (op == (PcodeOp *)0) return;
+  if (op->code() != CPUI_INT_ADD) return;
+
+  // Search in input ops recursively
+  gatherNegateOps(op->getIn(0)->getDef(),negateops);
+  gatherNegateOps(op->getIn(1)->getDef(),negateops);
+
+  PcodeOp *negateOp;
+  Varnode *vn;
+  negateOp = op->getIn(0)->getDef();
+  if (negateOp != (PcodeOp *)0 && negateOp->code() == CPUI_INT_MULT) {
+    vn = negateOp->getIn(1);
+    if (vn->isConstant()) {
+      if (vn->getOffset() == calc_mask(vn->getSize())) {
+        negateops.push_back(negateOp);
+      }
+    }
   }
-  if (slot == op->numInput()) return 0;
-  if (RulePtrArith::evaluatePointerExpression(op, slot) != 2) return 0;
-  if (!RulePtrArith::verifyPreferredPointer(op, slot)) return 0;
+  negateOp = op->getIn(1)->getDef();
+  if (negateOp != (PcodeOp *)0 && negateOp->code() == CPUI_INT_MULT) {
+    vn = negateOp->getIn(1);
+    if (vn->isConstant()) {
+      if (vn->getOffset() == calc_mask(vn->getSize())) {
+        negateops.push_back(negateOp);
+      }
+    }
+  }
+}
 
-  return unlinkAddOp(op,data);
+void RuleCancelOutPtrAdd::gatherPossiblePairingOps(Varnode *vn,vector<PcodeOp *> &multis,vector<Varnode *> &others)
+
+{
+  PcodeOp *op = vn->getDef();
+  if (op == (PcodeOp *)0) {
+    others.push_back(vn);
+    return;
+  }
+  OpCode opc = op->code();
+  if (opc == CPUI_INT_ADD) {
+    gatherPossiblePairingOps(op->getIn(0),multis,others);
+    gatherPossiblePairingOps(op->getIn(1),multis,others);
+    return;
+  }
+  if (opc == CPUI_MULTIEQUAL) {
+    multis.push_back(op);
+    return;
+  }
+  others.push_back(vn);
+}
+
+PcodeOp *RuleCancelOutPtrAdd::getPosition(PcodeOp *op,Varnode *targetVn)
+
+{
+  if (op == (PcodeOp *)0) return (PcodeOp *)0;
+  if (op->code() != CPUI_INT_ADD) return (PcodeOp *)0;
+  if (op->getOut()->hasNoDescend()) return (PcodeOp *)0;
+  if (op->getOut()->loneDescend() == (PcodeOp *)0) return (PcodeOp *)0;
+
+  Varnode *inVn0 = op->getIn(0);
+  Varnode *inVn1 = op->getIn(1);
+
+  if (inVn0 == targetVn) return op;
+  if (inVn1 == targetVn) return op;
+
+  // Search in input ops recursively
+  PcodeOp *pos0 = getPosition(inVn0->getDef(), targetVn);
+  if (pos0 != (PcodeOp *)0) return pos0;
+  PcodeOp *pos1 = getPosition(inVn1->getDef(),targetVn);
+  if (pos1 != (PcodeOp *)0) return pos1;
+
+  return (PcodeOp *)0;
+}
+
+bool RuleCancelOutPtrAdd::processOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *multi,Funcdata &data)
+
+{
+  if (negateOp == (PcodeOp *)0) return false;
+  if (negateOp->code() != CPUI_INT_MULT) return false;
+  Varnode *vn = negateOp->getIn(0);
+  if (vn->isConstant() && vn->getOffset() == 0) return false;
+  if (multi == (PcodeOp *)0) return false;
+  if (multi->code() != CPUI_MULTIEQUAL) return false;
+
+  Varnode *in0 = multi->getIn(0);
+  Varnode *in1 = multi->getIn(1);
+  PcodeOp *inOp0 = in0->getDef();
+  PcodeOp *inOp1 = in1->getDef();
+  if (inOp0 == (PcodeOp *)0) return false;
+  if (inOp1 == (PcodeOp *)0) return false;
+  if (inOp0->code() != CPUI_INT_ADD) return false;
+  if (inOp1->code() != CPUI_INT_ADD) return false;
+  if (inOp0->getIn(0) != vn) return false;
+  if (inOp1->getIn(0)->getDef() != multi) return false;
+  Varnode *diff0 = inOp0->getIn(1);
+  Varnode *diff1 = inOp1->getIn(1);
+
+  PcodeOp *negatePos = getPosition(rootOp, negateOp->getOut());
+  PcodeOp *multiPos = getPosition(rootOp,multi->getOut());
+  if (negatePos == (PcodeOp *)0) return false;
+  if (multiPos == (PcodeOp *)0) return false;
+  int4 negateSlot = negatePos->getSlot(negateOp->getOut());
+  int4 multiSlot = multiPos->getSlot(multi->getOut());
+
+  Varnode *zeroVn = data.newConstant(vn->getSize(), 0);
+  PcodeOp *addOp0 = data.newOpBefore(inOp0,CPUI_INT_ADD,zeroVn,diff0);
+  PcodeOp *addOp1 = data.newOpBefore(inOp1,CPUI_INT_ADD,zeroVn,diff1);
+  PcodeOp *multiOp = data.newOpBefore(multi,CPUI_MULTIEQUAL,addOp0->getOut(),addOp1->getOut());
+  data.opSetInput(addOp1,multiOp->getOut(),0);
+
+  data.opSetInput(negatePos,zeroVn,negateSlot);
+  data.opSetInput(multiPos,multiOp->getOut(),multiSlot);
+  return true;
+}
+
+bool RuleCancelOutPtrAdd::findAndProcess(PcodeOp *rootOp,PcodeOp *negateOp,Funcdata &data)
+
+{
+  vector<Varnode *> others;
+  vector<PcodeOp *> multis;
+  gatherPossiblePairingOps(rootOp->getOut(),multis,others);
+  vector<PcodeOp *>::const_iterator iter;
+  for (iter=multis.begin();iter!=multis.end();++iter) {
+    if (processOp(rootOp,negateOp,*iter,data)) return true;
+  }
+  return false;
+}
+
+void RuleCancelOutPtrAdd::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_ADD);
+}
+
+int4 RuleCancelOutPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  if (!op->getOut()->hasPointerUsages()) return 0;
+  vector<PcodeOp *> negateops;
+  gatherNegateOps(op,negateops);
+  vector<PcodeOp *>::const_iterator iter;
+  for (iter=negateops.begin();iter!=negateops.end();++iter) {
+    if (findAndProcess(op,*iter,data)) return 1;
+  }
+  return 0;
 }
 
 void AddTreeState::clear(void)
@@ -10682,6 +10820,23 @@ int4 RuleLzcountShiftBool::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
+bool RulePointerIntAdd::checkPointerUsages(Varnode *vn)
+
+{
+  vector<PcodeOp *> descends;
+  for(list<PcodeOp *>::const_iterator iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
+    PcodeOp *op = *iter;
+    if (op->code() != CPUI_INT_ADD) continue;
+    Varnode *out = op->getOut();
+    if (out == (Varnode *)0) continue;
+    PcodeOp *descend = out->loneDescend();
+    if (descend == (PcodeOp *)0) continue;
+    if (descend->code() == CPUI_LOAD) return true;
+    if (descend->code() == CPUI_STORE) return true;
+  }
+  return false;
+}
+
 PcodeOp *RulePointerIntAdd::getCounterInitOp(PcodeOp *multiop,int4 &slot)
 
 {
@@ -10766,7 +10921,7 @@ int4 RulePointerIntAdd::applyOp(PcodeOp *op,Funcdata &data)
   bool isnegative = increment < 0;
   PcodeOp *multiop = op->getIn(0)->getDef();
   Varnode *out = multiop->getOut();
-  if (!out->hasPointerUsages()) return 0;
+  if (!checkPointerUsages(out)) return 0;
   // Collect descends
   vector<PcodeOp *> descends;
   for(list<PcodeOp *>::const_iterator iter=out->beginDescend();iter!=out->endDescend();++iter) {
