@@ -1124,11 +1124,7 @@ bool Varnode::hasPointerUsages() const
 {
   vector<PcodeOp *> descends;
   for(list<PcodeOp *>::const_iterator iter=beginDescend();iter!=endDescend();++iter) {
-    PcodeOp *op = *iter;
-    if (op->code() != CPUI_INT_ADD) continue;
-    Varnode *out = op->getOut();
-    if (out == (Varnode *)0) continue;
-    PcodeOp *descend = out->loneDescend();
+    PcodeOp *descend = *iter;
     if (descend == (PcodeOp *)0) continue;
     if (descend->code() == CPUI_LOAD) return true;
     if (descend->code() == CPUI_STORE) return true;
