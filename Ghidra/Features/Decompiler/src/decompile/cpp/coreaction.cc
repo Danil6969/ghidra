@@ -5771,7 +5771,7 @@ void ActionDatabase::universalAction(Architecture *conf)
       actprop3 = new ActionPool(Action::rule_repeatapply, "oppool3");
       actprop3->addRule( new RuleByteLoop("analysis") );
       actprop3->addRule( new RulePointerComparison("analysis") );
-      actprop3->addRule( new RulePointerIntAdd("analysis") );
+      actprop3->addRule( new RuleInferPointerMult("analysis") );
     }
     actfullloop->addAction(actprop3);
     {
