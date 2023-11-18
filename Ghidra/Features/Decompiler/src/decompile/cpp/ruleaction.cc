@@ -10935,11 +10935,11 @@ int4 RulePointerIntAdd::applyOp(PcodeOp *op,Funcdata &data)
   bool isnegative = increment < 0;
   intb b = isnegative ? -increment : increment;
   bool inferAdd = false;
+  if (a < 0) return 0;
   if (a % b != 0) {
-    // Must be a positive constant if used as a struct offset
+    // Must be a constant if used as a struct offset
     if (initop->code() == CPUI_INT_MULT) return 0;
     if (!initop->getIn(slot)->isConstant()) return 0;
-    if (a < 0) return 0;
     inferAdd = true;
   }
   Varnode *out = multiop->getOut();
