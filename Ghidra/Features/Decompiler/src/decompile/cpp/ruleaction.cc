@@ -10820,7 +10820,7 @@ int4 RuleLzcountShiftBool::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
-bool RulePointerIntAdd::checkPointerUsages(Varnode *vn)
+bool RuleInferPointerMult::checkPointerUsages(Varnode *vn)
 
 {
   for(list<PcodeOp *>::const_iterator iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
@@ -10844,7 +10844,7 @@ bool RulePointerIntAdd::checkPointerUsages(Varnode *vn)
   return false;
 }
 
-PcodeOp *RulePointerIntAdd::getCounterInitOp(PcodeOp *multiop,int4 &slot)
+PcodeOp *RuleInferPointerMult::getCounterInitOp(PcodeOp *multiop,int4 &slot)
 
 {
   PcodeOp *op = multiop;
@@ -10873,7 +10873,7 @@ PcodeOp *RulePointerIntAdd::getCounterInitOp(PcodeOp *multiop,int4 &slot)
   return (PcodeOp *)0;
 }
 
-Varnode *RulePointerIntAdd::getCounterInitVarnode(PcodeOp *multiop)
+Varnode *RuleInferPointerMult::getCounterInitVarnode(PcodeOp *multiop)
 
 {
   int4 slot;
@@ -10882,7 +10882,7 @@ Varnode *RulePointerIntAdd::getCounterInitVarnode(PcodeOp *multiop)
   return op->getIn(slot);
 }
 
-intb RulePointerIntAdd::getCounterIncrement(PcodeOp *op)
+intb RuleInferPointerMult::getCounterIncrement(PcodeOp *op)
 
 {
   PcodeOp *multiop = op->getIn(0)->getDef();
@@ -10911,13 +10911,13 @@ intb RulePointerIntAdd::getCounterIncrement(PcodeOp *op)
   return off;
 }
 
-void RulePointerIntAdd::getOpList(vector<uint4> &oplist) const
+void RuleInferPointerMult::getOpList(vector<uint4> &oplist) const
 
 {
   oplist.push_back(CPUI_INT_ADD);
 }
 
-int4 RulePointerIntAdd::applyOp(PcodeOp *op,Funcdata &data)
+int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
 
 {
   intb increment = getCounterIncrement(op);
