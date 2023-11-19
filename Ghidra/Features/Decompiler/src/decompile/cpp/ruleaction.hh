@@ -1674,6 +1674,21 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 
+class RuleInferPointerAdd : public Rule {
+  bool checkPointerUsages(Varnode *vn);
+  PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
+  Varnode *getCounterInitVarnode(PcodeOp *multiop);
+  intb getCounterIncrement(PcodeOp *op);
+public:
+  RuleInferPointerAdd(const string &g) : Rule(g,0,"inferpointeradd") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleInferPointerAdd(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
 class RuleInferPointerMult : public Rule {
   bool checkPointerUsages(Varnode *vn);
   PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
