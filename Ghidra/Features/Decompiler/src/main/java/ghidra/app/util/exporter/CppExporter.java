@@ -170,7 +170,7 @@ public class CppExporter extends Exporter {
 			//
 			// Write results every so many items so that we don't blow out memory
 			//
-			if (i % 10000 == 0) {
+			if (i % 500 == 0) {
 				List<CPPResult> results = parallelDecompiler.decompileFunctions(functions);
 				writeResults(results, headerWriter, cFileWriter, chunkingMonitor);
 				functions.clear();
