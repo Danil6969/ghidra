@@ -5742,9 +5742,11 @@ void ActionDatabase::universalAction(Architecture *conf)
 
 	actprop2->addRule( new RulePushPtr("typerecovery") );
         actprop2->addRule( new RuleStructOffset0("typerecovery") );
-        actprop2->addRule( new RuleUnlinkPtrAdd("typerecovery") );
         actprop2->addRule( new RuleCancelOutPtrAdd("typerecovery") );
+        actprop2->addRule( new RuleInferPointerAdd("analysis") );
+        actprop2->addRule( new RuleInferPointerMult("analysis") );
 	actprop2->addRule( new RulePtrArith("typerecovery") );
+        actprop2->addRule( new RuleUnlinkPtrAdd("typerecovery") );
 	//	actprop2->addRule( new RuleIndirectConcat("analysis") );
 	actprop2->addRule( new RuleLoadVarnode("stackvars") );
 	actprop2->addRule( new RuleStoreVarnode("stackvars") );
@@ -5771,8 +5773,6 @@ void ActionDatabase::universalAction(Architecture *conf)
       actprop3 = new ActionPool(Action::rule_repeatapply, "oppool3");
       actprop3->addRule( new RuleByteLoop("analysis") );
       actprop3->addRule( new RulePointerComparison("analysis") );
-      actprop3->addRule( new RuleInferPointerAdd("analysis") );
-      actprop3->addRule( new RuleInferPointerMult("analysis") );
     }
     actfullloop->addAction(actprop3);
     {
