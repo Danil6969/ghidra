@@ -78,6 +78,7 @@ class AddTreeState {
   void clear(void);			///< Reset for a new ADD tree traversal
 public:
   AddTreeState(Funcdata &d,PcodeOp *op,int4 slot);	///< Construct given root of ADD tree and pointer
+  bool canApply(void);
   bool apply(void);		///< Attempt to transform the pointer expression
   bool initAlternateForm(void);		///< Prepare analysis if there is an alternate form of the base pointer
 };
