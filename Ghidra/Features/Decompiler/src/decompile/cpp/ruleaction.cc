@@ -5740,19 +5740,7 @@ bool RuleUnlinkPtrAdd::unlinkAddOp(PcodeOp *op,Funcdata &data)
 bool RuleUnlinkPtrAdd::form1(PcodeOp *op,Funcdata &data)
 
 {
-  int4 slot;
-  const Datatype *ct = (const Datatype *)0; // Unnecessary initialization
-
-  if (!data.hasTypeRecoveryStarted()) return false;
-
-  for(slot=0;slot<op->numInput();++slot) { // Search for pointer type
-    ct = op->getIn(slot)->getTypeReadFacing(op);
-    if (ct->getMetatype() == TYPE_PTR) break;
-  }
-  if (slot == op->numInput()) return false;
-  if (RulePtrArith::evaluatePointerExpression(op, slot) != 2) return false;
-  if (!RulePtrArith::verifyPreferredPointer(op, slot)) return false;
-
+  if (!RulePtrArith::canProcess(op,data)) return false;
   return unlinkAddOp(op,data);
 }
 
@@ -5761,7 +5749,6 @@ bool RuleUnlinkPtrAdd::form2(PcodeOp *op,Funcdata &data)
 
 {
   if (!RuleCancelOutPtrAdd::canProcess(op)) return false;
-
   return unlinkAddOp(op,data);
 }
 
@@ -6697,6 +6684,25 @@ bool RulePtrArith::isNegativeCast(PcodeOp *op,int4 slot)
     return true;
   }
   return false;
+}
+
+bool RulePtrArith::canProcess(PcodeOp *op,Funcdata &data)
+
+{
+  int4 slot;
+  const Datatype *ct = (const Datatype *)0; // Unnecessary initialization
+
+  if (!data.hasTypeRecoveryStarted()) return false;
+
+  for(slot=0;slot<op->numInput();++slot) { // Search for pointer type
+    ct = op->getIn(slot)->getTypeReadFacing(op);
+    if (ct->getMetatype() == TYPE_PTR) break;
+  }
+  if (slot == op->numInput()) return false;
+  if (RulePtrArith::evaluatePointerExpression(op, slot) != 2) return false;
+  if (!RulePtrArith::verifyPreferredPointer(op, slot)) return false;
+
+  return true;
 }
 
 /// \class RulePtrArith
