@@ -1069,6 +1069,7 @@ class RulePtrArith : public Rule {
   static bool preprocess(PcodeOp *op,Funcdata &data);
   static bool isNegativeCast(PcodeOp *op,int4 slot);
 public:
+  static bool canProcess(PcodeOp *op,Funcdata &data);
   RulePtrArith(const string &g) : Rule(g, 0, "ptrarith") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
