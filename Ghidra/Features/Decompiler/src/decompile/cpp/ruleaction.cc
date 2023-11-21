@@ -5736,6 +5736,35 @@ bool RuleUnlinkPtrAdd::unlinkAddOp(PcodeOp *op,Funcdata &data)
   return true;
 }
 
+// for RulePtrArith
+bool RuleUnlinkPtrAdd::form1(PcodeOp *op,Funcdata &data)
+
+{
+  int4 slot;
+  const Datatype *ct = (const Datatype *)0; // Unnecessary initialization
+
+  if (!data.hasTypeRecoveryStarted()) return false;
+
+  for(slot=0;slot<op->numInput();++slot) { // Search for pointer type
+    ct = op->getIn(slot)->getTypeReadFacing(op);
+    if (ct->getMetatype() == TYPE_PTR) break;
+  }
+  if (slot == op->numInput()) return false;
+  if (RulePtrArith::evaluatePointerExpression(op, slot) != 2) return false;
+  if (!RulePtrArith::verifyPreferredPointer(op, slot)) return false;
+
+  return unlinkAddOp(op,data);
+}
+
+// for RuleCancelOutPtrAdd
+bool RuleUnlinkPtrAdd::form2(PcodeOp *op,Funcdata &data)
+
+{
+  if (!RuleCancelOutPtrAdd::canProcess(op)) return false;
+  if (unlinkAddOp(op,data)) return true;
+  return false;
+}
+
 void RuleUnlinkPtrAdd::getOpList(vector<uint4> &oplist) const
 
 {
@@ -5745,9 +5774,9 @@ void RuleUnlinkPtrAdd::getOpList(vector<uint4> &oplist) const
 int4 RuleUnlinkPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  if (!op->getOut()->hasPointerUsages()) return 0;
-  if (!unlinkAddOp(op,data)) return 0;
-  return 1;
+  if (form1(op,data)) return 1;
+  if (form2(op,data)) return 1;
+  return 0;
 }
 
 void RuleCancelOutPtrAdd::gatherNegateOps(PcodeOp *op,vector<PcodeOp *> &negateops)
@@ -5803,13 +5832,17 @@ void RuleCancelOutPtrAdd::gatherPossiblePairingOps(Varnode *vn,vector<PcodeOp *>
   others.push_back(vn);
 }
 
-PcodeOp *RuleCancelOutPtrAdd::getPosition(PcodeOp *op,Varnode *targetVn)
+PcodeOp *RuleCancelOutPtrAdd::getPosition(PcodeOp *op,Varnode *targetVn,bool checkDescendants)
 
 {
   if (op == (PcodeOp *)0) return (PcodeOp *)0;
   if (op->code() != CPUI_INT_ADD) return (PcodeOp *)0;
   if (op->getOut()->hasNoDescend()) return (PcodeOp *)0;
-  if (op->getOut()->loneDescend() == (PcodeOp *)0) return (PcodeOp *)0;
+  if (checkDescendants) {
+    if (op->getOut()->loneDescend() == (PcodeOp *) 0) {
+      return (PcodeOp *) 0;
+    }
+  }
 
   Varnode *inVn0 = op->getIn(0);
   Varnode *inVn1 = op->getIn(1);
@@ -5818,9 +5851,9 @@ PcodeOp *RuleCancelOutPtrAdd::getPosition(PcodeOp *op,Varnode *targetVn)
   if (inVn1 == targetVn) return op;
 
   // Search in input ops recursively
-  PcodeOp *pos0 = getPosition(inVn0->getDef(), targetVn);
+  PcodeOp *pos0 = getPosition(inVn0->getDef(),targetVn,checkDescendants);
   if (pos0 != (PcodeOp *)0) return pos0;
-  PcodeOp *pos1 = getPosition(inVn1->getDef(),targetVn);
+  PcodeOp *pos1 = getPosition(inVn1->getDef(),targetVn,checkDescendants);
   if (pos1 != (PcodeOp *)0) return pos1;
 
   return (PcodeOp *)0;
@@ -5849,8 +5882,8 @@ bool RuleCancelOutPtrAdd::processOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *m
   Varnode *diff0 = inOp0->getIn(1);
   Varnode *diff1 = inOp1->getIn(1);
 
-  PcodeOp *negatePos = getPosition(rootOp, negateOp->getOut());
-  PcodeOp *multiPos = getPosition(rootOp,multi->getOut());
+  PcodeOp *negatePos = getPosition(rootOp, negateOp->getOut(),true);
+  PcodeOp *multiPos = getPosition(rootOp,multi->getOut(),true);
   if (negatePos == (PcodeOp *)0) return false;
   if (multiPos == (PcodeOp *)0) return false;
   int4 negateSlot = negatePos->getSlot(negateOp->getOut());
@@ -5867,15 +5900,53 @@ bool RuleCancelOutPtrAdd::processOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *m
   return true;
 }
 
-bool RuleCancelOutPtrAdd::findAndProcess(PcodeOp *rootOp,PcodeOp *negateOp,Funcdata &data)
+bool RuleCancelOutPtrAdd::canProcessOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *multi)
 
 {
-  vector<Varnode *> others;
-  vector<PcodeOp *> multis;
-  gatherPossiblePairingOps(rootOp->getOut(),multis,others);
+  if (negateOp == (PcodeOp *)0) return false;
+  if (negateOp->code() != CPUI_INT_MULT) return false;
+  Varnode *vn = negateOp->getIn(0);
+  if (vn->isConstant() && vn->getOffset() == 0) return false;
+  if (multi == (PcodeOp *)0) return false;
+  if (multi->code() != CPUI_MULTIEQUAL) return false;
+
+  Varnode *in0 = multi->getIn(0);
+  Varnode *in1 = multi->getIn(1);
+  PcodeOp *inOp0 = in0->getDef();
+  PcodeOp *inOp1 = in1->getDef();
+  if (inOp0 == (PcodeOp *)0) return false;
+  if (inOp1 == (PcodeOp *)0) return false;
+  if (inOp0->code() != CPUI_INT_ADD) return false;
+  if (inOp1->code() != CPUI_INT_ADD) return false;
+  if (inOp0->getIn(0) != vn) return false;
+  if (inOp1->getIn(0)->getDef() != multi) return false;
+  Varnode *diff0 = inOp0->getIn(1);
+  Varnode *diff1 = inOp1->getIn(1);
+
+  PcodeOp *negatePos = getPosition(rootOp, negateOp->getOut(),false);
+  PcodeOp *multiPos = getPosition(rootOp,multi->getOut(),false);
+  if (negatePos == (PcodeOp *)0) return false;
+  if (multiPos == (PcodeOp *)0) return false;
+
+  return true;
+}
+
+bool RuleCancelOutPtrAdd::canProcess(PcodeOp *op)
+
+{
+  if (!op->getOut()->hasPointerUsages()) return false;
+  vector<PcodeOp *> negateops;
+  gatherNegateOps(op,negateops);
   vector<PcodeOp *>::const_iterator iter;
-  for (iter=multis.begin();iter!=multis.end();++iter) {
-    if (processOp(rootOp,negateOp,*iter,data)) return true;
+  for (iter=negateops.begin();iter!=negateops.end();++iter) {
+    PcodeOp *negateOp = *iter;
+    vector<Varnode *> others;
+    vector<PcodeOp *> multis;
+    gatherPossiblePairingOps(op->getOut(),multis,others);
+    vector<PcodeOp *>::const_iterator iter;
+    for (iter=multis.begin();iter!=multis.end();++iter) {
+      if (canProcessOp(op,negateOp,*iter)) return true;
+    }
   }
   return false;
 }
@@ -5894,7 +5965,14 @@ int4 RuleCancelOutPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
   gatherNegateOps(op,negateops);
   vector<PcodeOp *>::const_iterator iter;
   for (iter=negateops.begin();iter!=negateops.end();++iter) {
-    if (findAndProcess(op,*iter,data)) return 1;
+    PcodeOp *negateOp = *iter;
+    vector<Varnode *> others;
+    vector<PcodeOp *> multis;
+    gatherPossiblePairingOps(op->getOut(),multis,others);
+    vector<PcodeOp *>::const_iterator iter;
+    for (iter=multis.begin();iter!=multis.end();++iter) {
+      if (processOp(op,negateOp,*iter,data)) return 1;
+    }
   }
   return 0;
 }
