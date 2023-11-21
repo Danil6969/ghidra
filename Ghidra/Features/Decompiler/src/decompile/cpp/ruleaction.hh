@@ -1037,6 +1037,8 @@ public:
 class RuleUnlinkPtrAdd : public Rule {
   static PcodeOp *getOpToUnlink(PcodeOp *op);
   static bool unlinkAddOp(PcodeOp *op,Funcdata &data);
+  static bool form1(PcodeOp *op,Funcdata &data);
+  static bool form2(PcodeOp *op,Funcdata &data);
 public:
   RuleUnlinkPtrAdd(const string &g) : Rule(g, 0, "unlinkptradd") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
@@ -1049,10 +1051,11 @@ public:
 class RuleCancelOutPtrAdd : public Rule {
   static void gatherNegateOps(PcodeOp *op,vector<PcodeOp *> &negateops);
   static void gatherPossiblePairingOps(Varnode *op,vector<PcodeOp *> &multis,vector<Varnode *> &others);
-  static PcodeOp *getPosition(PcodeOp *op,Varnode *targetVn);
+  static PcodeOp *getPosition(PcodeOp *op,Varnode *targetVn,bool checkDescendants);
   static bool processOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *multi,Funcdata &data);
-  static bool findAndProcess(PcodeOp *rootOp,PcodeOp *negateOp,Funcdata &data);
+  static bool canProcessOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *multi);
 public:
+  static bool canProcess(PcodeOp *op);
   RuleCancelOutPtrAdd(const string &g) : Rule(g, 0, "canceloutptradd") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
@@ -1062,7 +1065,6 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RulePtrArith : public Rule {
-  static bool verifyPreferredPointer(PcodeOp *op,int4 slot);
   static bool replaceMultiplier(PcodeOp* op,Funcdata &data);
   static bool preprocess(PcodeOp *op,Funcdata &data);
   static bool isNegativeCast(PcodeOp *op,int4 slot);
@@ -1074,6 +1076,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+  static bool verifyPreferredPointer(PcodeOp *op,int4 slot);
   static int4 evaluatePointerExpression(PcodeOp *op,int4 slot);
 };
 class RuleStructOffset0 : public Rule {
