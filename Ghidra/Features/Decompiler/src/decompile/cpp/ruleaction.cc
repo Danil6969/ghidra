@@ -6435,6 +6435,34 @@ bool AddTreeState::buildDegenerate(void)
   return true;
 }
 
+/// \return \b true if a transform can be applied
+bool AddTreeState::canApply(void)
+
+{
+  if (isDegenerate) {
+    if (baseType->getAlignSize() < ct->getWordSize()) {
+      // If the size is really less than scale, there is
+      // probably some sort of padding going on
+      return false;        // Don't transform at all
+    }
+    if (baseOp->getOut()->getTypeDefFacing()->getMetatype() != TYPE_PTR) {
+      // Make sure pointer propagates thru INT_ADD
+      return false;
+    }
+    return true;
+  }
+  spanAddTree(baseOp,1);
+  if (!valid) return false;		// Were there any show stoppers
+  if (distributeOp != (PcodeOp *)0 && !isDistributeUsed) {
+    clear();
+    preventDistribution = true;
+    spanAddTree(baseOp,1);
+  }
+  calcSubtype();
+  if (!valid) return false;
+  return true;
+}
+
 /// \return \b true if a transform was applied
 bool AddTreeState::apply(void)
 
@@ -6701,8 +6729,14 @@ bool RulePtrArith::canProcess(PcodeOp *op,Funcdata &data)
   if (slot == op->numInput()) return false;
   if (RulePtrArith::evaluatePointerExpression(op, slot) != 2) return false;
   if (!RulePtrArith::verifyPreferredPointer(op, slot)) return false;
+  if (isNegativeCast(op,slot)) return false;
 
-  return true;
+  AddTreeState state(data,op,slot);
+  if (state.canApply()) return true;
+  if (state.initAlternateForm()) {
+    if (state.canApply()) return true;
+  }
+  return false;
 }
 
 /// \class RulePtrArith
@@ -6745,10 +6779,10 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
   if (slot == op->numInput()) return 0;
   if (evaluatePointerExpression(op, slot) != 2) return 0;
   if (!verifyPreferredPointer(op, slot)) return 0;
+  if (isNegativeCast(op,slot)) return 0;
 
   if (preprocess(op,data)) return 1;
 
-  if (isNegativeCast(op,slot)) return 0;
   AddTreeState state(data,op,slot);
   if (state.apply()) return 1;
   if (state.initAlternateForm()) {
