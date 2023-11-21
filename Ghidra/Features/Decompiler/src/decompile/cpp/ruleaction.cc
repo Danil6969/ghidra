@@ -5761,8 +5761,8 @@ bool RuleUnlinkPtrAdd::form2(PcodeOp *op,Funcdata &data)
 
 {
   if (!RuleCancelOutPtrAdd::canProcess(op)) return false;
-  if (unlinkAddOp(op,data)) return true;
-  return false;
+
+  return unlinkAddOp(op,data);
 }
 
 void RuleUnlinkPtrAdd::getOpList(vector<uint4> &oplist) const
