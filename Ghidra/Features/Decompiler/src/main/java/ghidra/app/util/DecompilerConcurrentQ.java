@@ -50,23 +50,31 @@ public class DecompilerConcurrentQ<I, R> {
 	private Consumer<R> resultConsumer = Dummy.consumer();
 
 	public DecompilerConcurrentQ(QCallback<I, R> callback, TaskMonitor monitor) {
-		this(callback, AutoAnalysisManager.getSharedAnalsysThreadPool(), true, monitor);
+		this(callback, AutoAnalysisManager.getSharedAnalsysThreadPool(), true, 0, monitor);
 	}
 
 	public DecompilerConcurrentQ(QCallback<I, R> callback, String threadPoolName,
 			TaskMonitor monitor) {
-		this(callback, GThreadPool.getSharedThreadPool(threadPoolName), true, monitor);
+		this(callback, GThreadPool.getSharedThreadPool(threadPoolName), true, 0, monitor);
+	}
+
+	public DecompilerConcurrentQ(QCallback<I, R> callback, String threadPoolName,
+			int maxInProgress, TaskMonitor monitor) {
+		this(callback, GThreadPool.getSharedThreadPool(threadPoolName), true, maxInProgress, monitor);
 	}
 
 	public DecompilerConcurrentQ(QCallback<I, R> callback, GThreadPool pool, boolean collectResults,
-			TaskMonitor monitor) {
+			int maxInProgress, TaskMonitor monitor) {
 		// @formatter:off
-		queue = new ConcurrentQBuilder<I, R>()
-			.setCollectResults(collectResults)
-			.setThreadPool(pool)
-			.setMonitor(monitor)
-			.setListener(new InternalResultListener())
-			.build(callback);
+		ConcurrentQBuilder<I, R> builder = new ConcurrentQBuilder<I, R>();
+		builder.setCollectResults(collectResults);
+		builder.setThreadPool(pool);
+		builder.setMonitor(monitor);
+		builder.setListener(new InternalResultListener());
+		if (maxInProgress != 0) {
+			builder.setMaxInProgress(maxInProgress);
+		}
+		queue = builder.build(callback);
 		// @formatter:on
 	}
 

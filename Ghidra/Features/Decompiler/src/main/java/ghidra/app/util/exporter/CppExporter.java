@@ -65,6 +65,7 @@ public class CppExporter extends Exporter {
 
 	private DecompileOptions options;
 	private boolean userSuppliedOptions = false;
+	private static final int MAX_IN_PROGRESS = 5;
 
 	public CppExporter() {
 		super("C/C++", "c", new HelpLocation("ExporterPlugin", "c_cpp"));
@@ -119,7 +120,7 @@ public class CppExporter extends Exporter {
 		ParallelDecompilerCallback callback = new ParallelDecompilerCallback(decompilerPool);
 		ChunkingTaskMonitor chunkingMonitor = new ChunkingTaskMonitor(monitor);
 		ChunkingParallelDecompiler<CPPResult> parallelDecompiler =
-			ParallelDecompiler.createChunkingParallelDecompiler(callback, chunkingMonitor);
+			ParallelDecompiler.createChunkingParallelDecompiler(callback, MAX_IN_PROGRESS, chunkingMonitor);
 
 		try {
 			if (emitDataTypeDefinitions) {

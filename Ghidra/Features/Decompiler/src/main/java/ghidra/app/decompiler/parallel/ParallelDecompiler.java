@@ -93,7 +93,7 @@ public class ParallelDecompiler {
 		boolean collectResults = false; // the client will process results as they arrive
 		GThreadPool threadPool = GThreadPool.getSharedThreadPool(THREAD_POOL_NAME);
 		DecompilerConcurrentQ<Function, R> queue =
-			new DecompilerConcurrentQ<>(callback, threadPool, collectResults, monitor);
+			new DecompilerConcurrentQ<>(callback, threadPool, collectResults, 0, monitor);
 
 		monitor.initialize(max);
 		queue.process(functions, resultsConsumer);
@@ -141,8 +141,8 @@ public class ParallelDecompiler {
 	 * @return the parallel decompiler used for decompiling.
 	 */
 	public static <R> ChunkingParallelDecompiler<R> createChunkingParallelDecompiler(
-			QCallback<Function, R> callback, TaskMonitor monitor) {
-		return new ChunkingParallelDecompiler<>(callback, monitor);
+			QCallback<Function, R> callback, int maxInProgress, TaskMonitor monitor) {
+		return new ChunkingParallelDecompiler<>(callback, maxInProgress, monitor);
 	}
 
 	private ParallelDecompiler() {

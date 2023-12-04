@@ -34,10 +34,10 @@ public class ChunkingParallelDecompiler<R> {
 
 	private DecompilerConcurrentQ<Function, R> queue;
 
-	ChunkingParallelDecompiler(QCallback<Function, R> callback, TaskMonitor monitor) {
+	ChunkingParallelDecompiler(QCallback<Function, R> callback, int maxInProgress, TaskMonitor monitor) {
 		queue =
-			new DecompilerConcurrentQ<Function, R>(callback, ParallelDecompiler.THREAD_POOL_NAME,
-				monitor);
+			new DecompilerConcurrentQ<Function, R>(callback,
+				ParallelDecompiler.THREAD_POOL_NAME, maxInProgress, monitor);
 	}
 
 	public List<R> decompileFunctions(List<Function> functions) throws InterruptedException,
