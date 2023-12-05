@@ -15,6 +15,8 @@
  */
 package ghidra.program.model.data;
 
+import java.util.ArrayList;
+
 /**
  * <code>Undefined</code> identifies an undefined data type
  */
@@ -30,12 +32,19 @@ public abstract class Undefined extends BuiltIn {
 
 	private synchronized static Undefined[] getUndefinedTypes() {
 		if (undefinedTypes == null) {
-			undefinedTypes =
-				new Undefined[] { Undefined1DataType.dataType, Undefined2DataType.dataType,
-					Undefined3DataType.dataType, Undefined4DataType.dataType,
-					Undefined5DataType.dataType, Undefined6DataType.dataType,
-					Undefined7DataType.dataType, Undefined8DataType.dataType,
-					Undefined9DataType.dataType, Undefined10DataType.dataType };
+			ArrayList<Undefined> types = new ArrayList<>();
+			types.add(Undefined1DataType.dataType);
+			types.add(Undefined2DataType.dataType);
+			types.add(Undefined3DataType.dataType);
+			types.add(Undefined4DataType.dataType);
+			types.add(Undefined5DataType.dataType);
+			types.add(Undefined6DataType.dataType);
+			types.add(Undefined7DataType.dataType);
+			types.add(Undefined8DataType.dataType);
+			types.add(Undefined10DataType.dataType);
+			types.add(Undefined12DataType.dataType);
+			types.add(Undefined16DataType.dataType);
+			undefinedTypes = types.toArray(new Undefined[types.size()]);
 		}
 		return undefinedTypes;
 	}

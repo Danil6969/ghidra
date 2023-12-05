@@ -27,28 +27,28 @@ import ghidra.util.classfinder.*;
  * Provides an implementation of a byte that has not been defined yet as a
  * particular type of data in the program.
  */
-public class Undefined9DataType extends Undefined {
+public class Undefined16DataType extends Undefined {
 	static {
-		ClassTranslator.put("ghidra.program.model.data.Undefined7",
-			Undefined9DataType.class.getName());
+		ClassTranslator.put("ghidra.program.model.data.Undefined16",
+			Undefined16DataType.class.getName());
 	}
 
 	private final static long serialVersionUID = 1;
 	private static final EndianSettingsDefinition ENDIAN = EndianSettingsDefinition.DEF;
 
 	/** A statically defined DefaultDataType used when an Undefined byte is needed.*/
-	public final static Undefined9DataType dataType = new Undefined9DataType();
+	public final static Undefined16DataType dataType = new Undefined16DataType();
 
 	/**
 	 * Constructs a new Undefined1 dataType
 	 *
 	 */
-	public Undefined9DataType() {
+	public Undefined16DataType() {
 		this(null);
 	}
 
-	public Undefined9DataType(DataTypeManager dtm) {
-		super("undefined9", dtm);
+	public Undefined16DataType(DataTypeManager dtm) {
+		super("undefined16", dtm);
 	}
 
 	/**
@@ -56,7 +56,7 @@ public class Undefined9DataType extends Undefined {
 	 * @see ghidra.program.model.data.DataType#getLength()
 	 */
 	public int getLength() {
-		return 9;
+		return 16;
 	}
 
 	/**
@@ -64,7 +64,7 @@ public class Undefined9DataType extends Undefined {
 	 * @see ghidra.program.model.data.DataType#getDescription()
 	 */
 	public String getDescription() {
-		return "Undefined 9-Byte";
+		return "Undefined 16-Byte";
 	}
 
 	/**
@@ -88,7 +88,7 @@ public class Undefined9DataType extends Undefined {
 		}
 		BigInteger bi = (BigInteger)b;
 		val = bi.toString(16).toUpperCase();
-		val = StringFormat.padIt(val, 18, 'h', true);
+		val = StringFormat.padIt(val, 32, 'h', true);
 
 		return val;
 	}
@@ -98,20 +98,20 @@ public class Undefined9DataType extends Undefined {
 	 * @see ghidra.program.model.data.DataType#getValue(ghidra.program.model.mem.MemBuffer, ghidra.docking.settings.Settings, int)
 	 */
 	public Object getValue(MemBuffer buf, Settings settings, int length) {
-		byte[] bytes = new byte[9];
-		if (buf.getBytes(bytes, 0) != 9) {
+		byte[] bytes = new byte[16];
+		if (buf.getBytes(bytes, 0) != 16) {
 			return null;
 		}
 
 		DataConverter dc = DataConverter.getInstance(ENDIAN.isBigEndian(settings, buf));
 
-		return dc.getBigInteger(bytes, 9, false);
+		return dc.getBigInteger(bytes, 16, false);
 	}
 
 	public DataType clone(DataTypeManager dtm) {
 		if (dtm == getDataTypeManager()) {
 			return this;
 		}
-		return new Undefined9DataType(dtm);
+		return new Undefined16DataType(dtm);
 	}
 }
