@@ -196,6 +196,10 @@ public class StringsAnalyzer extends AbstractAnalyzer {
 
 	@Override
 	public boolean canAnalyze(Program program) {
+		String compilerIdString = program.getCompilerSpec().getCompilerSpecID().getIdAsString().toLowerCase();
+		if (compilerIdString.equals("borlanddelphi")) {
+			return false; // Cannot search for ascii strings as delphi uses its own structs for strings
+		}
 		// As long as it has memory blocks defined, we can analyze
 		return program.getMinAddress() != null;
 	}
