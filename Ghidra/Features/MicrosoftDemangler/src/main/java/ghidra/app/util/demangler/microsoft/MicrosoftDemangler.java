@@ -32,6 +32,10 @@ public class MicrosoftDemangler implements Demangler {
 
 	@Override
 	public boolean canDemangle(Program program) {
+		String compilerIdString = program.getCompilerSpec().getCompilerSpecID().getIdAsString().toLowerCase();
+		if (compilerIdString.equals("borlanddelphi")) {
+			return false; // No Microsoft mangling in delphi
+		}
 		String executableFormat = program.getExecutableFormat();
 		return executableFormat != null && (executableFormat.indexOf(PeLoader.PE_NAME) != -1 ||
 			executableFormat.indexOf(MSCoffLoader.MSCOFF_NAME) != -1);
