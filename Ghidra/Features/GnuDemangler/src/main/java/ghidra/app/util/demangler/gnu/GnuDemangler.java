@@ -58,6 +58,9 @@ public class GnuDemangler implements Demangler {
 
 		CompilerSpec spec = program.getCompilerSpec();
 		String specId = spec.getCompilerSpecID().getIdAsString();
+		if (specId.equals("borlanddelphi")) {
+			return false; // No GNU mangling in delphi
+		}
 		if (!specId.toLowerCase().contains("windows")) {
 			return true;
 		}
