@@ -213,8 +213,8 @@ public class FunctionSignatureParser {
 
 	private ParameterDefinition[] extractArguments(String newSignatureText)
 			throws ParseException, CancelledException {
-		int startIndex = newSignatureText.indexOf('(');
-		int endIndex = newSignatureText.indexOf(')');
+		int startIndex = getLeftParenIndex(newSignatureText);
+		int endIndex = newSignatureText.lastIndexOf(')');
 		if (startIndex < 0 || endIndex < 0 || startIndex >= endIndex) {
 			throw new ParseException("Can't parse function arguments");
 		}
