@@ -323,11 +323,26 @@ public class FunctionSignatureParser {
 	}
 
 	String extractFunctionName(String signatureText) throws ParseException {
-		int parenIndex = signatureText.indexOf('(');
-		if (parenIndex < 0) {
+		int rightParenIndex = signatureText.lastIndexOf(')');
+		int roundBrackets = 1;
+		int i;
+		for (i = rightParenIndex - 1; i >= 0; i--) {
+			char character = signatureText.charAt(i);
+			if (roundBrackets == 0) {
+				break;
+			}
+			if (character == ')') {
+				roundBrackets++;
+			}
+			if (character == '(') {
+				roundBrackets--;
+			}
+		}
+		int leftParenIndex = i + 1;
+		if (leftParenIndex < 0) {
 			throw new ParseException("Can't find function name");
 		}
-		String[] split = StringUtils.split(signatureText.substring(0, parenIndex));
+		String[] split = StringUtils.split(signatureText.substring(0, leftParenIndex));
 		if (split.length < 2) {
 			throw new ParseException("Can't find function name");
 		}
