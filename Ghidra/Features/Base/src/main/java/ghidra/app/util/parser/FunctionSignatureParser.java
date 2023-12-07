@@ -153,6 +153,45 @@ public class FunctionSignatureParser {
 		return "...".equals(lastArg);
 	}
 
+	// Parses C++ names with braces as well
+	private String[] getSplitFromString(String argString) {
+		List<String> result = new ArrayList<>();
+		StringBuilder stringBuilder = new StringBuilder();
+		int roundBrackets = 0;
+		int angleBrackets = 0;
+		for (char character : argString.toCharArray()) {
+			if (character == '(') {
+				roundBrackets++;
+			}
+			if (character == ')') {
+				roundBrackets--;
+			}
+
+			if (character == '<') {
+				angleBrackets++;
+			}
+			if (character == '>') {
+				angleBrackets--;
+			}
+
+			if (character == ',') {
+				boolean noBracketsLeft = true;
+				noBracketsLeft &= angleBrackets <= 0;
+				noBracketsLeft &= roundBrackets <= 0;
+				if (noBracketsLeft) {
+					angleBrackets = 0;
+					roundBrackets = 0;
+					result.add(stringBuilder.toString());
+					stringBuilder = new StringBuilder();
+					continue;
+				}
+			}
+			stringBuilder.append(character);
+		}
+		result.add(stringBuilder.toString());
+		return result.toArray(new String[result.size()]);
+	}
+
 	private ParameterDefinition[] extractArguments(String newSignatureText)
 			throws ParseException, CancelledException {
 		int startIndex = newSignatureText.indexOf('(');
@@ -175,7 +214,7 @@ public class FunctionSignatureParser {
 		}
 
 		List<ParameterDefinition> parameterList = new ArrayList<>();
-		String[] split = argString.split(",");
+		String[] split = getSplitFromString(argString);
 
 		for (String arg : split) {
 			addParameter(parameterList, arg.trim());
