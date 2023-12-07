@@ -153,6 +153,25 @@ public class FunctionSignatureParser {
 		return "...".equals(lastArg);
 	}
 
+	private int getLeftParenIndex(String signatureText) {
+		int rightParenIndex = signatureText.lastIndexOf(')');
+		int roundBrackets = 1;
+		int i;
+		for (i = rightParenIndex - 1; i >= 0; i--) {
+			char character = signatureText.charAt(i);
+			if (roundBrackets == 0) {
+				break;
+			}
+			if (character == ')') {
+				roundBrackets++;
+			}
+			if (character == '(') {
+				roundBrackets--;
+			}
+		}
+		return i + 1;
+	}
+
 	// Parses C++ names with braces as well
 	private String[] getSplitFromString(String argString) {
 		List<String> result = new ArrayList<>();
@@ -290,7 +309,7 @@ public class FunctionSignatureParser {
 	}
 
 	DataType extractReturnType(String signatureText) throws ParseException, CancelledException {
-		int parenIndex = signatureText.indexOf('(');
+		int parenIndex = getLeftParenIndex(signatureText);
 		if (parenIndex < 0) {
 			throw new ParseException("Can't find return type");
 		}
@@ -323,22 +342,7 @@ public class FunctionSignatureParser {
 	}
 
 	String extractFunctionName(String signatureText) throws ParseException {
-		int rightParenIndex = signatureText.lastIndexOf(')');
-		int roundBrackets = 1;
-		int i;
-		for (i = rightParenIndex - 1; i >= 0; i--) {
-			char character = signatureText.charAt(i);
-			if (roundBrackets == 0) {
-				break;
-			}
-			if (character == ')') {
-				roundBrackets++;
-			}
-			if (character == '(') {
-				roundBrackets--;
-			}
-		}
-		int leftParenIndex = i + 1;
+		int leftParenIndex = getLeftParenIndex(signatureText);
 		if (leftParenIndex < 0) {
 			throw new ParseException("Can't find function name");
 		}
