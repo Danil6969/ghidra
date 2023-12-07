@@ -46,7 +46,7 @@ public class TemplateSimplifier implements NameTransformer {
 	public static final String MIN_TEMPLATE_LENGTH_DESCRIPTION =
 		"Minumum size of template to be simplified";
 
-	private boolean doSimplify = true;
+	private boolean doSimplify = false;
 	private int templateNestingDepth = 0;
 	private int maxTemplateLength = 20;
 	private int minTemplateLength = 10;
