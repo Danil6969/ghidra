@@ -43,6 +43,40 @@
       </killedbycall>
     </prototype>
   </default_proto>
+  <!--same as register except that more registers are preserved-->
+  <prototype name="__internal" extrapop="unknown" stackshift="4">
+    <input>
+      <pentry minsize="1" maxsize="4">
+        <register name="EAX"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4">
+        <register name="EDX"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4">
+        <register name="ECX"/>
+      </pentry>
+      <pentry minsize="1" maxsize="500" align="4">
+        <addr offset="4" space="stack"/>
+      </pentry>
+    </input>
+    <output>
+      <pentry minsize="4" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4">
+        <register name="EAX"/>
+      </pentry>
+    </output>
+    <unaffected>
+      <register name="ESP"/>
+      <register name="EBP"/>
+      <register name="ESI"/>
+      <register name="EDI"/>
+      <register name="EBX"/>
+      <register name="ECX"/>
+      <register name="EDX"/>
+    </unaffected>
+  </prototype>
   <!--there is also a "pascal" calling convention, which is the same as stdcall except that arguments are pushed left-to-right-->
   <prototype name="__stdcall" extrapop="unknown" stackshift="4">
     <input>
