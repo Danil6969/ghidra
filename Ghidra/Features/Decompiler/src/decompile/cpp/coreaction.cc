@@ -1242,7 +1242,14 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
     case CPUI_INT_LESSEQUAL:
     {
       Varnode *othervn = op->getIn(1 - slot);
-      type_metatype meta = othervn->getTypeDefFacing()->getMetatype();
+      Datatype *dt = (Datatype *)0;
+      if (othervn->getDef() == 0) {
+        dt = othervn->getType();
+      }
+      else {
+        dt = othervn->getTypeDefFacing();
+      }
+      type_metatype meta = dt->getMetatype();
       if (meta != TYPE_PTR) { // Only infer if another varnode is a pointer
 	return (SymbolEntry *) 0;
       }
