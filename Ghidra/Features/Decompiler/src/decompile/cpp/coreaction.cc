@@ -1243,7 +1243,7 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
     {
       Varnode *othervn = op->getIn(1 - slot);
       Datatype *dt = (Datatype *)0;
-      if (othervn->getDef() == 0) {
+      if (othervn->getDef() == (PcodeOp *)0) {
         dt = othervn->getType();
       }
       else {
