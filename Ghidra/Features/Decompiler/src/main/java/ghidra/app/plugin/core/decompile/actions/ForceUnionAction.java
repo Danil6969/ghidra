@@ -64,6 +64,9 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 		}
 
 		ClangToken tokenAtCursor = context.getTokenAtCursor();
+		if (tokenAtCursor.getPcodeOp() == null) {
+			return false;
+		}
 		if (tokenAtCursor instanceof ClangFieldToken) {
 			Composite composite = getCompositeDataType(tokenAtCursor);
 			if (composite instanceof Structure) {
