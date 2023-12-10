@@ -122,7 +122,7 @@ public class ParamEntry {
 	 * @param sz is the given size
 	 * @return the collected array of Varnodes or null
 	 */
-	private Varnode[] getJoinPieces(int sz) {
+	 Varnode[] getJoinPieces(int sz) {
 		int num = 0;
 		int first, replace;
 		Varnode vn = null;

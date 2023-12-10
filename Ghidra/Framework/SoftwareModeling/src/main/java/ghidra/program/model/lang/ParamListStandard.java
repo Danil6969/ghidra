@@ -30,6 +30,7 @@ import ghidra.program.model.lang.protorules.*;
 import ghidra.program.model.listing.Program;
 import ghidra.program.model.listing.VariableStorage;
 import ghidra.program.model.pcode.Encoder;
+import ghidra.program.model.pcode.Varnode;
 import ghidra.util.SystemUtilities;
 import ghidra.util.exception.InvalidInputException;
 import ghidra.util.xml.SpecXmlUtils;
