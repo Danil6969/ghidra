@@ -55,7 +55,7 @@ public class ElfDynamic {
 	private final ElfHeader elf;
 
 	private final int d_tag;
-	private final long d_val;
+	private long d_val;
 
 	/**
 	 * Construct an ELF dynamic table entry

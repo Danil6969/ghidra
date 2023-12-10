@@ -74,8 +74,8 @@ public class ElfProgramHeader
 	private long p_offset; // may get altered after instantiation
 	private final long p_vaddr;
 	private final long p_paddr;
-	private final long p_filesz;
-	private final long p_memsz;
+	private long p_filesz;
+	private long p_memsz;
 	private final long p_align;
 
 	private final BinaryReader reader;
