@@ -1038,7 +1038,7 @@ public class DebuggerTraceManagerServicePlugin extends Plugin
 			}
 			if (current.getTrace() != newTrace) {
 				/**
-				 * The snap needs to match upon re-activating this trace, lset it look like the user
+				 * The snap needs to match upon re-activating this trace, lest it look like the user
 				 * intentionally navigated to the past. That may cause the control mode to switch
 				 * off of "Target."
 				 */
@@ -1082,6 +1082,12 @@ public class DebuggerTraceManagerServicePlugin extends Plugin
 	@Override
 	public DebuggerCoordinates resolveTrace(Trace trace) {
 		return getCurrentFor(trace).trace(trace);
+	}
+
+	@Override
+	public DebuggerCoordinates resolveTarget(Target target) {
+		Trace trace = target == null ? null : target.getTrace();
+		return getCurrentFor(trace).target(target).snap(target.getSnap());
 	}
 
 	@Override

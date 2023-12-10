@@ -1845,6 +1845,10 @@ void PrintC::resetDefaultsPrintC(void)
   option_nocasts = false;
   option_NULL = false;
   option_unplaced = false;
+  option_brace_func = Emit::skip_line;
+  option_brace_ifelse = Emit::same_line;
+  option_brace_loop = Emit::same_line;
+  option_brace_switch = Emit::same_line;
   setCStyleComments();
 }
 
@@ -2423,9 +2427,7 @@ void PrintC::emitStructDefinition(const TypeStruct *ct)
 
   emit->tagLine();
   emit->print("typedef struct",EmitMarkup::keyword_color);
-  emit->spaces(1);
-  int4 id = emit->startIndent();
-  emit->print(OPEN_CURLY);
+  int4 id = emit->openBraceIndent(OPEN_CURLY, Emit::same_line);
   emit->tagLine();
   iter = ct->beginField();
   while(iter!=ct->endField()) {
@@ -2438,9 +2440,7 @@ void PrintC::emitStructDefinition(const TypeStruct *ct)
       emit->tagLine();
     }
   }
-  emit->stopIndent(id);
-  emit->tagLine();
-  emit->print(CLOSE_CURLY);
+  emit->closeBraceIndent(CLOSE_CURLY, id);
   emit->spaces(1);
   emit->print(ct->getDisplayName());
   emit->print(SEMICOLON);
@@ -2462,9 +2462,7 @@ void PrintC::emitEnumDefinition(const TypeEnum *ct)
   bool sign = (ct->getMetatype() == TYPE_INT);
   emit->tagLine();
   emit->print("typedef enum",EmitMarkup::keyword_color);
-  emit->spaces(1);
-  int4 id = emit->startIndent();
-  emit->print(OPEN_CURLY);
+  int4 id = emit->openBraceIndent(OPEN_CURLY, Emit::same_line);
   emit->tagLine();
   iter = ct->beginEnum();
   while(iter!=ct->endEnum()) {
@@ -2480,9 +2478,7 @@ void PrintC::emitEnumDefinition(const TypeEnum *ct)
       emit->tagLine();
   }
   popMod();
-  emit->stopIndent(id);
-  emit->tagLine();
-  emit->print(CLOSE_CURLY);
+  emit->closeBraceIndent(CLOSE_CURLY, id);
   emit->spaces(1);
   emit->print(ct->getDisplayName());
   emit->print(SEMICOLON);
@@ -2991,19 +2987,14 @@ void PrintC::docFunction(const Funcdata *fd)
     emitCommentFuncHeader(fd);
     emit->tagLine();
     emitFunctionDeclaration(fd);	// Causes us to enter function's scope
-    emit->tagLine();
-    emit->tagLine();
-    int4 id = emit->startIndent();
-    emit->print(OPEN_CURLY);
+    int4 id = emit->openBraceIndent(OPEN_CURLY, option_brace_func);
     emitLocalVarDecls(fd);
     if (isSet(flat))
       emitBlockGraph(&fd->getBasicBlocks());
     else
       emitBlockGraph(&fd->getStructure());
     popScope();				// Exit function's scope
-    emit->stopIndent(id);
-    emit->tagLine();
-    emit->print(CLOSE_CURLY);
+    emit->closeBraceIndent(CLOSE_CURLY, id);
     emit->tagLine();
     emit->endFunction(id1);
     emit->flush();
@@ -3216,15 +3207,14 @@ void PrintC::emitBlockCondition(const BlockCondition *bl)
 void PendingBrace::callback(Emit *emit)
 
 {
-  emit->print(PrintC::OPEN_CURLY);
-  indentId = emit->startIndent();
+  indentId = emit->openBraceIndent(PrintC::OPEN_CURLY, style);
 }
 
 void PrintC::emitBlockIf(const BlockIf *bl)
 
 {
   const PcodeOp *op;
-  PendingBrace pendingBrace;
+  PendingBrace pendingBrace(option_brace_ifelse);
 
   if (isSet(pending_brace))
     emit->setPendingPrint(&pendingBrace);
@@ -3242,8 +3232,10 @@ void PrintC::emitBlockIf(const BlockIf *bl)
   condBlock->emit(this);
   popMod();
   emitCommentBlockTree(condBlock);
-  if (emit->hasPendingPrint(&pendingBrace))	// If we issued a brace but it did not emit
+  if (emit->hasPendingPrint(&pendingBrace)) {	// If we issued a brace but it did not emit
     emit->cancelPendingPrint();			// Cancel the brace in order to have "else if" syntax
+    emit->spaces(1);
+  }
   else
     emit->tagLine();				// Otherwise start the "if" on a new line
 
@@ -3260,19 +3252,14 @@ void PrintC::emitBlockIf(const BlockIf *bl)
   }
   else {
     setMod(no_branch);
-    emit->spaces(1);
-    int4 id = emit->startIndent();
-    emit->print(OPEN_CURLY);
+    int4 id = emit->openBraceIndent(OPEN_CURLY, option_brace_ifelse);
     int4 id1 = emit->beginBlock(bl->getBlock(1));
     bl->getBlock(1)->emit(this);
     emit->endBlock(id1);
-    emit->stopIndent(id);
-    emit->tagLine();
-    emit->print(CLOSE_CURLY);
+    emit->closeBraceIndent(CLOSE_CURLY, id);
     if (bl->getSize() == 3) {
       emit->tagLine();
       emit->print(KEYWORD_ELSE,EmitMarkup::keyword_color);
-      emit->spaces(1);
       FlowBlock *elseBlock = bl->getBlock(2);
       if (elseBlock->getType() == FlowBlock::t_if) {
 	// Attempt to merge the "else" and "if" syntax
@@ -3282,22 +3269,17 @@ void PrintC::emitBlockIf(const BlockIf *bl)
 	emit->endBlock(id2);
       }
       else {
-	int4 id2 = emit->startIndent();
-	emit->print(OPEN_CURLY);
+	int4 id2 = emit->openBraceIndent(OPEN_CURLY, option_brace_ifelse);
 	int4 id3 = emit->beginBlock(elseBlock);
 	elseBlock->emit(this);
 	emit->endBlock(id3);
-	emit->stopIndent(id2);
-	emit->tagLine();
-	emit->print(CLOSE_CURLY);
+	emit->closeBraceIndent(CLOSE_CURLY, id2);
       }
     }
   }
   popMod();
   if (pendingBrace.getIndentId() >= 0) {
-    emit->stopIndent(pendingBrace.getIndentId());
-    emit->tagLine();
-    emit->print(CLOSE_CURLY);
+    emit->closeBraceIndent(CLOSE_CURLY, pendingBrace.getIndentId());
   }
 }
 
@@ -3342,16 +3324,12 @@ void PrintC::emitForLoop(const BlockWhileDo *bl)
   emit->endStatement(id4);
   popMod();
   emit->closeParen(CLOSE_PAREN,id1);
-  emit->spaces(1);
-  indent = emit->startIndent();
-  emit->print(OPEN_CURLY);
+  indent = emit->openBraceIndent(OPEN_CURLY, option_brace_loop);
   setMod(no_branch); // Dont print goto at bottom of clause
   int4 id2 = emit->beginBlock(bl->getBlock(1));
   bl->getBlock(1)->emit(this);
   emit->endBlock(id2);
-  emit->stopIndent(indent);
-  emit->tagLine();
-  emit->print(CLOSE_CURLY);
+  emit->closeBraceIndent(CLOSE_CURLY, indent);
   popMod();
 }
 
@@ -3383,9 +3361,7 @@ void PrintC::emitBlockWhileDo(const BlockWhileDo *bl)
     emit->print(KEYWORD_TRUE,EmitMarkup::const_color);
     emit->spaces(1);
     emit->closeParen(CLOSE_PAREN,id1);
-    emit->spaces(1);
-    indent = emit->startIndent();
-    emit->print(OPEN_CURLY);
+    indent = emit->openBraceIndent(OPEN_CURLY, option_brace_loop);
     pushMod();
     setMod(no_branch);
     condBlock->emit(this);
@@ -3414,17 +3390,13 @@ void PrintC::emitBlockWhileDo(const BlockWhileDo *bl)
     condBlock->emit(this);
     popMod();
     emit->closeParen(CLOSE_PAREN,id1);
-    emit->spaces(1);
-    indent = emit->startIndent();
-    emit->print(OPEN_CURLY);
+    indent = emit->openBraceIndent(OPEN_CURLY, option_brace_loop);
   }
   setMod(no_branch); // Dont print goto at bottom of clause
   int4 id2 = emit->beginBlock(bl->getBlock(1));
   bl->getBlock(1)->emit(this);
   emit->endBlock(id2);
-  emit->stopIndent(indent);
-  emit->tagLine();
-  emit->print(CLOSE_CURLY);
+  emit->closeBraceIndent(CLOSE_CURLY, indent);
   popMod();
 }
 
@@ -3439,18 +3411,14 @@ void PrintC::emitBlockDoWhile(const BlockDoWhile *bl)
   emitAnyLabelStatement(bl);
   emit->tagLine();
   emit->print(KEYWORD_DO,EmitMarkup::keyword_color);
-  emit->spaces(1);
-  int4 id = emit->startIndent();
-  emit->print(OPEN_CURLY);
+  int4 id = emit->openBraceIndent(OPEN_CURLY, option_brace_loop);
   pushMod();
   int4 id2 = emit->beginBlock(bl->getBlock(0));
   setMod(no_branch);
   bl->getBlock(0)->emit(this);
   emit->endBlock(id2);
   popMod();
-  emit->stopIndent(id);
-  emit->tagLine();
-  emit->print(CLOSE_CURLY);
+  emit->closeBraceIndent(CLOSE_CURLY, id);
   emit->spaces(1);
   op = bl->getBlock(0)->lastOp();
   emit->tagOp(KEYWORD_WHILE,EmitMarkup::keyword_color,op);
@@ -3471,15 +3439,11 @@ void PrintC::emitBlockInfLoop(const BlockInfLoop *bl)
   emitAnyLabelStatement(bl);
   emit->tagLine();
   emit->print(KEYWORD_DO,EmitMarkup::keyword_color);
-  emit->spaces(1);
-  int4 id = emit->startIndent();
-  emit->print(OPEN_CURLY);
+  int4 id = emit->openBraceIndent(OPEN_CURLY, option_brace_loop);
   int4 id1 = emit->beginBlock(bl->getBlock(0));
   bl->getBlock(0)->emit(this);
   emit->endBlock(id1);
-  emit->stopIndent(id);
-  emit->tagLine();
-  emit->print(CLOSE_CURLY);
+  emit->closeBraceIndent(CLOSE_CURLY, id);
   emit->spaces(1);
   op = bl->getBlock(0)->lastOp();
   emit->tagOp(KEYWORD_WHILE,EmitMarkup::keyword_color,op);
@@ -3697,8 +3661,7 @@ void PrintC::emitBlockSwitch(const BlockSwitch *bl)
   setMod(only_branch|comma_separate);
   bl->getSwitchBlock()->emit(this);
   popMod();
-  emit->spaces(1);
-  emit->print(OPEN_CURLY);
+  emit->openBrace(OPEN_CURLY,option_brace_switch);
 
   for(int4 i=0;i<bl->getNumCaseBlocks();++i) {
     emitSwitchCase(i,bl);

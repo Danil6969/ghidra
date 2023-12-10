@@ -887,6 +887,7 @@ public class LldbCommandsTest extends AbstractLldbTraceRmiTest {
 			assertEquals(
 				"""
 						Parent          Key       Span     Value           Type
+						Test.Objects[1] vaddr     [0,+inf) ram:deadbeef    ADDRESS
 						Test.Objects[1] vbool     [0,+inf) True            BOOL
 						Test.Objects[1] vboolarr  [0,+inf) [True, False]   BOOL_ARR
 						Test.Objects[1] vbyte     [0,+inf) 1               BYTE
@@ -900,8 +901,7 @@ public class LldbCommandsTest extends AbstractLldbTraceRmiTest {
 						Test.Objects[1] vobj      [0,+inf) Test.Objects[1] OBJECT
 						Test.Objects[1] vshort    [0,+inf) 2               SHORT
 						Test.Objects[1] vshortarr [0,+inf) [1, 2, 3]       SHORT_ARR
-						Test.Objects[1] vstring   [0,+inf) '"Hello"'         STRING
-						Test.Objects[1] vaddr     [0,+inf) ram:deadbeef    ADDRESS"""
+						Test.Objects[1] vstring   [0,+inf) '"Hello"'         STRING"""
 						.replaceAll(" ", "")
 						.replaceAll("\n", ""),
 				extractOutSection(out, "---GetValues---").replaceAll(" ", "").replaceAll("\n", ""));
@@ -1065,6 +1065,7 @@ public class LldbCommandsTest extends AbstractLldbTraceRmiTest {
 					.getValuePaths(Lifespan.at(0),
 						PathPredicates.parse("Processes[].Breakpoints[]"))
 					.map(p -> p.getLastEntry())
+					.sorted(Comparator.comparing(TraceObjectValue::getEntryKey))
 					.toList();
 			assertEquals(2, procBreakLocVals.size());
 			AddressRange rangeMain =
@@ -1103,6 +1104,7 @@ public class LldbCommandsTest extends AbstractLldbTraceRmiTest {
 					.getValuePaths(Lifespan.at(0),
 						PathPredicates.parse("Processes[].Watchpoints[]"))
 					.map(p -> p.getLastEntry())
+					.sorted(Comparator.comparing(TraceObjectValue::getEntryKey))
 					.toList();
 			assertEquals(3, procWatchLocVals.size());
 			AddressRange rangeMain0 =

@@ -36,6 +36,7 @@
   <global>
     <range space="ram"/>
     <range space="FPUConsts"/>
+    <register name="MXCSR"/>
   </global>
   <stackpointer register="RSP" space="ram"/>
   <returnaddress>

@@ -711,7 +711,7 @@ public abstract class AbstractDebuggerBreakpointsProviderTest<T, P>
 		createTrace(program.getLanguageID().getIdAsString());
 		try (Transaction startTransaction = tb.startTransaction()) {
 			TraceSnapshot initial = tb.trace.getTimeManager().getSnapshot(0, true);
-			ProgramEmulationUtils.loadExecutable(initial, program);
+			ProgramEmulationUtils.loadExecutable(initial, program, List.of());
 			Address pc = program.getMinAddress();
 			ProgramEmulationUtils.doLaunchEmulationThread(tb.trace, 0, program, pc, pc);
 		}

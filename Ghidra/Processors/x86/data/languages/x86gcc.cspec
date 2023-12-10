@@ -26,6 +26,7 @@
     <range space="ram"/>
     <range space="FPUConsts"/>
     <range space="OTHER"/>
+    <register name="MXCSR"/>
   </global>
   <stackpointer register="ESP" space="ram"/>
   <returnaddress>
