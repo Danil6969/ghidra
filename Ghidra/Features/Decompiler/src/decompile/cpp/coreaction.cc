@@ -2833,7 +2833,7 @@ int4 ActionSetCasts::apply(Funcdata &data)
 	if ((ct->getMetatype() != TYPE_PTR)||(ct->getPtrTo()->getAlignSize() != AddrSpace::addressToByteInt(sz, ct->getWordSize())))
 	  data.opUndoPtradd(op,true);
       }
-      else if (opc == CPUI_PTRSUB) {	// Check for PTRSUB that no longer fits pointer
+      if (opc == CPUI_PTRSUB) {	// Check for PTRSUB that no longer fits pointer
 	Datatype *dt = op->getIn(0)->getHighTypeReadFacing(op);
 	if (!dt->isPtrsubMatching(op->getIn(1)->getOffset())) {
 	  if (op->getIn(1)->getOffset() == 0) {
