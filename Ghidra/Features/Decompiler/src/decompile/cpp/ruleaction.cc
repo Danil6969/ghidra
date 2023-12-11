@@ -6668,7 +6668,7 @@ bool RulePtrArith::preprocess(PcodeOp *op,Funcdata &data)
   if (preprocess(op->getIn(0)->getDef(),data)) return true;
   if (preprocess(op->getIn(1)->getDef(),data)) return true;
 
-  // Ensure all multiplier constants are propagated here
+  // Ensure that all constant multipliers are propagated here
   if (replaceMultiplier(op->getIn(0)->getDef(),data)) return true;
   if (replaceMultiplier(op->getIn(1)->getDef(),data)) return true;
 
