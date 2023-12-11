@@ -1096,7 +1096,8 @@ Datatype *TypePointer::resolveInFlow(PcodeOp *op,int4 slot)
     const ResolvedUnion *res = fd->getUnionField(this,op,slot);
     if (res != (ResolvedUnion*)0)
       return res->getDatatype();
-    ScoreUnionFields scoreFields(*fd->getArch()->types,this,op,slot);
+    Architecture *arch = fd->getArch();
+    ScoreUnionFields scoreFields(*arch->types,this,op,slot);
     fd->setUnionField(this,op,slot,scoreFields.getResult());
     return scoreFields.getResult().getDatatype();
   }
@@ -1201,8 +1202,8 @@ Datatype *TypeArray::resolveInFlow(PcodeOp *op,int4 slot)
     return res->getDatatype();
 
   int4 fieldNum = TypeStruct::scoreSingleComponent(this,op,slot);
-
-  ResolvedUnion compFill(this,fieldNum,*fd->getArch()->types);
+  Architecture *arch = fd->getArch();
+  ResolvedUnion compFill(this,fieldNum,*arch->types);
   fd->setUnionField(this, op, slot, compFill);
   return compFill.getDatatype();
 }
@@ -1809,8 +1810,8 @@ Datatype *TypeStruct::resolveInFlow(PcodeOp *op,int4 slot)
     return res->getDatatype();
 
   int4 fieldNum = scoreSingleComponent(this,op,slot);
-
-  ResolvedUnion compFill(this,fieldNum,*fd->getArch()->types);
+  Architecture *arch = fd->getArch();
+  ResolvedUnion compFill(this,fieldNum,*arch->types);
   fd->setUnionField(this, op, slot, compFill);
   return compFill.getDatatype();
 }
@@ -2020,6 +2021,7 @@ const TypeField *TypeUnion::resolveTruncation(int8 offset,PcodeOp *op,int4 slot,
 
 {
   Funcdata *fd = op->getParent()->getFuncdata();
+  Architecture *arch = fd->getArch();
   const ResolvedUnion *res = fd->getUnionField(this, op, slot);
   if (res != (ResolvedUnion *)0) {
     if (res->getFieldNum() >= 0) {
@@ -2029,7 +2031,7 @@ const TypeField *TypeUnion::resolveTruncation(int8 offset,PcodeOp *op,int4 slot,
     }
   }
   else if (op->code() == CPUI_SUBPIECE && slot == 1) {	// The slot is artificial in this case
-    ScoreUnionFields scoreFields(*fd->getArch()->types,this,offset,op);
+    ScoreUnionFields scoreFields(*arch->types,this,offset,op);
     fd->setUnionField(this, op, slot, scoreFields.getResult());
     if (scoreFields.getResult().getFieldNum() >= 0) {
       newoff = 0;
@@ -2037,7 +2039,7 @@ const TypeField *TypeUnion::resolveTruncation(int8 offset,PcodeOp *op,int4 slot,
     }
   }
   else {
-    ScoreUnionFields scoreFields(*fd->getArch()->types,this,offset,op,slot);
+    ScoreUnionFields scoreFields(*arch->types,this,offset,op,slot);
     fd->setUnionField(this, op, slot, scoreFields.getResult());
     if (scoreFields.getResult().getFieldNum() >= 0) {
       const TypeField *field = getField(scoreFields.getResult().getFieldNum());
