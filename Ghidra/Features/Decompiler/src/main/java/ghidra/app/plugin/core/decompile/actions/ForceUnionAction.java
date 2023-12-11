@@ -93,6 +93,10 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 				PartialUnion partialUnion = (PartialUnion) dt;
 				dt = partialUnion.getParent();
 			}
+			if (dt instanceof Pointer) {
+				Pointer pointer = (Pointer) dt;
+				dt = pointer.getDataType();
+			}
 			return (dt instanceof Union);
 		}
 		return false;
