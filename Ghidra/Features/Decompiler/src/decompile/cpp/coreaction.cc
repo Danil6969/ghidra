@@ -2835,6 +2835,14 @@ int4 ActionSetCasts::apply(Funcdata &data)
       }
       if (opc == CPUI_PTRSUB) {	// Check for PTRSUB that no longer fits pointer
 	Datatype *dt = op->getIn(0)->getHighTypeReadFacing(op);
+        const ResolvedUnion *resUnion = 0;
+        if (dt->needsResolution()) {
+          dt->resolveInFlow(op,0);
+          resUnion = data.getUnionField(dt,op,0);
+          if (dt->getMetatype() == TYPE_PTR && resUnion != (ResolvedUnion *)0) {
+            dt = resUnion->getDatatype();
+          }
+        }
 	if (!dt->isPtrsubMatching(op->getIn(1)->getOffset())) {
 	  if (op->getIn(1)->getOffset() == 0) {
 	    data.opRemoveInput(op, 1);
