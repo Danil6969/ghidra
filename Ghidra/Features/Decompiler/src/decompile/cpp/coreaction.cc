@@ -2809,6 +2809,22 @@ int4 ActionSetCasts::castInput(PcodeOp *op,int4 slot,Funcdata &data,CastStrategy
   return 1;
 }
 
+bool ActionSetCasts::ptrsubMatches(PcodeOp *op,Funcdata &data)
+
+{
+  uintb offset = op->getIn(1)->getOffset();
+  Datatype *dt = op->getIn(0)->getHighTypeReadFacing(op);
+  if (dt->needsResolution()) {
+    dt->resolveInFlow(op,0);
+    const ResolvedUnion *resUnion = data.getUnionField(dt,op,0);
+    if (dt->getMetatype() == TYPE_PTR && resUnion != (ResolvedUnion *)0) {
+      dt = resUnion->getDatatype();
+    }
+  }
+  if (dt->isPtrsubMatching(offset)) return true;
+  return false;
+}
+
 int4 ActionSetCasts::apply(Funcdata &data)
 
 {
@@ -2834,16 +2850,7 @@ int4 ActionSetCasts::apply(Funcdata &data)
 	  data.opUndoPtradd(op,true);
       }
       if (opc == CPUI_PTRSUB) {	// Check for PTRSUB that no longer fits pointer
-	Datatype *dt = op->getIn(0)->getHighTypeReadFacing(op);
-        const ResolvedUnion *resUnion = 0;
-        if (dt->needsResolution()) {
-          dt->resolveInFlow(op,0);
-          resUnion = data.getUnionField(dt,op,0);
-          if (dt->getMetatype() == TYPE_PTR && resUnion != (ResolvedUnion *)0) {
-            dt = resUnion->getDatatype();
-          }
-        }
-	if (!dt->isPtrsubMatching(op->getIn(1)->getOffset())) {
+	if (!ptrsubMatches(op,data)) {
 	  if (op->getIn(1)->getOffset() == 0) {
 	    data.opRemoveInput(op, 1);
 	    data.opSetOpcode(op, CPUI_COPY);
