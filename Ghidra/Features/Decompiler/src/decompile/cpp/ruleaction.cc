@@ -6846,8 +6846,11 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
     if (subType->getMetatype() == TYPE_PTR) {
       Datatype *subBase = ((TypePointer *) subType)->getPtrTo();
       if (subBase == baseType) {
-	if (op->getIn(1)->getDef()->code() == CPUI_PTRSUB) return 0;		// Already has one PTRSUB, why need more if datatype is the same?
-	// prevents infinite loop in cases when struct contains pointers to the same type as itself
+	// Already has one PTRSUB, why need more if datatype is the same?
+	if (op->getIn(1)->getDef()->code() == CPUI_PTRSUB) {
+	  // prevents infinite loop in cases when struct contains pointers to the same type as itself
+	  return 0;
+	}
       }
     }
 //    if (baseType->getSize() == movesize) {
