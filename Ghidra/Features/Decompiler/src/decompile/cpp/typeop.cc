@@ -1018,7 +1018,7 @@ Datatype *TypeOpIntSless::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
   const Varnode *invn = op->getIn(slot);
-  Datatype *invnType = invn->getType();
+  Datatype *invnType = invn->getTypeReadFacing(op);
   if (invnType->getMetatype() == TYPE_PTR) {
     TypePointer *pointer = (TypePointer *)invnType;
     Datatype *dt = tlst->getMemsizeType(invn->getSize(),true);
@@ -1057,7 +1057,7 @@ Datatype *TypeOpIntSlessEqual::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
   const Varnode *invn = op->getIn(slot);
-  Datatype *invnType = invn->getType();
+  Datatype *invnType = invn->getTypeReadFacing(op);
   if (invnType->getMetatype() == TYPE_PTR) {
     TypePointer *pointer = (TypePointer *)invnType;
     Datatype *dt = tlst->getMemsizeType(invn->getSize(),true);
@@ -1196,7 +1196,7 @@ Datatype *TypeOpIntAdd::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
   const Varnode *invn = op->getIn(slot);
-  Datatype *invnType = invn->getType();
+  Datatype *invnType = invn->getTypeReadFacing(op);
   if (invnType->getMetatype() == TYPE_PTR) {
     TypePointer *pointer = (TypePointer *)invnType;
     Datatype *dt = tlst->getMemsizeType(invn->getSize(),false);
@@ -1439,7 +1439,7 @@ Datatype *TypeOpInt2Comp::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
   const Varnode *invn = op->getIn(slot);
-  Datatype *invnType = invn->getType();
+  Datatype *invnType = invn->getTypeReadFacing(op);
   if (invnType->getMetatype() == TYPE_PTR) {
     TypePointer *pointer = (TypePointer *)invnType;
     Datatype *dt = tlst->getMemsizeType(invn->getSize(),false);
@@ -1502,6 +1502,20 @@ TypeOpIntAnd::TypeOpIntAnd(TypeFactory *t)
   opflags = PcodeOp::binary | PcodeOp::commutative;
   addlflags = logical_op | inherits_sign;
   behave = new OpBehaviorIntAnd();
+}
+
+Datatype *TypeOpIntAnd::getOutputLocal(const PcodeOp *op) const
+
+{
+  const Varnode *invn0 = op->getIn(0);
+  const Varnode *invn1 = op->getIn(1);
+  if (invn1->isConstant()) {
+    Datatype *tp = invn0->getTypeReadFacing(op);
+    if (tp->getMetatype() == TYPE_PTR) {
+      return tp;
+    }
+  }
+  return tlst->getBase(op->getOut()->getSize(),TYPE_UINT);
 }
 
 Datatype *TypeOpIntAnd::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
