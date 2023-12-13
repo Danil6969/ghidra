@@ -1017,12 +1017,11 @@ TypeOpIntSless::TypeOpIntSless(TypeFactory *t)
 Datatype *TypeOpIntSless::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
-  const Varnode *invn = op->getIn(slot);
-  Datatype *invnType = invn->getTypeReadFacing(op);
-  if (invnType->getMetatype() == TYPE_PTR) {
-    TypePointer *pointer = (TypePointer *)invnType;
-    Datatype *dt = tlst->getMemsizeType(invn->getSize(),true);
-    return dt;
+  const Varnode *vn = op->getIn(slot);
+  Datatype *ct = vn->getTypeReadFacing(op);
+  if (ct->getMetatype() == TYPE_PTR) {
+    Datatype *res = tlst->getMemsizeType(vn->getSize(),true);
+    return res;
   }
   return tlst->getBase(op->getIn(slot)->getSize(),TYPE_INT);
 }
@@ -1056,12 +1055,11 @@ TypeOpIntSlessEqual::TypeOpIntSlessEqual(TypeFactory *t)
 Datatype *TypeOpIntSlessEqual::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
-  const Varnode *invn = op->getIn(slot);
-  Datatype *invnType = invn->getTypeReadFacing(op);
-  if (invnType->getMetatype() == TYPE_PTR) {
-    TypePointer *pointer = (TypePointer *)invnType;
-    Datatype *dt = tlst->getMemsizeType(invn->getSize(),true);
-    return dt;
+  const Varnode *vn = op->getIn(slot);
+  Datatype *ct = vn->getTypeReadFacing(op);
+  if (ct->getMetatype() == TYPE_PTR) {
+    Datatype *res = tlst->getMemsizeType(vn->getSize(),true);
+    return res;
   }
   return tlst->getBase(op->getIn(slot)->getSize(),TYPE_INT);
 }
@@ -1196,11 +1194,10 @@ Datatype *TypeOpIntAdd::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
   const Varnode *invn = op->getIn(slot);
-  Datatype *invnType = invn->getTypeReadFacing(op);
-  if (invnType->getMetatype() == TYPE_PTR) {
-    TypePointer *pointer = (TypePointer *)invnType;
-    Datatype *dt = tlst->getMemsizeType(invn->getSize(),false);
-    return dt;
+  Datatype *ct = invn->getTypeReadFacing(op);
+  if (ct->getMetatype() == TYPE_PTR) {
+    Datatype *res = tlst->getMemsizeType(invn->getSize(),false);
+    return res;
   }
   return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
 }
@@ -1438,12 +1435,11 @@ TypeOpInt2Comp::TypeOpInt2Comp(TypeFactory *t)
 Datatype *TypeOpInt2Comp::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
-  const Varnode *invn = op->getIn(slot);
-  Datatype *invnType = invn->getTypeReadFacing(op);
-  if (invnType->getMetatype() == TYPE_PTR) {
-    TypePointer *pointer = (TypePointer *)invnType;
-    Datatype *dt = tlst->getMemsizeType(invn->getSize(),false);
-    return dt;
+  const Varnode *vn = op->getIn(slot);
+  Datatype *ct = vn->getTypeReadFacing(op);
+  if (ct->getMetatype() == TYPE_PTR) {
+    Datatype *res = tlst->getMemsizeType(vn->getSize(),false);
+    return res;
   }
   return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
 }
@@ -1507,12 +1503,12 @@ TypeOpIntAnd::TypeOpIntAnd(TypeFactory *t)
 Datatype *TypeOpIntAnd::getOutputLocal(const PcodeOp *op) const
 
 {
-  const Varnode *invn0 = op->getIn(0);
-  const Varnode *invn1 = op->getIn(1);
-  if (invn1->isConstant()) {
-    Datatype *tp = invn0->getTypeReadFacing(op);
-    if (tp->getMetatype() == TYPE_PTR) {
-      return tp;
+  const Varnode *vn0 = op->getIn(0);
+  const Varnode *vn1 = op->getIn(1);
+  if (vn1->isConstant()) {
+    Datatype *ct = vn0->getTypeReadFacing(op);
+    if (ct->getMetatype() == TYPE_PTR) {
+      return ct;
     }
   }
   return tlst->getBase(op->getOut()->getSize(),TYPE_UINT);
