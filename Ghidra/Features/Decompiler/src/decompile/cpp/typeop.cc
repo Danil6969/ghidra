@@ -843,9 +843,9 @@ Datatype *TypeOpCallother::getOutputLocal(const PcodeOp *op) const
   }
 
   if (TypeOpCallother::getOperatorName(op) == Funcdata::addrof) {
-    Datatype *pt = tlst->getBase(1, TYPE_UNKNOWN);
+    Datatype *ct = tlst->getBase(1, TYPE_UNKNOWN);
     AddrSpace *spc = tlst->getArch()->getDefaultDataSpace();
-    return tlst->getTypePointer(op->getOut()->getSize(), pt, spc->getWordSize());
+    return tlst->getTypePointer(op->getOut()->getSize(),ct,spc->getWordSize());
   }
 
   if (!op->doesSpecialPropagation())
