@@ -843,7 +843,7 @@ Datatype *TypeOpCallother::getOutputLocal(const PcodeOp *op) const
   }
 
   if (TypeOpCallother::getOperatorName(op) == Funcdata::addrof) {
-    Datatype *ct = tlst->getBase(1, TYPE_UNKNOWN);
+    Datatype *ct = tlst->getBase(1,TYPE_UNKNOWN);
     AddrSpace *spc = tlst->getArch()->getDefaultDataSpace();
     return tlst->getTypePointer(op->getOut()->getSize(),ct,spc->getWordSize());
   }
@@ -2163,7 +2163,7 @@ Datatype *TypeOpSubpiece::getOutputToken(const PcodeOp *op,CastStrategy *castStr
   Datatype *ct = op->getIn(0)->getHighTypeReadFacing(op);
   int8 offset;
   int8 byteOff = computeByteOffsetForComposite(op);
- field = ct->findTruncation(byteOff,outvn->getSize(),op,1,offset);	// Use artificial slot
+  field = ct->findTruncation(byteOff,outvn->getSize(),op,1,offset);	// Use artificial slot
   if (field != (const TypeField *)0) {
     if (outvn->getSize() == field->type->getSize())
       return field->type;
@@ -2303,6 +2303,34 @@ void TypeOpPtradd::printRaw(ostream &s,const PcodeOp *op)
   s << ')';
 }
 
+Datatype *TypeOpPtrsub::getRelativePointerType(const PcodeOp *op) const
+
+{
+  const Varnode *vn0 = op->getIn(0);
+  const Varnode *vn1 = op->getIn(1);
+  Datatype *ct = vn0->getHighTypeReadFacing(op);
+  if (!(ct->isFormalPointerRel())) return (Datatype *)0;
+
+  TypePointerRel *ptype = (TypePointerRel *)ct;
+  Datatype *pt = ptype->getPtrTo();
+  if (pt->getMetatype() != TYPE_STRUCT) return (Datatype *)0;
+  Datatype *parent = ptype->getParent();
+  int4 ptroff = ptype->getPointerOffset();
+  if (ptroff <= 0) return (Datatype *)0;
+
+  if (!vn1->isConstant()) return (Datatype *)0;
+  intb offset = sign_extend(vn1->getOffset(),8*vn1->getSize()-1);
+  int4 size = pt->getSize();
+  if (offset < ptroff) return (Datatype *)0;
+  if (offset >= size) return (Datatype *)0;
+
+  int8 newoff;
+  Datatype *sub = parent->getSubType(ptroff,&newoff);
+  if (sub != pt) return (Datatype *)0;
+  if (newoff != 0) return (Datatype *)0;
+  return tlst->getTypePointer(vn0->getSize(),sub,ptype->getWordSize());
+}
+
 TypeOpPtrsub::TypeOpPtrsub(TypeFactory *t) : TypeOp(t,CPUI_PTRSUB,"->")
 
 {
@@ -2332,6 +2360,8 @@ Datatype *TypeOpPtrsub::getInputCast(const PcodeOp *op,int4 slot,const CastStrat
 {
   if (slot==0) {		// The operation expects the type of the VARNODE
 				// not the (possibly different) type of the HIGH
+    Datatype *tp = getRelativePointerType(op);
+    if (tp != (Datatype *)0) return tp;
     Datatype *reqtype = op->getIn(0)->getTypeReadFacing(op);
     Datatype *curtype = op->getIn(0)->getHighTypeReadFacing(op);
     return castStrategy->castStandard(reqtype,curtype,false,false);
