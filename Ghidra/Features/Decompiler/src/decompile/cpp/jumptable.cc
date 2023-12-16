@@ -431,7 +431,8 @@ bool JumpBasic::isprune(Varnode *vn)
 {
   if (!vn->isWritten()) return true;
   PcodeOp *op = vn->getDef();
-  if (op->isCall()||op->isMarker()) return true;
+  if (op->isCall()) return true;
+  if (op->isMarker()) return true;
   if (op->numInput()==0) return true;
   return false;
 }
