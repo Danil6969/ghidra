@@ -1143,8 +1143,8 @@ static bool isValueFlexible(const Varnode *vn)
     OpCode opc = def->code();
     if (opc == CPUI_COPY) {
       const Varnode *invn = def->getIn(0);
-      if (!invn->isImplied() || !invn->isWritten())
-	return false;
+      if (!invn->isImplied()) return false;
+      if (!invn->isWritten()) return false;
       opc = invn->getDef()->code();
     }
     if (opc == CPUI_PTRSUB) return true;
@@ -1208,8 +1208,16 @@ void PrintC::opPtrsub(const PcodeOp *op)
 	// Special case where we do not print a field
 	if (flex)
 	  pushTypePointerRel(op,in0,m | print_load_value);
-	else
-	  pushTypePointerRel(op,in0,m);
+	else {
+	  PcodeOp *lone = op->getOut()->loneDescend();
+	  if (lone != (PcodeOp *)0) {
+	    if (isValueFlexible(lone->getIn(0))) {
+	      // Compensate appearing of dot operator with dereference
+	      pushOp(&dereference, op);
+	    }
+	  }
+	  pushTypePointerRel(op, in0, m);
+	}
 	return;
       }
     }
