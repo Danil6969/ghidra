@@ -1135,6 +1135,28 @@ void PrintC::opPtradd(const PcodeOp *op)
   pushVn(op->getIn(0),op,m);
 }
 
+static bool isValueFlexible(const Varnode *vn);
+
+static bool isPtrRelFlexible(const PcodeOp *op)
+
+{
+  const Varnode *in0 = op->getIn(0);
+  uintb in1const = op->getIn(1)->getOffset();
+  TypePointer *ptype = (TypePointer *)in0->getHighTypeReadFacing(op);
+  if (ptype->getMetatype() != TYPE_PTR) return true;
+  if (!ptype->isFormalPointerRel()) return true;
+  TypePointerRel *ptrel = (TypePointerRel *)ptype;
+  if (!ptrel->evaluateThruParent(in1const)) return true;
+  Datatype *ct = ptrel->getParent();
+  if (ct->getMetatype() != TYPE_STRUCT && ct->getMetatype() != TYPE_UNION) return true;
+  int8 suboff = (int4)in1const;
+  suboff += ptrel->getPointerOffset();
+  suboff &= calc_mask(ptype->getSize());
+  if (suboff != 0) return true;
+  if (isValueFlexible(in0)) return true;
+  return false;
+}
+
 static bool isValueFlexible(const Varnode *vn)
 
 {
@@ -1145,9 +1167,13 @@ static bool isValueFlexible(const Varnode *vn)
       const Varnode *invn = def->getIn(0);
       if (!invn->isImplied()) return false;
       if (!invn->isWritten()) return false;
-      opc = invn->getDef()->code();
+      def = invn->getDef();
+      opc = def->code();
     }
-    if (opc == CPUI_PTRSUB) return true;
+    if (opc == CPUI_PTRSUB) {
+      if (!isPtrRelFlexible(def)) return false;
+      return true;
+    }
     if (opc == CPUI_PTRADD) return true;
   }
   return false;
@@ -1208,16 +1234,8 @@ void PrintC::opPtrsub(const PcodeOp *op)
 	// Special case where we do not print a field
 	if (flex)
 	  pushTypePointerRel(op,in0,m | print_load_value);
-	else {
-	  PcodeOp *lone = op->getOut()->loneDescend();
-	  if (lone != (PcodeOp *)0) {
-	    if (isValueFlexible(lone->getIn(0))) {
-	      // Compensate appearing of dot operator with dereference
-	      pushOp(&dereference, op);
-	    }
-	  }
+	else
 	  pushTypePointerRel(op, in0, m);
-	}
 	return;
       }
     }
