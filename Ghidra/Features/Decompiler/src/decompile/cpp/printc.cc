@@ -1802,8 +1802,11 @@ void PrintC::printCharHexEscape(ostream &s,int4 val)
   else if (val < 65536) {
     s << "\\x" << setfill('0') << setw(4) << hex << val;
   }
-  else
+  else {
     s << "\\x" << setfill('0') << setw(8) << hex << val;
+  }
+  // Escape sequence in case there is a digit after hex char
+  s << "\"\"";
 }
 
 /// \brief Print a quoted (unicode) string at the given address.
