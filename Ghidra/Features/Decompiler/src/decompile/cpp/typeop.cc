@@ -932,6 +932,7 @@ Datatype *TypeOpEqual::getInputCast(const PcodeOp *op,int4 slot,const CastStrate
     reqtype = othertype;
   if (castStrategy->checkIntPromotionForCompare(op,slot))
     return reqtype;
+  reqtype = op->getIn(1-slot)->getHighTypeReadFacing(op);
   othertype = op->getIn(slot)->getHighTypeReadFacing(op);
   return castStrategy->castStandard(reqtype,othertype,false,false);
 }
