@@ -200,6 +200,8 @@ bool HomogeneousAggregate::filter(Datatype *dt) const
   vector<Datatype *> res;
   if (!extractPrimitives(dt, 4, (Datatype *)0, res))
     return false;
+  if (res.empty())
+    return false;
   Datatype *base = res[0];
   if (base->getMetatype() != metaType)
     return false;
