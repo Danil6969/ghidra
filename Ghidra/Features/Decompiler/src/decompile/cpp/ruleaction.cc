@@ -2881,6 +2881,47 @@ int4 RuleLogic2Bool::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+bool RuleIndirectCollapse::hasJumptable(Varnode *vn)
+
+{
+  list<PcodeOp *>::const_iterator iter;
+  for (iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
+    PcodeOp *op = *iter;
+    OpCode opc = op->code();
+    switch (opc) {
+      case CPUI_BRANCHIND:
+	return true;
+      // Trace further
+      case CPUI_COPY:
+      case CPUI_LOAD:
+      case CPUI_INT_ZEXT:
+      case CPUI_INT_SEXT:
+      case CPUI_INT_ADD:
+      case CPUI_INT_MULT:
+      case CPUI_SUBPIECE:
+	if (hasJumptable(op->getOut()))
+	  return true;
+	continue;
+      case CPUI_INT_LESS:
+      case CPUI_INT_LESSEQUAL:
+      case CPUI_INDIRECT:
+	continue;
+      default:
+	continue;
+    }
+  }
+  return false;
+}
+
+bool RuleIndirectCollapse::protectJumptable(PcodeOp *op)
+
+{
+  Varnode *out = op->getOut();
+  if (!out->getSpace()->isFormalStackSpace()) return false;
+  if (!hasJumptable(out)) return false;
+  return false;
+}
+
 /// \class RuleIndirectCollapse
 /// \brief Remove a CPUI_INDIRECT if its blocking PcodeOp is dead
 void RuleIndirectCollapse::getOpList(vector<uint4> &oplist) const
@@ -2936,6 +2977,9 @@ int4 RuleIndirectCollapse::applyOp(PcodeOp *op,Funcdata &data)
 	return 0;
       // If there are no aliases to a local variable, collapse
       if (!op->getOut()->hasNoLocalAlias())
+	return 0;
+      // Sometimes we need to protect switch variable which is on stack
+      if (protectJumptable(op))
 	return 0;
     }
     else if (indop->usesSpacebasePtr()) {
