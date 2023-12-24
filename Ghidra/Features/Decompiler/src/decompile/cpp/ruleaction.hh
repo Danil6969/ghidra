@@ -578,6 +578,8 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RuleIndirectCollapse : public Rule {
+  static bool hasJumptable(Varnode *vn);
+  static bool protectJumptable(PcodeOp *op);
 public:
   RuleIndirectCollapse(const string &g) : Rule(g, 0, "indirectcollapse") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
