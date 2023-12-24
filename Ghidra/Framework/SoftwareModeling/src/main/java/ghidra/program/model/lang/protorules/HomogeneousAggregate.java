@@ -71,6 +71,9 @@ public class HomogeneousAggregate extends SizeRestrictedFilter {
 		if (!DatatypeFilter.extractPrimitives(dt, MAX_PRIMITIVES, null, res)) {
 			return false;
 		}
+		if (res.isEmpty()) {
+			return false;
+		}
 		DataType base = res.get(0);
 		int baseMeta = PcodeDataTypeManager.getMetatype(base);
 		if (baseMeta != metaType) {
