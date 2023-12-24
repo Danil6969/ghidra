@@ -7083,12 +7083,19 @@ int4 RulePtraddUndo::applyOp(PcodeOp *op,Funcdata &data)
   int4 size = (int4)op->getIn(2)->getOffset(); // Size the PTRADD thinks we are pointing
   basevn = op->getIn(0);
   tp = (TypePointer *)basevn->getTypeReadFacing(op);
-  if (tp->getMetatype() == TYPE_PTR)								// Make sure we are still a pointer
-    if (tp->getPtrTo()->getAlignSize()==AddrSpace::addressToByteInt(size,tp->getWordSize())) {	// of the correct size
+  // Make sure we are still a pointer
+  if (tp->getMetatype() == TYPE_PTR) {
+    Datatype *pt = tp->getPtrTo();
+    if (tp->isFormalPointerRel()) {
+      // Must use parent datatype
+      pt = ((TypePointerRel *)tp)->getParent();
+    }
+    if (pt->getAlignSize()==AddrSpace::addressToByteInt(size,tp->getWordSize())) {	// of the correct size
       Varnode *indVn = op->getIn(1);
       if ((!indVn->isConstant()) || (indVn->getOffset() != 0))					// and that index isn't zero
 	return 0;
     }
+  }
 
   data.opUndoPtradd(op,false);
   return 1;
