@@ -580,6 +580,7 @@ public:
 class RuleIndirectCollapse : public Rule {
   static bool hasJumptable(Varnode *vn);
   static bool protectJumptable(PcodeOp *op);
+  static Varnode *getInitVarnode(Varnode *vn);
 public:
   RuleIndirectCollapse(const string &g) : Rule(g, 0, "indirectcollapse") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
