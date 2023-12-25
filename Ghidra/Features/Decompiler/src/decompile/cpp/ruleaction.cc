@@ -2905,12 +2905,38 @@ bool RuleIndirectCollapse::hasJumptable(Varnode *vn)
       case CPUI_INT_LESS:
       case CPUI_INT_LESSEQUAL:
       case CPUI_INDIRECT:
-	continue;
       default:
 	continue;
     }
   }
   return false;
+}
+
+Varnode *RuleIndirectCollapse::getInitVarnode(Varnode *vn)
+
+{
+  if (vn->isConstant()) return vn;
+  PcodeOp *op = vn->getDef();
+  if (op == (PcodeOp *)0) return (Varnode *)0;
+  OpCode opc = op->code();
+  Varnode *initvn = (Varnode *)0;
+  int4 num = op->numInput();
+  switch (opc) {
+    case CPUI_COPY:
+      initvn = getInitVarnode(op->getIn(0));
+      if (initvn != (Varnode *)0)
+	return initvn;
+    case CPUI_MULTIEQUAL:
+      for (int4 i=0;i<num;++i) {
+	initvn = getInitVarnode(op->getIn(i));
+	if (initvn != (Varnode *)0)
+	  return initvn;
+      }
+    case CPUI_INDIRECT:
+    default:
+      return (Varnode *)0;
+  }
+  return (Varnode *)0;
 }
 
 bool RuleIndirectCollapse::protectJumptable(PcodeOp *op)
@@ -2919,6 +2945,10 @@ bool RuleIndirectCollapse::protectJumptable(PcodeOp *op)
   Varnode *out = op->getOut();
   if (!out->getSpace()->isFormalStackSpace()) return false;
   if (!hasJumptable(out)) return false;
+  Varnode *initvn = getInitVarnode(op->getIn(0));
+  if (initvn == (Varnode *)0) return false;
+  uintb off = initvn->getOffset();
+  if (off == 0) return true;
   return false;
 }
 
