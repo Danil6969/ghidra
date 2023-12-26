@@ -47,7 +47,11 @@ public class RustDemanglerV0 {
 
 		Symbol cursor = new Symbol(symbol);
 
-		return RustPath.parse(cursor).toString();
+		RustPath path = RustPath.parse(cursor);
+		if (path == null) {
+			return null;
+		}
+		return path.toString();
 	}
 }
 
