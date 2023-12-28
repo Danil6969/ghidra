@@ -32,7 +32,7 @@ public class INTPTR_TDataType extends AbstractSignedIntegerDataType {
 
 	@Override
 	public String getDescription() {
-		return "signed integer memsize-type";
+		return "Signed Memsize Integer";
 	}
 
 	@Override
