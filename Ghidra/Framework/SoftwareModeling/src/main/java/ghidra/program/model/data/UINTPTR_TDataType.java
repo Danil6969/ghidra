@@ -32,7 +32,7 @@ public class UINTPTR_TDataType extends AbstractUnsignedIntegerDataType {
 
 	@Override
 	public String getDescription() {
-		return "unsigned integer memsize-type";
+		return "Unsigned Memsize Integer";
 	}
 
 	@Override
