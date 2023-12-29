@@ -550,6 +550,14 @@ uintb JumpBasic::getMaxValue(Varnode *vn)
   return maxValue;
 }
 
+bool JumpBasic::isValidBlock(BlockBasic *bl,int4 &index)
+
+{
+  if (bl->sizeIn() != 2) return false;
+  index = 1;
+  return true;
+}
+
 /// \brief Calculate the initial set of Varnodes that might be switch variables
 ///
 /// Paths that terminate at the given PcodeOp are calculated and organized
@@ -609,6 +617,21 @@ static bool matching_constants(Varnode *vn1,Varnode *vn2)
   return true;
 }
 
+bool GuardRecord::multiequalMatches(Varnode *vn2) const
+
+{
+  PcodeOp *def = vn2->getDef();
+  if (def == (PcodeOp *)0) return false;
+  if (def->code() != CPUI_MULTIEQUAL) return false;
+  int4 n = def->numInput();
+  for (int4 i=0;i<n;++i) {
+    if (def->getIn(i)==vn) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /// \param bOp is the CBRANCH \e guarding the switch
 /// \param rOp is the PcodeOp immediately reading the Varnode
 /// \param path is the specific branch to take from the CBRANCH to reach the switch
@@ -642,6 +665,7 @@ GuardRecord::GuardRecord(PcodeOp *bOp,PcodeOp *rOp,int4 path,const CircleRange &
 int4 GuardRecord::valueMatch(Varnode *vn2,Varnode *baseVn2,int4 bitsPreserved2) const
 
 {
+  if (multiequalMatches(vn2)) return 1;
   if (vn == vn2) return 1;		// Same varnode, same value
   PcodeOp *loadOp,*loadOp2;
   if (bitsPreserved == bitsPreserved2) {	// Are the same number of bits being copied
@@ -1069,18 +1093,25 @@ void JumpBasic::analyzeGuards(BlockBasic *bl,int4 pathout)
     }
     else {
       pathout = -1;		// Make sure not to use pathout next time around
+      // Only 1 flow path to the switch
+      int4 index = 0;
       for(;;) {
 	if (bl->sizeIn() != 1) {
-	  if (bl->sizeIn() > 1)
-	    checkUnrolledGuard(bl, maxpullback, usenzmask);
-	  return;
+	  if (bl->sizeIn() < 1)
+	    return;
+	  if (checkUnrolledGuard(bl, maxpullback, usenzmask))
+	    return;
+	  if (!isValidBlock(bl,index))
+	    return;
 	}
-	// Only 1 flow path to the switch
-	prevbl = (BlockBasic *)bl->getIn(0);
+	prevbl = (BlockBasic *)bl->getIn(index);
 	if (prevbl->sizeOut() != 1) break; // Is it possible to deviate from switch path in this block
 	bl = prevbl;		// If not, back up to next block
       }
-      indpath = bl->getInRevIndex(0);
+      if (bl->sizeIn() <= index) {
+	index = 0;
+      }
+      indpath = bl->getInRevIndex(index);
     }
     PcodeOp *cbranch = prevbl->lastOp();
     if ((cbranch==(PcodeOp *)0)||(cbranch->code() != CPUI_CBRANCH))
@@ -1328,12 +1359,12 @@ bool JumpBasic::checkCommonCbranch(vector<Varnode *> &varArray,BlockBasic *bl)
 /// \param bl is the basic block on the path to the switch with multiple incoming flows
 /// \param maxpullback is the maximum number of times to pull back from the guard CBRANCH to the putative switch variable
 /// \param usenzmask is \b true if the NZMASK should be used as part of the pull-back operation
-void JumpBasic::checkUnrolledGuard(BlockBasic *bl,int4 maxpullback,bool usenzmask)
+bool JumpBasic::checkUnrolledGuard(BlockBasic *bl,int4 maxpullback,bool usenzmask)
 
 {
   vector<Varnode *> varArray;
   if (!checkCommonCbranch(varArray,bl))
-    return;
+    return false;
   int4 indpath = bl->getInRevIndex(0);
   bool toswitchval = (indpath == 1);
   PcodeOp *cbranch = ((BlockBasic *)bl->getIn(0))->lastOp();
@@ -1356,6 +1387,7 @@ void JumpBasic::checkUnrolledGuard(BlockBasic *bl,int4 maxpullback,bool usenzmas
     if (rng.isEmpty()) break;
     if (!BlockBasic::liftVerifyUnroll(varArray, readOp->getSlot(vn))) break;
   }
+  return true;
 }
 
 bool JumpBasic::foldInOneGuard(Funcdata *fd,GuardRecord &guard,JumpTable *jump)
