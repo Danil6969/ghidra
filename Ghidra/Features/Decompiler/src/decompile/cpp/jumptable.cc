@@ -1101,7 +1101,7 @@ void JumpBasic::analyzeGuards(BlockBasic *bl,int4 pathout)
 	    return;
 	  if (checkUnrolledGuard(bl, maxpullback, usenzmask))
 	    return;
-	  if (!isValidBlock(bl,index))
+	  //if (!isValidBlock(bl,index))
 	    return;
 	}
 	prevbl = (BlockBasic *)bl->getIn(index);
