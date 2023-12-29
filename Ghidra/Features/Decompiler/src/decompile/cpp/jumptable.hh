@@ -149,6 +149,7 @@ class GuardRecord {
   int4 bitsPreserved;		///< Number of bits copied (all other bits are zero)
   CircleRange range;		///< Range of values causing the CBRANCH to take the path to the switch
   bool unrolled;		///< \b true if guarding CBRANCH is duplicated across multiple blocks
+  bool multiequalMatches(Varnode *vn2) const;
 public:
   GuardRecord(PcodeOp *bOp,PcodeOp *rOp,int4 path,const CircleRange &rng,Varnode *v,bool unr=false);	///< Constructor
   bool isUnrolled(void) const { return unrolled; }	///< Is \b this guard duplicated across multiple blocks
@@ -379,6 +380,7 @@ protected:
   static int4 getStride(Varnode *vn);	///< Get the step/stride associated with the Varnode
   static uintb backup2Switch(Funcdata *fd,uintb output,Varnode *outvn,Varnode *invn);
   static uintb getMaxValue(Varnode *vn);	///< Get maximum value associated with the given Varnode
+  static bool isValidBlock(BlockBasic *bl,int4 &index);
   void findDeterminingVarnodes(PcodeOp *op,int4 slot);
   void analyzeGuards(BlockBasic *bl,int4 pathout);
   void calcRange(Varnode *vn,CircleRange &rng) const;
@@ -388,7 +390,7 @@ protected:
   void markModel(bool val);		///< Mark (or unmark) all PcodeOps involved in the model
   bool flowsOnlyToModel(Varnode *vn,PcodeOp *trailOp);	///< Check if the given Varnode flows to anything other than \b this model
   bool checkCommonCbranch(vector<Varnode *> &varArray,BlockBasic *bl);	///< Check that all incoming blocks end with a CBRANCH
-  void checkUnrolledGuard(BlockBasic *bl,int4 maxpullback,bool usenzmask);
+  bool checkUnrolledGuard(BlockBasic *bl,int4 maxpullback,bool usenzmask);
 
   /// \brief Eliminate the given guard to \b this switch
   ///
