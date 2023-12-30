@@ -567,7 +567,9 @@ void PrintC::opTypeCast(const PcodeOp *op)
   string inTypeName = inType->getName();
   bool nameEquals = !outTypeName.empty() && outTypeName == inTypeName; // Types may be inequal if name is empty
   if (!option_nocasts && !nameEquals) {
-    if (outMeta == TYPE_PTR && inMeta == TYPE_PTR) {
+    bool isSimpleCast = outMeta == TYPE_PTR && inMeta == TYPE_PTR;
+    isSimpleCast |= outMeta == TYPE_BOOL;
+    if (isSimpleCast) {
       pushOp(&typecast,op);
       pushType(outType);
       pushVn(inVn,op,mods);
