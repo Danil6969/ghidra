@@ -380,7 +380,9 @@ protected:
   static int4 getStride(Varnode *vn);	///< Get the step/stride associated with the Varnode
   static uintb backup2Switch(Funcdata *fd,uintb output,Varnode *outvn,Varnode *invn);
   static uintb getMaxValue(Varnode *vn);	///< Get maximum value associated with the given Varnode
-  static bool isValidBlock(BlockBasic *bl,int4 &index);
+  bool isValidRelationalOp(PcodeOp *opcode);
+  bool isValidInputBlock(BlockBasic *bl);
+  bool isValidMainBlock(BlockBasic *bl,int4 &index);
   void findDeterminingVarnodes(PcodeOp *op,int4 slot);
   void analyzeGuards(BlockBasic *bl,int4 pathout);
   void calcRange(Varnode *vn,CircleRange &rng) const;
