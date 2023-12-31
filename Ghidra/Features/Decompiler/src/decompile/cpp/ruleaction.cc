@@ -2915,6 +2915,8 @@ bool RuleIndirectCollapse::hasJumptable(Varnode *vn)
 Varnode *RuleIndirectCollapse::getInitVarnode(Varnode *vn)
 
 {
+  if (visitedVn.find(vn) != visitedVn.end()) return (Varnode *)0;
+  visitedVn.insert(vn);
   if (vn->isConstant()) return vn;
   PcodeOp *op = vn->getDef();
   if (op == (PcodeOp *)0) return (Varnode *)0;
@@ -2948,8 +2950,9 @@ bool RuleIndirectCollapse::protectJumptable(PcodeOp *op)
   Varnode *initvn = getInitVarnode(op->getIn(0));
   if (initvn == (Varnode *)0) return false;
   uintb off = initvn->getOffset();
-  if (off == 0) return true;
-  return false;
+  // Shall not contain a valid pointer
+  if (off != 0) return false;
+  return true;
 }
 
 /// \class RuleIndirectCollapse
@@ -2965,6 +2968,7 @@ int4 RuleIndirectCollapse::applyOp(PcodeOp *op,Funcdata &data)
 {
   PcodeOp *indop;
 
+  visitedVn.clear();
   if (op->getIn(1)->getSpace()->getType()!=IPTR_IOP) return 0;
   indop = PcodeOp::getOpFromConst(op->getIn(1)->getAddr());
 
