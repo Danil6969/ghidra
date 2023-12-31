@@ -560,7 +560,7 @@ bool JumpBasic::isValidRelationalOp(PcodeOp *op)
     case CPUI_INT_SLESSEQUAL:
     case CPUI_INT_LESS:
     case CPUI_INT_LESSEQUAL:
-      // Check if range is closed
+      // Range must be closed
       if (op->getIn(0)->isConstant()) return false;
       if (!op->getIn(1)->isConstant()) return false;
       return true;
