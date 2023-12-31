@@ -550,12 +550,61 @@ uintb JumpBasic::getMaxValue(Varnode *vn)
   return maxValue;
 }
 
-bool JumpBasic::isValidBlock(BlockBasic *bl,int4 &index)
+bool JumpBasic::isValidRelationalOp(PcodeOp *op)
 
 {
-  if (bl->sizeIn() != 2) return false;
-  index = 1;
-  return true;
+  if (op == (PcodeOp *)0) return false;
+  OpCode opc = op->code();
+  switch (opc) {
+    case CPUI_INT_SLESS:
+    case CPUI_INT_SLESSEQUAL:
+    case CPUI_INT_LESS:
+    case CPUI_INT_LESSEQUAL:
+      // Check if range is closed
+      if (op->getIn(0)->isConstant()) return false;
+      if (!op->getIn(1)->isConstant()) return false;
+      return true;
+  }
+  return false;
+}
+
+bool JumpBasic::isValidInputBlock(BlockBasic *bl)
+
+{
+  list<PcodeOp *>::iterator begin = bl->beginOp();
+  list<PcodeOp *>::iterator iter = bl->endOp();
+  if (iter == begin) return false;
+  iter--;
+  OpCode opc = (*iter)->code();
+  if (opc != CPUI_CBRANCH) return false;
+  if (iter == begin) return false;
+  iter--;
+  PcodeOp *op = *iter;
+  if (!isValidRelationalOp(op)) return false;
+  if (iter == begin) return false;
+  iter--;
+  Varnode *out = (*iter)->getOut();
+  op = pathMeld.getVarnode(pathMeld.numCommonVarnode()-1)->getDef();
+  if (op == (PcodeOp *)0) return false;
+  int4 num = op->numInput();
+  for (int4 i=0;i<num;++i) {
+    if (op->getIn(i)==out)
+      return true;
+  }
+  return false;
+}
+
+bool JumpBasic::isValidMainBlock(BlockBasic *bl,int4 &index)
+
+{
+  int4 num = bl->sizeIn();
+  if (num != 2) return false; //Not really sure if this is required
+  for (int4 i=0;i<num;++i) {
+    if (!isValidInputBlock((BlockBasic *)bl->getIn(i))) continue;
+    index = i;
+    return true;
+  }
+  return false;
 }
 
 /// \brief Calculate the initial set of Varnodes that might be switch variables
@@ -1101,7 +1150,7 @@ void JumpBasic::analyzeGuards(BlockBasic *bl,int4 pathout)
 	    return;
 	  if (checkUnrolledGuard(bl, maxpullback, usenzmask))
 	    return;
-	  //if (!isValidBlock(bl,index))
+	  if (!isValidMainBlock(bl,index))
 	    return;
 	}
 	prevbl = (BlockBasic *)bl->getIn(index);
