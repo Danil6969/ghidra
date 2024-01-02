@@ -1501,11 +1501,32 @@ TypeOpIntAnd::TypeOpIntAnd(TypeFactory *t)
   behave = new OpBehaviorIntAnd();
 }
 
+Datatype *TypeOpIntAnd::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  int4 sz = op->getIn(slot)->getSize();
+  const Varnode *vn0 = op->getIn(0);
+  const Varnode *vn1 = op->getIn(1);
+  if (vn1->isConstant()) {
+    Datatype *ct = vn0->getTypeReadFacing(op);
+    if (ct->getMetatype() == TYPE_PTR) {
+      return tlst->getBaseNoChar(sz,TYPE_INT);
+    }
+  }
+  return tlst->getBaseNoChar(sz,TYPE_UINT);
+}
+
 Datatype *TypeOpIntAnd::getOutputLocal(const PcodeOp *op) const
 
 {
   const Varnode *vn0 = op->getIn(0);
   const Varnode *vn1 = op->getIn(1);
+  if (vn0->isConstant()) {
+    Datatype *ct = vn1->getTypeReadFacing(op);
+    if (ct->getMetatype() == TYPE_PTR) {
+      return ct;
+    }
+  }
   if (vn1->isConstant()) {
     Datatype *ct = vn0->getTypeReadFacing(op);
     if (ct->getMetatype() == TYPE_PTR) {
