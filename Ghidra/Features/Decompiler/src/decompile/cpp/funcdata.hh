@@ -541,6 +541,7 @@ public:
   /// \param end is the ending Address of the owned code range
   void setBasicBlockRange(BlockBasic *bb,const Address &beg,const Address &end) { bb->setInitialRange(beg, end); }
 
+  bool isDoNothingRemovable(BlockBasic *bb);	///< Return \b true if it is safe to remove \b this basic block
   void removeDoNothingBlock(BlockBasic *bb);	///< Remove a basic block from control-flow that performs no operations
   bool removeUnreachableBlocks(bool issuewarning,bool checkexistence);
   void pushBranch(BlockBasic *bb,int4 slot,BlockBasic *bbnew);
