@@ -3651,7 +3651,7 @@ int4 ActionDoNothing::apply(Funcdata &data)
 	  data.warning("Do nothing block with infinite loop",bb->getStart());
 	}
       }
-      else if (bb->unblockedMulti(0)) {
+      else if (bb->unblockedMulti(0) && data.isDoNothingRemovable(bb)) {
 	data.removeDoNothingBlock(bb);
 	count += 1;
 	return 0;
