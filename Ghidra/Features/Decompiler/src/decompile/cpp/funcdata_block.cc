@@ -316,6 +316,22 @@ void Funcdata::blockRemoveInternal(BlockBasic *bb,bool unreachable)
   bblocks.removeBlock(bb);	// Remove the block altogether
 }
 
+bool Funcdata::isDoNothingRemovable(BlockBasic *bb)
+
+{
+  list<PcodeOp *>::iterator iter;
+  for(iter=bb->beginOp();iter!=bb->endOp();iter++) {
+    PcodeOp *op = *iter;
+    if (op->isAssignment()) {
+      Varnode *deadvn = op->getOut();
+      if (descendantsOutside(deadvn)) {
+	return false;
+      }
+    }
+  }
+  return true;
+}
+
 /// The block must contain only \e marker operations (MULTIEQUAL) and possibly a single
 /// unconditional branch operation. The block and its PcodeOps are completely removed from
 /// the current control-flow and data-flow.  This forces a reset of the control-flow structuring
