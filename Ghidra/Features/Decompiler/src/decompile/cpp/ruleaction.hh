@@ -73,6 +73,7 @@ class AddTreeState {
   void calcSubtype(void);		///< Calculate final sub-type offset
   Varnode *buildMultiples(void);	///< Build part of tree that is multiple of base size
   Varnode *buildExtra(void);		///< Build part of tree not accounted for by multiples or \e offset
+  bool erasableByUndoPtradd();		///< Will it be erased by RulePtraddUndo::applyOp or not
   bool buildDegenerate(void);		///< Transform ADD into degenerate PTRADD
   void buildTree(void);			///< Build the transformed ADD tree
   void clear(void);			///< Reset for a new ADD tree traversal
