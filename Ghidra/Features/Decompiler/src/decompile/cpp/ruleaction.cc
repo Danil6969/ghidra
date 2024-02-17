@@ -6491,6 +6491,29 @@ Varnode *AddTreeState::buildExtra(void)
   return resNode;
 }
 
+// This just repeats undoptradd checks to ensure caller doesn't get infinitely repeated
+bool AddTreeState::erasableByUndoPtradd(void)
+
+{
+  if (!data.hasTypeRecoveryStarted()) return false;
+  int4 size = 1;
+  Varnode *basevn = ptr;
+  int4 slot = baseOp->getSlot(ptr);
+  TypePointer *tp = (TypePointer *)basevn->getTypeReadFacing(baseOp);
+  if (tp->getMetatype() == TYPE_PTR) {
+    Datatype *pt = tp->getPtrTo();
+    if (tp->isFormalPointerRel()) {
+      pt = ((TypePointerRel *)tp)->getParent();
+    }
+    if (pt->getAlignSize()==AddrSpace::addressToByteInt(size,tp->getWordSize())) {
+      Varnode *indVn = baseOp->getIn(1-slot);
+      if ((!indVn->isConstant()) || (indVn->getOffset() != 0))
+	return false;
+    }
+  }
+  return true;
+}
+
 /// The base data-type being pointed to is unit sized (or smaller).  Everything is a multiple, so an ADD
 /// is always converted into a PTRADD.
 /// \return \b true if the degenerate transform was applied
@@ -6502,6 +6525,8 @@ bool AddTreeState::buildDegenerate(void)
     // probably some sort of padding going on
     return false;	// Don't transform at all
   if (baseOp->getOut()->getTypeDefFacing()->getMetatype() != TYPE_PTR)	// Make sure pointer propagates thru INT_ADD
+    return false;
+  if (erasableByUndoPtradd())
     return false;
   vector<Varnode *> newparams;
   int4 slot = baseOp->getSlot(ptr);
