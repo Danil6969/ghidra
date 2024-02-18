@@ -563,6 +563,8 @@ void PrintC::opTypeCast(const PcodeOp *op)
   Datatype *inType = inVn->getHigh()->getType();
   type_metatype outMeta = outType->getMetatype();
   type_metatype inMeta = inType->getMetatype();
+  bool outArr = outMeta == TYPE_ARRAY;
+  bool inArr = inMeta == TYPE_ARRAY;
   string outTypeName = outType->getName();
   string inTypeName = inType->getName();
   bool nameEquals = !outTypeName.empty() && outTypeName == inTypeName; // Types may be inequal if name is empty
@@ -575,39 +577,40 @@ void PrintC::opTypeCast(const PcodeOp *op)
       pushVn(inVn,op,mods);
     }
     else {
-      bool noAddress = outMeta != TYPE_ARRAY || inMeta == TYPE_ARRAY || needsToArr(inVn);
+      bool noAddress = !outArr || inArr || needsToArr(inVn);
+      bool castArr = inArr && !outArr;
       if (noAddress) {
-        pushOp(&function_call,op);
+	pushOp(&function_call,op);
       }
-      if (inMeta == TYPE_ARRAY && outMeta != TYPE_ARRAY) {
-        // cast with dereference
-        pushAtom(Atom("CASTARR",optoken,EmitMarkup::no_color,op));
+      if (castArr) {
+	ostringstream s;
+	s << "CASTARR" << outVn->getSize();
+	// cast with dereference
+	pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
       }
-      else if (inMeta != TYPE_ARRAY && outMeta == TYPE_ARRAY) {
-        if (needsToArr(inVn)) {
-          ostringstream s;
-          s << "TOARR" << outVn->getSize();
-          // cast with array allocation on stack
-          pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
-        }
-        else {
-          pushOp(&addressof,op);
-        }
+      else if (!inArr && outArr) {
+	if (needsToArr(inVn)) {
+	  ostringstream s;
+	  s << "TOARR" << outVn->getSize();
+	  // cast with array allocation on stack
+	  pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+	}
+	else {
+	  pushOp(&addressof,op);
+	}
       }
       else {
-        // just reinterpret with the same bytes in memory but replaced type
-        pushAtom(Atom("CAST",optoken,EmitMarkup::no_color,op));
+	// just reinterpret with the same bytes in memory but replaced type
+	pushAtom(Atom("CAST",optoken,EmitMarkup::no_color,op));
       }
       if (noAddress) {
-        pushOp(&comma,op);
+	pushOp(&comma,op);
       }
       pushVn(inVn,op,mods);
-      bool outArr = outMeta == TYPE_ARRAY;
-      bool inArr = inMeta == TYPE_ARRAY;
       if (!inArr && outArr && needsToArr(inVn))
-        pushType(inVn->getHigh()->getType()); // TOARR prints input type
+	pushType(inVn->getHigh()->getType()); // TOARR prints input type
       else if (noAddress)
-        pushType(outVn->getHigh()->getType()); // anything else prints output type except address
+	pushType(outVn->getHigh()->getType()); // anything else prints output type except address
     }
   }
   else {
@@ -2349,13 +2352,19 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
     }
     if (!succeeded) {		// Subtype was not good
       casttype = vn->getHigh()->getType();
-      if (casttype == (Datatype *)0 && op->getOpcode()->getOpcode() == CPUI_COPY)
+      int4 size = vn->getSize();
+      if (casttype == (Datatype *)0 && op->getOpcode()->getOpcode() == CPUI_COPY) {
 	casttype = op->getIn(0)->getType();
+	size = op->getIn(0)->getSize();
+      }
       if (casttype != (Datatype *)0)
 	outArr = casttype->getMetatype() == TYPE_ARRAY;
       if (!outArr) {
 	pushOp(&function_call,op);
-	pushAtom(Atom("CASTARR",optoken,EmitMarkup::no_color,op)); // cast with dereference;
+	ostringstream s;
+	s << "CASTARR" << size;
+	// cast with dereference
+	pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
 	pushOp(&comma,op);
       }
       printPartial = true;
