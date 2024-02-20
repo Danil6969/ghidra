@@ -6894,6 +6894,43 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
+/// \brief Prevents infinite loop in cases when struct contains pointers to the same type as itself
+///
+/// \param op is main op
+/// \param baseType is type retrieved from main op by input 1
+/// \param subType is type at zeroth offset of baseType fetched from database
+/// \return true if repeats to itself or similar
+bool RuleStructOffset0::isRepeated(PcodeOp *op, Datatype *baseType, Datatype *subType)
+{
+  // Checks that this is another PTRSUB
+  PcodeOp *def = op->getIn(1)->getDef();
+  if (def == (PcodeOp *)0) return false;
+  OpCode opc = def->code();
+  if (opc != CPUI_PTRSUB) return false;
+  // Checks that this is a zero-offset PTRSUB
+  Varnode *in1Vn = def->getIn(1);
+  if (!in1Vn->isConstant()) return false;
+  if (in1Vn->getOffset() != 0) return false;
+  Varnode *in0Vn = def->getIn(0);
+  Varnode *outVn = def->getOut();
+  Datatype *in0Type = in0Vn->getTypeReadFacing(def);
+  Datatype *outType = outVn->getTypeDefFacing();
+  // Already has one PTRSUB, why need more if datatype is the same?
+  if (in0Type == outType) {
+    return true;
+  }
+  type_metatype subMeta = subType->getMetatype();
+  if (subMeta == TYPE_PTR) {
+    Datatype *subBase = ((TypePointer *) subType)->getPtrTo();
+    if (subBase == baseType)
+      return true;
+  }
+  if (subMeta == TYPE_STRUCT) {
+    return false;
+  }
+  return false;
+}
+
 /// \class RuleStructOffset0
 /// \brief Convert a LOAD or STORE to the first element of a structure to a PTRSUB.
 ///
@@ -6946,17 +6983,10 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
     Datatype *subType = baseType->getSubType(offset,&offset); // Get field at pointer's offset
     if (subType==(Datatype *)0) return 0;
     if (subType->getSize() < movesize) return 0;	// Subtype is too small to handle LOAD/STORE
-    if (subType->getMetatype() == TYPE_PTR) {
-      Datatype *subBase = ((TypePointer *) subType)->getPtrTo();
-      if (subBase == baseType) {
-	PcodeOp* def = op->getIn(1)->getDef();
-	// Already has one PTRSUB, why need more if datatype is the same?
-	if (def != (PcodeOp *)0 && def->code() == CPUI_PTRSUB) {
-	  // prevents infinite loop in cases when struct contains pointers to the same type as itself
-	  return 0;
-	}
-      }
-    }
+    if (isRepeated(op,baseType,subType)) return 0;
+    // Does not contain anything within
+    // In fact this will lead to repeated datatypes between both input0 and output of newly created PTRSUB
+    if (subType->getMetatype() == TYPE_PTR) return 0;
 //    if (baseType->getSize() == movesize) {
       // If we reach here, move is same size as the structure, which is the same size as
       // the first element.
