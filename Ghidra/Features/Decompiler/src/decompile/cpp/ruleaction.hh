@@ -1071,7 +1071,7 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RulePtrArith : public Rule {
-  static bool replaceMultiplier(PcodeOp* op,Funcdata &data);
+  static bool replaceMultiplier(PcodeOp *op,Funcdata &data);
   static bool preprocess(PcodeOp *op,Funcdata &data);
   static bool isNegativeCast(PcodeOp *op,int4 slot);
 public:
@@ -1087,6 +1087,7 @@ public:
   static int4 evaluatePointerExpression(PcodeOp *op,int4 slot);
 };
 class RuleStructOffset0 : public Rule {
+  static bool isRepeated(PcodeOp *op, Datatype *baseType, Datatype *subType);
 public:
   RuleStructOffset0(const string &g) : Rule(g, 0, "structoffset0") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
