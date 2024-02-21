@@ -333,6 +333,7 @@ public:
   TypeBase(int4 s,type_metatype m) : Datatype(s,-1,m) {}
   /// Construct TypeBase from a size, meta-type, and name
   TypeBase(int4 s,type_metatype m,const string &n) : Datatype(s,-1,m) { name = n; displayName = n; }
+  virtual int4 compare(const Datatype &op,int4 level) const;
   virtual Datatype *clone(void) const { return new TypeBase(*this); }
 };
 
