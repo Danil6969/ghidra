@@ -778,6 +778,25 @@ void TypeField::encode(Encoder &encoder) const
   encoder.closeElement(ELEM_FIELD);
 }
 
+int4 TypeBase::compare(const Datatype &op,int4 level) const
+{
+  string name = getDisplayName();
+  if (name == "uintptr_t" || name == "intptr_t") {
+    type_metatype meta = op.getMetatype();
+    if (meta == TYPE_INT || meta == TYPE_INT) {
+      return -1;
+    }
+  }
+  name = op.getDisplayName();
+  if (name == "uintptr_t" || name == "intptr_t") {
+    type_metatype meta = getMetatype();
+    if (meta == TYPE_INT || meta == TYPE_INT) {
+      return 1;
+    }
+  }
+  return Datatype::compare(op,level);
+}
+
 /// Parse a \<type> element for attributes of the character data-type
 /// \param decoder is the stream decoder
 /// \param typegrp is the factory owning \b this data-type
