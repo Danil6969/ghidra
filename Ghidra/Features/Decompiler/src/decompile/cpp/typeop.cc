@@ -1371,6 +1371,16 @@ Datatype *TypeOpIntSub::getInputLocal(const PcodeOp *op,int4 slot) const
 Datatype *TypeOpIntSub::getOutputLocal(const PcodeOp *op) const
 
 {
+  const Varnode *in0vn = op->getIn(0);
+  Datatype *ct0 = in0vn->getTypeReadFacing(op);
+  if (ct0->getMetatype() == TYPE_PTR) {
+    return tlst->getMemsizeType(in0vn->getSize(),true);
+  }
+  const Varnode *in1vn = op->getIn(1);
+  Datatype *ct1 = in1vn->getTypeReadFacing(op);
+  if (ct1->getMetatype() == TYPE_PTR) {
+    return tlst->getMemsizeType(in1vn->getSize(),true);
+  }
   return tlst->getBaseNoChar(op->getOut()->getSize(),TYPE_INT);
 }
 
@@ -1441,8 +1451,7 @@ Datatype *TypeOpInt2Comp::getInputLocal(const PcodeOp *op,int4 slot) const
   const Varnode *vn = op->getIn(slot);
   Datatype *ct = vn->getTypeReadFacing(op);
   if (ct->getMetatype() == TYPE_PTR) {
-    Datatype *res = tlst->getMemsizeType(vn->getSize(),false);
-    return res;
+    return tlst->getMemsizeType(vn->getSize(),false);
   }
   return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
 }
