@@ -1360,6 +1360,11 @@ TypeOpIntSub::TypeOpIntSub(TypeFactory *t)
 Datatype *TypeOpIntSub::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
+  const Varnode *invn = op->getIn(slot);
+  Datatype *ct = invn->getTypeReadFacing(op);
+  if (ct->getMetatype() == TYPE_PTR) {
+    return tlst->getMemsizeType(invn->getSize(),true);
+  }
   return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
 }
 
@@ -2267,6 +2272,14 @@ TypeOpPtradd::TypeOpPtradd(TypeFactory *t) : TypeOp(t,CPUI_PTRADD,"+")
 Datatype *TypeOpPtradd::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
+  if (slot == 1) {
+    const Varnode *in0vn = op->getIn(0);
+    const Varnode *in1vn = op->getIn(1);
+    if (in0vn->getSize() == in1vn->getSize()) {
+      // Better use flexible datatype when close to integer limits for pointers
+      return tlst->getMemsizeType(op->getIn(slot)->getSize(),false);
+    }
+  }
   return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);	// For type propagation, treat same as INT_ADD
 }
 
