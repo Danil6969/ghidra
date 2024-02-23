@@ -132,6 +132,15 @@ bool Datatype::hasSameVariableBase(const Datatype *ct) const
   return (thisId == themId);
 }
 
+bool Datatype::isMemsizeType(void) const
+
+{
+  string nm = getDisplayName();
+  if (nm == "uintptr_t") return true;
+  if (nm == "intptr_t") return true;
+  return false;
+}
+
 /// Print a raw description of the type to stream. Intended for debugging.
 /// Not intended to produce parsable C.
 /// \param s is the output stream
