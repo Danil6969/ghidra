@@ -6986,7 +6986,7 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
     if (isRepeated(op,baseType,subType)) return 0;
     // Does not contain anything within
     // In fact this will lead to repeated datatypes between both input0 and output of newly created PTRSUB
-    if (subType->getMetatype() == TYPE_PTR) return 0;
+    //if (subType->getMetatype() == TYPE_PTR) return 0;
 //    if (baseType->getSize() == movesize) {
       // If we reach here, move is same size as the structure, which is the same size as
       // the first element.
@@ -11657,6 +11657,127 @@ int4 RulePointerComparison::applyOp(PcodeOp *op,Funcdata &data)
   if (form2(op,data,is_signed)) return 1;
   if (form3(op,data)) return 1;
   return 0;
+}
+
+void RuleInferVbptr::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_LOAD);
+}
+
+int4 RuleInferVbptr::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  // Parse pcodeops
+  PcodeOp *addop = op->getIn(1)->getDef();
+  if (addop == (PcodeOp *)0) return 0;
+  OpCode opc = addop->code();
+  if (opc != CPUI_PTRADD && opc != CPUI_INT_ADD)
+    return 0;
+  PcodeOp *loadop = addop->getIn(0)->getDef();
+  if (loadop == (PcodeOp *)0) return 0;
+  if (loadop->code() != CPUI_LOAD) return 0;
+
+  // Get pointer size
+  int8 step = op->getOut()->getSize();
+  int8 index = 0;
+  int8 offset = 0;
+  Varnode *ptr0vn = loadop->getIn(1);
+  if (ptr0vn->getSize() != step) return 0;
+  Datatype *ptr0dt = (Datatype *)0;
+  PcodeOp *ptrop = (PcodeOp *)0;
+  int4 ptrslot = 1;
+
+  PcodeOp *ptrsubop = ptr0vn->getDef();
+  if (ptrsubop != (PcodeOp *)0) {
+    opc = ptrsubop->code();
+    if (opc != CPUI_PTRSUB && opc != CPUI_INT_ADD)
+      return 0;
+    if (opc == CPUI_PTRSUB) {
+      Varnode *ptr0vn = ptrsubop->getIn(0);
+      Varnode *offsetvn = ptrsubop->getIn(1);
+      if (!offsetvn->isConstant()) return 0;
+      offset = offsetvn->getOffset();
+      ptrop = ptrsubop;
+      ptrslot = 0;
+      ptr0dt = ptr0vn->getTypeReadFacing(ptrop);
+    }
+    if (opc == CPUI_INT_ADD) {
+      Varnode *ptr0vn = ptrsubop->getIn(0);
+      Varnode *offsetvn = ptrsubop->getIn(1);
+      if (!offsetvn->isConstant()) return 0;
+      offset = offsetvn->getOffset();
+      ptrop = ptrsubop;
+      ptrslot = 0;
+      ptr0dt = ptr0vn->getTypeReadFacing(ptrop);
+    }
+  }
+  else {
+    ptrop = loadop;
+    ptr0dt = ptr0vn->getTypeReadFacing(ptrop);
+  }
+
+  Varnode *ptr1vn = addop->getIn(0);
+  if (ptr1vn->getSize() != step) return 0;
+  opc = addop->code();
+  if (opc == CPUI_PTRADD) {
+    Varnode *stepvn = addop->getIn(2);
+    if (!stepvn->isConstant()) return 0;
+    if (stepvn->getOffset() != step) return 0;
+    Varnode *indexvn = addop->getIn(1);
+    if (!indexvn->isConstant()) return 0;
+    index = indexvn->getOffset();
+  }
+  if (opc == CPUI_INT_ADD) {
+    Varnode *indexvn = addop->getIn(1);
+    if (!indexvn->isConstant()) return 0;
+    index = indexvn->getOffset();
+    if (index % step != 0) return 0;
+    index /= step;
+  }
+  if (index == 0) return 0;
+
+  if (op->getOut()->getSize() != step) return 0;
+  if (ptr0dt->getMetatype() != TYPE_PTR) return 0;
+  TypeStruct *outerdt = 0;
+  if (ptr0dt->getSubMeta() == SUB_PTRREL) {
+    TypePointerRel *outerptrdt = dynamic_cast<TypePointerRel *>(ptr0dt);
+    if (outerptrdt->getPointerOffset() != 0) return 0;
+    outerdt = dynamic_cast<TypeStruct *>(outerptrdt->getParent());
+  }
+  else {
+    TypePointer *outerptrdt = dynamic_cast<TypePointer *>(ptr0dt);
+    outerdt = dynamic_cast<TypeStruct *>(outerptrdt->getPtrTo());
+  }
+  if (outerdt == (TypeStruct *)0) return 0;
+  int8 newoffset;
+  const TypeField *vbptrfield = outerdt->findTruncation(offset,ptrop->getOut()->getSize(),ptrop,ptrslot,newoffset);
+  if (newoffset != 0) return 0;
+  if (vbptrfield->name != "_vbptr") return 0;
+
+  // Fill "super::..." fields
+  vector<const TypeField *> superFields;
+  int8 i;
+  for (i=0;i<=index;++i) {
+    superFields.push_back((TypeField *)0);
+  }
+  string superPrefix("super::");
+  vector<TypeField>::const_iterator iter;
+  for (iter=outerdt->beginField(),i=1;iter!=outerdt->endField()&&i<=index;++iter) {
+    const TypeField &field(*iter);
+    if (field.name.substr(0,superPrefix.size()) == superPrefix) {
+      superFields[i] = &field;
+      ++i;
+    }
+  }
+  const TypeField *superfield = superFields[index];
+  if (superfield == (const TypeField *)0) return 0;
+  intb value = sign_extend(superfield->offset,8*step-1);
+  value -= vbptrfield->offset;
+  data.opSetOpcode(op,CPUI_COPY);
+  data.opSetInput(op,data.newConstant(step,value),0);
+  data.opRemoveInput(op,1);
+  return 1;
 }
 
 map<Varnode *,uintb>::iterator RuleByteLoop::VarnodeValues::getEntry(Varnode *key)
