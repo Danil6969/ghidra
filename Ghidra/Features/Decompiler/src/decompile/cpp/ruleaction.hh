@@ -1734,6 +1734,17 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 
+class RuleInferVbptr : public Rule {
+public:
+  RuleInferVbptr(const string &g) : Rule(g,0,"infervbptr") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleInferVbptr(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
 class RuleByteLoop : public Rule {
   bool cachereadonly;
   vector<PcodeOp *> extractlist;
