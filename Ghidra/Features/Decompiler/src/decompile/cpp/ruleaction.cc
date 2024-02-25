@@ -5947,7 +5947,7 @@ bool RuleCancelOutPtrAdd::processOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *m
   Varnode *diff0 = inOp0->getIn(1);
   Varnode *diff1 = inOp1->getIn(1);
 
-  PcodeOp *negatePos = getPosition(rootOp, negateOp->getOut(),true);
+  PcodeOp *negatePos = getPosition(rootOp,negateOp->getOut(),true);
   PcodeOp *multiPos = getPosition(rootOp,multi->getOut(),true);
   if (negatePos == (PcodeOp *)0) return false;
   if (multiPos == (PcodeOp *)0) return false;
@@ -11697,7 +11697,7 @@ int4 RuleInferVbptr::applyOp(PcodeOp *op,Funcdata &data)
       Varnode *ptr0vn = ptrsubop->getIn(0);
       Varnode *offsetvn = ptrsubop->getIn(1);
       if (!offsetvn->isConstant()) return 0;
-      offset = offsetvn->getOffset();
+      offset = sign_extend(offsetvn->getOffset(),8*offsetvn->getSize()-1);
       ptrop = ptrsubop;
       ptrslot = 0;
       ptr0dt = ptr0vn->getTypeReadFacing(ptrop);
@@ -11706,7 +11706,7 @@ int4 RuleInferVbptr::applyOp(PcodeOp *op,Funcdata &data)
       Varnode *ptr0vn = ptrsubop->getIn(0);
       Varnode *offsetvn = ptrsubop->getIn(1);
       if (!offsetvn->isConstant()) return 0;
-      offset = offsetvn->getOffset();
+      offset = sign_extend(offsetvn->getOffset(),8*offsetvn->getSize()-1);
       ptrop = ptrsubop;
       ptrslot = 0;
       ptr0dt = ptr0vn->getTypeReadFacing(ptrop);
@@ -11742,7 +11742,10 @@ int4 RuleInferVbptr::applyOp(PcodeOp *op,Funcdata &data)
   TypeStruct *outerdt = 0;
   if (ptr0dt->getSubMeta() == SUB_PTRREL) {
     TypePointerRel *outerptrdt = dynamic_cast<TypePointerRel *>(ptr0dt);
-    if (outerptrdt->getPointerOffset() != 0) return 0;
+    int4 ptrreloffset = outerptrdt->getPointerOffset();
+    if (ptrreloffset != 0) {
+      offset += ptrreloffset;
+    }
     outerdt = dynamic_cast<TypeStruct *>(outerptrdt->getParent());
   }
   else {
@@ -11752,6 +11755,7 @@ int4 RuleInferVbptr::applyOp(PcodeOp *op,Funcdata &data)
   if (outerdt == (TypeStruct *)0) return 0;
   int8 newoffset;
   const TypeField *vbptrfield = outerdt->findTruncation(offset,ptrop->getOut()->getSize(),ptrop,ptrslot,newoffset);
+  if (vbptrfield == (TypeField *)0) return 0;
   if (newoffset != 0) return 0;
   if (vbptrfield->name != "_vbptr") return 0;
 
