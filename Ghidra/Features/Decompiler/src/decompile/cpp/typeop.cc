@@ -1632,18 +1632,6 @@ TypeOpIntRight::TypeOpIntRight(TypeFactory *t)
   behave = new OpBehaviorIntRight();
 }
 
-Datatype *TypeOpIntRight::getInputLocal(const PcodeOp *op,int4 slot) const
-
-{
-  return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
-}
-
-Datatype *TypeOpIntRight::getOutputLocal(const PcodeOp *op) const
-
-{
-  return tlst->getBaseNoChar(op->getOut()->getSize(),TYPE_INT);
-}
-
 Datatype *TypeOpIntRight::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
 
 {
@@ -1660,12 +1648,24 @@ Datatype *TypeOpIntRight::getInputCast(const PcodeOp *op,int4 slot,const CastStr
   return TypeOpBinary::getInputCast(op,slot,castStrategy);
 }
 
+Datatype *TypeOpIntRight::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_UINT);
+}
+
+Datatype *TypeOpIntRight::getOutputLocal(const PcodeOp *op) const
+
+{
+  return tlst->getBaseNoChar(op->getOut()->getSize(),TYPE_UINT);
+}
+
 Datatype *TypeOpIntRight::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
 
 {
   Datatype *res1 = op->getIn(0)->getHighTypeReadFacing(op);
   if (res1->getMetatype() == TYPE_BOOL)
-    res1 = tlst->getBase(res1->getSize(),TYPE_INT);
+    res1 = tlst->getBase(res1->getSize(),TYPE_UINT);
   return res1;
 }
 
@@ -1706,9 +1706,13 @@ Datatype *TypeOpIntSright::getInputCast(const PcodeOp *op,int4 slot,const CastSt
 Datatype *TypeOpIntSright::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
-  if (slot==1)
-    return tlst->getBaseNoChar(op->getIn(1)->getSize(),TYPE_INT);
-  return TypeOpBinary::getInputLocal(op,slot);
+  return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
+}
+
+Datatype *TypeOpIntSright::getOutputLocal(const PcodeOp *op) const
+
+{
+  return tlst->getBaseNoChar(op->getOut()->getSize(),TYPE_INT);
 }
 
 Datatype *TypeOpIntSright::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
