@@ -1021,7 +1021,7 @@ Datatype *TypeOpIntSless::getInputLocal(const PcodeOp *op,int4 slot) const
   const Varnode *vn = op->getIn(slot);
   Datatype *ct = vn->getTypeReadFacing(op);
   if (ct->getMetatype() == TYPE_PTR) {
-    return tlst->getMemsizeType(vn->getSize(),true);
+    return tlst->getMemsizeType(true);
   }
   return tlst->getBase(op->getIn(slot)->getSize(),TYPE_INT);
 }
@@ -1033,6 +1033,8 @@ Datatype *TypeOpIntSless::getInputCast(const PcodeOp *op,int4 slot,const CastStr
   if (castStrategy->checkIntPromotionForCompare(op,slot))
     return reqtype;
   Datatype *curtype = op->getIn(slot)->getHighTypeReadFacing(op);
+  if (curtype->isMemsizeType())
+    return tlst->getMemsizeType(true);
   return castStrategy->castStandard(reqtype,curtype,true,true);
 }
 
@@ -1058,7 +1060,7 @@ Datatype *TypeOpIntSlessEqual::getInputLocal(const PcodeOp *op,int4 slot) const
   const Varnode *vn = op->getIn(slot);
   Datatype *ct = vn->getTypeReadFacing(op);
   if (ct->getMetatype() == TYPE_PTR) {
-    return tlst->getMemsizeType(vn->getSize(),true);
+    return tlst->getMemsizeType(true);
   }
   return tlst->getBase(op->getIn(slot)->getSize(),TYPE_INT);
 }
@@ -1096,6 +1098,8 @@ Datatype *TypeOpIntLess::getInputCast(const PcodeOp *op,int4 slot,const CastStra
   if (castStrategy->checkIntPromotionForCompare(op,slot))
     return reqtype;
   Datatype *curtype = op->getIn(slot)->getHighTypeReadFacing(op);
+  if (curtype->isMemsizeType())
+    return tlst->getMemsizeType(true);
   return castStrategy->castStandard(reqtype,curtype,true,false);
 }
 
@@ -1195,7 +1199,7 @@ Datatype *TypeOpIntAdd::getInputLocal(const PcodeOp *op,int4 slot) const
   const Varnode *invn = op->getIn(slot);
   Datatype *ct = invn->getTypeReadFacing(op);
   if (ct->getMetatype() == TYPE_PTR) {
-    return tlst->getMemsizeType(invn->getSize(),false);
+    return tlst->getMemsizeType(false);
   }
   return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
 }
@@ -1363,7 +1367,7 @@ Datatype *TypeOpIntSub::getInputLocal(const PcodeOp *op,int4 slot) const
   const Varnode *invn = op->getIn(slot);
   Datatype *ct = invn->getTypeReadFacing(op);
   if (ct->getMetatype() == TYPE_PTR) {
-    return tlst->getMemsizeType(invn->getSize(),true);
+    return tlst->getMemsizeType(true);
   }
   return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
 }
@@ -1374,12 +1378,12 @@ Datatype *TypeOpIntSub::getOutputLocal(const PcodeOp *op) const
   const Varnode *in0vn = op->getIn(0);
   Datatype *ct0 = in0vn->getTypeReadFacing(op);
   if (ct0->getMetatype() == TYPE_PTR) {
-    return tlst->getMemsizeType(in0vn->getSize(),true);
+    return tlst->getMemsizeType(true);
   }
   const Varnode *in1vn = op->getIn(1);
   Datatype *ct1 = in1vn->getTypeReadFacing(op);
   if (ct1->getMetatype() == TYPE_PTR) {
-    return tlst->getMemsizeType(in1vn->getSize(),true);
+    return tlst->getMemsizeType(true);
   }
   return tlst->getBaseNoChar(op->getOut()->getSize(),TYPE_INT);
 }
@@ -1451,7 +1455,7 @@ Datatype *TypeOpInt2Comp::getInputLocal(const PcodeOp *op,int4 slot) const
   const Varnode *vn = op->getIn(slot);
   Datatype *ct = vn->getTypeReadFacing(op);
   if (ct->getMetatype() == TYPE_PTR) {
-    return tlst->getMemsizeType(vn->getSize(),false);
+    return tlst->getMemsizeType(true);
   }
   return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
 }
@@ -2290,7 +2294,7 @@ Datatype *TypeOpPtradd::getInputLocal(const PcodeOp *op,int4 slot) const
     const Varnode *in1vn = op->getIn(1);
     if (in0vn->getSize() == in1vn->getSize()) {
       // Better use flexible datatype when close to integer limits for pointers
-      return tlst->getMemsizeType(op->getIn(slot)->getSize(),true);
+      return tlst->getMemsizeType(true);
     }
   }
   return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);	// For type propagation, treat same as INT_ADD
