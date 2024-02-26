@@ -2120,7 +2120,7 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
     Datatype *dt = glb->types->getBase(ct->getSize(), TYPE_UINT); // If we print constant as unsigned then we probably want to convert it to unsigned datatype
     // Override name if required
     if (ct->getMetatype() == TYPE_PTR) {
-      dt = glb->types->getMemsizeType(ct->getSize(),false); // use "uintptr_t" name instead
+      dt = glb->types->getMemsizeType(false); // use "uintptr_t" name instead
     }
     pushType(dt);
   }
