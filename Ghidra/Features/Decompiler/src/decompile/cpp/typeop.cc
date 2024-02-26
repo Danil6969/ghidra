@@ -1099,7 +1099,7 @@ Datatype *TypeOpIntLess::getInputCast(const PcodeOp *op,int4 slot,const CastStra
     return reqtype;
   Datatype *curtype = op->getIn(slot)->getHighTypeReadFacing(op);
   if (curtype->isMemsizeType())
-    return tlst->getMemsizeType(true);
+    return tlst->getMemsizeType(false);
   return castStrategy->castStandard(reqtype,curtype,true,false);
 }
 
@@ -1199,7 +1199,7 @@ Datatype *TypeOpIntAdd::getInputLocal(const PcodeOp *op,int4 slot) const
   const Varnode *invn = op->getIn(slot);
   Datatype *ct = invn->getTypeReadFacing(op);
   if (ct->getMetatype() == TYPE_PTR) {
-    return tlst->getMemsizeType(false);
+    return tlst->getMemsizeType(true);
   }
   return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
 }
