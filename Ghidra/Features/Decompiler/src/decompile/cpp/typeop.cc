@@ -1091,6 +1091,17 @@ TypeOpIntLess::TypeOpIntLess(TypeFactory *t)
   behave = new OpBehaviorIntLess();
 }
 
+Datatype *TypeOpIntLess::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  Varnode *vn = (Varnode *)op->getIn(slot);
+  Datatype *ct = vn->getTypeReadFacing(op);
+  if (ct->getMetatype() == TYPE_PTR) {
+    return tlst->getMemsizeType(false);
+  }
+  return tlst->getBase(op->getIn(slot)->getSize(),TYPE_UINT);
+}
+
 Datatype *TypeOpIntLess::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
 
 {
@@ -1115,6 +1126,17 @@ TypeOpIntLessEqual::TypeOpIntLessEqual(TypeFactory *t)
   opflags = PcodeOp::binary | PcodeOp::booloutput;
   addlflags = inherits_sign;
   behave = new OpBehaviorIntLessEqual();
+}
+
+Datatype *TypeOpIntLessEqual::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  Varnode *vn = (Varnode *)op->getIn(slot);
+  Datatype *ct = vn->getTypeReadFacing(op);
+  if (ct->getMetatype() == TYPE_PTR) {
+    return tlst->getMemsizeType(false);
+  }
+  return tlst->getBase(op->getIn(slot)->getSize(),TYPE_UINT);
 }
 
 Datatype *TypeOpIntLessEqual::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
