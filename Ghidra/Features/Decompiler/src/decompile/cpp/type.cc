@@ -3524,12 +3524,12 @@ Datatype *TypeFactory::getBase(int4 s,type_metatype m,const string &n)
 }
 
 /// Get or create a "uintpt_t" or "intptr_t" type based on sign
-/// \param s is the desired size
 /// \param issigned is the sign of type
 /// \return the memsize datatype
-Datatype *TypeFactory::getMemsizeType(int4 s,bool issigned)
+Datatype *TypeFactory::getMemsizeType(bool issigned)
 
 {
+  int4 s = getSizeOfPointer();
   if (issigned) {
     return getBase(s,TYPE_INT,"intptr_t");
   }
