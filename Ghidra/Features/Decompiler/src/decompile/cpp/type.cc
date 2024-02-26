@@ -789,17 +789,15 @@ void TypeField::encode(Encoder &encoder) const
 
 int4 TypeBase::compare(const Datatype &op,int4 level) const
 {
-  string name = getDisplayName();
-  if (name == "uintptr_t" || name == "intptr_t") {
+  if (isMemsizeType()) {
     type_metatype meta = op.getMetatype();
-    if (meta == TYPE_INT || meta == TYPE_INT) {
+    if (meta == TYPE_INT || meta == TYPE_UINT) {
       return -1;
     }
   }
-  name = op.getDisplayName();
-  if (name == "uintptr_t" || name == "intptr_t") {
+  if (op.isMemsizeType()) {
     type_metatype meta = getMetatype();
-    if (meta == TYPE_INT || meta == TYPE_INT) {
+    if (meta == TYPE_INT || meta == TYPE_UINT) {
       return 1;
     }
   }
