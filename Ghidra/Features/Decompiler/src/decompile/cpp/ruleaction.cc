@@ -11756,6 +11756,12 @@ int4 RuleInferVbptr::applyOp(PcodeOp *op,Funcdata &data)
   int8 newoffset;
   const TypeField *vbptrfield = outerdt->findTruncation(offset,ptrop->getOut()->getSize(),ptrop,ptrslot,newoffset);
   if (vbptrfield == (TypeField *)0) return 0;
+  while (vbptrfield->type->getMetatype() == TYPE_STRUCT) {
+    outerdt = dynamic_cast<TypeStruct *>(vbptrfield->type);
+    int8 structoffset;
+    vbptrfield = outerdt->findTruncation(newoffset,ptrop->getOut()->getSize(),ptrop,ptrslot,structoffset);
+    newoffset = structoffset;
+  }
   if (newoffset != 0) return 0;
   if (vbptrfield->name != "_vbptr") return 0;
 
