@@ -1033,7 +1033,7 @@ Datatype *TypeOpIntSless::getInputCast(const PcodeOp *op,int4 slot,const CastStr
   if (castStrategy->checkIntPromotionForCompare(op,slot))
     return reqtype;
   Datatype *curtype = op->getIn(slot)->getHighTypeReadFacing(op);
-  if (curtype->isMemsizeType())
+  if (curtype->isMemsizeType() && curtype->getMetatype() == TYPE_UINT)
     return tlst->getMemsizeType(true);
   return castStrategy->castStandard(reqtype,curtype,true,true);
 }
@@ -1072,6 +1072,8 @@ Datatype *TypeOpIntSlessEqual::getInputCast(const PcodeOp *op,int4 slot,const Ca
   if (castStrategy->checkIntPromotionForCompare(op,slot))
     return reqtype;
   Datatype *curtype = op->getIn(slot)->getHighTypeReadFacing(op);
+  if (curtype->isMemsizeType() && curtype->getMetatype() == TYPE_UINT)
+    return tlst->getMemsizeType(true);
   return castStrategy->castStandard(reqtype,curtype,true,true);
 }
 
@@ -1109,7 +1111,7 @@ Datatype *TypeOpIntLess::getInputCast(const PcodeOp *op,int4 slot,const CastStra
   if (castStrategy->checkIntPromotionForCompare(op,slot))
     return reqtype;
   Datatype *curtype = op->getIn(slot)->getHighTypeReadFacing(op);
-  if (curtype->isMemsizeType())
+  if (curtype->isMemsizeType() && curtype->getMetatype() == TYPE_INT)
     return tlst->getMemsizeType(false);
   return castStrategy->castStandard(reqtype,curtype,true,false);
 }
@@ -1146,6 +1148,8 @@ Datatype *TypeOpIntLessEqual::getInputCast(const PcodeOp *op,int4 slot,const Cas
   if (castStrategy->checkIntPromotionForCompare(op,slot))
     return reqtype;
   Datatype *curtype = op->getIn(slot)->getHighTypeReadFacing(op);
+  if (curtype->isMemsizeType() && curtype->getMetatype() == TYPE_INT)
+    return tlst->getMemsizeType(false);
   return castStrategy->castStandard(reqtype,curtype,true,false);
 }
 
