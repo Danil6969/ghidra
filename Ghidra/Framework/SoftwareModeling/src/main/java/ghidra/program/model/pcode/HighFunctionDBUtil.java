@@ -695,7 +695,9 @@ public class HighFunctionDBUtil {
 			throws InvalidInputException {
 
 		ParameterDefinition[] params = sig.getArguments();
-		FunctionDefinitionDataType fsig = new FunctionDefinitionDataType("tmpname"); // Empty datatype, will get renamed later
+		Program program = function.getProgram();
+		ProgramBasedDataTypeManager dataTypeManager = program.getDataTypeManager();
+		FunctionDefinitionDataType fsig = new FunctionDefinitionDataType("tmpname", dataTypeManager); // Empty datatype, will get renamed later
 		fsig.setCallingConvention(sig.getCallingConventionName());
 		fsig.setArguments(params);
 		fsig.setReturnType(sig.getReturnType());
@@ -703,7 +705,6 @@ public class HighFunctionDBUtil {
 		fsig.setNoReturn(sig.hasNoReturn());
 
 		DataTypeSymbol datsym = new DataTypeSymbol(fsig, "prt", AUTO_CAT);
-		Program program = function.getProgram();
 		SymbolTable symtab = program.getSymbolTable();
 		DataTypeManager dtmanage = program.getDataTypeManager();
 		Namespace space = HighFunction.findCreateOverrideSpace(function);
