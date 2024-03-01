@@ -23,6 +23,8 @@ import ghidra.util.SystemUtilities;
 import ghidra.util.exception.AssertException;
 import ghidra.util.exception.InvalidInputException;
 
+import java.util.List;
+
 public class ParamInfo {
 
 	private Parameter original;
@@ -63,9 +65,28 @@ public class ParamInfo {
 		return getName().hashCode();
 	}
 
+	private int getOtherAutoParamsCount() {
+		int otherAutoParamsCount = 0;
+		List<ParamInfo> parameters = model.getParameters();
+		for (ParamInfo parameter : parameters) {
+			if (parameter.isAutoParameter()) continue;
+			String parameterName = parameter.name;
+			if (parameterName == null) continue;
+			boolean isOtherAuto = parameterName.equals("__return_storage_ptr__");
+			isOtherAuto |= parameterName.equals("this");
+			if (isOtherAuto) {
+				otherAutoParamsCount++;
+			}
+		}
+		return otherAutoParamsCount;
+	}
+
 	public String getName() {
-		return name != null ? name : SymbolUtilities.getDefaultParamName(ordinal -
-			model.getAutoParamCount());
+		if (name != null) {
+			return name;
+		}
+		int autoParamCount = model.getAutoParamCount() + getOtherAutoParamsCount();
+		return SymbolUtilities.getDefaultParamName(ordinal - autoParamCount);
 	}
 
 	DataType getDataType() {
