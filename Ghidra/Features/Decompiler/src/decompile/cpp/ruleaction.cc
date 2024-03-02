@@ -11165,7 +11165,7 @@ bool RuleInferPointerAdd::getCounterShiftOffsets(PcodeOp *op,PcodeOp *initop,int
   }
   size = initvn->getSize();
 
-  a = -1;
+  a = 0;
   if (initop->code() == CPUI_INT_ADD && initop->getIn(1-slot)->isSpacebase()) {
     // Spacebase case isn't trivial
     // But may try to deduce shift amount by looking up descendants
