@@ -1689,6 +1689,7 @@ class RuleInferPointerAdd : public Rule {
   bool checkPointerUsages(Varnode *vn);
   PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
   Varnode *getCounterInitVarnode(PcodeOp *multiop);
+  bool getCounterShiftOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &a,intb &b,intb &c,int4 &size);
   intb getCounterIncrement(PcodeOp *op);
 public:
   RuleInferPointerAdd(const string &g) : Rule(g,0,"inferpointeradd") {}	///< Constructor
