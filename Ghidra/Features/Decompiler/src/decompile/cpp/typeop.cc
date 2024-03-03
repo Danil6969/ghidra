@@ -1148,8 +1148,9 @@ Datatype *TypeOpIntLessEqual::getInputCast(const PcodeOp *op,int4 slot,const Cas
   if (castStrategy->checkIntPromotionForCompare(op,slot))
     return reqtype;
   Datatype *curtype = op->getIn(slot)->getHighTypeReadFacing(op);
-  if (curtype->isMemsizeType() && curtype->getMetatype() == TYPE_INT)
+  if (curtype->isMemsizeType() && curtype->getMetatype() == TYPE_INT) {
     return tlst->getMemsizeType(false);
+  }
   return castStrategy->castStandard(reqtype,curtype,true,false);
 }
 
@@ -1551,7 +1552,7 @@ Datatype *TypeOpIntAnd::getInputLocal(const PcodeOp *op,int4 slot) const
   if (vn1->isConstant()) {
     Datatype *ct = vn0->getTypeReadFacing(op);
     if (ct->getMetatype() == TYPE_PTR) {
-      return tlst->getBaseNoChar(sz,TYPE_INT);
+      return tlst->getMemsizeType(true);
     }
   }
   return tlst->getBaseNoChar(sz,TYPE_UINT);
@@ -2143,6 +2144,16 @@ Datatype *TypeOpPiece::getInputCast(const PcodeOp *op,int4 slot,const CastStrate
   return (Datatype *)0;		// Never need a cast into a PIECE
 }
 
+Datatype *TypeOpPiece::getOutputLocal(const PcodeOp *op) const
+
+{
+  int4 sz = op->getOut()->getSize();
+  if (sz == 1 || sz == 2 || sz == 4 || sz == 8)
+    return TypeOpFunc::getOutputLocal(op);
+  Datatype *ct = tlst->getBaseNoChar(1,TYPE_UINT);
+  return tlst->getTypeArray(sz,ct);
+}
+
 Datatype *TypeOpPiece::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
 
 {
@@ -2151,7 +2162,7 @@ Datatype *TypeOpPiece::getOutputToken(const PcodeOp *op,CastStrategy *castStrate
   type_metatype meta = dt->getMetatype();
   if ((meta == TYPE_INT)||(meta == TYPE_UINT))		// PIECE casts to uint or int, based on output
     return dt;
-  return tlst->getBase(vn->getSize(),TYPE_UINT);	// If output is unknown or pointer, treat as cast to uint
+  return getOutputLocal(op);	// If output is unknown or pointer, treat as cast to uint
 }
 
 Datatype *TypeOpPiece::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn,Varnode *outvn,
