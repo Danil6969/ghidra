@@ -3105,9 +3105,10 @@ int4 TypeFactory::getAlignment(uint4 size) const
 /// in C.
 /// \param size is the raw number of bytes in the data-type
 /// \return the aligned size
-int4 TypeFactory::getPrimitiveAlignSize(uint4 size) const
+int4 TypeFactory::getPrimitiveAlignSize(Datatype *ct) const
 
 {
+  int4 size = ct->getSize();
   int4 align = getAlignment(size);
   uint4 mod = size % align;
   if (mod != 0)

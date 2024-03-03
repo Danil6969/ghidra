@@ -739,7 +739,7 @@ public:
   void clearNoncore(void);	///< Clear out non-core types
   virtual ~TypeFactory(void);	///< Destructor
   int4 getAlignment(uint4 size) const;	///< Get data-type alignment based on size
-  int4 getPrimitiveAlignSize(uint4 size) const;	///< Get the aligned size of a primitive data-type
+  int4 getPrimitiveAlignSize(Datatype *ct) const;	///< Get the aligned size of a primitive data-type
   int4 getSizeOfInt(void) const { return sizeOfInt; }	///< Get the size of the default "int"
   int4 getSizeOfLong(void) const { return sizeOfLong; }	///< Get the size of the default "long"
   int4 getSizeOfPointer(void) const { return sizeOfPointer; }	///< Get the size of pointers
