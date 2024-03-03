@@ -28,8 +28,7 @@ import ghidra.app.plugin.core.datamgr.archive.DataTypeManagerHandler;
 import ghidra.app.util.ToolTipUtils;
 import ghidra.app.util.html.HTMLDataTypeRepresentation;
 import ghidra.app.util.html.MissingArchiveDataTypeHTMLRepresentation;
-import ghidra.program.database.data.DataTypeManagerDB;
-import ghidra.program.database.data.ProgramDataTypeManager;
+import ghidra.program.database.data.*;
 import ghidra.program.model.data.*;
 import ghidra.util.*;
 import ghidra.util.exception.AssertException;
@@ -117,7 +116,7 @@ public class DataTypeSynchronizer {
 
 	public static void commitAssumingTransactionsOpen(DataTypeManager sourceDTM, DataType refDT) {
 
-		// Must refresh associations of refDt and its dependencies to ensure that any 
+		// Must refresh associations of refDt and its dependencies to ensure that any
 		// non-sourced datatype is properly associated to the sourceDTM
 		DataTypeManager refDTM = refDT.getDataTypeManager();
 		SourceArchive sourceArchive = refDTM.getSourceArchive(sourceDTM.getUniversalID());
@@ -127,11 +126,13 @@ public class DataTypeSynchronizer {
 		// not handled by resolve.
 		long lastChangeTime = refDT.getLastChangeTime();
 		DataType sourceDT = sourceDTM.resolve(refDT, DataTypeConflictHandler.REPLACE_HANDLER);
-		if (!namesAreEquivalent(refDT, sourceDT)) {
-			renameDataType(sourceDTM, sourceDT, refDT);
-		}
-		if (!StringUtils.equals(refDT.getDescription(), sourceDT.getDescription())) {
-			sourceDT.setDescription(refDT.getDescription());
+		if (!isPointerOrArray(refDT)) {
+			if (!namesAreEquivalent(refDT, sourceDT)) {
+				renameDataType(sourceDTM, sourceDT, refDT);
+			}
+			if (!StringUtils.equals(refDT.getDescription(), sourceDT.getDescription())) {
+				sourceDT.setDescription(refDT.getDescription());
+			}
 		}
 		sourceDT.setLastChangeTime(lastChangeTime);
 		refDT.setLastChangeTimeInSourceArchive(lastChangeTime);
@@ -140,11 +141,13 @@ public class DataTypeSynchronizer {
 	public static void updateAssumingTransactionsOpen(DataTypeManager refDTM, DataType sourceDT) {
 		long lastChangeTime = sourceDT.getLastChangeTime();
 		DataType refDT = refDTM.resolve(sourceDT, DataTypeConflictHandler.REPLACE_HANDLER);
-		if (!namesAreEquivalent(refDT, sourceDT)) {
-			renameDataType(refDTM, refDT, sourceDT);
-		}
-		if (!StringUtils.equals(sourceDT.getDescription(), refDT.getDescription())) {
-			refDT.setDescription(sourceDT.getDescription());
+		if (!isPointerOrArray(sourceDT)) {
+			if (!namesAreEquivalent(refDT, sourceDT)) {
+				renameDataType(refDTM, refDT, sourceDT);
+			}
+			if (!StringUtils.equals(sourceDT.getDescription(), refDT.getDescription())) {
+				refDT.setDescription(sourceDT.getDescription());
+			}
 		}
 		refDT.setLastChangeTimeInSourceArchive(lastChangeTime);
 		refDT.setLastChangeTime(lastChangeTime);
@@ -252,14 +255,10 @@ public class DataTypeSynchronizer {
 			}
 		}
 		String name = dtToCopy.getName();
-		int index = name.indexOf(DataType.CONFLICT_SUFFIX);
-		if (index > 0) {
-			name = name.substring(0, index);
-		}
 		CategoryPath path = sourceDT.getCategoryPath();
 		if (sourceDTM.getDataType(path, name) != null) {
 			name = ((DataTypeManagerDB) sourceDTM).getUnusedConflictName(sourceDT.getCategoryPath(),
-				name);
+				dtToCopy);
 		}
 		try {
 			sourceDT.setName(name);
@@ -282,27 +281,19 @@ public class DataTypeSynchronizer {
 		return false;
 	}
 
-	public static boolean namesAreEquivalent(DataType dt1, DataType dt2) {
+	static boolean isPointerOrArray(DataType dt) {
+		return (dt instanceof Pointer) || (dt instanceof Array);
+	}
+
+	static boolean namesAreEquivalent(DataType dt1, DataType dt2) {
 		if (isAutoNamedTypedef(dt1)) {
 			return isAutoNamedTypedef(dt2);
 		}
 		else if (isAutoNamedTypedef(dt2)) {
 			return false;
 		}
-		String name1 = dt1.getName();
-		String name2 = dt2.getName();
-		if (name1.equals(name2)) {
-			return true;
-		}
-		int index = name1.indexOf(DataType.CONFLICT_SUFFIX);
-		if (index > 0) {
-			name1 = name1.substring(0, index);
-		}
-		index = name2.indexOf(DataType.CONFLICT_SUFFIX);
-		if (index > 0) {
-			name2 = name2.substring(0, index);
-		}
-		return name1.equals(name2);
+		return DataTypeUtilities.getNameWithoutConflict(dt1)
+				.equals(DataTypeUtilities.getNameWithoutConflict(dt2));
 
 	}
 
@@ -359,7 +350,7 @@ public class DataTypeSynchronizer {
 		// aesthetically pleasing
 		String spacerString = createHTMLSpacerString(htmlContent, otherContent);
 		StringBuilder buffy = new StringBuilder();
-		buffy.append("<HTML>");
+		buffy.append("<html>");
 
 		// -we use CELLPADDING here to allow us to create a narrow column within the table
 		// -the CELLSPACING gives us some space around the narrow column
@@ -412,8 +403,8 @@ public class DataTypeSynchronizer {
 	private static String createHTMLSpacerString(String htmlContent, String otherHTMLContent) {
 		// unfortunately, to get the displayed widths, we have to have rendered content, which
 		// is what the JLabels below are doing for us
-		JLabel label1 = new GDHtmlLabel("<HTML>" + htmlContent);
-		JLabel label2 = new GDHtmlLabel("<HTML>" + otherHTMLContent);
+		JLabel label1 = new GDHtmlLabel("<html>" + htmlContent);
+		JLabel label2 = new GDHtmlLabel("<html>" + otherHTMLContent);
 
 		int maxPixelWidth =
 			Math.max(label1.getPreferredSize().width, label2.getPreferredSize().width);

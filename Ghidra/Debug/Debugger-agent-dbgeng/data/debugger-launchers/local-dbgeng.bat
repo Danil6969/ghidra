@@ -14,18 +14,9 @@
 :: Use env instead of args, because "all args except first" is terrible to implement in batch
 ::@env OPT_TARGET_IMG:str="" "Image" "The target binary executable image"
 ::@env OPT_TARGET_ARGS:str="" "Arguments" "Command-line arguments to pass to the target"
+::@env OPT_USE_DBGMODEL:bool=true "Use dbgmodel" "Load and use dbgmodel.dll if it is available."
+::@env OPT_DBGMODEL_PATH:str="" "Path to dbgeng" "Path to dbgeng and associated DLLS (if not Windows Kits)."
 
 @echo off
-
-if exist "%GHIDRA_HOME%\ghidra\.git\" (
-  set PYTHONPATH=%GHIDRA_HOME%\ghidra\Ghidra\Debug\Debugger-agent-dbgeng\build\pypkg\src;%GHIDRA_HOME%\ghidra\Ghidra\Debug\Debugger-rmi-trace\build\pypkg\src;%PYTHONPATH%
-) else if exist "%GHIDRA_HOME%\.git\" (
-  set PYTHONPATH=%GHIDRA_HOME%\Ghidra\Debug\Debugger-agent-dbgeng\build\pypkg\src;%GHIDRA_HOME%\Ghidra\Debug\Debugger-rmi-trace\build\pypkg\src;%PYTHONPATH%
-) else (
-  set PYTHONPATH=%GHIDRA_HOME%\Ghidra\Debug\Debugger-agent-dbgeng\pypkg\src;%GHIDRA_HOME%\Ghidra\Debug\Debugger-rmi-trace\pypkg\src;%PYTHONPATH%
-)
-
-echo PYTHONPATH is %PYTHONPATH%
-echo bat OPT_TARGET_IMG is [%OPT_TARGET_IMG%]
 
 "%OPT_PYTHON_EXE%" -i ..\support\local-dbgeng.py

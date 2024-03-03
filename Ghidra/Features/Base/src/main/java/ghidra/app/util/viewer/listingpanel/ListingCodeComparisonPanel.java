@@ -42,6 +42,7 @@ import ghidra.GhidraOptions;
 import ghidra.app.nav.Navigatable;
 import ghidra.app.plugin.core.codebrowser.MarkerServiceBackgroundColorModel;
 import ghidra.app.plugin.core.codebrowser.hover.*;
+import ghidra.app.plugin.core.functioncompare.actions.*;
 import ghidra.app.plugin.core.marker.MarkerManager;
 import ghidra.app.services.*;
 import ghidra.app.util.ListingHighlightProvider;
@@ -134,7 +135,9 @@ public class ListingCodeComparisonPanel
 	private PreviousDiffAction previousDiffAction;
 	private ListingCodeComparisonOptionsAction optionsAction;
 	private DockingAction[] diffActions;
-	private ApplyFunctionSignatureAction applyFunctionSignatureAction;
+	private FunctionNameApplyAction applyNameAction;
+	private EmptySignatureApplyAction applySignatureEmptyDatatypesAction;
+	private SignatureWithDatatypesApplyAction applySignatureWithDatatypesAction;
 	private JSplitPane splitPane;
 
 	private ListingDiffHighlightProvider leftDiffHighlightProvider;
@@ -268,7 +271,7 @@ public class ListingCodeComparisonPanel
 		for (int i = 0; i < 2; i++) {
 			fieldPanels[i] = listingPanels[i].getFieldPanel();
 			fieldPanels[i].addFocusListener(this);
-			fieldPanels[i].addMouseListener(new DualListingMouseListener(fieldPanels[i], i));
+			fieldPanels[i].addMouseListener(new DualListingMouseListener(i));
 		}
 
 		leftLocationListener = new LeftLocationListener();
@@ -448,7 +451,9 @@ public class ListingCodeComparisonPanel
 		toggleHeaderAction = new ToggleHeaderAction();
 		toggleOrientationAction = new ToggleOrientationAction();
 		toggleHoverAction = new ToggleHoverAction();
-		applyFunctionSignatureAction = new ApplyFunctionSignatureAction(owner);
+		applyNameAction = new FunctionNameApplyAction(owner);
+		applySignatureEmptyDatatypesAction = new EmptySignatureApplyAction(owner);
+		applySignatureWithDatatypesAction = new SignatureWithDatatypesApplyAction(owner);
 		nextDiffAction = new NextDiffAction();
 		previousDiffAction = new PreviousDiffAction();
 		optionsAction = new ListingCodeComparisonOptionsAction();
@@ -465,7 +470,8 @@ public class ListingCodeComparisonPanel
 	public DockingAction[] getActions() {
 		DockingAction[] codeCompActions = super.getActions();
 		DockingAction[] otherActions = new DockingAction[] { toggleHeaderAction,
-			toggleOrientationAction, toggleHoverAction, applyFunctionSignatureAction,
+			toggleOrientationAction, toggleHoverAction, applyNameAction,
+			applySignatureEmptyDatatypesAction, applySignatureWithDatatypesAction,
 			nextPreviousAreaMarkerAction, nextDiffAction, previousDiffAction, optionsAction };
 		int compCount = codeCompActions.length;
 		int otherCount = otherActions.length;
@@ -516,7 +522,7 @@ public class ListingCodeComparisonPanel
 	class ToggleOrientationAction extends ToggleDockingAction {
 		ToggleOrientationAction() {
 			super("Dual Listing Toggle Orientation", owner);
-			setDescription("<HTML>Toggle the layout of the listings " +
+			setDescription("<html>Toggle the layout of the listings " +
 				"<BR>between side-by-side and one above the other.</HTML>");
 			setEnabled(true);
 			setSelected(isSideBySide);
@@ -1065,7 +1071,7 @@ public class ListingCodeComparisonPanel
 		saveState.remove("_BYTE_ADDR");
 		Address desiredByteAddress = null;
 		if (byteAddress != null) {
-			// Try to get the indicated side's byte address using one of the address 
+			// Try to get the indicated side's byte address using one of the address
 			// correlators or by inferring it.
 			desiredByteAddress = inferDesiredByteAddress(address, desiredAddress, byteAddress,
 				programLocation.getProgram(), programs[leftOrRight]);
@@ -1540,7 +1546,7 @@ public class ListingCodeComparisonPanel
 			MarginProvider marginProvider = markerManagers[leftOrRight].getMarginProvider();
 			JComponent providerComp = marginProvider.getComponent();
 			DualListingMouseListener providerMouseListener =
-				new DualListingMouseListener(providerComp, leftOrRight);
+				new DualListingMouseListener(leftOrRight);
 			providerComp.addMouseListener(providerMouseListener);
 			listingPanels[leftOrRight].addMarginProvider(marginProvider);
 
@@ -1548,7 +1554,7 @@ public class ListingCodeComparisonPanel
 			OverviewProvider overviewProvider = markerManagers[leftOrRight].getOverviewProvider();
 			JComponent overviewComp = overviewProvider.getComponent();
 			DualListingMouseListener overviewMouseListener =
-				new DualListingMouseListener(overviewComp, leftOrRight);
+				new DualListingMouseListener(leftOrRight);
 			overviewComp.addMouseListener(overviewMouseListener);
 			listingPanels[leftOrRight].addOverviewProvider(overviewProvider);
 		}
@@ -1561,8 +1567,8 @@ public class ListingCodeComparisonPanel
 		if (programs[LEFT] != null) {
 			AddressIndexMap indexMap = listingPanels[LEFT].getAddressIndexMap();
 			listingPanels[LEFT].getFieldPanel()
-				.setBackgroundColorModel(new MarkerServiceBackgroundColorModel(
-					markerManagers[LEFT], programs[LEFT], indexMap));
+					.setBackgroundColorModel(new MarkerServiceBackgroundColorModel(
+						markerManagers[LEFT], programs[LEFT], indexMap));
 			unmatchedCodeMarkers[LEFT] =
 				markerManagers[LEFT].createAreaMarker("Listing1 Unmatched Code",
 					"Instructions that are not matched to an instruction in the other function.",
@@ -1575,8 +1581,8 @@ public class ListingCodeComparisonPanel
 		if (programs[RIGHT] != null) {
 			AddressIndexMap rightIndexMap = listingPanels[RIGHT].getAddressIndexMap();
 			listingPanels[RIGHT].getFieldPanel()
-				.setBackgroundColorModel(new MarkerServiceBackgroundColorModel(
-					markerManagers[RIGHT], programs[RIGHT], rightIndexMap));
+					.setBackgroundColorModel(new MarkerServiceBackgroundColorModel(
+						markerManagers[RIGHT], programs[RIGHT], rightIndexMap));
 			unmatchedCodeMarkers[RIGHT] =
 				markerManagers[RIGHT].createAreaMarker("Listing2 Unmatched Code",
 					"Instructions that are not matched to an instruction in the other function.",
@@ -1676,8 +1682,8 @@ public class ListingCodeComparisonPanel
 		indexMaps[LEFT] = new AddressIndexMap(addressSets[LEFT]);
 		markerManagers[LEFT].getOverviewProvider().setProgram(getLeftProgram(), indexMaps[LEFT]);
 		listingPanels[LEFT].getFieldPanel()
-			.setBackgroundColorModel(new MarkerServiceBackgroundColorModel(markerManagers[LEFT],
-				programs[LEFT], indexMaps[LEFT]));
+				.setBackgroundColorModel(new MarkerServiceBackgroundColorModel(markerManagers[LEFT],
+					programs[LEFT], indexMaps[LEFT]));
 	}
 
 	private void updateRightAddressSet(Function rightFunction) {
@@ -1693,8 +1699,8 @@ public class ListingCodeComparisonPanel
 		indexMaps[RIGHT] = new AddressIndexMap(addressSets[RIGHT]);
 		markerManagers[RIGHT].getOverviewProvider().setProgram(getRightProgram(), indexMaps[RIGHT]);
 		listingPanels[RIGHT].getFieldPanel()
-			.setBackgroundColorModel(new MarkerServiceBackgroundColorModel(
-				markerManagers[RIGHT], programs[RIGHT], indexMaps[RIGHT]));
+				.setBackgroundColorModel(new MarkerServiceBackgroundColorModel(
+					markerManagers[RIGHT], programs[RIGHT], indexMaps[RIGHT]));
 	}
 
 	@Override
@@ -1846,7 +1852,7 @@ public class ListingCodeComparisonPanel
 		titlePanels[LEFT] = new TitledPanel(leftProgramName, listingPanels[LEFT], 5);
 		titlePanels[RIGHT] = new TitledPanel(rightProgramName, listingPanels[RIGHT], 5);
 
-		// Set the MINIMUM_PANEL_WIDTH for the left and right panel to prevent the split pane's 
+		// Set the MINIMUM_PANEL_WIDTH for the left and right panel to prevent the split pane's
 		// divider from becoming locked (can't be moved) due to extra long title names.
 		titlePanels[LEFT].setMinimumSize(
 			new Dimension(MINIMUM_PANEL_WIDTH, titlePanels[LEFT].getMinimumSize().height));
@@ -1865,7 +1871,7 @@ public class ListingCodeComparisonPanel
 		if (!titlePrefix.isEmpty()) {
 			titlePrefix += " "; // Add a space between prefix and title.
 		}
-		String htmlPrefix = "<HTML>";
+		String htmlPrefix = "<html>";
 		if (title.startsWith(htmlPrefix)) {
 			titlePanel.setTitleName(htmlPrefix + HTMLUtilities.friendlyEncodeHTML(titlePrefix) +
 				title.substring(htmlPrefix.length()));
@@ -2072,9 +2078,7 @@ public class ListingCodeComparisonPanel
 		ListingCodeComparisonPanel dualListingPanel = this;
 
 		if (event == null) {
-			Navigatable focusedNavigatable = dualListingPanel.getFocusedNavigatable();
-			DualListingActionContext myActionContext =
-				new DualListingActionContext(provider, focusedNavigatable);
+			DualListingActionContext myActionContext = new DualListingActionContext(provider);
 			myActionContext.setContextObject(this);
 			myActionContext.setCodeComparisonPanel(this);
 			return myActionContext;
@@ -2099,9 +2103,7 @@ public class ListingCodeComparisonPanel
 			return new DefaultActionContext(provider).setContextObject(fieldHeaderLocation);
 		}
 
-		Navigatable focusedNavigatable = dualListingPanel.getFocusedNavigatable();
-		DualListingActionContext myActionContext =
-			new DualListingActionContext(provider, focusedNavigatable);
+		DualListingActionContext myActionContext = new DualListingActionContext(provider);
 		myActionContext.setContextObject(this);
 		myActionContext.setCodeComparisonPanel(this);
 		myActionContext.setSourceObject(source);
@@ -2185,7 +2187,7 @@ public class ListingCodeComparisonPanel
 	 * @return the matching address in the indicated program or null.
 	 */
 	private Address getFunctionAddress(int leftOrRight, Address otherSidesAddress) {
-		// Try to get the address using the correlator. 
+		// Try to get the address using the correlator.
 		// If the correlator couldn't determine it, then try to infer it.
 		int otherSide = (leftOrRight == RIGHT) ? LEFT : RIGHT;
 		// Finding desired side's address.
@@ -2213,7 +2215,7 @@ public class ListingCodeComparisonPanel
 	}
 
 	private Address getDataAddress(int leftOrRight, Address otherSidesAddress) {
-		// Correlator doesn't handle data compare, so associate beginning of data and 
+		// Correlator doesn't handle data compare, so associate beginning of data and
 		// infer the others based on relative position.
 		Address leftDataAddress = getLeftDataAddress();
 		Address rightDataAddress = getRightDataAddress();
@@ -2579,11 +2581,6 @@ public class ListingCodeComparisonPanel
 		return data[RIGHT];
 	}
 
-	@Override
-	public Class<? extends CodeComparisonPanel<ListingComparisonFieldPanelCoordinator>> getPanelThisSupersedes() {
-		return null; // Doesn't supersede any other panel.
-	}
-
 	private class DualListingMarkerManager extends MarkerManager {
 
 		private DualListingServiceProvider serviceProvider;
@@ -2653,16 +2650,12 @@ public class ListingCodeComparisonPanel
 
 		private int leftOrRight;
 
-		@SuppressWarnings("unused")
-		private Component leftOrRightComponent;
-
-		DualListingMouseListener(Component leftOrRightComponent, int leftOrRight) {
-			this.leftOrRightComponent = leftOrRightComponent;
+		DualListingMouseListener(int leftOrRight) {
 			this.leftOrRight = leftOrRight;
 		}
 
 		@Override
-		public void mouseClicked(MouseEvent e) {
+		public void mousePressed(MouseEvent e) {
 			setDualPanelFocus(leftOrRight);
 		}
 	}
@@ -2690,14 +2683,14 @@ public class ListingCodeComparisonPanel
 			Object sourceMarginContextObject = getContextObjectForMarginPanels(sourcePanel, event);
 			if (sourceMarginContextObject != null) {
 				return new DefaultActionContext(provider)
-					.setContextObject(sourceMarginContextObject);
+						.setContextObject(sourceMarginContextObject);
 			}
 			// Are we on a marker margin of the right listing? Return that margin's context.
 			Object destinationMarginContextObject =
 				getContextObjectForMarginPanels(destinationPanel, event);
 			if (destinationMarginContextObject != null) {
 				return new DefaultActionContext(provider)
-					.setContextObject(destinationMarginContextObject);
+						.setContextObject(destinationMarginContextObject);
 			}
 
 			// If the action is on the Field Header of the left listing panel return an

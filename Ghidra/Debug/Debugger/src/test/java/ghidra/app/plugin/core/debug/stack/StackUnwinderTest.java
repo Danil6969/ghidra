@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import org.junit.Test;
@@ -28,8 +30,11 @@ import org.junit.Test;
 import db.Transaction;
 import docking.widgets.fieldpanel.Layout;
 import docking.widgets.fieldpanel.field.Field;
+import docking.widgets.fieldpanel.listener.IndexMapper;
+import docking.widgets.fieldpanel.listener.LayoutModelListener;
 import docking.widgets.fieldpanel.support.FieldLocation;
 import generic.Unique;
+import generic.test.rule.Repeated;
 import ghidra.app.decompiler.*;
 import ghidra.app.decompiler.component.*;
 import ghidra.app.plugin.assembler.*;
@@ -37,6 +42,7 @@ import ghidra.app.plugin.assembler.sleigh.sem.*;
 import ghidra.app.plugin.core.codebrowser.CodeBrowserPlugin;
 import ghidra.app.plugin.core.debug.disassemble.TraceDisassembleCommand;
 import ghidra.app.plugin.core.debug.gui.AbstractGhidraHeadedDebuggerTest;
+import ghidra.app.plugin.core.debug.gui.action.NoneLocationTrackingSpec;
 import ghidra.app.plugin.core.debug.gui.listing.DebuggerListingPlugin;
 import ghidra.app.plugin.core.debug.gui.stack.vars.*;
 import ghidra.app.plugin.core.debug.gui.stack.vars.VariableValueRow.*;
@@ -80,13 +86,14 @@ import ghidra.trace.model.thread.TraceThread;
 import ghidra.trace.model.time.schedule.Scheduler;
 import ghidra.util.Msg;
 import ghidra.util.NumericUtilities;
+import junit.framework.AssertionFailedError;
 
 public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	public static final AssemblySelector NO_16BIT_CALLS = new AssemblySelector() {
 		@Override
-		public AssemblyResolvedPatterns select(AssemblyResolutionResults rr,
-				AssemblyPatternBlock ctx) throws AssemblySemanticException {
+		public Selection select(AssemblyResolutionResults rr, AssemblyPatternBlock ctx)
+				throws AssemblySemanticException {
 			for (AssemblyResolvedPatterns res : filterCompatibleAndSort(rr, ctx)) {
 				byte[] ins = res.getInstruction().getVals();
 				// HACK to avoid 16-bit CALL.... TODO: Why does this happen?
@@ -95,8 +102,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 						"Filtered 16-bit call " + NumericUtilities.convertBytesToString(ins));
 					continue;
 				}
-				return AssemblyResolution.resolved(res.getInstruction().fillMask(),
-					res.getContext(), "Selected", null, null, null);
+				return new Selection(res.getInstruction().fillMask(), res.getContext());
 			}
 			throw new AssemblySemanticException(semanticErrors);
 		}
@@ -883,8 +889,6 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 	}
 
 	protected Function runToTallestRecursionAndCreateFrames(int n) throws Throwable {
-		addPlugins();
-
 		Function function = createFibonacciProgramX86_32();
 		Address entry = function.getEntryPoint();
 
@@ -933,8 +937,6 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 	}
 
 	protected Function runToRetSetGlobalAndCreateFrames() throws Throwable {
-		addPlugins();
-
 		Function function = createSetGlobalProgramX86_32();
 		Address entry = function.getEntryPoint();
 
@@ -977,8 +979,6 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 	}
 
 	protected Function runToRetFillStructAndCreateFrames() throws Throwable {
-		addPlugins();
-
 		Function function = createFillStructProgramX86_32();
 		Address entry = function.getEntryPoint();
 
@@ -1021,8 +1021,6 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 	}
 
 	protected Function runToRetFillStructArrayAndCreateFrames() throws Throwable {
-		addPlugins();
-
 		Function function = createFillStructArrayProgramX86_32();
 		Address entry = function.getEntryPoint();
 
@@ -1066,6 +1064,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testCreateFramesTallestX86_32() throws Throwable {
+		addPlugins();
 		Function function = runToTallestRecursionAndCreateFrames(9);
 		DebuggerCoordinates tallest = traceManager.getCurrent();
 
@@ -1175,6 +1174,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testStackVariableHover() throws Throwable {
+		addPlugins();
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		Function function = runToTallestRecursionAndCreateFrames(2);
@@ -1196,6 +1196,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testRegisterVariableHover() throws Throwable {
+		addPlugins();
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		Function function = runToTallestRecursionAndCreateFrames(2);
@@ -1216,6 +1217,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testReturnParameterHover() throws Throwable {
+		addPlugins();
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		Function function = runToTallestRecursionAndCreateFrames(2);
@@ -1236,6 +1238,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testGlobalOperandHover() throws Throwable {
+		addPlugins();
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		runToRetSetGlobalAndCreateFrames();
@@ -1281,6 +1284,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testGlobalOperandInTraceHover() throws Throwable {
+		addPlugins();
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		runToRetSetGlobalAndCreateFrames();
@@ -1306,6 +1310,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testStackReferenceHover() throws Throwable {
+		addPlugins();
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		runToTallestRecursionAndCreateFrames(2);
@@ -1328,6 +1333,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testRegisterReferenceHover() throws Throwable {
+		addPlugins();
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		runToTallestRecursionAndCreateFrames(2);
@@ -1349,6 +1355,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testSavedRegisterReferenceHover() throws Throwable {
+		addPlugins();
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		// need 3 frames. 0 has already popped EBP, so not saved. 1 will save on behalf of 2.
@@ -1370,6 +1377,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testRegisterReferenceInTraceHover() throws Throwable {
+		addPlugins();
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		runToTallestRecursionAndCreateFrames(2);
@@ -1452,13 +1460,34 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 		});
 	}
 
-	protected HoverLocation findTokenLocation(Function function, String tokText, String fieldText) {
+	protected HoverLocation findTokenLocation(Function function, String tokText, String fieldText)
+			throws Throwable {
+		CompletableFuture<Void> ready = new CompletableFuture<>();
+		decompilerPanel.getLayoutController().addLayoutModelListener(new LayoutModelListener() {
+			@Override
+			public void modelSizeChanged(IndexMapper indexMapper) {
+				if (decompilerPanel.getCurrentLocation() != null) {
+					ready.complete(null);
+				}
+			}
+
+			@Override
+			public void dataChanged(BigInteger start, BigInteger end) {
+			}
+		});
 		tool.showComponentProvider(decompilerProvider, true);
-		return findTokenLocation(decompilerPanel, function, tokText, fieldText);
+		ready.get(5, TimeUnit.SECONDS);
+		try {
+			return findTokenLocation(decompilerPanel, function, tokText, fieldText);
+		}
+		catch (AssertionFailedError e) {
+			throw e;
+		}
 	}
 
 	@Test
 	public void testGlobalHighVarHover() throws Throwable {
+		addPlugins();
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		Function function = runToRetSetGlobalAndCreateFrames();
@@ -1481,6 +1510,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testStackHighVarHover() throws Throwable {
+		addPlugins();
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		Function function = runToTallestRecursionAndCreateFrames(2);
@@ -1502,6 +1532,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testRegisterHighVarHover() throws Throwable {
+		addPlugins();
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		Function function = runToTallestRecursionAndCreateFrames(2);
@@ -1523,6 +1554,9 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testStructureGlobalHighVarStruct() throws Throwable {
+		addPlugins();
+		// PC Tracking interferes with goTo
+		listingPlugin.setTrackingSpec(NoneLocationTrackingSpec.INSTANCE);
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		Function function = runToRetFillStructAndCreateFrames();
@@ -1545,6 +1579,9 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testStructureGlobalHighVarStructField() throws Throwable {
+		addPlugins();
+		// PC Tracking interferes with goTo
+		listingPlugin.setTrackingSpec(NoneLocationTrackingSpec.INSTANCE);
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		Function function = runToRetFillStructAndCreateFrames();
@@ -1566,6 +1603,9 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testStructureStackHighVarStruct() throws Throwable {
+		addPlugins();
+		// PC Tracking interferes with goTo
+		listingPlugin.setTrackingSpec(NoneLocationTrackingSpec.INSTANCE);
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		Function function = runToRetFillStructAndCreateFrames();
@@ -1589,6 +1629,9 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testStructureStackHighVarStructField() throws Throwable {
+		addPlugins();
+		// PC Tracking interferes with goTo
+		listingPlugin.setTrackingSpec(NoneLocationTrackingSpec.INSTANCE);
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		Function function = runToRetFillStructAndCreateFrames();
@@ -1611,6 +1654,9 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testStructurePointerRegisterHighVarStruct() throws Throwable {
+		addPlugins();
+		// PC Tracking interferes with goTo
+		listingPlugin.setTrackingSpec(NoneLocationTrackingSpec.INSTANCE);
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		runToRetFillStructAndCreateFrames();
@@ -1635,6 +1681,9 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testStructurePointerRegisterHighVarStructField() throws Throwable {
+		addPlugins();
+		// PC Tracking interferes with goTo
+		listingPlugin.setTrackingSpec(NoneLocationTrackingSpec.INSTANCE);
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		runToRetFillStructAndCreateFrames();
@@ -1657,6 +1706,9 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 
 	@Test
 	public void testArrayGlobalHighVarIndexedField() throws Throwable {
+		addPlugins();
+		// PC Tracking interferes with goTo
+		listingPlugin.setTrackingSpec(NoneLocationTrackingSpec.INSTANCE);
 		VariableValueHoverPlugin valuesPlugin = addPlugin(tool, VariableValueHoverPlugin.class);
 		VariableValueHoverService valuesService = valuesPlugin.getHoverService();
 		runToRetFillStructArrayAndCreateFrames();
@@ -1681,7 +1733,7 @@ public class StackUnwinderTest extends AbstractGhidraHeadedDebuggerTest {
 	/**
 	 * e.g., dstack._12_4_
 	 */
-	public void testOffcutPieceReference() throws Throwable {
+	public void testOffcutPieceReference() {
 		Unfinished.TODO();
 	}
 

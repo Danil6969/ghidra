@@ -28,12 +28,12 @@ import org.apache.commons.lang3.ArrayUtils;
 
 import docking.*;
 import docking.action.*;
-import docking.action.builder.ActionBuilder;
-import docking.action.builder.MultiStateActionBuilder;
+import docking.action.builder.*;
 import docking.menu.ActionState;
 import docking.menu.MultiStateDockingAction;
 import docking.widgets.EventTrigger;
 import docking.widgets.filechooser.GhidraFileChooser;
+import generic.theme.GIcon;
 import ghidra.app.plugin.core.debug.DebuggerPluginPackage;
 import ghidra.app.plugin.core.debug.gui.DebuggerBlockChooserDialog;
 import ghidra.app.plugin.core.debug.gui.DebuggerResources;
@@ -64,9 +64,9 @@ import ghidra.program.model.mem.MemoryBlock;
 import ghidra.program.util.ProgramLocation;
 import ghidra.program.util.ProgramSelection;
 import ghidra.trace.model.*;
-import ghidra.trace.model.Trace.TraceMemoryBytesChangeType;
 import ghidra.trace.model.modules.*;
-import ghidra.trace.util.TraceChangeType;
+import ghidra.trace.util.TraceEvent;
+import ghidra.trace.util.TraceEvents;
 import ghidra.util.HelpLocation;
 import ghidra.util.Msg;
 
@@ -217,14 +217,66 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		}
 	}
 
+	interface ImportMissingModuleAction {
+		String NAME = "Import Missing Module";
+		String DESCRIPTION = "Import the missing module from disk";
+		Icon ICON = DebuggerResources.ICON_IMPORT;
+		String HELP_ANCHOR = "import_missing_module";
+
+		static ActionBuilder builder(Plugin owner) {
+			String ownerName = owner.getName();
+			return new ActionBuilder(NAME, ownerName)
+					.description(DESCRIPTION)
+					.toolBarIcon(ICON)
+					.popupMenuIcon(ICON)
+					.popupMenuPath(NAME)
+					.helpLocation(new HelpLocation(ownerName, HELP_ANCHOR));
+		}
+	}
+
+	interface MapMissingModuleAction {
+		String NAME = "Map Missing Module";
+		String DESCRIPTION = "Map the missing module to an existing import";
+		Icon ICON = DebuggerResources.ICON_MAP_MODULES;
+		String HELP_ANCHOR = "map_missing_module";
+
+		static ActionBuilder builder(Plugin owner) {
+			String ownerName = owner.getName();
+			return new ActionBuilder(NAME, ownerName)
+					.description(DESCRIPTION)
+					.toolBarIcon(ICON)
+					.popupMenuIcon(ICON)
+					.popupMenuPath(NAME)
+					.helpLocation(new HelpLocation(ownerName, HELP_ANCHOR));
+		}
+	}
+
+	interface ShowSectionsTableAction {
+		String NAME = "Show Sections Table";
+		Icon ICON = new GIcon("icon.debugger.modules.table.sections");
+		String DESCRIPTION = "Toggle display fo the Sections Table pane";
+		String GROUP = DebuggerResources.FilterAction.GROUP;
+		String ORDER = "1";
+		String HELP_ANCHOR = "show_sections_table";
+
+		static ToggleActionBuilder builder(Plugin owner) {
+			String ownerName = owner.getName();
+			return new ToggleActionBuilder(NAME, ownerName)
+					.description(DESCRIPTION)
+					.toolBarIcon(ICON)
+					.toolBarGroup(GROUP, ORDER)
+					.helpLocation(new HelpLocation(ownerName, HELP_ANCHOR));
+		}
+	}
+
 	protected class ForMappingTraceListener extends TraceDomainObjectListener {
 		public ForMappingTraceListener(AutoMapSpec spec) {
-			for (TraceChangeType<?, ?> type : spec.getChangeTypes()) {
+			for (TraceEvent<?, ?> type : spec.getChangeTypes()) {
 				listenFor(type, this::changed);
 			}
 
-			// TODO: Delete this if/when TraceRecorderTarget is removed
-			listenFor(TraceMemoryBytesChangeType.CHANGED, this::memoryChanged);
+			// Delete this if/when TraceRecorderTarget is removed
+			listenFor(TraceEvents.BYTES_CHANGED, this::memoryChanged);
 		}
 
 		private void changed() {
@@ -254,12 +306,13 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		return Set.of();
 	}
 
-	protected static Set<TraceSection> getSelectedSections(ActionContext context) {
+	protected static Set<TraceSection> getSelectedSections(ActionContext context,
+			boolean allowExpansion) {
 		if (context instanceof DebuggerModuleActionContext ctx) {
 			return DebuggerLegacyModulesPanel.getSelectedSectionsFromContext(ctx);
 		}
 		if (context instanceof DebuggerSectionActionContext ctx) {
-			return DebuggerLegacySectionsPanel.getSelectedSectionsFromContext(ctx);
+			return DebuggerLegacySectionsPanel.getSelectedSectionsFromContext(ctx, allowExpansion);
 		}
 		if (context instanceof DebuggerObjectActionContext ctx) {
 			return DebuggerModulesPanel.getSelectedSectionsFromContext(ctx);
@@ -320,7 +373,7 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		public ImportFromFileSystemAction() {
 			super(plugin);
 			setPopupMenuData(new MenuData(new String[] { NAME }, GROUP));
-			addLocalAction(this);
+			tool.addAction(this);
 			setEnabled(true);
 		}
 
@@ -369,6 +422,7 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	private final AutoService.Wiring autoServiceWiring;
 
 	private final JSplitPane mainPanel = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+	private final int defaultDividerSize = mainPanel.getDividerSize();
 
 	DebuggerModulesPanel modulesPanel;
 	DebuggerLegacyModulesPanel legacyModulesPanel;
@@ -397,8 +451,14 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	MultiStateDockingAction<AutoMapSpec> actionAutoMap;
 	private final AutoMapSpec defaultAutoMapSpec =
 		AutoMapSpec.fromConfigName(ByModuleAutoMapSpec.CONFIG_NAME);
+
 	@AutoConfigStateField(codec = AutoMapSpecConfigFieldCodec.class)
 	AutoMapSpec autoMapSpec = defaultAutoMapSpec;
+	@AutoConfigStateField
+	boolean showSectionsTable = true;
+	@AutoConfigStateField
+	boolean filterSectionsByModules = false;
+
 	boolean cueAutoMap;
 	private ForMappingTraceListener forMappingListener;
 
@@ -407,7 +467,7 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 
 	SelectAddressesAction actionSelectAddresses;
 	ImportFromFileSystemAction actionImportFromFileSystem;
-	// TODO: Save the state of this toggle? Not really compelled.
+	ToggleDockingAction actionShowSectionsTable;
 	ToggleDockingAction actionFilterSectionsByModules;
 	DockingAction actionSelectCurrent;
 
@@ -481,8 +541,7 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	}
 
 	protected boolean isFilterSectionsByModules() {
-		// TODO: Make this a proper field and save it to tool state
-		return actionFilterSectionsByModules.isSelected();
+		return filterSectionsByModules;
 	}
 
 	void modulesPanelContextChanged() {
@@ -535,30 +594,32 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 				.onAction(this::activatedMapManually)
 				.buildAndInstallLocal(this);
 		actionMapModules = MapModulesAction.builder(plugin)
-				.enabledWhen(this::isContextNonEmpty)
-				.popupWhen(this::isContextNonEmpty)
+				.enabledWhen(ctx -> isContextHasModules(ctx) && isContextNotForcedSingle(ctx))
+				.popupWhen(ctx -> isContextHasModules(ctx) && isContextNotForcedSingle(ctx))
 				.onAction(this::activatedMapModules)
-				.buildAndInstallLocal(this);
+				.buildAndInstall(tool);
 		actionMapModuleTo = MapModuleToAction.builder(plugin)
 				.enabledWhen(ctx -> currentProgram != null && getSelectedModules(ctx).size() == 1)
 				.popupWhen(ctx -> currentProgram != null && getSelectedModules(ctx).size() == 1)
 				.onAction(this::activatedMapModuleTo)
-				.buildAndInstallLocal(this);
+				.buildAndInstall(tool);
 		actionMapSections = MapSectionsAction.builder(plugin)
-				.enabledWhen(this::isContextNonEmpty)
-				.popupWhen(this::isContextNonEmpty)
+				.enabledWhen(ctx -> isContextHasSections(ctx) && isContextNotForcedSingle(ctx))
+				.popupWhen(ctx -> isContextHasSections(ctx) && isContextNotForcedSingle(ctx))
 				.onAction(this::activatedMapSections)
-				.buildAndInstallLocal(this);
+				.buildAndInstall(tool);
 		actionMapSectionTo = MapSectionToAction.builder(plugin)
-				.enabledWhen(ctx -> currentProgram != null && getSelectedSections(ctx).size() == 1)
-				.popupWhen(ctx -> currentProgram != null && getSelectedSections(ctx).size() == 1)
+				.enabledWhen(
+					ctx -> currentProgram != null && getSelectedSections(ctx, false).size() == 1)
+				.popupWhen(
+					ctx -> currentProgram != null && getSelectedSections(ctx, false).size() == 1)
 				.onAction(this::activatedMapSectionTo)
-				.buildAndInstallLocal(this);
+				.buildAndInstall(tool);
 		actionMapSectionsTo = MapSectionsToAction.builder(plugin)
 				.enabledWhen(ctx -> currentProgram != null && isContextSectionsOfOneModule(ctx))
 				.popupWhen(ctx -> currentProgram != null && isContextSectionsOfOneModule(ctx))
 				.onAction(this::activatedMapSectionsTo)
-				.buildAndInstallLocal(this);
+				.buildAndInstall(tool);
 
 		actionAutoMap = AutoMapAction.builder(plugin)
 				.onActionStateChanged(this::changedAutoMapSpec)
@@ -576,6 +637,10 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 
 		actionSelectAddresses = new SelectAddressesAction();
 		actionImportFromFileSystem = new ImportFromFileSystemAction();
+		actionShowSectionsTable = ShowSectionsTableAction.builder(plugin)
+				.onAction(this::toggledShowSectionsTable)
+				.selected(showSectionsTable)
+				.buildAndInstallLocal(this);
 		actionFilterSectionsByModules = FilterAction.builder(plugin)
 				.description("Filter sections to those in selected modules")
 				.helpLocation(new HelpLocation(plugin.getName(), "filter_by_module"))
@@ -590,12 +655,20 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		contextChanged();
 	}
 
+	private boolean isContextHasModules(ActionContext context) {
+		return !getSelectedModules(context).isEmpty();
+	}
+
+	private boolean isContextHasSections(ActionContext context) {
+		return !getSelectedSections(context, false).isEmpty();
+	}
+
 	private boolean isContextNonEmpty(ActionContext context) {
 		if (context instanceof DebuggerModuleActionContext ctx) {
 			return !ctx.getSelectedModules().isEmpty();
 		}
 		if (context instanceof DebuggerSectionActionContext ctx) {
-			return !ctx.getSelectedSections().isEmpty();
+			return !ctx.getSelectedSections(false).isEmpty();
 		}
 		if (context instanceof DebuggerObjectActionContext ctx) {
 			return !ctx.getObjectValues().isEmpty();
@@ -603,8 +676,18 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		return false;
 	}
 
-	private boolean isContextSectionsOfOneModule(ActionContext ignored) {
-		Set<TraceSection> sel = getSelectedSections(myActionContext);
+	private boolean isContextNotForcedSingle(ActionContext context) {
+		if (context instanceof DebuggerModuleActionContext ctx) {
+			return !ctx.isForcedSingle();
+		}
+		if (context instanceof DebuggerSectionActionContext ctx) {
+			return !ctx.isForcedSingle();
+		}
+		return true;
+	}
+
+	private boolean isContextSectionsOfOneModule(ActionContext context) {
+		Set<TraceSection> sel = getSelectedSections(context, false);
 		if (sel == null || sel.isEmpty()) {
 			return false;
 		}
@@ -650,40 +733,40 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		tool.showComponentProvider(provider, true);
 	}
 
-	private void activatedMapModules(ActionContext ignored) {
-		Set<TraceModule> sel = getSelectedModules(myActionContext);
+	private void activatedMapModules(ActionContext context) {
+		Set<TraceModule> sel = getSelectedModules(context);
 		if (sel == null || sel.isEmpty()) {
 			return;
 		}
 		mapModules(sel);
 	}
 
-	private void activatedMapModuleTo(ActionContext ignored) {
-		Set<TraceModule> sel = getSelectedModules(myActionContext);
+	private void activatedMapModuleTo(ActionContext context) {
+		Set<TraceModule> sel = getSelectedModules(context);
 		if (sel == null || sel.size() != 1) {
 			return;
 		}
 		mapModuleTo(sel.iterator().next());
 	}
 
-	private void activatedMapSections(ActionContext ignored) {
-		Set<TraceSection> sel = getSelectedSections(myActionContext);
+	private void activatedMapSections(ActionContext context) {
+		Set<TraceSection> sel = getSelectedSections(context, true);
 		if (sel == null || sel.isEmpty()) {
 			return;
 		}
 		mapSections(sel);
 	}
 
-	private void activatedMapSectionsTo(ActionContext ignored) {
-		Set<TraceSection> sel = getSelectedSections(myActionContext);
+	private void activatedMapSectionsTo(ActionContext context) {
+		Set<TraceSection> sel = getSelectedSections(context, true);
 		if (sel == null || sel.isEmpty()) {
 			return;
 		}
 		mapSectionsTo(sel);
 	}
 
-	private void activatedMapSectionTo(ActionContext ignored) {
-		Set<TraceSection> sel = getSelectedSections(myActionContext);
+	private void activatedMapSectionTo(ActionContext context) {
+		Set<TraceSection> sel = getSelectedSections(context, false);
 		if (sel == null || sel.size() != 1) {
 			return;
 		}
@@ -714,10 +797,42 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		mapModuleTo(context.getModule());
 	}
 
+	private void toggledShowSectionsTable(ActionContext ignored) {
+		setShowSectionsTable(actionShowSectionsTable.isSelected());
+	}
+
+	public void setShowSectionsTable(boolean showSectionsTable) {
+		if (this.showSectionsTable == showSectionsTable) {
+			return;
+		}
+		doSetShowSectionsTable(showSectionsTable);
+	}
+
+	protected void doSetShowSectionsTable(boolean showSectionsTable) {
+		this.showSectionsTable = showSectionsTable;
+		actionShowSectionsTable.setSelected(showSectionsTable);
+		mainPanel.setDividerSize(showSectionsTable ? defaultDividerSize : 0);
+		sectionsPanel.setVisible(showSectionsTable);
+		legacySectionsPanel.setVisible(showSectionsTable);
+		mainPanel.resetToPreferredSizes();
+	}
+
 	private void toggledFilter(ActionContext ignored) {
-		boolean filtered = isFilterSectionsByModules();
-		sectionsPanel.setFilteredBySelectedModules(filtered);
-		legacySectionsPanel.setFilteredBySelectedModules(filtered);
+		setFilterSectionsByModules(actionFilterSectionsByModules.isSelected());
+	}
+
+	public void setFilterSectionsByModules(boolean filterSectionsByModules) {
+		if (this.filterSectionsByModules == filterSectionsByModules) {
+			return;
+		}
+		doSetFilterSectionsByModules(filterSectionsByModules);
+	}
+
+	protected void doSetFilterSectionsByModules(boolean filterSectionsByModules) {
+		this.filterSectionsByModules = filterSectionsByModules;
+		actionFilterSectionsByModules.setSelected(filterSectionsByModules);
+		sectionsPanel.setFilteredBySelectedModules(filterSectionsByModules);
+		legacySectionsPanel.setFilteredBySelectedModules(filterSectionsByModules);
 	}
 
 	private void activatedSelectCurrent(ActionContext ignored) {
@@ -1111,5 +1226,7 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	public void readConfigState(SaveState saveState) {
 		CONFIG_STATE_HANDLER.readConfigState(this, saveState);
 		actionAutoMap.setCurrentActionStateByUserData(autoMapSpec);
+		doSetFilterSectionsByModules(filterSectionsByModules);
+		doSetShowSectionsTable(showSectionsTable);
 	}
 }

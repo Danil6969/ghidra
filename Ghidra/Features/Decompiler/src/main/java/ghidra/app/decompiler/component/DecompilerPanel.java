@@ -16,7 +16,7 @@
 package ghidra.app.decompiler.component;
 
 import java.awt.*;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.List;
@@ -125,6 +125,16 @@ public class DecompilerPanel extends JPanel implements FieldMouseListener, Field
 		fieldPanel.addFieldMouseListener(this);
 		fieldPanel.addFieldLocationListener(this);
 		fieldPanel.addLayoutListener(this);
+
+		fieldPanel.addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentResized(ComponentEvent e) {
+				for (DecompilerMarginProvider provider : marginProviders) {
+					provider.getComponent().invalidate();
+				}
+				validate();
+			}
+		});
 
 		decompilerHoverProvider = new DecompilerHoverProvider();
 
@@ -1304,7 +1314,7 @@ public class DecompilerPanel extends JPanel implements FieldMouseListener, Field
 				if (f == null) {
 					return null;
 				}
-				return "line " + (l.getIndex().intValue() + 1) + ", " + f.getText();
+				return "line " + (l.getIndex().intValue() + 1);
 			});
 		}
 

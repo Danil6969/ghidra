@@ -33,6 +33,11 @@ public class VisibleAutoReadMemorySpec implements AutoReadMemorySpec {
 	public static final String CONFIG_NAME = "1_READ_VISIBLE";
 
 	@Override
+	public boolean equals(Object obj) {
+		return this.getClass() == obj.getClass();
+	}
+
+	@Override
 	public String getConfigName() {
 		return CONFIG_NAME;
 	}
@@ -56,7 +61,7 @@ public class VisibleAutoReadMemorySpec implements AutoReadMemorySpec {
 		Target target = coordinates.getTarget();
 		TraceMemoryManager mm = coordinates.getTrace().getMemoryManager();
 		AddressSetView alreadyKnown = mm.getAddressesWithState(coordinates.getSnap(), visible,
-			s -> s == TraceMemoryState.KNOWN);
+			s -> s == TraceMemoryState.KNOWN || s == TraceMemoryState.ERROR);
 		AddressSet toRead = visible.subtract(alreadyKnown);
 
 		if (toRead.isEmpty()) {

@@ -17,15 +17,15 @@ package ghidra.app.decompiler.component;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.util.ArrayList;
+import java.util.*;
 
 import javax.swing.*;
 
 import docking.ActionContext;
 import docking.ComponentProvider;
 import docking.action.*;
+import docking.options.OptionsService;
 import docking.widgets.fieldpanel.FieldPanel;
-import docking.widgets.fieldpanel.internal.FieldPanelCoordinator;
 import docking.widgets.fieldpanel.support.FieldLocation;
 import docking.widgets.label.GDHtmlLabel;
 import ghidra.GhidraOptions;
@@ -40,6 +40,7 @@ import ghidra.program.model.listing.*;
 import ghidra.program.util.FunctionUtility;
 import ghidra.program.util.ProgramLocation;
 import ghidra.util.HTMLUtilities;
+import ghidra.util.HelpLocation;
 
 /**
  * Panel that displays two decompilers for comparison
@@ -58,7 +59,6 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 	private boolean isMatchingConstantsExactly = true;
 	private DecompileOptions leftDecompileOptions;
 	private DecompileOptions rightDecompileOptions;
-	private ApplyFunctionSignatureAction applyFunctionSignatureAction;
 
 	private ClangHighlightController[] highlightControllers = new ClangHighlightController[2];
 	private ArrayList<DualDecompileResultsListener> dualDecompileResultsListenerList =
@@ -70,6 +70,10 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 	private DecompilerDiffViewFindAction diffViewFindAction;
 	private boolean isSideBySide = true;
 	private ToggleOrientationAction toggleOrientationAction;
+	private DecompilerCodeComparisonOptionsAction decompOptionsAction;
+
+	private DecompilerProgramListener leftProgramListener;
+	private DecompilerProgramListener rightProgramListener;
 
 	/**
 	 * Creates a comparison panel with two decompilers
@@ -129,7 +133,7 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 		if (!titlePrefix.isEmpty()) {
 			titlePrefix += " "; // Add a space between prefix and title.
 		}
-		String htmlPrefix = "<HTML>";
+		String htmlPrefix = "<html>";
 		if (title.startsWith(htmlPrefix)) {
 			titlePanel.setTitleName(htmlPrefix + HTMLUtilities.friendlyEncodeHTML(titlePrefix) +
 				title.substring(htmlPrefix.length()));
@@ -245,6 +249,11 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 		cPanels[RIGHT] = new CDisplayPanel(rightDecompileOptions,
 			decompileData -> rightDecompileDataSet(decompileData));
 
+		DecompilerController leftController = cPanels[LEFT].getController();
+		leftProgramListener = new DecompilerProgramListener(leftController, () -> refresh(LEFT));
+		DecompilerController rightController = cPanels[RIGHT].getController();
+		rightProgramListener = new DecompilerProgramListener(rightController, () -> refresh(RIGHT));
+
 		leftDecompilerLocationListener = (leftLocation, trigger) -> {
 			if (dualDecompilerCoordinator != null) {
 				dualDecompilerCoordinator.leftLocationChanged(leftLocation);
@@ -276,7 +285,7 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 		titlePanels[LEFT] = new TitledPanel(leftTitleLabel, cPanels[LEFT], 5);
 		titlePanels[RIGHT] = new TitledPanel(rightTitleLabel, cPanels[RIGHT], 5);
 
-		// Set the MINIMUM_PANEL_WIDTH for the left and right panel to prevent the split pane's 
+		// Set the MINIMUM_PANEL_WIDTH for the left and right panel to prevent the split pane's
 		// divider from becoming locked (can't be moved) due to extra long title names.
 		titlePanels[LEFT].setMinimumSize(
 			new Dimension(MINIMUM_PANEL_WIDTH, titlePanels[LEFT].getMinimumSize().height));
@@ -289,6 +298,14 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 		splitPane.setDividerSize(4);
 		splitPane.setBorder(BorderFactory.createEmptyBorder());
 		add(splitPane, BorderLayout.CENTER);
+	}
+
+	private void refresh(int side) {
+		DecompileData decompileData = side == LEFT ? leftDecompileData : rightDecompileData;
+		if (decompileData == null) {
+			return;
+		}
+		cPanels[side].refresh(decompileData);
 	}
 
 	/**
@@ -324,7 +341,7 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 	}
 
 	/**
-	 * Sets the coordinator for the two decompiler panels within this code comparison panel. 
+	 * Sets the coordinator for the two decompiler panels within this code comparison panel.
 	 * It coordinates their scrolling and location synchronization.
 	 * @param fieldPanelCoordinator the coordinator for the two decompiler panels
 	 */
@@ -431,6 +448,8 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 		setFieldPanelCoordinator(null);
 		cPanels[LEFT].dispose();
 		cPanels[RIGHT].dispose();
+		leftProgramListener.dispose();
+		rightProgramListener.dispose();
 	}
 
 	@Override
@@ -473,6 +492,8 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 
 	@Override
 	protected void setPrograms(Program leftProgram, Program rightProgram) {
+		removeProgramListeners();
+
 		ToolOptions fieldOptions =
 			(tool != null) ? tool.getOptions(GhidraOptions.CATEGORY_BROWSER_FIELDS) : null;
 		ToolOptions options = (tool != null) ? tool.getOptions(OPTIONS_TITLE) : null;
@@ -487,6 +508,25 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 			if (options != null) {
 				rightDecompileOptions.grabFromToolAndProgram(fieldOptions, options, rightProgram);
 			}
+		}
+		addProgramListeners();
+	}
+
+	private void addProgramListeners() {
+		if (programs[LEFT] != null) {
+			programs[LEFT].addListener(leftProgramListener);
+		}
+		if (programs[RIGHT] != null) {
+			programs[RIGHT].addListener(rightProgramListener);
+		}
+	}
+
+	private void removeProgramListeners() {
+		if (programs[LEFT] != null) {
+			programs[LEFT].removeListener(leftProgramListener);
+		}
+		if (programs[RIGHT] != null) {
+			programs[RIGHT].removeListener(rightProgramListener);
 		}
 	}
 
@@ -528,16 +568,16 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 	 * Creates the actions provided by this panel.
 	 */
 	protected void createActions() {
-		applyFunctionSignatureAction = new ApplyFunctionSignatureAction(owner);
 		diffViewFindAction = new DecompilerDiffViewFindAction(owner, tool);
 		toggleOrientationAction = new ToggleOrientationAction();
+		decompOptionsAction = new DecompilerCodeComparisonOptionsAction();
 	}
 
 	@Override
 	public DockingAction[] getActions() {
 		DockingAction[] codeCompActions = super.getActions();
-		DockingAction[] otherActions = new DockingAction[] { applyFunctionSignatureAction,
-			diffViewFindAction, toggleOrientationAction };
+		DockingAction[] otherActions = new DockingAction[] { diffViewFindAction,
+			toggleOrientationAction, decompOptionsAction };
 		int compCount = codeCompActions.length;
 		int otherCount = otherActions.length;
 		DockingAction[] actions = new DockingAction[compCount + otherCount];
@@ -549,7 +589,7 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 	/**
 	 * Sets whether or not the decompilers are displayed side by side.
 	 * 
-	 * @param sideBySide if true, the decompilers are side by side, otherwise one is above 
+	 * @param sideBySide if true, the decompilers are side by side, otherwise one is above
 	 * the other.
 	 */
 	private void showSideBySide(boolean sideBySide) {
@@ -563,9 +603,6 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 	private boolean isSideBySide() {
 		return isSideBySide;
 	}
-
-	@Override
-	public abstract Class<? extends DecompilerCodeComparisonPanel<? extends FieldPanelCoordinator>> getPanelThisSupersedes();
 
 	@Override
 	public ActionContext getActionContext(ComponentProvider provider, MouseEvent event) {
@@ -594,6 +631,7 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private void refreshPanel(int leftOrRight) {
 		// Hold onto functions for reloading them after the indicated side is cleared,
 		// because that will have cleared it in the functions array.
@@ -609,9 +647,16 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 		MyDecompileResultsListener listener =
 			new MyDecompileResultsListener(leftCursorLocation, rightCursorLocation);
 
-		// Clear any previous listener that is for a decompiler load that hasn't finished.
-		// This can simply clear since it is the only one that is adding them to the list.
-		dualDecompileResultsListenerList.clear();
+		//TEMP FIX - correct when refactoring
+		// Clear any previous MyDecompileResultsListener that is for a decompiler load
+		//that hasn't finished.
+		Set<MyDecompileResultsListener> toRemove = new HashSet<>();
+		for (DualDecompileResultsListener l : dualDecompileResultsListenerList) {
+			if (MyDecompileResultsListener.class.isInstance(l)) {
+				toRemove.add((DecompilerCodeComparisonPanel<T>.MyDecompileResultsListener) l);
+			}
+		}
+		dualDecompileResultsListenerList.removeAll(toRemove);
 
 		// Clear the left or right function by passing null to the load method
 		// and then reload it below to get it to update.
@@ -726,15 +771,16 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 		}
 
 		@Override
-		public void mouseClicked(MouseEvent e) {
+		public void mousePressed(MouseEvent e) {
 			setDualPanelFocus(leftOrRight);
 		}
 	}
 
 	private class ToggleOrientationAction extends ToggleDockingAction {
+
 		ToggleOrientationAction() {
 			super("Dual Decompiler Toggle Orientation", "FunctionComparison");
-			setDescription("<HTML>Toggle the layout of the decompiler " +
+			setDescription("<html>Toggle the layout of the decompiler " +
 				"<BR>between side-by-side and one above the other.");
 			setEnabled(true);
 			setSelected(isSideBySide);
@@ -747,6 +793,28 @@ public abstract class DecompilerCodeComparisonPanel<T extends DualDecompilerFiel
 		public void actionPerformed(ActionContext context) {
 			boolean sideBySide = !isSideBySide();
 			showSideBySide(sideBySide);
+		}
+	}
+
+	private class DecompilerCodeComparisonOptionsAction extends DockingAction {
+
+		DecompilerCodeComparisonOptionsAction() {
+			super("Decompiler Code Comparison Options", owner);
+			setDescription("Show the tool options for the Decompiler Code Comparison.");
+			setPopupMenuData(new MenuData(new String[] { "Properties" }, null, "Z_Properties"));
+			setHelpLocation(
+				new HelpLocation("FunctionComparison", "Decompiler_Code_Comparison_Options"));
+		}
+
+		@Override
+		public boolean isEnabledForContext(ActionContext context) {
+			return (context instanceof DualDecompilerActionContext);
+		}
+
+		@Override
+		public void actionPerformed(ActionContext context) {
+			OptionsService service = tool.getService(OptionsService.class);
+			service.showOptionsDialog("FunctionComparison", "Decompiler Code Comparison");
 		}
 	}
 }

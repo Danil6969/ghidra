@@ -27,9 +27,7 @@ import ghidra.app.util.demangler.*;
 import ghidra.app.util.importer.MessageLog;
 import ghidra.framework.options.*;
 import ghidra.program.model.address.Address;
-import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
-import ghidra.program.model.symbol.SourceType;
 import ghidra.util.HelpLocation;
 import ghidra.util.SystemUtilities;
 import ghidra.util.task.TaskMonitor;
@@ -145,15 +143,6 @@ public class RustDemanglerAnalyzer extends AbstractDemanglerAnalyzer {
 		try {
 			if (demangled instanceof DemangledFunction defunc) {
 				defunc.applyTo(program, address, options, monitor);
-				Function func = program.getFunctionManager().getFunctionAt(address);
-				if (func != null) {
-					// if has no return type and no parameters, don't trust that it is void and unlock
-					// the signature so the decompiler can figure it out
-					if (defunc.getReturnType() == null && defunc.getParameters().size() == 0) {
-						func.setSignatureSource(SourceType.DEFAULT);
-					}
-					return;
-				}
 			}
 		}
 		catch (Exception e) {

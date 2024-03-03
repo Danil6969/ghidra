@@ -27,6 +27,7 @@ import ghidra.app.plugin.core.debug.gui.model.AbstractQueryTablePanel.CellActiva
 import ghidra.app.plugin.core.debug.gui.model.ObjectTableModel.ValueRow;
 import ghidra.app.plugin.core.debug.gui.model.columns.TraceValueKeyColumn;
 import ghidra.app.plugin.core.debug.gui.model.columns.TraceValueObjectAttributeColumn;
+import ghidra.app.plugin.core.debug.service.modules.DebuggerStaticMappingUtils;
 import ghidra.app.services.DebuggerTraceManagerService;
 import ghidra.dbg.target.TargetStack;
 import ghidra.dbg.target.TargetStackFrame;
@@ -83,7 +84,29 @@ public class DebuggerStackPanel extends AbstractObjectsTableBasedPanel<TraceObje
 				ServiceProvider serviceProvider) throws IllegalArgumentException {
 			TraceObjectValue value =
 				rowObject.getAttributeEntry(TargetStackFrame.PC_ATTRIBUTE_NAME);
-			return value == null ? null : provider.getFunction((Address) value.getValue());
+			if (value == null) {
+				return null;
+			}
+			return DebuggerStaticMappingUtils.getFunction(value.castValue(), provider.current,
+				serviceProvider);
+		}
+	}
+
+	private class FrameModuleColumn extends AbstractDynamicTableColumn<ValueRow, String, Trace> {
+		@Override
+		public String getColumnName() {
+			return "Module";
+		}
+
+		@Override
+		public String getValue(ValueRow rowObject, Settings settings, Trace data,
+				ServiceProvider serviceProvider) throws IllegalArgumentException {
+			TraceObjectValue value =
+				rowObject.getAttributeEntry(TargetStackFrame.PC_ATTRIBUTE_NAME);
+			if (value == null) {
+				return null;
+			}
+			return DebuggerStaticMappingUtils.getModuleName(value.castValue(), provider.current);
 		}
 	}
 
@@ -98,6 +121,7 @@ public class DebuggerStackPanel extends AbstractObjectsTableBasedPanel<TraceObje
 			descriptor.addVisibleColumn(new FrameLevelColumn(), 1, true);
 			descriptor.addVisibleColumn(new FramePcColumn());
 			descriptor.addVisibleColumn(new FrameFunctionColumn());
+			descriptor.addVisibleColumn(new FrameModuleColumn());
 			return descriptor;
 		}
 	}

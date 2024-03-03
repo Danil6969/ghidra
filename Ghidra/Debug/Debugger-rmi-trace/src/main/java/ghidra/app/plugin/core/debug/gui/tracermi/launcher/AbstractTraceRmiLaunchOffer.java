@@ -64,6 +64,9 @@ public abstract class AbstractTraceRmiLaunchOffer implements TraceRmiLaunchOffer
 
 	public static final String PREFIX_DBGLAUNCH = "DBGLAUNCH_";
 	public static final String PARAM_DISPLAY_IMAGE = "Image";
+	public static final String PREFIX_PARAM_EXTTOOL = "env:GHIDRA_LANG_EXTTOOL_";
+
+	public static final int DEFAULT_TIMEOUT_MILLIS = 10000;
 
 	protected record PtyTerminalSession(Terminal terminal, Pty pty, PtySession session,
 			Thread waiter) implements TerminalSession {
@@ -149,7 +152,11 @@ public abstract class AbstractTraceRmiLaunchOffer implements TraceRmiLaunchOffer
 	}
 
 	protected int getTimeoutMillis() {
-		return 10000;
+		return DEFAULT_TIMEOUT_MILLIS;
+	}
+
+	protected int getConnectionTimeoutMillis() {
+		return getTimeoutMillis();
 	}
 
 	@Override
@@ -267,6 +274,15 @@ public abstract class AbstractTraceRmiLaunchOffer implements TraceRmiLaunchOffer
 					Msg.warn(this, "'Image' parameter has unexpected type: " + paramImage.type);
 				}
 				paramImage = (ParameterDescription<String>) param;
+			}
+			else if (param.name.startsWith(PREFIX_PARAM_EXTTOOL)) {
+				String tool = param.name.substring(PREFIX_PARAM_EXTTOOL.length());
+				List<String> names =
+					program.getLanguage().getLanguageDescription().getExternalNames(tool);
+				if (names != null && !names.isEmpty()) {
+					var paramStr = (ParameterDescription<String>) param;
+					paramStr.set(map, names.get(0));
+				}
 			}
 		}
 		if (paramImage != null) {
@@ -394,11 +410,11 @@ public abstract class AbstractTraceRmiLaunchOffer implements TraceRmiLaunchOffer
 	 * Obtain the launcher args
 	 * 
 	 * <p>
-	 * This should either call {@link #promptLauncherArgs(Map))} or
-	 * {@link #loadLastLauncherArgs(Map, boolean))}. Note if choosing the latter, the user will not
-	 * be prompted to confirm.
+	 * This should either call {@link #promptLauncherArgs(LaunchConfigurator, Throwable)} or
+	 * {@link #loadLastLauncherArgs(boolean)}. Note if choosing the latter, the user will not be
+	 * prompted to confirm.
 	 * 
-	 * @param params the parameters of the model's launcher
+	 * @param prompt true to prompt the user, false to use saved arguments
 	 * @param configurator the rules for configuring the launcher
 	 * @param lastExc if retrying, the last exception to display as an error message
 	 * @return the chosen arguments, or null if the user cancels at the prompt
@@ -543,19 +559,24 @@ public abstract class AbstractTraceRmiLaunchOffer implements TraceRmiLaunchOffer
 
 			try {
 				monitor.setMessage("Listening for connection");
+				monitor.increment();
 				acceptor = service.acceptOne(new InetSocketAddress("127.0.0.1", 0));
 				monitor.setMessage("Launching back-end");
+				monitor.increment();
 				launchBackEnd(monitor, sessions, args, acceptor.getAddress());
 				monitor.setMessage("Waiting for connection");
-				acceptor.setTimeout(getTimeoutMillis());
+				monitor.increment();
+				acceptor.setTimeout(getConnectionTimeoutMillis());
 				connection = acceptor.accept();
 				connection.registerTerminals(sessions.values());
 				monitor.setMessage("Waiting for trace");
+				monitor.increment();
 				trace = connection.waitForTrace(getTimeoutMillis());
 				traceManager.openTrace(trace);
 				traceManager.activate(traceManager.resolveTrace(trace),
 					ActivationCause.START_RECORDING);
 				monitor.setMessage("Waiting for module mapping");
+				monitor.increment();
 				try {
 					listenForMapping(mappingService, connection, trace).get(getTimeoutMillis(),
 						TimeUnit.MILLISECONDS);

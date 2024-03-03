@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,6 +15,7 @@
  */
 package ghidra.app.util;
 
+import ghidra.program.database.data.DataTypeUtilities;
 import ghidra.program.model.data.*;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.FunctionSignature;
@@ -36,8 +37,7 @@ public class DataTypeNamingUtil {
 	 * @throws IllegalArgumentException if generated name contains unsupported characters
 	 */
 	public static String setMangledAnonymousFunctionName(
-			FunctionDefinitionDataType functionDefinition)
-			throws IllegalArgumentException {
+			FunctionDefinitionDataType functionDefinition) throws IllegalArgumentException {
 
 		DataType returnType = functionDefinition.getReturnType();
 		ParameterDefinition[] parameters = functionDefinition.getArguments();
@@ -49,14 +49,14 @@ public class DataTypeNamingUtil {
 		}
 
 		String convention = functionDefinition.getCallingConventionName();
-		if (convention != null && !Function.UNKNOWN_CALLING_CONVENTION_STRING.equals(convention)) {
+		if (!Function.UNKNOWN_CALLING_CONVENTION_STRING.equals(convention)) {
 			sb.append("_").append(convention);
 		}
 
 		sb.append("_");
-		sb.append(mangleDTName(returnType.getName()));
+		sb.append(mangleDTName(returnType));
 		for (ParameterDefinition p : parameters) {
-			sb.append("_").append(mangleDTName(p.getDataType().getName()));
+			sb.append("_").append(mangleDTName(p.getDataType()));
 		}
 
 		if (functionDefinition.hasVarArgs()) {
@@ -73,8 +73,9 @@ public class DataTypeNamingUtil {
 		return name;
 	}
 
-	private static String mangleDTName(String s) {
-		return s.replaceAll(" ", "_").replaceAll("\\*", "ptr");
+	private static String mangleDTName(DataType dt) {
+		String name = DataTypeUtilities.getNameWithoutConflict(dt);
+		return name.replaceAll(" ", "_").replaceAll("\\*", "ptr");
 	}
 
 }
