@@ -397,7 +397,8 @@ void ActionStackPtrFlow::analyzeExtraPop(Funcdata &data,AddrSpace *stackspace,in
   ProtoModel *myfp = data.getArch()->evalfp_called;
   if (myfp == (ProtoModel *)0)
     myfp = data.getArch()->defaultfp;
-  if (myfp->getExtraPop()!=ProtoModel::extrapop_unknown) return;
+  // Needs way more testing, can't guarantee that we can skip known extrapops
+  //if (myfp->getExtraPop()!=ProtoModel::extrapop_unknown) return;
 
   StackSolver solver;
   try {
