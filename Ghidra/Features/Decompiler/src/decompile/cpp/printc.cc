@@ -435,6 +435,39 @@ bool PrintC::checkAddressOfCast(const PcodeOp *op) const
   return true;
 }
 
+bool PrintC::isSimpleCast(Datatype *inType,Datatype *outType) const
+
+{
+  type_metatype outMeta = outType->getMetatype();
+  type_metatype inMeta = inType->getMetatype();
+  if (outMeta == TYPE_BOOL) return true;
+  if (outMeta == TYPE_PTR && inMeta == TYPE_PTR) {
+    Datatype *outPointedType;
+    Datatype *inPointedType;
+
+    if (outType->isPointerRel()) {
+      outPointedType = ((TypePointerRel *)outType)->getParent();
+    }
+    else {
+      outPointedType = ((TypePointer *)outType)->getPtrTo();
+    }
+    if (inType->isPointerRel()) {
+      inPointedType = ((TypePointerRel *)inType)->getParent();
+    }
+    else {
+      inPointedType = ((TypePointer *)inType)->getPtrTo();
+    }
+
+    type_metatype outPointedMeta = outPointedType->getMetatype();
+    type_metatype inPointedMeta = inPointedType->getMetatype();
+    if (inPointedMeta == TYPE_STRUCT && outPointedMeta == TYPE_STRUCT) {
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
 /// This is used for expression that require functional syntax, where the name of the
 /// function is the name of the operator. The inputs to the p-code op form the roots
 /// of the comma separated list of \e parameters within the syntax.
@@ -569,9 +602,7 @@ void PrintC::opTypeCast(const PcodeOp *op)
   string inTypeName = inType->getName();
   bool nameEquals = !outTypeName.empty() && outTypeName == inTypeName; // Types may be inequal if name is empty
   if (!option_nocasts && !nameEquals) {
-    bool isSimpleCast = outMeta == TYPE_PTR && inMeta == TYPE_PTR;
-    isSimpleCast |= outMeta == TYPE_BOOL;
-    if (isSimpleCast) {
+    if (isSimpleCast(inType,outType)) {
       pushOp(&typecast,op);
       pushType(outType);
       pushVn(inVn,op,mods);
