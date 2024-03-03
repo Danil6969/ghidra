@@ -11150,22 +11150,16 @@ Varnode *RuleInferPointerAdd::getCounterInitVarnode(PcodeOp *multiop)
   return op->getIn(slot);
 }
 
-bool RuleInferPointerAdd::getCounterShiftOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &a,intb &b,intb &c,int4 &size)
+bool RuleInferPointerAdd::getCounterShiftOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size)
 
 {
   if (initop == (PcodeOp *)0) return false;
   Varnode *initvn = initop->getIn(slot);
   if (!initvn->isConstant()) return false;
-  c = initvn->getOffset();
-  if (increment < 0) {
-    b = -increment;
-  }
-  else {
-    b = increment;
-  }
+  initialOffset = initvn->getOffset();
   size = initvn->getSize();
 
-  a = 0;
+  shiftOffset = 0;
   if (initop->code() == CPUI_INT_ADD && initop->getIn(1-slot)->isSpacebase()) {
     // Spacebase case isn't trivial
     // But may try to deduce shift amount by looking up descendants
@@ -11177,20 +11171,27 @@ bool RuleInferPointerAdd::getCounterShiftOffsets(PcodeOp *op,PcodeOp *initop,int
       if (descend == op) continue;
       if (descend->code() != CPUI_INT_ADD) continue;
       int4 multislot = descend->getSlot(out);
-      Varnode *invn = descend->getIn(1 - multislot);
+      Varnode *invn = descend->getIn(1-multislot);
       if (!invn->isConstant()) continue;
       intb off = sign_extend(invn->getOffset(),invn->getSize()*8-1);
       if (off >= 0) continue;
       off *= -1;
-      if (off <= a) continue;
-      a = off;
+      if (off <= shiftOffset) continue;
+      shiftOffset = off;
     }
   }
   else {
-    a = sign_extend(initvn->getOffset(), size * 8 - 1);
+    shiftOffset = sign_extend(initvn->getOffset(),size*8-1);
   }
-  if (a <= 0) return false;
-  if (a % b == 0) return false;
+  intb step;
+  if (increment < 0) {
+    step = -increment;
+  }
+  else {
+    step = increment;
+  }
+  if (shiftOffset <= 0) return false;
+  if (shiftOffset % step == 0) return false;
   return true;
 }
 
@@ -11232,11 +11233,10 @@ int4 RuleInferPointerAdd::applyOp(PcodeOp *op,Funcdata &data)
   int4 slot;
   PcodeOp *initop = getCounterInitOp(multiop, slot);
 
-  intb a;
-  intb b;
-  intb c;
+  intb shiftOffset;
+  intb initialOffset;
   int4 size;
-  if (!getCounterShiftOffsets(op,initop,slot,increment,a,b,c,size)) return 0;
+  if (!getCounterShiftOffsets(op,initop,slot,increment,shiftOffset,initialOffset,size)) return 0;
 
   Varnode *out = multiop->getOut();
   if (!checkPointerUsages(out)) return 0;
@@ -11254,12 +11254,12 @@ int4 RuleInferPointerAdd::applyOp(PcodeOp *op,Funcdata &data)
   int4 sz = out->getSize();
   for(vector<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
     PcodeOp *descend = *iter;
-    PcodeOp *newop = data.newOpAfter(multiop,CPUI_INT_ADD,out,data.newConstant(sz,a&calc_mask(sz)));
+    PcodeOp *newop = data.newOpAfter(multiop,CPUI_INT_ADD,out,data.newConstant(sz,shiftOffset&calc_mask(sz)));
     int4 slot = descend->getSlot(out);
     data.opSetInput(descend,newop->getOut(),slot);
   }
   // Also subtract initializer
-  data.opSetInput(initop,data.newConstant(size,c-a),slot);
+  data.opSetInput(initop,data.newConstant(size,initialOffset-shiftOffset),slot);
   return 1;
 }
 
