@@ -3232,7 +3232,7 @@ Datatype *TypeFactory::findAdd(Datatype &ct)
 
   newtype = ct.clone();		// Add the new type to trees
   if (newtype->alignment < 0) {
-    newtype->alignSize = getPrimitiveAlignSize(newtype->size);
+    newtype->alignSize = getPrimitiveAlignSize(newtype);
     newtype->alignment = getAlignment(newtype->alignSize);
   }
   insert(newtype);
