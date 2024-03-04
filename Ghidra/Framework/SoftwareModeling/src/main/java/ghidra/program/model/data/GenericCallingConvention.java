@@ -72,6 +72,9 @@ public enum GenericCallingConvention {
 	cdeclf("__cdeclf"),
 	keilmxs2p1("__keilmxs2p1"),
 	keilmxs3("__keilmxs3"),
+	microsoftlto1("__microsoft_lto_1"),
+	microsoftlto2("__microsoft_lto_2"),
+	microsoftlto3("__microsoft_lto_3"),
 	MSABI("MSABI"),
 	nonwindowcall("__nonwindowcall"),
 	ptrcall("__ptrcall"),
@@ -84,7 +87,6 @@ public enum GenericCallingConvention {
 	stdcall16far("__stdcall16far"),
 	stdcall16near("__stdcall16near"),
 	stdcalldata("__stdcall_data"),
-	stdcallfromamd64("__stdcall_from_amd64"),
 	syscall("syscall");
 
 	private final String declarationName;
