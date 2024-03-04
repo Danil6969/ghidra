@@ -3109,6 +3109,10 @@ int4 TypeFactory::getPrimitiveAlignSize(Datatype *ct) const
 
 {
   int4 size = ct->getSize();
+  type_metatype meta = ct->getMetatype();
+  if (meta == TYPE_FLOAT && size == 10) {
+    return size;
+  }
   int4 align = getAlignment(size);
   uint4 mod = size % align;
   if (mod != 0)
