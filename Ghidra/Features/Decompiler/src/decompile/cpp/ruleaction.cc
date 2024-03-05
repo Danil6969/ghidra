@@ -6896,20 +6896,8 @@ bool RuleStructOffset0::isValidPtrRel(Varnode *ptrVn,Datatype *type)
 {
   if (type->getSubMeta() != SUB_PTRREL) return false;
   TypePointerRel *ptRel = (TypePointerRel *)type;
+  if (!ptRel->isFormalPointerRel()) return false;
   if (!ptRel->evaluateThruParent(0)) return false;
-  // Trivial case when not stripped at all
-  if (ptRel->isFormalPointerRel()) return true;
-  PcodeOp *ptrOp = ptrVn->getDef();
-  if (ptrOp == (PcodeOp *)0) return false;
-  if (ptrOp->code() != CPUI_PTRSUB) return false;
-  // Another ptrsub may narrow down to smaller datatype
-  Datatype *invnType = ptrOp->getIn(0)->getTypeReadFacing(ptrOp);
-  if (invnType->getSubMeta() != SUB_PTRREL) return false;
-  Datatype *bigParent = ((TypePointerRel *) invnType)->getParent();
-  Datatype *smallParent = ptRel->getParent();
-  if (bigParent == smallParent) return false;
-  if (smallParent->getSize() > bigParent->getSize()) return false;
-  if (bigParent->getMetatype() != TYPE_STRUCT) return false;
   return true;
 }
 
