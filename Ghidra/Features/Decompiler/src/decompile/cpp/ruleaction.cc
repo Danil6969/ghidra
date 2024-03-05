@@ -6832,7 +6832,7 @@ bool RulePtrArith::canProcess(PcodeOp *op,Funcdata &data)
   if (slot == op->numInput()) return false;
   if (RulePtrArith::evaluatePointerExpression(op, slot) != 2) return false;
   if (!RulePtrArith::verifyPreferredPointer(op, slot)) return false;
-  if (isNegativeCast(op,slot)) return false;
+  //if (isNegativeCast(op,slot)) return false;
 
   AddTreeState state(data,op,slot);
   if (state.canApply()) return true;
@@ -6882,7 +6882,7 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
   if (slot == op->numInput()) return 0;
   if (evaluatePointerExpression(op, slot) != 2) return 0;
   if (!verifyPreferredPointer(op, slot)) return 0;
-  if (isNegativeCast(op,slot)) return 0;
+  //if (isNegativeCast(op,slot)) return 0;
 
   if (preprocess(op,data)) return 1;
 
