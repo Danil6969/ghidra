@@ -1073,7 +1073,6 @@ public:
 class RulePtrArith : public Rule {
   static bool replaceMultiplier(PcodeOp *op,Funcdata &data);
   static bool preprocess(PcodeOp *op,Funcdata &data);
-  static bool isNegativeCast(PcodeOp *op,int4 slot);
 public:
   static bool canProcess(PcodeOp *op,Funcdata &data);
   RulePtrArith(const string &g) : Rule(g, 0, "ptrarith") {}	///< Constructor
@@ -1088,6 +1087,7 @@ public:
 };
 class RuleStructOffset0 : public Rule {
   static bool isRepeated(PcodeOp *op, Datatype *baseType, Datatype *subType);
+  static bool isValidPtrRel(Varnode *ptrVn,Datatype *type);
 public:
   RuleStructOffset0(const string &g) : Rule(g, 0, "structoffset0") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {

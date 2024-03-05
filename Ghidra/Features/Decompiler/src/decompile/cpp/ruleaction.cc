@@ -6778,45 +6778,6 @@ bool RulePtrArith::preprocess(PcodeOp *op,Funcdata &data)
   return false;
 }
 
-// Don't process negative cast pattern which is used to implement dynamic cast from inner class to outer
-bool RulePtrArith::isNegativeCast(PcodeOp *op,int4 slot)
-
-{
-  Varnode *offVn = op->getIn(1 - slot);
-  if (!offVn->isConstant()) return false;
-  intb off = sign_extend(offVn->getOffset(),offVn->getSize()*8-1);
-
-  Varnode *vn = op->getIn(slot);
-  Datatype *datatype = vn->getTypeReadFacing(op);
-  if (datatype == (Datatype *)0) return false;
-  if (datatype->getMetatype() != TYPE_PTR) return false;
-  TypePointer *pointerDatatype = (TypePointer *) datatype;
-  datatype = pointerDatatype->getPtrTo();
-  if (datatype == (Datatype *)0) return false;
-  if (datatype->getMetatype() != TYPE_STRUCT) return false;
-  TypeStruct *innerStruct = (TypeStruct *)datatype;
-
-  vn = op->getOut();
-  datatype = vn->getTypeReadFacing(op);
-  if (datatype == (Datatype *)0) return false;
-  if (datatype->getMetatype() != TYPE_PTR) return false;
-  pointerDatatype = (TypePointer *) datatype;
-  datatype = pointerDatatype->getPtrTo();
-  if (datatype == (Datatype *)0) return false;
-  if (datatype->getMetatype() != TYPE_STRUCT) return false;
-  TypeStruct *outerStruct = (TypeStruct *)datatype;
-
-  vector<TypeField>::const_iterator iter = outerStruct->beginField();
-  while(iter!=outerStruct->endField()) {
-    TypeField field = *iter;
-    iter++;
-    if (field.offset != -off) continue;
-    if (field.type != innerStruct) continue;
-    return true;
-  }
-  return false;
-}
-
 bool RulePtrArith::canProcess(PcodeOp *op,Funcdata &data)
 
 {
@@ -6832,7 +6793,6 @@ bool RulePtrArith::canProcess(PcodeOp *op,Funcdata &data)
   if (slot == op->numInput()) return false;
   if (RulePtrArith::evaluatePointerExpression(op, slot) != 2) return false;
   if (!RulePtrArith::verifyPreferredPointer(op, slot)) return false;
-  //if (isNegativeCast(op,slot)) return false;
 
   AddTreeState state(data,op,slot);
   if (state.canApply()) return true;
@@ -6882,7 +6842,6 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
   if (slot == op->numInput()) return 0;
   if (evaluatePointerExpression(op, slot) != 2) return 0;
   if (!verifyPreferredPointer(op, slot)) return 0;
-  //if (isNegativeCast(op,slot)) return 0;
 
   if (preprocess(op,data)) return 1;
 
@@ -6901,6 +6860,7 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
 /// \param subType is type at zeroth offset of baseType fetched from database
 /// \return true if repeats to itself or similar
 bool RuleStructOffset0::isRepeated(PcodeOp *op, Datatype *baseType, Datatype *subType)
+
 {
   // Checks that this is another PTRSUB
   PcodeOp *def = op->getIn(1)->getDef();
@@ -6929,6 +6889,28 @@ bool RuleStructOffset0::isRepeated(PcodeOp *op, Datatype *baseType, Datatype *su
     return false;
   }
   return false;
+}
+
+bool RuleStructOffset0::isValidPtrRel(Varnode *ptrVn,Datatype *type)
+
+{
+  if (type->getSubMeta() != SUB_PTRREL) return false;
+  TypePointerRel *ptRel = (TypePointerRel *)type;
+  if (!ptRel->evaluateThruParent(0)) return false;
+  // Trivial case when not stripped at all
+  if (ptRel->isFormalPointerRel()) return true;
+  PcodeOp *ptrOp = ptrVn->getDef();
+  if (ptrOp == (PcodeOp *)0) return false;
+  if (ptrOp->code() != CPUI_PTRSUB) return false;
+  // Another ptrsub may narrow down to smaller datatype
+  Datatype *invnType = ptrOp->getIn(0)->getTypeReadFacing(ptrOp);
+  if (invnType->getSubMeta() != SUB_PTRREL) return false;
+  Datatype *bigParent = ((TypePointerRel *) invnType)->getParent();
+  Datatype *smallParent = ptRel->getParent();
+  if (bigParent == smallParent) return false;
+  if (smallParent->getSize() > bigParent->getSize()) return false;
+  if (bigParent->getMetatype() != TYPE_STRUCT) return false;
+  return true;
 }
 
 /// \class RuleStructOffset0
@@ -6966,7 +6948,7 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
   if (ct->getMetatype() != TYPE_PTR) return 0;
   Datatype *baseType = ((TypePointer *)ct)->getPtrTo();
   int8 offset = 0;
-  if (ct->isFormalPointerRel() && ((TypePointerRel *)ct)->evaluateThruParent(0)) {
+  if (isValidPtrRel(ptrVn,ct)) {
     TypePointerRel *ptRel = (TypePointerRel *)ct;
     baseType = ptRel->getParent();
     if (baseType->getMetatype() != TYPE_STRUCT)
@@ -7209,8 +7191,15 @@ int4 RulePtrsubUndo::applyOp(PcodeOp *op,Funcdata &data)
   if (!data.hasTypeRecoveryStarted()) return 0;
 
   Varnode *basevn = op->getIn(0);
-  if (basevn->getTypeReadFacing(op)->isPtrsubMatching(op->getIn(1)->getOffset()))
+  Datatype *type = basevn->getTypeReadFacing(op);
+  if (type->isPtrsubMatching(op->getIn(1)->getOffset()))
     return 0;
+  PcodeOp *ptrOp = basevn->getDef();
+  if (ptrOp != (PcodeOp *)0 && ptrOp->code() == CPUI_PTRSUB) {
+    Varnode *invn = ptrOp->getIn(0);
+    Datatype *intype = invn->getTypeReadFacing(ptrOp);
+    return 0;
+  }
 
   data.opSetOpcode(op,CPUI_INT_ADD);
   op->clearStopTypePropagation();
