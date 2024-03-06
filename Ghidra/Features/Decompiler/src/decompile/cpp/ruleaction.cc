@@ -6936,16 +6936,18 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
   if (ct->getMetatype() != TYPE_PTR) return 0;
   Datatype *baseType = ((TypePointer *)ct)->getPtrTo();
   int8 offset = 0;
-  if (isValidPtrRel(ptrVn,ct)) {
+  if (ct->getSubMeta() == SUB_PTRREL) {
     TypePointerRel *ptRel = (TypePointerRel *)ct;
-    baseType = ptRel->getParent();
-    if (baseType->getMetatype() != TYPE_STRUCT)
-      return 0;
-    int8 iOff = ptRel->getPointerOffset();
-    iOff = AddrSpace::addressToByteInt(iOff, ptRel->getWordSize());
-    if (iOff >= baseType->getSize())
-      return 0;
-    offset = iOff;
+    if (ptRel->isFormalPointerRel() && ptRel->evaluateThruParent(0)) {
+      baseType = ptRel->getParent();
+      if (baseType->getMetatype() != TYPE_STRUCT)
+	return 0;
+      int8 iOff = ptRel->getPointerOffset();
+      iOff = AddrSpace::addressToByteInt(iOff, ptRel->getWordSize());
+      if (iOff >= baseType->getSize())
+	return 0;
+      offset = iOff;
+    }
   }
   if (baseType->getMetatype() == TYPE_STRUCT) {
     if (baseType->getSize() < movesize)
