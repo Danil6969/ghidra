@@ -6891,16 +6891,6 @@ bool RuleStructOffset0::isRepeated(PcodeOp *op, Datatype *baseType, Datatype *su
   return false;
 }
 
-bool RuleStructOffset0::isValidPtrRel(Varnode *ptrVn,Datatype *type)
-
-{
-  if (type->getSubMeta() != SUB_PTRREL) return false;
-  TypePointerRel *ptRel = (TypePointerRel *)type;
-  if (!ptRel->isFormalPointerRel()) return false;
-  if (!ptRel->evaluateThruParent(0)) return false;
-  return true;
-}
-
 /// \class RuleStructOffset0
 /// \brief Convert a LOAD or STORE to the first element of a structure to a PTRSUB.
 ///
