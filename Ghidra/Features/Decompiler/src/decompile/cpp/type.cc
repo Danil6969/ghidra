@@ -2474,7 +2474,7 @@ TypePointer *TypePointerRel::downChain(int8 &off,TypePointer *&par,int8 &parOff,
 				       TypeFactory &typegrp)
 {
   type_metatype ptrtoMeta = ptrto->getMetatype();
-  if (off >= 0 && off < ptrto->getSize() && (ptrtoMeta == TYPE_STRUCT || ptrtoMeta == TYPE_ARRAY)) {
+  if (!isFormalPointerRel() && off >= 0 && off < ptrto->getSize() && (ptrtoMeta == TYPE_STRUCT || ptrtoMeta == TYPE_ARRAY)) {
     return TypePointer::downChain(off,par,parOff,allowArrayWrap,typegrp);
   }
   int8 relOff = (off + offset) & calc_mask(size);		// Convert off to be relative to the parent container
