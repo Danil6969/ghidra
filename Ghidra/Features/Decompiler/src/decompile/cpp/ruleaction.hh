@@ -1087,7 +1087,6 @@ public:
 };
 class RuleStructOffset0 : public Rule {
   static bool isRepeated(PcodeOp *op, Datatype *baseType, Datatype *subType);
-  static bool isValidPtrRel(Varnode *ptrVn,Datatype *type);
 public:
   RuleStructOffset0(const string &g) : Rule(g, 0, "structoffset0") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
