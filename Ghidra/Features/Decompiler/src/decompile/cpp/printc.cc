@@ -1249,7 +1249,7 @@ void PrintC::opPtrsub(const PcodeOp *op)
     clear();
     throw LowlevelError("PTRSUB off of non-pointer type");
   }
-  if (ptype->isFormalPointerRel() && ((TypePointerRel *)ptype)->evaluateThruParent(in1const)) {
+  if (ptype->isFormalPointerRel()) {
     ptrel = (TypePointerRel *)ptype;
     ct = ptrel->getParent();
   }
