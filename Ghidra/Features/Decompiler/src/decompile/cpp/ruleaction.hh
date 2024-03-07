@@ -753,6 +753,17 @@ public:
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
+class RuleSubtractionCollapse : public Rule {
+  static bool form1(PcodeOp *op,Funcdata &data);
+public:
+  RuleSubtractionCollapse(const string &g) : Rule(g, 0, "subtractioncollapse") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleSubtractionCollapse(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
 // class RuleUndistribute : public Rule {
 // public:
 //   RuleUndistribute(const string &g) : Rule(g, 0, "undistribute") {}	///< Constructor
