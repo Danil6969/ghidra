@@ -744,6 +744,9 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RuleAddMultCollapse : public Rule {
+  static bool form1(PcodeOp *op,Funcdata &data);
+  static bool form2(PcodeOp *op,Funcdata &data);
+  static bool form3(PcodeOp *op,Funcdata &data);
 public:
   RuleAddMultCollapse(const string &g) : Rule(g, 0, "addmultcollapse") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
