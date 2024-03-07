@@ -11236,8 +11236,8 @@ bool RuleInferPointerAdd::getCounterShiftOffsets(PcodeOp *op,PcodeOp *initop,int
   if (initop == (PcodeOp *)0) return false;
   Varnode *initvn = initop->getIn(slot);
   if (!initvn->isConstant()) return false;
-  initialOffset = initvn->getOffset();
   size = initvn->getSize();
+  initialOffset = sign_extend(initvn->getOffset(),size*8-1);
 
   shiftOffset = 0;
   if (initop->code() == CPUI_INT_ADD && initop->getIn(1-slot)->isSpacebase()) {
@@ -11270,8 +11270,7 @@ bool RuleInferPointerAdd::getCounterShiftOffsets(PcodeOp *op,PcodeOp *initop,int
   else {
     step = increment;
   }
-  if (shiftOffset <= 0) return false;
-  if (shiftOffset % step == 0) return false;
+  if (shiftOffset == 0) return false;
   return true;
 }
 
@@ -11303,6 +11302,10 @@ void RuleInferPointerAdd::getOpList(vector<uint4> &oplist) const
   oplist.push_back(CPUI_INT_ADD);
 }
 
+/// \class RuleInferPointerAdd
+/// \brief Infer pointer counter addition everywhere it is used but make assignments simpler instead
+/// Only possible if writen twice. First is the initializer and the second is the increment:
+///  - `i = x; ... = i; i = i + y => i = 0; ... = i + x; i = i + y`
 int4 RuleInferPointerAdd::applyOp(PcodeOp *op,Funcdata &data)
 
 {
