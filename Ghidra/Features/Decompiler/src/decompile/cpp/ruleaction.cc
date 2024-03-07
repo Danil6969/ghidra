@@ -3920,6 +3920,61 @@ int4 RuleAddMultCollapse::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+bool RuleSubtractionCollapse::form1(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *c[2];           // Constant varnodes
+  Varnode *v[2];           // Variable varnodes
+  c[0] = (Varnode *)0; // d
+  c[1] = (Varnode *)0; // c
+  v[0] = (Varnode *)0; // V
+  v[1] = (Varnode *)0; // W
+  PcodeOp *addop0 = op->getIn(0)->getDef();
+  c[0] = op->getIn(1);
+  if (addop0 == (PcodeOp *)0) return false;
+  if (addop0->code() != CPUI_INT_ADD) return false;
+  v[0] = addop0->getIn(0);
+  PcodeOp *multop = addop0->getIn(1)->getDef();
+  if (multop == (PcodeOp *)0) return false;
+  if (multop->code() != CPUI_INT_MULT) return false;
+  Varnode *cvn = multop->getIn(1);
+  if (!cvn->isConstant()) return false;
+  if (cvn->getOffset() != calc_mask(cvn->getSize())) return false;
+  PcodeOp *addop1 = multop->getIn(0)->getDef();
+  if (addop1 == (PcodeOp *)0) return false;
+  if (addop1->code() != CPUI_INT_ADD) return false;
+  v[1] = addop1->getIn(0);
+  c[1] = addop1->getIn(1);
+  if (!c[0]->isConstant()) return false;
+  if (!c[1]->isConstant()) return false;
+  if (c[0]->getSize() != c[1]->getSize()) return false;
+  intb val0 = sign_extend(c[0]->getOffset(),8*c[0]->getSize()-1);
+  intb val1 = sign_extend(c[1]->getOffset(),8*c[1]->getSize()-1);
+  intb val = val0 - val1;
+  Varnode *newvn = data.newConstant(c[0]->getSize(),val&cvn->getOffset());
+  PcodeOp *newmultop = data.newOpBefore(op, CPUI_INT_MULT,v[1],cvn);
+  PcodeOp *newaddop = data.newOpBefore(op,CPUI_INT_ADD,v[0],newmultop->getOut());
+  data.opSetInput(op,newaddop->getOut(),0);
+  data.opSetInput(op,newvn,1);
+  return true;
+}
+
+void RuleSubtractionCollapse::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_ADD);
+}
+
+/// \class RuleSubtractionCollapse
+/// \brief Collapse constants in following expression:
+/// (V + (W + c) * -1) + d  =>  (V + W * -1) + (d + c * -1)
+int4 RuleSubtractionCollapse::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  if (form1(op,data)) return 1;
+  return 0;
+}
+
 /// \brief Return associated space if given Varnode is an \e active spacebase.
 ///
 /// The Varnode should be a spacebase register input to the function or a
@@ -12382,8 +12437,7 @@ Varnode *RuleOpToAdrr::getSubtractedIndex(Varnode *arrvn,Varnode *indexvn,Varnod
       if (offsetop != (PcodeOp *)0 && offsetop->code() == CPUI_INT_MULT) {
 	if (offsetop->getIn(1)->isConstant()) {
 	  intb off = offsetop->getIn(1)->getOffset();
-	  off = sign_extend(off,8*offsetop->getIn(1)->getSize()-1);
-	  if (off == -1) {
+	  if (off == calc_mask(offsetop->getIn(1)->getSize())) {
 	    isAlreadySub = true;
 	  }
 	}
