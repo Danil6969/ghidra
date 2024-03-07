@@ -5667,6 +5667,7 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop->addRule( new RuleThreeWayCompare("analysis") );
 	actprop->addRule( new RuleXorCollapse("analysis") );
 	actprop->addRule( new RuleAddMultCollapse("analysis") );
+	actprop->addRule( new RuleSubtractionCollapse("analysis") );
 	actprop->addRule( new RuleCollapseConstants("analysis") );
 	actprop->addRule( new RuleTransformCpool("analysis") );
 	actprop->addRule( new RulePropagateCopy("analysis") );
