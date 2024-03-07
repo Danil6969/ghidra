@@ -3834,6 +3834,127 @@ int4 RuleXorCollapse::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+bool RuleAddMultCollapse::form1(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *c[2];           // Constant varnodes
+  Varnode *sub,*sub2,*newvn;
+  PcodeOp *subop;
+
+  if (op->code() != CPUI_INT_ADD) return false;
+  // Constant is in c[0], other is in sub
+  c[0] = op->getIn(1);
+  if (!c[0]->isConstant()) return false; // Neither input is a constant
+  sub = op->getIn(0);
+  // Find other constant one level down
+  if (!sub->isWritten()) return false;
+  subop = sub->getDef();
+  if (subop->code() != CPUI_INT_ADD) return false; // Must be same exact operation
+  c[1] = subop->getIn(1);
+  if (!c[1]->isConstant()) return false;
+  sub2 = subop->getIn(0);
+  if (sub2->isFree()) return false;
+
+  uintb val = op->getOpcode()->evaluateBinary(c[0]->getSize(),c[0]->getSize(),c[0]->getOffset(),c[1]->getOffset());
+  newvn = data.newConstant(c[0]->getSize(),val);
+  if (c[0]->getSymbolEntry() != (SymbolEntry *)0)
+    newvn->copySymbolIfValid(c[0]);
+  else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
+    newvn->copySymbolIfValid(c[1]);
+  data.opSetInput(op,newvn,1); // Replace c[0] with c[0]+c[1] or c[0]*c[1]
+  data.opSetInput(op,sub2,0); // Replace sub with sub2
+  return true;
+}
+
+bool RuleAddMultCollapse::form2(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *c[2];           // Constant varnodes
+  Varnode *sub,*sub2,*newvn;
+  PcodeOp *subop;
+
+  if (op->code() != CPUI_INT_MULT) return false;
+  // Constant is in c[0], other is in sub
+  c[0] = op->getIn(1);
+  if (!c[0]->isConstant()) return false; // Neither input is a constant
+  sub = op->getIn(0);
+  // Find other constant one level down
+  subop = sub->getDef();
+  if (subop == (PcodeOp *)0) return false;
+  if (subop->code() != CPUI_INT_MULT) return false; // Must be same exact operation
+  c[1] = subop->getIn(1);
+  if (!c[1]->isConstant()) return false;
+  sub2 = subop->getIn(0);
+  if (sub2->isFree()) return false;
+
+  uintb val = op->getOpcode()->evaluateBinary(c[0]->getSize(),c[0]->getSize(),c[0]->getOffset(),c[1]->getOffset());
+  newvn = data.newConstant(c[0]->getSize(),val);
+  if (c[0]->getSymbolEntry() != (SymbolEntry *)0)
+    newvn->copySymbolIfValid(c[0]);
+  else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
+    newvn->copySymbolIfValid(c[1]);
+  data.opSetInput(op,newvn,1); // Replace c[0] with c[0]+c[1] or c[0]*c[1]
+  data.opSetInput(op,sub2,0); // Replace sub with sub2
+  return true;
+}
+
+bool RuleAddMultCollapse::form3(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *c[2];           // Constant varnodes
+  Varnode *sub,*sub2,*newvn;
+  PcodeOp *subop;
+
+  if (op->code() != CPUI_INT_ADD) return false;
+  // Constant is in c[0], other is in sub
+  c[0] = op->getIn(1);
+  if (!c[0]->isConstant()) return false; // Neither input is a constant
+  sub = op->getIn(0);
+  // Find other constant one level down
+  subop = sub->getDef();
+  if (subop == (PcodeOp *)0) return false;
+  if (subop->code() != CPUI_INT_ADD) return false; // Must be same exact operation
+  c[1] = subop->getIn(1);
+  if (c[1]->isConstant()) return false;
+  // a = ((stackbase + c[1]) + othervn) + c[0]  =>       (stackbase + c[0] + c[1]) + othervn
+  // This lets two constant offsets get added together even in the case where there is:
+  //    another term getting added in AND
+  //    the result of the intermediate sum is used more than once  (otherwise collectterms should pick it up)
+  Varnode *othervn,*basevn;
+  PcodeOp *baseop;
+  for(int4 i=0;i<2;++i) {
+    othervn = subop->getIn(i);
+    if (othervn->isConstant()) continue;
+    if (othervn->isFree()) continue;
+    sub2 = subop->getIn(1-i);
+    if (!sub2->isWritten()) continue;
+    baseop = sub2->getDef();
+    if (baseop->code() != CPUI_INT_ADD) continue;
+    c[1] = baseop->getIn(1);
+    if (!c[1]->isConstant()) continue;
+    basevn = baseop->getIn(0);
+    if (!basevn->isSpacebase()) continue; // Only apply this particular case if we are adding to a base pointer
+    if (!basevn->isInput()) continue;	// because this adds a new add operation
+
+    uintb val = op->getOpcode()->evaluateBinary(c[0]->getSize(),c[0]->getSize(),c[0]->getOffset(),c[1]->getOffset());
+    newvn = data.newConstant(c[0]->getSize(),val);
+    if (c[0]->getSymbolEntry() != (SymbolEntry *)0)
+      newvn->copySymbolIfValid(c[0]);
+    else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
+      newvn->copySymbolIfValid(c[1]);
+    PcodeOp *newop = data.newOp(2,op->getAddr());
+    data.opSetOpcode(newop,CPUI_INT_ADD);
+    Varnode *newout = data.newUniqueOut(c[0]->getSize(),newop);
+    data.opSetInput(newop,basevn,0);
+    data.opSetInput(newop,newvn,1);
+    data.opInsertBefore(newop,op);
+    data.opSetInput(op,newout,0);
+    data.opSetInput(op,othervn,1);
+    return true;
+  }
+  return false;
+}
+
 /// \class RuleAddMultCollapse
 /// \brief Collapse constants in an additive or multiplicative expression
 ///
@@ -3851,73 +3972,10 @@ void RuleAddMultCollapse::getOpList(vector<uint4> &oplist) const
 int4 RuleAddMultCollapse::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  Varnode *c[2];           // Constant varnodes
-  Varnode *sub,*sub2,*newvn;
-  PcodeOp *subop;
-  OpCode opc;
-
-  opc = op->code();
-                                // Constant is in c[0], other is in sub
-  c[0] = op->getIn(1);
-  if (!c[0]->isConstant()) return 0; // Neither input is a constant
-  sub = op->getIn(0);
-                                // Find other constant one level down
-  if (!sub->isWritten()) return 0;
-  subop = sub->getDef();
-  if (subop->code() != opc) return 0; // Must be same exact operation
-  c[1] = subop->getIn(1);
-  if (!c[1]->isConstant()) {
-    // a = ((stackbase + c[1]) + othervn) + c[0]  =>       (stackbase + c[0] + c[1]) + othervn
-    // This lets two constant offsets get added together even in the case where there is:
-    //    another term getting added in AND
-    //    the result of the intermediate sum is used more than once  (otherwise collectterms should pick it up)
-    if (opc != CPUI_INT_ADD) return 0;
-    Varnode *othervn,*basevn;
-    PcodeOp *baseop;
-    for(int4 i=0;i<2;++i) {
-      othervn = subop->getIn(i);
-      if (othervn->isConstant()) continue;
-      if (othervn->isFree()) continue;
-      sub2 = subop->getIn(1-i);
-      if (!sub2->isWritten()) continue;
-      baseop = sub2->getDef();
-      if (baseop->code() != CPUI_INT_ADD) continue;
-      c[1] = baseop->getIn(1);
-      if (!c[1]->isConstant()) continue;
-      basevn = baseop->getIn(0);
-      if (!basevn->isSpacebase()) continue; // Only apply this particular case if we are adding to a base pointer
-      if (!basevn->isInput()) continue;	// because this adds a new add operation
-
-      uintb val = op->getOpcode()->evaluateBinary(c[0]->getSize(),c[0]->getSize(),c[0]->getOffset(),c[1]->getOffset());
-      newvn = data.newConstant(c[0]->getSize(),val);
-      if (c[0]->getSymbolEntry() != (SymbolEntry *)0)
-	newvn->copySymbolIfValid(c[0]);
-      else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
-	newvn->copySymbolIfValid(c[1]);
-      PcodeOp *newop = data.newOp(2,op->getAddr());
-      data.opSetOpcode(newop,CPUI_INT_ADD);
-      Varnode *newout = data.newUniqueOut(c[0]->getSize(),newop);
-      data.opSetInput(newop,basevn,0);
-      data.opSetInput(newop,newvn,1);
-      data.opInsertBefore(newop,op);
-      data.opSetInput(op,newout,0);
-      data.opSetInput(op,othervn,1);
-      return 1;
-    }
-    return 0;
-  }
-  sub2 = subop->getIn(0);
-  if (sub2->isFree()) return 0;
-
-  uintb val = op->getOpcode()->evaluateBinary(c[0]->getSize(),c[0]->getSize(),c[0]->getOffset(),c[1]->getOffset());
-  newvn = data.newConstant(c[0]->getSize(),val);
-  if (c[0]->getSymbolEntry() != (SymbolEntry *)0)
-    newvn->copySymbolIfValid(c[0]);
-  else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
-    newvn->copySymbolIfValid(c[1]);
-  data.opSetInput(op,newvn,1); // Replace c[0] with c[0]+c[1] or c[0]*c[1]
-  data.opSetInput(op,sub2,0); // Replace sub with sub2
-  return 1;
+  if (form1(op,data)) return 1;
+  if (form2(op,data)) return 1;
+  if (form3(op,data)) return 1;
+  return 0;
 }
 
 bool RuleSubtractionCollapse::form1(PcodeOp *op,Funcdata &data)
@@ -3967,7 +4025,7 @@ void RuleSubtractionCollapse::getOpList(vector<uint4> &oplist) const
 
 /// \class RuleSubtractionCollapse
 /// \brief Collapse constants in following expression:
-/// (V + (W + c) * -1) + d  =>  (V + W * -1) + (d + c * -1)
+///  - `(V + (W + c) * -1) + d  =>  (V + W * -1) + (d + c * -1)`
 int4 RuleSubtractionCollapse::applyOp(PcodeOp *op,Funcdata &data)
 
 {
@@ -6897,8 +6955,6 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
   if (slot == op->numInput()) return 0;
   if (evaluatePointerExpression(op, slot) != 2) return 0;
   if (!verifyPreferredPointer(op, slot)) return 0;
-
-  if (preprocess(op,data)) return 1;
 
   AddTreeState state(data,op,slot);
   if (state.apply()) return 1;
@@ -11383,6 +11439,10 @@ void RuleInferPointerMult::getOpList(vector<uint4> &oplist) const
   oplist.push_back(CPUI_INT_ADD);
 }
 
+/// \class RuleInferPointerMult
+/// \brief Infer pointer counter multiplication everywhere it is used but make assignments simpler instead
+/// Only possible if writen twice. First is the initializer and the second is the increment:
+///  - `i = x * n; ... = i; i = i + y * n => i = x; ... = i * n; i = i + y`
 int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
 
 {
@@ -11400,7 +11460,6 @@ int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
   intb a = sign_extend(initvn->getOffset(),initvn->getSize()*8-1);
   bool isnegative = increment < 0;
   intb b = isnegative ? -increment : increment;
-  if (a < 0) return 0;
   if (a % b != 0) return 0;
 
   Varnode *out = multiop->getOut();
