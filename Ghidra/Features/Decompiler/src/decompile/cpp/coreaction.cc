@@ -5624,7 +5624,7 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop->addRule( new RulePullsubIndirect("analysis"));
 	actprop->addRule( new RulePushMulti("nodejoin"));
 	actprop->addRule( new RuleSborrow("analysis") );
-	//actprop->addRule( new RuleIntLessEqual("analysis") );
+	//	actprop->addRule( new RuleIntLessEqual("analysis") );
 	actprop->addRule( new RuleTrivialArith("analysis") );
 	actprop->addRule( new RuleTrivialBool("analysis") );
 	actprop->addRule( new RuleTrivialShift("analysis") );
