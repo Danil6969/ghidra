@@ -11270,6 +11270,8 @@ bool RuleInferPointerAdd::getCounterShiftOffsets(PcodeOp *op,PcodeOp *initop,int
   else {
     step = increment;
   }
+  if (shiftOffset < 0) return true;
+  shiftOffset = shiftOffset % step;
   if (shiftOffset == 0) return false;
   return true;
 }
