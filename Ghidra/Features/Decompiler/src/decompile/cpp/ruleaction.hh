@@ -1702,8 +1702,12 @@ class RuleInferPointerAdd : public Rule {
   bool checkPointerUsages(Varnode *vn);
   PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
   Varnode *getCounterInitVarnode(PcodeOp *multiop);
-  bool getCounterShiftOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size);
   intb getCounterIncrement(PcodeOp *op);
+  intb getSpacebaseDescendShift(PcodeOp *descend,Varnode *multiout,TypeSpacebase *spacebasetype);
+  bool getOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size);
+  // Forms for the rule
+  bool formConstant(PcodeOp *op,Funcdata &data);
+  bool formSpacebase(PcodeOp *op,Funcdata &data);
 public:
   RuleInferPointerAdd(const string &g) : Rule(g,0,"inferpointeradd") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
