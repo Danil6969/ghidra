@@ -48,9 +48,12 @@ public class IsfComposite extends AbstractIsfObject {
 			IsfComponent cobj = getComponent(component, type);
 			String key = component.getFieldName();
 			if (key == null) {
-				key = DataTypeComponent.DEFAULT_FIELD_NAME_PREFIX + component.getOrdinal();
+				key = DataTypeComponent.DEFAULT_FIELD_NAME_PREFIX;
 				if (component.getParent() instanceof Structure) {
-					key += "_0x" + Integer.toHexString(component.getOffset());
+					key += "0x" + Integer.toHexString(component.getOffset());
+				}
+				else {
+					key += component.getOrdinal();
 				}
 			}
 			fields.add(key, writer.getTree(cobj));
