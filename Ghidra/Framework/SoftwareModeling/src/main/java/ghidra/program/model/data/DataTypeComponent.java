@@ -130,9 +130,12 @@ public interface DataTypeComponent {
 		if (isZeroBitFieldComponent()) {
 			return null;
 		}
-		String name = DEFAULT_FIELD_NAME_PREFIX + getOrdinal();
+		String name = DEFAULT_FIELD_NAME_PREFIX;
 		if (getParent() instanceof Structure) {
-			name += "_0x" + Integer.toHexString(getOffset());
+			name += "0x" + Integer.toHexString(getOffset());
+		}
+		else {
+			name += getOrdinal();
 		}
 		return name;
 	}
