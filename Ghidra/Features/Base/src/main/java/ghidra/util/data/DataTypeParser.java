@@ -357,7 +357,12 @@ public class DataTypeParser {
 			throw new InvalidDataTypeException(msg);
 		}
 
-		return dt.clone(destinationDataTypeManager);
+		if (destinationDataTypeManager == null) {
+			return dt.clone(dt.getDataTypeManager());
+		}
+		else {
+			return dt.clone(destinationDataTypeManager);
+		}
 	}
 
 	private DataType findDataTypeInAllDataTypeManagers(String baseName, List<DataType> results)
