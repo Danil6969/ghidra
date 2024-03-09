@@ -54,7 +54,7 @@ public class Rtti3Model extends AbstractCreateRttiDataModel {
 
 	private static final int SIGNATURE_ORDINAL = 0;
 	private static final int ATTRIBUTES_ORDINAL = 1;
-	private static final int BASE_ARRAY_PTR_ORDINAL = 3;
+	private static final int BASE_ARRAY_PTR_ORDINAL = 6;
 
 	private static final int NUM_BASES_OFFSET = 8;
 	private static final int BASE_ARRAY_PTR_OFFSET = 12;
@@ -161,13 +161,21 @@ public class Rtti3Model extends AbstractCreateRttiDataModel {
 		boolean is64Bit = MSDataTypeUtils.is64Bit(program);
 
 		CategoryPath categoryPath = new CategoryPath(CATEGORY_PATH);
-		StructureDataType struct =
-			MSDataTypeUtils.getAlignedPack4Structure(dataTypeManager, categoryPath, STRUCTURE_NAME);
+		StructureDataType struct = new StructureDataType(categoryPath, STRUCTURE_NAME, 0, dataTypeManager);
 
 		// Add the components.
 		DWordDataType dWordDataType = new DWordDataType(dataTypeManager);
 		struct.add(dWordDataType, "signature", null);
-		struct.add(dWordDataType, "attributes", "bit flags");
+		try {
+			struct.insertBitFieldAt(4, 4, 0, dWordDataType, 1, "CHD_MULTINH", "multiple inheritance");
+			struct.insertBitFieldAt(4, 4, 1, dWordDataType, 1, "CHD_VIRTINH", "virtual inheritance");
+			struct.insertBitFieldAt(4, 4, 2, dWordDataType, 1, "CHD_AMBIGUOUS", "ambiguous inheritance");
+			struct.insertBitFieldAt(4, 4, 3, dWordDataType, 29, "CHD_UNUSED", "unused");
+		} catch (InvalidDataTypeException e) {
+			while (struct.getLength() < 8) {
+				struct.add(Undefined.DEFAULT);
+			}
+		}
 		struct.add(dWordDataType, "numBaseClasses", "number of base classes (i.e. rtti1Count)");
 
 		DataType rtti2Dt = Rtti2Model.getSimpleIndividualEntryDataType(program);
