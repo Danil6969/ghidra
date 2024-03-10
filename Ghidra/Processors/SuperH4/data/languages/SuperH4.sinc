@@ -3090,7 +3090,12 @@ define pcodeop TrapAlways;
 # pattern 11000011iiiiiiii
 # text    trapa #<imm>
 # arch    arch_sh_up
-:trapa U_0t                 is OP_2=0xc3 & U_0t { TrapAlways(U_0t); }
+:trapa U_0t                 is OP_2=0xc3 & U_0t {
+
+	TrapAlways(U_0t);
+	r0 = 0;
+	return [0:4];
+}
 
 
 # AND Operation T Bit Setting
