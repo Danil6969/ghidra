@@ -63,8 +63,15 @@ public class Rtti1Model extends AbstractCreateRttiDataModel {
 
 	private static final int NUM_BASES_ORDINAL = 1;
 	private static final int MEMBER_DISP_ORDINAL = 2;
-	private static final int ATTRIBUTES_ORDINAL = 3;
-	private static final int CLASS_HIERARCHY_POINTER_ORDINAL = 4;
+	private static final int ATTRIBUTES1_ORDINAL = 3;
+	private static final int ATTRIBUTES2_ORDINAL = 4;
+	private static final int ATTRIBUTES3_ORDINAL = 5;
+	private static final int ATTRIBUTES4_ORDINAL = 6;
+	private static final int ATTRIBUTES5_ORDINAL = 7;
+	private static final int ATTRIBUTES6_ORDINAL = 8;
+	private static final int ATTRIBUTES7_ORDINAL = 9;
+	private static final int ATTRIBUTES8_ORDINAL = 10;
+	private static final int CLASS_HIERARCHY_POINTER_ORDINAL = 11;
 
 	private static final int TYPE_DESC_POINTER_OFFSET = 0;
 	private static final int NUM_BASES_OFFSET = 4;
@@ -253,8 +260,7 @@ public class Rtti1Model extends AbstractCreateRttiDataModel {
 			is64Bit ? new IBO32DataType(dataTypeManager) : new PointerDataType();
 
 		CategoryPath categoryPath = new CategoryPath(CATEGORY_PATH);
-		StructureDataType struct =
-			getAlignedPack4Structure(dataTypeManager, categoryPath, STRUCTURE_NAME);
+		StructureDataType struct = new StructureDataType(categoryPath, STRUCTURE_NAME, 0, dataTypeManager);
 
 		// Add the components.
 		struct.add(rtti0RefDt, "pTypeDescriptor", "ref to TypeDescriptor (RTTI 0) for class");
@@ -263,7 +269,20 @@ public class Rtti1Model extends AbstractCreateRttiDataModel {
 			"count of extended classes in BaseClassArray (RTTI 2)");
 		Structure pmdDataType = MSDataTypeUtils.getPMDDataType(program);
 		struct.add(pmdDataType, "where", "member displacement structure");
-		struct.add(dWordDataType, "attributes", "bit flags");
+		try {
+			struct.insertBitFieldAt(20, 4, 0, dWordDataType, 1, "BCD_NOTVISIBLE", "");
+			struct.insertBitFieldAt(20, 4, 1, dWordDataType, 1, "BCD_AMBIGUOUS", "");
+			struct.insertBitFieldAt(20, 4, 2, dWordDataType, 1, "BCD_PRIVORPROTINCOMPOBJ", "");
+			struct.insertBitFieldAt(20, 4, 3, dWordDataType, 1, "BCD_PRIVORPROTBASE", "");
+			struct.insertBitFieldAt(20, 4, 4, dWordDataType, 1, "BCD_VBOFCONTOBJ", "");
+			struct.insertBitFieldAt(20, 4, 5, dWordDataType, 1, "BCD_NONPOLYMORPHIC", "");
+			struct.insertBitFieldAt(20, 4, 6, dWordDataType, 1, "BCD_HASPCHD", "");
+			struct.insertBitFieldAt(20, 4, 7, dWordDataType, 25, "BCD_UNUSED", "");
+		} catch (InvalidDataTypeException e) {
+			while (struct.getLength() < 24) {
+				struct.add(Undefined.DEFAULT);
+			}
+		}
 		struct.add(rtti3RefDt, "pClassHierarchyDescriptor",
 			"ref to ClassHierarchyDescriptor (RTTI 3) for class");
 
@@ -356,8 +375,15 @@ public class Rtti1Model extends AbstractCreateRttiDataModel {
 	 */
 	public int getAttributes() throws InvalidDataTypeException {
 		checkValidity();
-		return EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES_ORDINAL,
-			getMemBuffer());
+		int attribute1 = EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES1_ORDINAL, getMemBuffer());
+		int attribute2 = EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES2_ORDINAL, getMemBuffer()) << 1;
+		int attribute3 = EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES3_ORDINAL, getMemBuffer()) << 2;
+		int attribute4 = EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES4_ORDINAL, getMemBuffer()) << 3;
+		int attribute5 = EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES5_ORDINAL, getMemBuffer()) << 4;
+		int attribute6 = EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES6_ORDINAL, getMemBuffer()) << 5;
+		int attribute7 = EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES7_ORDINAL, getMemBuffer()) << 6;
+		int attribute8 = EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES8_ORDINAL, getMemBuffer()) << 7;
+		return attribute1 + attribute2 + attribute3 + attribute4 + attribute5 + attribute6 + attribute7 + attribute8;
 	}
 
 	/**
