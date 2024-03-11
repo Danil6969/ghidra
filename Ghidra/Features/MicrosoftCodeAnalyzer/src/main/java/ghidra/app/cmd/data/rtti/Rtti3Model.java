@@ -53,7 +53,11 @@ public class Rtti3Model extends AbstractCreateRttiDataModel {
 	private static String STRUCTURE_NAME = "_s__" + DATA_TYPE_NAME;
 
 	private static final int SIGNATURE_ORDINAL = 0;
-	private static final int ATTRIBUTES_ORDINAL = 1;
+	private static final int ATTRIBUTES1_ORDINAL = 1;
+	private static final int ATTRIBUTES2_ORDINAL = 2;
+	private static final int ATTRIBUTES3_ORDINAL = 3;
+	private static final int ATTRIBUTES4_ORDINAL = 4;
+	private static final int ATTRIBUTES5_ORDINAL = 5;
 	private static final int BASE_ARRAY_PTR_ORDINAL = 6;
 
 	private static final int NUM_BASES_OFFSET = 8;
@@ -219,8 +223,12 @@ public class Rtti3Model extends AbstractCreateRttiDataModel {
 	 */
 	public int getAttributes() throws InvalidDataTypeException {
 		checkValidity();
-		return EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES_ORDINAL,
-			getMemBuffer());
+		int attribute1 = EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES1_ORDINAL, getMemBuffer());
+		int attribute2 = EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES2_ORDINAL, getMemBuffer()) << 1;
+		int attribute3 = EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES3_ORDINAL, getMemBuffer()) << 2;
+		int attribute4 = EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES4_ORDINAL, getMemBuffer()) << 3;
+		int attribute5 = EHDataTypeUtilities.getIntegerValue(getDataType(), ATTRIBUTES5_ORDINAL, getMemBuffer()) << 4;
+		return attribute1 + attribute2 + attribute3 + attribute4 + attribute5;
 	}
 
 	/**
