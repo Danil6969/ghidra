@@ -54,7 +54,7 @@ public class FindNoReturnFunctionsAnalyzer extends AbstractAnalyzer {
 	private static final String OPTION_DESCRIPTION_FUNCTION_NONRETURN_THRESHOLD =
 		"Enter the number of indications for a given function before it is considered non-returning.";
 
-	private final static int OPTION_DEFAULT_EVIDENCE_THRESHOLD = 3;
+	private final static int OPTION_DEFAULT_EVIDENCE_THRESHOLD = 4;
 
 	private int evidenceThresholdFunctions = OPTION_DEFAULT_EVIDENCE_THRESHOLD;
 
