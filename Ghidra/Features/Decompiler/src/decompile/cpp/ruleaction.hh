@@ -1057,8 +1057,6 @@ public:
 class RuleUnlinkPtrAdd : public Rule {
   static PcodeOp *getOpToUnlink(PcodeOp *op);
   static bool unlinkAddOp(PcodeOp *op,Funcdata &data);
-  static bool form1(PcodeOp *op,Funcdata &data);
-  static bool form2(PcodeOp *op,Funcdata &data);
 public:
   RuleUnlinkPtrAdd(const string &g) : Rule(g, 0, "unlinkptradd") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
@@ -1703,7 +1701,6 @@ class RuleInferPointerAdd : public Rule {
   PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
   Varnode *getCounterInitVarnode(PcodeOp *multiop);
   intb getCounterIncrement(PcodeOp *op);
-  intb getSpacebaseDescendShift(PcodeOp *descend,Varnode *multiout,TypeSpacebase *spacebasetype);
   bool getOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size);
   // Forms for the rule
   bool formConstant(PcodeOp *op,Funcdata &data);

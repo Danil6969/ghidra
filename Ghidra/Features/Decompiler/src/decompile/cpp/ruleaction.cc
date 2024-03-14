@@ -5927,22 +5927,6 @@ bool RuleUnlinkPtrAdd::unlinkAddOp(PcodeOp *op,Funcdata &data)
   return true;
 }
 
-// for RulePtrArith
-bool RuleUnlinkPtrAdd::form1(PcodeOp *op,Funcdata &data)
-
-{
-  if (!RulePtrArith::canProcess(op,data)) return false;
-  return unlinkAddOp(op,data);
-}
-
-// for RuleCancelOutPtrAdd
-bool RuleUnlinkPtrAdd::form2(PcodeOp *op,Funcdata &data)
-
-{
-  if (!RuleCancelOutPtrAdd::canProcess(op)) return false;
-  return unlinkAddOp(op,data);
-}
-
 void RuleUnlinkPtrAdd::getOpList(vector<uint4> &oplist) const
 
 {
@@ -5952,8 +5936,16 @@ void RuleUnlinkPtrAdd::getOpList(vector<uint4> &oplist) const
 int4 RuleUnlinkPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  if (form1(op,data)) return 1;
-  if (form2(op,data)) return 1;
+  if (RulePtrArith::canProcess(op,data)) {
+    if (unlinkAddOp(op,data)) {
+      return 1;
+    }
+  }
+  if (RuleCancelOutPtrAdd::canProcess(op)) {
+    if (unlinkAddOp(op,data)) {
+      return 1;
+    }
+  }
   return 0;
 }
 
@@ -11233,6 +11225,10 @@ Varnode *RuleInferPointerAdd::getCounterInitVarnode(PcodeOp *multiop)
 intb RuleInferPointerAdd::getCounterIncrement(PcodeOp *op)
 
 {
+  // Increment must be constant
+  Varnode *invn1 = op->getIn(1);
+  if (!invn1->isConstant()) return 0;
+
   PcodeOp *multiop = op->getIn(0)->getDef();
   if (multiop == (PcodeOp *)0) return 0;
   if (multiop->code() != CPUI_MULTIEQUAL) return 0;
@@ -11241,48 +11237,9 @@ intb RuleInferPointerAdd::getCounterIncrement(PcodeOp *op)
   // Must loop to intadd
   if (inmulti1->getDef() != op) return 0;
 
-  Varnode *invn1 = op->getIn(1);
-  if (!invn1->isConstant()) return 0;
-
   Varnode *initvn = getCounterInitVarnode(multiop);
   if (initvn == (Varnode *)0) return 0;
   return sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
-}
-
-intb RuleInferPointerAdd::getSpacebaseDescendShift(PcodeOp *descend,Varnode *multiout,TypeSpacebase *spacebasetype)
-
-{
-  if (descend->code() != CPUI_INT_ADD) return 0;
-  int4 multislot = descend->getSlot(multiout);
-  Varnode *invn = descend->getIn(1-multislot);
-  // Case #1
-  if (invn->isConstant()) {
-    intb off = sign_extend(invn->getOffset(),8*invn->getSize()-1);
-    return 0;
-  }
-  // Case #2
-  PcodeOp *inop = invn->getDef();
-  if (inop == (PcodeOp *)0) return 0;
-  if (inop->code() != CPUI_INT_ADD) return 0;
-  PcodeOp *multop = inop->getIn(1)->getDef();
-  if (multop == (PcodeOp *)0) return 0;
-  if (multop->code() != CPUI_INT_MULT) return 0;
-  Varnode *cvn = multop->getIn(1);
-  if (!cvn->isConstant()) return 0;
-  if (cvn->getOffset() != calc_mask(cvn->getSize())) return 0;
-  PcodeOp *addop = multop->getIn(0)->getDef();
-  if (addop == (PcodeOp *)0) return 0;
-  if (addop->code() != CPUI_INT_ADD) return 0;
-  Varnode *spacebasevn = addop->getIn(0);
-  Datatype *ct = spacebasevn->getTypeReadFacing(addop);
-  if (ct->getSubMeta() != SUB_PTR) return false;
-  TypePointer *spaceptrtype = (TypePointer *) ct;
-  Datatype *ptrtotype = spaceptrtype->getPtrTo();
-  if (ptrtotype != spacebasetype) return 0;
-  Varnode *shiftvn = addop->getIn(1);
-  if (!shiftvn->isConstant()) return 0;
-  intb off = sign_extend(shiftvn->getOffset(),8*shiftvn->getSize()-1);
-  return off;
 }
 
 bool RuleInferPointerAdd::getOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size)
@@ -11479,6 +11436,10 @@ Varnode *RuleInferPointerMult::getCounterInitVarnode(PcodeOp *multiop)
 intb RuleInferPointerMult::getCounterIncrement(PcodeOp *op)
 
 {
+  // Increment must be constant
+  Varnode *invn1 = op->getIn(1);
+  if (!invn1->isConstant()) return 0;
+
   PcodeOp *multiop = op->getIn(0)->getDef();
   if (multiop == (PcodeOp *)0) return 0;
   if (multiop->code() != CPUI_MULTIEQUAL) return 0;
@@ -11486,9 +11447,6 @@ intb RuleInferPointerMult::getCounterIncrement(PcodeOp *op)
   Varnode *inmulti1 = multiop->getIn(1);
   // Must loop to intadd
   if (inmulti1->getDef() != op) return 0;
-
-  Varnode *invn1 = op->getIn(1);
-  if (!invn1->isConstant()) return 0;
 
   Varnode *initvn = getCounterInitVarnode(multiop);
   if (initvn == (Varnode *)0) return 0;
