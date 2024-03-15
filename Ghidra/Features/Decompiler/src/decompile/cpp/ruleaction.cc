@@ -11225,6 +11225,8 @@ Varnode *RuleInferPointerAdd::getCounterInitVarnode(PcodeOp *multiop)
 intb RuleInferPointerAdd::getCounterIncrement(PcodeOp *op)
 
 {
+  // Shall not touch if haven't split out other descendants yet
+  if (op->getOut()->loneDescend() == (PcodeOp *)0) return 0;
   // Increment must be constant
   Varnode *invn1 = op->getIn(1);
   if (!invn1->isConstant()) return 0;
