@@ -11313,15 +11313,16 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
   if (increment == 0) return false;
 
   PcodeOp *multiop = op->getIn(0)->getDef();
-  int4 slot;
+  int4 slot; // Slot with constant
   PcodeOp *initop = getCounterInitOp(multiop, slot);
 
   int4 size = initop->getIn(slot)->getSize();
   if (initop == (PcodeOp *)0) return false;
   if (initop->code() != CPUI_INT_ADD) return false;
   if (!initop->getIn(1 - slot)->isSpacebase()) return false;
-  Varnode *spacebasevn = initop->getIn(0);
-  Varnode *cvn = initop->getIn(1);
+  Varnode *spacebasevn = initop->getIn(1 - slot);
+  Varnode *cvn = initop->getIn(slot);
+  if (!cvn->isConstant()) return false;
 
   Varnode *out = multiop->getOut();
   if (out->getSize() != size) return false;
@@ -11345,7 +11346,7 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
   }
   // Also subtract initializer
   data.opSetInput(multiop,data.newConstant(size,0),0);
-  return false;
+  return true;
 }
 
 void RuleInferPointerAdd::getOpList(vector<uint4> &oplist) const
