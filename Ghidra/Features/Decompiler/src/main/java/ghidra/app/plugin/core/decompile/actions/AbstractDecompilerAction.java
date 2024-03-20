@@ -185,9 +185,11 @@ public abstract class AbstractDecompilerAction extends DockingAction {
 			f = DecompilerUtils.getFunction(context.getProgram(), (ClangFuncNameToken) token);
 		}
 		else {
-			HighSymbol highSymbol = token.getHighSymbol(context.getHighFunction());
-			if (highSymbol instanceof HighFunctionShellSymbol) {
-				f = (Function) highSymbol.getSymbol().getObject();
+			if (token != null) {
+				HighSymbol highSymbol = token.getHighSymbol(context.getHighFunction());
+				if (highSymbol instanceof HighFunctionShellSymbol) {
+					f = (Function) highSymbol.getSymbol().getObject();
+				}
 			}
 		}
 		while (f != null && f.isThunk() && f.getSymbol().getSource() == SourceType.DEFAULT) {
