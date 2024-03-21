@@ -369,9 +369,9 @@ public class CreateFunctionCmd extends BackgroundCommand {
 		}
 		try {
 			// check for a thunk first
-			if (resolveThunk(entry, body, monitor)) {
+			/*if (resolveThunk(entry, body, monitor)) {
 				return true;
-			}
+			}*/
 			if (referringThunkAddresses != null) {
 				for (Address addr : referringThunkAddresses) {
 					if (body.contains(addr)) {
