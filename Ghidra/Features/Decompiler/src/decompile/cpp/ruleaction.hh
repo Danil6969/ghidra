@@ -1699,7 +1699,6 @@ public:
 class RuleInferPointerAdd : public Rule {
   bool checkPointerUsages(Varnode *vn);
   PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
-  Varnode *getCounterInitVarnode(PcodeOp *multiop);
   intb getCounterIncrement(PcodeOp *op);
   bool getOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size);
   // Forms for the rule
