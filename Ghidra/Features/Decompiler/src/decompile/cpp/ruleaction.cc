@@ -5955,7 +5955,7 @@ void RuleCancelOutPtrAdd::gatherNegateOps(PcodeOp *op,vector<PcodeOp *> &negateo
   if (op == (PcodeOp *)0) return;
   if (op->code() != CPUI_INT_ADD) return;
 
-  // Search in input ops recursively
+  // Search inside input ops recursively
   gatherNegateOps(op->getIn(0)->getDef(),negateops);
   gatherNegateOps(op->getIn(1)->getDef(),negateops);
 
@@ -11203,8 +11203,8 @@ PcodeOp *RuleInferPointerAdd::getCounterInitOp(PcodeOp *multiop,int4 &slot)
   if (initop != (PcodeOp *)0) {
     if (initop->code() == CPUI_INT_ADD) {
       slot = 1;
-      Varnode *avn = initop->getIn(slot);
-      if (avn->isConstant()) {
+      Varnode *cvn = initop->getIn(slot);
+      if (cvn->isConstant()) {
         if (initop->getOut()->loneDescend() == (PcodeOp *)0) return (PcodeOp *)0;
         return initop;
       }
@@ -11213,35 +11213,30 @@ PcodeOp *RuleInferPointerAdd::getCounterInitOp(PcodeOp *multiop,int4 &slot)
   return (PcodeOp *)0;
 }
 
-Varnode *RuleInferPointerAdd::getCounterInitVarnode(PcodeOp *multiop)
-
-{
-  int4 slot;
-  PcodeOp *op = getCounterInitOp(multiop, slot);
-  if (op == (PcodeOp *)0) return (Varnode *)0;
-  return op->getIn(slot);
-}
-
 intb RuleInferPointerAdd::getCounterIncrement(PcodeOp *op)
 
 {
   // Shall not touch if haven't split out other descendants yet
   if (op->getOut()->loneDescend() == (PcodeOp *)0) return 0;
   // Increment must be constant
-  Varnode *invn1 = op->getIn(1);
-  if (!invn1->isConstant()) return 0;
+  Varnode *cvn = op->getIn(1);
+  if (!cvn->isConstant()) return 0;
 
-  PcodeOp *multiop = op->getIn(0)->getDef();
+  Varnode *invn = op->getIn(0);
+  if (invn->isFree()) return 0;
+  PcodeOp *multiop = invn->getDef();
   if (multiop == (PcodeOp *)0) return 0;
   if (multiop->code() != CPUI_MULTIEQUAL) return 0;
   // Check multi input
-  Varnode *inmulti1 = multiop->getIn(1);
+  Varnode *inmulti = multiop->getIn(1);
   // Must loop to intadd
-  if (inmulti1->getDef() != op) return 0;
+  if (inmulti->getDef() != op) return 0;
+  if (inmulti->isFree()) return 0;
 
-  Varnode *initvn = getCounterInitVarnode(multiop);
-  if (initvn == (Varnode *)0) return 0;
-  return sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
+  int4 slot;
+  PcodeOp *initOp = getCounterInitOp(multiop, slot);
+  if (initOp == (PcodeOp *)0) return 0;
+  return sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
 }
 
 bool RuleInferPointerAdd::getOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size)
@@ -11275,23 +11270,31 @@ bool RuleInferPointerAdd::formConstant(PcodeOp *op,Funcdata &data)
   intb increment = getCounterIncrement(op);
   if (increment == 0) return false;
 
-  PcodeOp *multiop = op->getIn(0)->getDef();
+  PcodeOp *multiOp = op->getIn(0)->getDef();
   int4 slot;
-  PcodeOp *initop = getCounterInitOp(multiop, slot);
+  PcodeOp *initOp = getCounterInitOp(multiOp, slot);
 
   intb shiftOffset;
   intb initialOffset;
   int4 size;
-  if (!getOffsets(op,initop,slot,increment,shiftOffset,initialOffset,size)) return false;
+  if (!getOffsets(op,initOp,slot,increment,shiftOffset,initialOffset,size)) return false;
 
-  Varnode *out = multiop->getOut();
-  if (out->getSize() != size) return false;
-  if (!checkPointerUsages(out)) return false;
+  Varnode *multiOut = multiOp->getOut();
+  if (multiOut->isFree()) return false;
+  if (multiOut->getSize() != size) return false;
+  if (!checkPointerUsages(multiOut)) return false;
 
   // Collect descends
   vector<PcodeOp *> descends;
-  for(list<PcodeOp *>::const_iterator iter=out->beginDescend();iter!=out->endDescend();++iter) {
+  for(list<PcodeOp *>::const_iterator iter=multiOut->beginDescend();iter!=multiOut->endDescend();++iter) {
     PcodeOp *descend = *iter;
+
+    // Check slot repetition
+    int4 firstSlot = descend->getSlot(multiOut);
+    list<PcodeOp *>::const_iterator endIter = multiOut->endDescend();
+    int4 repeatSlot = descend->getRepeatSlot(multiOut,firstSlot,endIter);
+    if (repeatSlot != -1) return false; // Don't know how to handle this case yet
+
     // Main op isn't processed
     if (descend == op) continue;
     descends.push_back(descend);
@@ -11299,12 +11302,12 @@ bool RuleInferPointerAdd::formConstant(PcodeOp *op,Funcdata &data)
 
   for(vector<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
     PcodeOp *descend = *iter;
-    PcodeOp *newop = data.newOpAfter(multiop,CPUI_INT_ADD,out,data.newConstant(size,shiftOffset&calc_mask(size)));
-    int4 slot = descend->getSlot(out);
+    PcodeOp *newop = data.newOpAfter(multiOp,CPUI_INT_ADD,multiOut,data.newConstant(size,shiftOffset&calc_mask(size)));
+    int4 slot = descend->getSlot(multiOut);
     data.opSetInput(descend,newop->getOut(),slot);
   }
   // Also subtract initializer
-  data.opSetInput(initop,data.newConstant(size,initialOffset-shiftOffset),slot);
+  data.opSetInput(initOp,data.newConstant(size,initialOffset-shiftOffset),slot);
   return true;
 }
 
@@ -11314,40 +11317,50 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
   intb increment = getCounterIncrement(op);
   if (increment == 0) return false;
 
-  PcodeOp *multiop = op->getIn(0)->getDef();
+  PcodeOp *multiOp = op->getIn(0)->getDef();
   int4 slot; // Slot with constant
-  PcodeOp *initop = getCounterInitOp(multiop, slot);
+  PcodeOp *initOp = getCounterInitOp(multiOp, slot);
 
-  int4 size = initop->getIn(slot)->getSize();
-  if (initop == (PcodeOp *)0) return false;
-  if (initop->code() != CPUI_INT_ADD) return false;
-  if (!initop->getIn(1 - slot)->isSpacebase()) return false;
-  Varnode *spacebasevn = initop->getIn(1 - slot);
-  Varnode *cvn = initop->getIn(slot);
+  if (initOp == (PcodeOp *)0) return false;
+  if (initOp->code() != CPUI_INT_ADD) return false;
+  Varnode *cvn = initOp->getIn(slot);
   if (!cvn->isConstant()) return false;
+  int4 size = cvn->getSize();
+  Varnode *spacebasevn = initOp->getIn(1 - slot);
+  if (spacebasevn->isFree()) return false;
+  if (!spacebasevn->isSpacebase()) return false;
+  Varnode *initopOut = initOp->getOut();
+  if (initopOut->isFree()) return false;
 
-  Varnode *out = multiop->getOut();
-  if (out->getSize() != size) return false;
-  if (!checkPointerUsages(out)) return false;
+  Varnode *multiOut = multiOp->getOut();
+  if (multiOut->isFree()) return false;
+  if (multiOut->getSize() != size) return false;
+  if (!checkPointerUsages(multiOut)) return false;
 
   // Collect descends
   vector<PcodeOp *> descends;
-  for(list<PcodeOp *>::const_iterator iter=out->beginDescend();iter!=out->endDescend();++iter) {
+  for(list<PcodeOp *>::const_iterator iter=multiOut->beginDescend();iter!=multiOut->endDescend();++iter) {
     PcodeOp *descend = *iter;
+
+    // Check slot repetition
+    int4 firstSlot = descend->getSlot(multiOut);
+    list<PcodeOp *>::const_iterator endIter = multiOut->endDescend();
+    int4 repeatSlot = descend->getRepeatSlot(multiOut,firstSlot,endIter);
+    if (repeatSlot != -1) return false; // Don't know how to handle this case yet
+
     // Main op isn't processed
-    if (descend == op)
-      continue;
+    if (descend == op) continue;
     descends.push_back(descend);
   }
 
   for(vector<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
     PcodeOp *descend = *iter;
-    PcodeOp *newop = data.newOpAfter(multiop,CPUI_INT_ADD,out,initop->getOut());
-    int4 slot = descend->getSlot(out);
+    PcodeOp *newop = data.newOpAfter(multiOp,CPUI_INT_ADD,multiOut,initopOut);
+    int4 slot = descend->getSlot(multiOut);
     data.opSetInput(descend,newop->getOut(),slot);
   }
   // Also subtract initializer
-  data.opSetInput(multiop,data.newConstant(size,0),0);
+  data.opSetInput(multiOp,data.newConstant(size,0),0);
   return true;
 }
 
