@@ -675,6 +675,17 @@ int4 RuleTermOrder::applyOp(PcodeOp *op,Funcdata &data)
     data.opSwapInput(op,0,1);	// Reverse the order of the terms
     return 1;
   }
+  if (op->code() == CPUI_INT_ADD) {
+    PcodeOp *inOp1 = vn1->getDef();
+    if (inOp1 != (PcodeOp *)0) {
+      if (inOp1->code() == CPUI_INT_MULT) return 0;
+    }
+    PcodeOp *inOp2 = vn2->getDef();
+    if (inOp2 == (PcodeOp *)0) return 0;
+    if (inOp2->code() != CPUI_INT_MULT) return 0;
+    data.opSwapInput(op,0,1);
+    return 1;
+  }
   return 0;
 }
 
@@ -3959,9 +3970,9 @@ bool RuleAddMultCollapse::form3(PcodeOp *op,Funcdata &data)
 /// \brief Collapse constants in an additive or multiplicative expression
 ///
 /// Forms include:
-///  - `((V + c) + d)  =>  V + (c+d)`
-///  - `((V * c) * d)  =>  V * (c*d)`
-///  - `((V + (W + c)) + d)  =>  (W + (c+d)) + V`
+///  - `(V + c) + d  =>  V + (c+d)`
+///  - `(V * c) * d  =>  V * (c*d)`
+///  - `(V + (W + c)) + d  =>  (W + (c+d)) + V`
 void RuleAddMultCollapse::getOpList(vector<uint4> &oplist) const
 
 {
@@ -11373,7 +11384,7 @@ void RuleInferPointerAdd::getOpList(vector<uint4> &oplist) const
 /// \class RuleInferPointerAdd
 /// \brief Infer pointer counter addition everywhere it is used but make assignments simpler instead
 /// Only possible if writen twice. First is the initializer and the second is the increment:
-///  - `i = x; ... = i; i = i + y => i = 0; ... = i + x; i = i + y`
+///  - `V = W + X; ... = V; V = V + c => V = W; ... = V + X; V = V + c`
 int4 RuleInferPointerAdd::applyOp(PcodeOp *op,Funcdata &data)
 
 {
@@ -11480,7 +11491,7 @@ void RuleInferPointerMult::getOpList(vector<uint4> &oplist) const
 /// \class RuleInferPointerMult
 /// \brief Infer pointer counter multiplication everywhere it is used but make assignments simpler instead
 /// Only possible if writen twice. First is the initializer and the second is the increment:
-///  - `i = x * n; ... = i; i = i + y * n => i = x; ... = i * n; i = i + y`
+///  - `V = W * c; ... = V; V = V + d*c => V = W; ... = V * c; V = V + d`
 int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
 
 {
