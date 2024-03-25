@@ -6860,10 +6860,11 @@ int4 RulePtrArith::evaluatePointerExpression(PcodeOp *op,int4 slot)
 {
   int4 res = 1;		// Assume we are going to push
   int4 count = 0;	// Count descendants
+  Varnode *othervn = op->getIn(1 - slot);
   Varnode *ptrBase = op->getIn(slot);
   if (ptrBase->isFree() && !ptrBase->isConstant())
     return 0;
-  if (op->getIn(1 - slot)->getTypeReadFacing(op)->getMetatype() == TYPE_PTR)
+  if (othervn->getTypeReadFacing(op)->getMetatype() == TYPE_PTR)
     res = 2;
   Varnode *outVn = op->getOut();
   list<PcodeOp *>::const_iterator iter;
@@ -6880,7 +6881,7 @@ int4 RulePtrArith::evaluatePointerExpression(PcodeOp *op,int4 slot)
     }
     else if ((opc == CPUI_LOAD || opc == CPUI_STORE) && decOp->getIn(1) == outVn) {	// If use is as pointer for LOAD or STORE
       if (ptrBase->isSpacebase() && (ptrBase->isInput()||(ptrBase->isConstant())) &&
-          (op->getIn(1-slot)->isConstant()))
+          (othervn->isConstant()))
 	return 0;
       res = 2;
     }
