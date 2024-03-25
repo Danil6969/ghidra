@@ -647,11 +647,72 @@ int4 RuleEquality::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+bool RuleTermOrder::form1(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *vn1 = op->getIn(0);
+  Varnode *vn2 = op->getIn(1);
+
+  if (!vn1->isConstant()) return false;
+  if (vn2->isConstant()) return false;
+  data.opSwapInput(op,0,1);	// Reverse the order of the terms
+  return true;
+}
+
+bool RuleTermOrder::form2(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *vn1 = op->getIn(0);
+  Varnode *vn2 = op->getIn(1);
+
+  if (op->code() != CPUI_INT_ADD) return false;
+  PcodeOp *inOp1 = vn1->getDef();
+  if (inOp1 != (PcodeOp *)0) {
+    if (inOp1->code() == CPUI_INT_MULT) return false;
+  }
+  PcodeOp *inOp2 = vn2->getDef();
+  if (inOp2 == (PcodeOp *)0) return false;
+  if (inOp2->code() != CPUI_INT_MULT) return false;
+  data.opSwapInput(op,0,1);
+  return true;
+}
+
+bool RuleTermOrder::form3(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *vn1 = op->getIn(0);
+  Varnode *vn2 = op->getIn(1);
+
+  if (op->code() != CPUI_INT_ADD) return false;
+  if (!vn1->isConstant()) {
+    if (vn1->isFree()) return false;
+  }
+  PcodeOp *inOp = vn2->getDef();
+  if (inOp == (PcodeOp *)0) return false;
+  if (inOp->code() != CPUI_INT_ADD) return false;
+  Varnode *invn1 = inOp->getIn(0);
+  if (!invn1->isConstant()) {
+    if (invn1->isFree()) return false;
+  }
+  Varnode *invn2 = inOp->getIn(1);
+  if (!invn2->isConstant()) {
+    if (invn2->isFree()) return false;
+  }
+  PcodeOp *newop = data.newOpBefore(op,CPUI_INT_ADD,vn1,invn1);
+  data.opSetInput(op,newop->getOut(),0);
+  data.opSetInput(op,invn2,1);
+  return true;
+}
+
 /// \class RuleTermOrder
 /// \brief Order the inputs to commutative operations
 ///
 /// Constants always come last in particular which eliminates
 /// some of the combinatorial explosion of expression variations.
+/// Forms include:
+///  - `c + V  =>  V + c`
+///  - `V + (W * X)  =>  (W * X) + V`
+///  - `V + (W + X)  =>  (V + W) + X`
 void RuleTermOrder::getOpList(vector<uint4> &oplist) const
 
 {
@@ -668,24 +729,9 @@ void RuleTermOrder::getOpList(vector<uint4> &oplist) const
 int4 RuleTermOrder::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  Varnode *vn1 = op->getIn(0);
-  Varnode *vn2 = op->getIn(1);
-
-  if (vn1->isConstant() && (!vn2->isConstant())) {
-    data.opSwapInput(op,0,1);	// Reverse the order of the terms
-    return 1;
-  }
-  if (op->code() == CPUI_INT_ADD) {
-    PcodeOp *inOp1 = vn1->getDef();
-    if (inOp1 != (PcodeOp *)0) {
-      if (inOp1->code() == CPUI_INT_MULT) return 0;
-    }
-    PcodeOp *inOp2 = vn2->getDef();
-    if (inOp2 == (PcodeOp *)0) return 0;
-    if (inOp2->code() != CPUI_INT_MULT) return 0;
-    data.opSwapInput(op,0,1);
-    return 1;
-  }
+  if (form1(op,data)) return 1;
+  if (form2(op,data)) return 1;
+  //if (form3(op,data)) return 1;
   return 0;
 }
 
@@ -11497,6 +11543,7 @@ void RuleInferPointerMult::getOpList(vector<uint4> &oplist) const
 int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
 
 {
+  if (!data.hasTypeRecoveryStarted()) return 0;
   intb increment = getCounterIncrement(op);
   if (increment == 0) return 0;
   if (increment == 1) return 0;
