@@ -253,6 +253,9 @@ public:
 };
 // Reversible rules
 class RuleTermOrder : public Rule {
+  bool form1(PcodeOp *op,Funcdata &data);
+  bool form2(PcodeOp *op,Funcdata &data);
+  bool form3(PcodeOp *op,Funcdata &data);
 public:
   RuleTermOrder(const string &g) : Rule(g, 0, "termorder") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
@@ -1717,7 +1720,6 @@ public:
 class RuleInferPointerMult : public Rule {
   bool checkPointerUsages(Varnode *vn);
   PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
-  Varnode *getCounterInitVarnode(PcodeOp *multiop);
   intb getCounterIncrement(PcodeOp *op);
 public:
   RuleInferPointerMult(const string &g) : Rule(g,0,"inferpointermult") {}	///< Constructor
