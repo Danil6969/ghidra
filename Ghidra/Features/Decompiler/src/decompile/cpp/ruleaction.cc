@@ -6864,6 +6864,16 @@ int4 RulePtrArith::evaluatePointerExpression(PcodeOp *op,int4 slot)
   Varnode *ptrBase = op->getIn(slot);
   if (ptrBase->isFree() && !ptrBase->isConstant())
     return 0;
+  PcodeOp *ptrBaseOp = ptrBase->getDef();
+  if (ptrBaseOp != (PcodeOp *)0 && ptrBaseOp->code() == CPUI_PTRSUB) {
+    Datatype *ct1 = ptrBase->getTypeReadFacing(op);
+    Datatype *ct2 = ptrBaseOp->getIn(0)->getTypeReadFacing(ptrBaseOp);
+    if (ct1 == ct2) {
+      if (!othervn->isConstant()) {
+	return 0;
+      }
+    }
+  }
   if (othervn->getTypeReadFacing(op)->getMetatype() == TYPE_PTR)
     res = 2;
   Varnode *outVn = op->getOut();
