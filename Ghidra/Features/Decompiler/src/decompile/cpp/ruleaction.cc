@@ -11240,9 +11240,11 @@ intb RuleInferPointerAdd::getCounterIncrement(PcodeOp *op)
   if (multiop->code() != CPUI_MULTIEQUAL) return 0;
   // Check multi input
   Varnode *inmulti = multiop->getIn(1);
-  // Must loop to intadd
-  if (inmulti->getDef() != op) return 0;
   if (inmulti->isFree()) return 0;
+  PcodeOp *inadd = inmulti->getDef();
+  if (inadd == (PcodeOp *)0) return 0;
+  // Must loop to intadd
+  if (inadd != op) return 0;
 
   int4 slot;
   PcodeOp *initOp = getCounterInitOp(multiop, slot);
@@ -11398,23 +11400,26 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn)
 {
   for(list<PcodeOp *>::const_iterator iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
     PcodeOp *op = *iter;
-    if (op->code() != CPUI_INT_ADD) continue;
-    Varnode *out = op->getOut();
-    if (out == (Varnode *)0) continue;
-    PcodeOp *descend = out->loneDescend();
-    if (descend == (PcodeOp *)0) continue;
-
+    PcodeOp *descend = op;
     OpCode opc = descend->code();
+    if (opc != CPUI_INT_ADD) continue;
+    Varnode *out = vn;
+    PcodeOp *addop = op;
+    if (!addop->containsInput(out)) return false;
+    int4 slot = addop->getSlot(out);
     while (opc == CPUI_INT_ADD) {
-      descend = descend->getOut()->loneDescend();
+      addop = descend;
+      if (!addop->containsInput(out)) return false;
+      slot = addop->getSlot(out);
+      out = descend->getOut();
+      descend = out->loneDescend();
       if (descend == (PcodeOp *)0) break;
       opc = descend->code();
     }
 
     if (descend == (PcodeOp *)0) continue;
     opc = descend->code();
-    if (opc == CPUI_LOAD) return true;
-    if (opc == CPUI_STORE) return true;
+    if (opc == CPUI_LOAD || opc == CPUI_STORE) return true;
   }
   return false;
 }
@@ -11451,15 +11456,6 @@ PcodeOp *RuleInferPointerMult::getCounterInitOp(PcodeOp *multiop,int4 &slot)
   return (PcodeOp *)0;
 }
 
-Varnode *RuleInferPointerMult::getCounterInitVarnode(PcodeOp *multiop)
-
-{
-  int4 slot;
-  PcodeOp *op = getCounterInitOp(multiop, slot);
-  if (op == (PcodeOp *)0) return (Varnode *)0;
-  return op->getIn(slot);
-}
-
 intb RuleInferPointerMult::getCounterIncrement(PcodeOp *op)
 
 {
@@ -11469,15 +11465,21 @@ intb RuleInferPointerMult::getCounterIncrement(PcodeOp *op)
   Varnode *invn1 = op->getIn(1);
   if (!invn1->isConstant()) return 0;
 
-  PcodeOp *multiop = op->getIn(0)->getDef();
+  Varnode *invn0 = op->getIn(0);
+  if (invn0->isFree()) return 0;
+  PcodeOp *multiop = invn0->getDef();
   if (multiop == (PcodeOp *)0) return 0;
   if (multiop->code() != CPUI_MULTIEQUAL) return 0;
   // Check multi input
   Varnode *inmulti1 = multiop->getIn(1);
+  if (inmulti1->isFree()) return 0;
   // Must loop to intadd
   if (inmulti1->getDef() != op) return 0;
 
-  Varnode *initvn = getCounterInitVarnode(multiop);
+  int4 slot;
+  PcodeOp *initop = getCounterInitOp(multiop, slot);
+  if (initop == (PcodeOp *)0) return 0;
+  Varnode *initvn = initop->getIn(slot);
   if (initvn == (Varnode *)0) return 0;
   return sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
 }
@@ -11500,7 +11502,9 @@ int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
   if (increment == 1) return 0;
   if (increment == -1) return 0;
 
-  PcodeOp *multiop = op->getIn(0)->getDef();
+  Varnode *invn0 = op->getIn(0);
+  if (invn0->isFree()) return 0;
+  PcodeOp *multiop = invn0->getDef();
   int4 slot;
   PcodeOp *initop = getCounterInitOp(multiop, slot);
   if (initop == 0) return 0;
@@ -11512,6 +11516,7 @@ int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
   if (a % b != 0) return 0;
 
   Varnode *out = multiop->getOut();
+  if (out->isFree()) return 0;
   if (!checkPointerUsages(out)) return 0;
 
   // Collect descends
@@ -11615,10 +11620,10 @@ bool RulePointerComparison::getOffset(Varnode* vn,intb &offset)
       case CPUI_PTRADD:
 	in1 = op->getIn(1);
 	in2 = op->getIn(2);
-	if (!in1->isConstant()) return false;
-	if (!in2->isConstant()) return false;
-	val1 = sign_extend(in1->getOffset(),8*in1->getSize()-1); // Cannot fetch constant
-	val2 = sign_extend(in2->getOffset(),8*in2->getSize()-1); // Cannot fetch constant
+	if (!in1->isConstant()) return false; // Cannot fetch constant
+	if (!in2->isConstant()) return false; // Cannot fetch constant
+	val1 = sign_extend(in1->getOffset(),8*in1->getSize()-1);
+	val2 = sign_extend(in2->getOffset(),8*in2->getSize()-1);
 	offset += val1*val2;
 	currentVn = op->getIn(0);
 	break;
