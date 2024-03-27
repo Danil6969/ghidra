@@ -6241,7 +6241,8 @@ bool AddTreeState::initAlternateForm(void)
   else
     size = AddrSpace::byteToAddressInt(baseType->getAlignSize(),ct->getWordSize());
   int4 unitsize = AddrSpace::addressToByteInt(1,ct->getWordSize());
-  isDegenerate = (baseType->getAlignSize() <= unitsize && baseType->getAlignSize() > 0);
+  int4 alignSize = baseType->getAlignSize();
+  isDegenerate = (alignSize <= unitsize && alignSize > 0);
   preventDistribution = false;
   clear();
   return true;
@@ -6580,8 +6581,12 @@ void AddTreeState::calcSubtype(void)
     offset = 0;
   }
   else {
-    // No struct or array, but nonmult is non-empty
-    valid = false;			// There is substructure we don't know about
+    if ((multsum == 0) && multiple.empty()) { // Unless there is something
+      // No struct or array, but nonmult is non-empty
+      valid = false;                        // There is substructure we don't know about
+      return;
+    }
+    isSubtype = false; // Otherwise there are no offsets INTO the pointer
   }
 }
 
