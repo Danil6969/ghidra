@@ -6278,7 +6278,8 @@ AddTreeState::AddTreeState(Funcdata &d,PcodeOp *op,int4 slot)
   isSubtype = false;
   distributeOp = (PcodeOp *)0;
   int4 unitsize = AddrSpace::addressToByteInt(1,ct->getWordSize());
-  isDegenerate = (baseType->getAlignSize() <= unitsize && baseType->getAlignSize() > 0);
+  int4 alignSize = baseType->getAlignSize();
+  isDegenerate = (alignSize <= unitsize && alignSize > 0);
 }
 
 /// Even if the current base data-type is not an array, the pointer expression may incorporate
