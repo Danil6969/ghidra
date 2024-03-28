@@ -923,6 +923,12 @@ TypeOpEqual::TypeOpEqual(TypeFactory *t)
   behave = new OpBehaviorEqual();
 }
 
+Datatype *TypeOpEqual::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  return TypeOpBinary::getInputLocal(op,slot);
+}
+
 Datatype *TypeOpEqual::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
 
 {
@@ -986,6 +992,12 @@ TypeOpNotEqual::TypeOpNotEqual(TypeFactory *t)
   opflags = PcodeOp::binary | PcodeOp::booloutput | PcodeOp::commutative;
   addlflags = inherits_sign;
   behave = new OpBehaviorNotEqual();
+}
+
+Datatype *TypeOpNotEqual::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  return TypeOpBinary::getInputLocal(op,slot);
 }
 
 Datatype *TypeOpNotEqual::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
