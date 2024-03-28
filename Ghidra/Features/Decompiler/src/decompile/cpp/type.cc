@@ -135,9 +135,12 @@ bool Datatype::hasSameVariableBase(const Datatype *ct) const
 bool Datatype::isMemsizeType(void) const
 
 {
+  if (dynamic_cast<const TypeBase *>(this) == (TypeBase *)0) return false;
   string nm = getDisplayName();
   if (nm == "uintptr_t") return true;
   if (nm == "intptr_t") return true;
+  if (nm == "size_t") return true;
+  if (nm == "ptrdiff_t") return true;
   return false;
 }
 
@@ -795,6 +798,7 @@ void TypeField::encode(Encoder &encoder) const
 
 int4 TypeBase::compare(const Datatype &op,int4 level) const
 {
+  // memsize types are preferred but only by themselves
   if (isMemsizeType()) {
     type_metatype meta = op.getMetatype();
     if (meta == TYPE_INT || meta == TYPE_UINT) {
@@ -950,6 +954,19 @@ int4 TypePointer::compare(const Datatype &op,int4 level) const
   if (level < 0) {
     if (id == op.getId()) return 0;
     return (id < op.getId()) ? -1 : 1;
+  }
+  // pointers to memsize and fixed datatypes are of the same priority
+  if (ptrto->isMemsizeType()) {
+    type_metatype meta = tp->ptrto->getMetatype();
+    if (meta == TYPE_INT || meta == TYPE_UINT) {
+      return 0;
+    }
+  }
+  if (tp->ptrto->isMemsizeType()) {
+    type_metatype meta = ptrto->getMetatype();
+    if (meta == TYPE_INT || meta == TYPE_UINT) {
+      return 0;
+    }
   }
   return ptrto->compare(*tp->ptrto,level); // Compare whats pointed to
 }
