@@ -318,7 +318,7 @@ public abstract class AbstractIntegerDataType extends BuiltIn implements ArraySt
 		switch (format) {
 			default:
 			case FormatSettingsDefinition.HEX:
-				valStr = bigInt.toString(16).toUpperCase() + "h";
+				valStr = "0x" + bigInt.toString(16).toUpperCase();
 				nominalLen = (bitLength + 3) / 4;
 				break;
 			case FormatSettingsDefinition.DECIMAL:
