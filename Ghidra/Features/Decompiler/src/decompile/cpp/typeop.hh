@@ -190,6 +190,9 @@ class TypeOpBinary : public TypeOp {
   type_metatype metain;		///< The metatype of the inputs
   virtual void setMetatypeIn(type_metatype val) { metain = val; }
   virtual void setMetatypeOut(type_metatype val) { metaout = val; }
+protected:
+  virtual type_metatype getMetatypeIn(void) const { return metain; }
+  virtual type_metatype getMetatypeOut(void) const { return metaout; }
 public:
   TypeOpBinary(TypeFactory *t,OpCode opc,const string &n,type_metatype mout,type_metatype min)
     : TypeOp(t,opc,n) { metaout = mout; metain = min; }	///< Constructor
@@ -343,6 +346,7 @@ class TypeOpEqual : public TypeOpBinary {
 public:
   TypeOpEqual(TypeFactory *t);			///< Constructor
   virtual void push(PrintLanguage *lng,const PcodeOp *op,const PcodeOp *readOp) const { lng->opIntEqual(op); }
+  virtual Datatype *getInputLocal(const PcodeOp *op,int4 slot) const;
   virtual Datatype *getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const;
   virtual Datatype *propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn,Varnode *outvn,
 				  int4 inslot,int4 outslot);
@@ -355,6 +359,7 @@ class TypeOpNotEqual : public TypeOpBinary {
 public:
   TypeOpNotEqual(TypeFactory *t);			///< Constructor
   virtual void push(PrintLanguage *lng,const PcodeOp *op,const PcodeOp *readOp) const { lng->opIntNotEqual(op); }
+  virtual Datatype *getInputLocal(const PcodeOp *op,int4 slot) const;
   virtual Datatype *getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const;
   virtual Datatype *propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn,Varnode *outvn,
 				  int4 inslot,int4 outslot);
