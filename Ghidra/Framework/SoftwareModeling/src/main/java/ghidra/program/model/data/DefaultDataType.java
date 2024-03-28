@@ -70,10 +70,11 @@ public class DefaultDataType extends DataTypeImpl {
 	public String getRepresentation(MemBuffer buf, Settings settings, int length) {
 		try {
 			int b = buf.getByte(0) & 0xff;
-			String rep = Integer.toHexString(b).toUpperCase() + "h";
-			if (rep.length() == 2) {
+			String rep = Integer.toHexString(b).toUpperCase();
+			if (rep.length() == 1) {
 				rep = "0" + rep;
 			}
+			rep = "0x" + rep;
 			if (b > 31 && b < 128) {
 				rep += "    " + ((char) b);
 			}
