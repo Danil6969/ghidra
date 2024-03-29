@@ -88,7 +88,8 @@ public class Undefined3DataType extends Undefined {
 		try {
 			long b = getValue(buf);
 			val = Long.toHexString(b).toUpperCase();
-			val = StringFormat.padIt(val, 6, 'h', true);
+			val = StringFormat.padIt(val, 6, '\0', true);
+			val = "0x" + val;
 		}
 		catch (MemoryAccessException e) {
 		}
