@@ -89,7 +89,8 @@ public class Undefined7DataType extends Undefined {
 		try {
 			long b = getValue(buf);
 			val = Long.toHexString(b).toUpperCase();
-			val = StringFormat.padIt(val, 14, 'h', true);
+			val = StringFormat.padIt(val, 14, '\0', true);
+			val = "0x" + val;
 		}
 		catch (MemoryAccessException e) {
 		}
