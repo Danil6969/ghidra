@@ -88,7 +88,8 @@ public class Undefined10DataType extends Undefined {
 		}
 		BigInteger bi = (BigInteger)b;
 		val = bi.toString(16).toUpperCase();
-		val = StringFormat.padIt(val, 20, 'h', true);
+		val = StringFormat.padIt(val, 20, '\0', true);
+		val = "0x" + val;
 
 		return val;
 	}
