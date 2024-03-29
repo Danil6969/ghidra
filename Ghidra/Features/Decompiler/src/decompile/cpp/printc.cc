@@ -2086,7 +2086,7 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
       push_integer(val,ct->getSize(),true,tag,vn,op);
     return;
   case TYPE_UNKNOWN:
-    push_integer(val,ct->getSize(),false,tag,vn,op);
+    push_integer(val,ct->getSize(),true,tag,vn,op);
     return;
   case TYPE_BOOL:
     pushBoolConstant(val,(const TypeBase *)ct,tag,vn,op);
