@@ -6327,12 +6327,15 @@ uint4 AddTreeState::findArrayHint(void) const
 bool AddTreeState::hasMatchingSubType(int8 off,uint4 arrayHint,int8 *newoff) const
 
 {
+  Datatype *typeBefore = (Datatype *)0;
+  Datatype *typeAfter = (Datatype *)0;
+
   if (arrayHint == 0)
     return (baseType->getSubType(off,newoff) != (Datatype *)0);
 
   int8 elSizeBefore;
   int8 offBefore;
-  Datatype *typeBefore = baseType->nearestArrayedComponentBackward(off, &offBefore, &elSizeBefore);
+  typeBefore = baseType->nearestArrayedComponentBackward(off, &offBefore, &elSizeBefore);
   if (typeBefore != (Datatype *)0) {
     if (arrayHint == 1 || elSizeBefore == arrayHint) {
       int8 sizeAddr = AddrSpace::byteToAddressInt(typeBefore->getSize(),ct->getWordSize());
@@ -6345,7 +6348,7 @@ bool AddTreeState::hasMatchingSubType(int8 off,uint4 arrayHint,int8 *newoff) con
   }
   int8 elSizeAfter;
   int8 offAfter;
-  Datatype *typeAfter = baseType->nearestArrayedComponentForward(off, &offAfter, &elSizeAfter);
+  //typeAfter = baseType->nearestArrayedComponentForward(off, &offAfter, &elSizeAfter);
   if (typeBefore == (Datatype *)0 && typeAfter == (Datatype *)0)
     return (baseType->getSubType(off,newoff) != (Datatype *)0);
   if (typeBefore == (Datatype *)0) {
