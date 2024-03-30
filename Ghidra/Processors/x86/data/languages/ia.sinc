@@ -2604,11 +2604,11 @@ define pcodeop cpuid_brand_part3_info;
                                                   EDX = rem:4;
                                                   build check_EDX_dest; }
 @ifdef IA64
-define pcodeop udiv128; #udiv128(ulonglong highDividend,ulonglong lowDividend,ulonglong divisor)
-define pcodeop urem128; #urem128(ulonglong highDividend,ulonglong lowDividend,ulonglong divisor)
+define pcodeop udiv128_64; #udiv128_64(ulonglong highDividend,ulonglong lowDividend,ulonglong divisor)
+define pcodeop urem128_64; #urem128_64(ulonglong highDividend,ulonglong lowDividend,ulonglong divisor)
 :DIV rm64       is $(LONGMODE_ON) & vexMode=0 & opsize=2 & byte=0xf7; rm64 & reg_opcode=6 ...    { # DE exception if quotient doesn't fit in RAX
-                                                  local quotient:8 = udiv128(RDX,RAX,rm64);
-                                                  local rem:8 = urem128(RDX,RAX,rm64);
+                                                  local quotient:8 = udiv128_64(RDX,RAX,rm64);
+                                                  local rem:8 = urem128_64(RDX,RAX,rm64);
                                                   RAX = quotient;
                                                   RDX = rem; }
 @endif
