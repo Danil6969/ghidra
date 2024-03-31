@@ -1718,7 +1718,7 @@ public:
 };
 
 class RuleInferPointerMult : public Rule {
-  bool checkPointerUsages(Varnode *vn);
+  static bool checkPointerUsages(Varnode *vn,Funcdata &data);
   static PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
   static intb getCounterIncrement(PcodeOp *op);
 public:

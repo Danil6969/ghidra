@@ -11484,12 +11484,12 @@ bool RuleInferPointerMult::canProcess(PcodeOp *op,Funcdata &data)
 
   Varnode *out = multiop->getOut();
   if (out->isFree()) return 0;
-  if (!checkPointerUsages(out)) return 0;
+  if (!checkPointerUsages(out,data)) return 0;
 
   return true;
 }
 
-bool RuleInferPointerMult::checkPointerUsages(Varnode *vn)
+bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,Funcdata &data)
 
 {
   for(list<PcodeOp *>::const_iterator iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
@@ -11515,6 +11515,10 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn)
     opc = descend->code();
     if (opc == CPUI_LOAD || opc == CPUI_STORE) {
       return true;
+    }
+    if (opc = CPUI_CALL) {
+      FuncCallSpecs *fc = data.getCallSpecs(descend);
+      if (fc == (FuncCallSpecs *)0) continue;
     }
   }
   return false;
@@ -11614,7 +11618,7 @@ int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
 
   Varnode *out = multiop->getOut();
   if (out->isFree()) return 0;
-  if (!checkPointerUsages(out)) return 0;
+  if (!checkPointerUsages(out,data)) return 0;
 
   // Collect descends
   vector<PcodeOp *> descends;
