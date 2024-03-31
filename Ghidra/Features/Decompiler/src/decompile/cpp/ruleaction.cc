@@ -11237,15 +11237,9 @@ bool RuleInferPointerAdd::checkPointerUsages(Varnode *vn)
     PcodeOp *op = *iter;
     PcodeOp *descend = op;
     OpCode opc = descend->code();
-    if (!(opc == CPUI_INT_ADD || opc == CPUI_INT_MULT)) continue;
     Varnode *out = vn;
-    PcodeOp *addop = op;
-    if (!addop->containsInput(out)) return false;
-    int4 addslot = addop->getSlot(out);
+    if (!(opc == CPUI_INT_ADD || opc == CPUI_INT_MULT)) continue;
     while (opc == CPUI_INT_ADD || opc == CPUI_INT_MULT) {
-      addop = descend;
-      if (!addop->containsInput(out)) return false;
-      addslot = addop->getSlot(out);
       out = descend->getOut();
       descend = out->loneDescend();
       if (descend == (PcodeOp *)0) break;
@@ -11468,7 +11462,6 @@ int4 RuleInferPointerAdd::applyOp(PcodeOp *op,Funcdata &data)
 bool RuleInferPointerMult::canProcess(PcodeOp *op,Funcdata &data)
 
 {
-  if (!data.hasTypeRecoveryStarted()) return false;
   intb increment = getCounterIncrement(op);
   if (increment == 0) return false;
   if (increment == 1) return false;
