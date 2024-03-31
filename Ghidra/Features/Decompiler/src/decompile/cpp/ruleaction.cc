@@ -11461,6 +11461,17 @@ int4 RuleInferPointerAdd::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
+bool RuleInferPointerMult::canProcess(PcodeOp *op,Funcdata &data)
+
+{
+  if (!data.hasTypeRecoveryStarted()) return false;
+  intb increment = getCounterIncrement(op);
+  if (increment == 0) return false;
+  if (increment == 1) return false;
+  if (increment == -1) return false;
+  return true;
+}
+
 bool RuleInferPointerMult::checkPointerUsages(Varnode *vn)
 
 {
@@ -11485,7 +11496,11 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn)
 
     if (descend == (PcodeOp *)0) continue;
     opc = descend->code();
-    if (opc == CPUI_LOAD || opc == CPUI_STORE) return true;
+    if (opc == CPUI_LOAD || opc == CPUI_STORE) {
+      bool ispreferred0 = RulePtrArith::verifyPreferredPointer(addop,slot);
+      bool ispreferred1 = RulePtrArith::verifyPreferredPointer(addop,1-slot);
+      return true;
+    }
   }
   return false;
 }
@@ -11525,8 +11540,6 @@ PcodeOp *RuleInferPointerMult::getCounterInitOp(PcodeOp *multiop,int4 &slot)
 intb RuleInferPointerMult::getCounterIncrement(PcodeOp *op)
 
 {
-  // Shall not touch if haven't split out other descendants yet
-  if (op->getOut()->loneDescend() == (PcodeOp *)0) return 0;
   // Increment must be constant
   Varnode *invn1 = op->getIn(1);
   if (!invn1->isConstant()) return 0;
@@ -11564,6 +11577,8 @@ int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
 
 {
   if (!data.hasTypeRecoveryStarted()) return 0;
+  // Shall not touch if haven't split out other descendants yet
+  if (op->getOut()->loneDescend() == (PcodeOp *)0) return 0;
   intb increment = getCounterIncrement(op);
   if (increment == 0) return 0;
   if (increment == 1) return 0;
