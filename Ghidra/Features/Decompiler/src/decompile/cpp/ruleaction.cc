@@ -11484,7 +11484,6 @@ bool RuleInferPointerMult::canProcess(PcodeOp *op,Funcdata &data)
 
   Varnode *out = multiop->getOut();
   if (out->isFree()) return 0;
-  if (!checkPointerUsages(out,data)) return 0;
 
   return true;
 }
