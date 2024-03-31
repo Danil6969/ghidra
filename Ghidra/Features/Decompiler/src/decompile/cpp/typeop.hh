@@ -562,6 +562,7 @@ class TypeOpIntMult : public TypeOpBinary {
 public:
   TypeOpIntMult(TypeFactory *t);			///< Constructor
   virtual void push(PrintLanguage *lng,const PcodeOp *op,const PcodeOp *readOp) const { lng->opIntMult(op); }
+  virtual Datatype *getInputLocal(const PcodeOp *op,int4 slot) const;
   virtual Datatype *getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const;
 };
 
