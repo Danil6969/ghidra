@@ -1781,6 +1781,12 @@ TypeOpIntMult::TypeOpIntMult(TypeFactory *t)
   behave = new OpBehaviorIntMult();
 }
 
+Datatype *TypeOpIntMult::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
+}
+
 Datatype *TypeOpIntMult::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
 
 {
