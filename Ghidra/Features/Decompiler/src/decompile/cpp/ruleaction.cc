@@ -11479,15 +11479,15 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn)
     PcodeOp *op = *iter;
     PcodeOp *descend = op;
     OpCode opc = descend->code();
-    if (opc != CPUI_INT_ADD) continue;
+    if (!(opc == CPUI_INT_ADD || opc == CPUI_INT_MULT)) continue;
     Varnode *out = vn;
     PcodeOp *addop = op;
     if (!addop->containsInput(out)) return false;
-    int4 slot = addop->getSlot(out);
-    while (opc == CPUI_INT_ADD) {
+    int4 addslot = addop->getSlot(out);
+    while (opc == CPUI_INT_ADD || opc == CPUI_INT_MULT) {
       addop = descend;
       if (!addop->containsInput(out)) return false;
-      slot = addop->getSlot(out);
+      addslot = addop->getSlot(out);
       out = descend->getOut();
       descend = out->loneDescend();
       if (descend == (PcodeOp *)0) break;
@@ -11497,8 +11497,6 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn)
     if (descend == (PcodeOp *)0) continue;
     opc = descend->code();
     if (opc == CPUI_LOAD || opc == CPUI_STORE) {
-      bool ispreferred0 = RulePtrArith::verifyPreferredPointer(addop,slot);
-      bool ispreferred1 = RulePtrArith::verifyPreferredPointer(addop,1-slot);
       return true;
     }
   }
