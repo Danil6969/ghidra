@@ -11474,6 +11474,19 @@ bool RuleInferPointerMult::canProcess(PcodeOp *op,Funcdata &data)
   if (increment == 0) return false;
   if (increment == 1) return false;
   if (increment == -1) return false;
+
+  Varnode *invn0 = op->getIn(0);
+  if (invn0->isFree()) return false;
+  PcodeOp *multiop = invn0->getDef();
+  int4 slot;
+  PcodeOp *initop = getCounterInitOp(multiop, slot);
+  if (initop == 0) return false;
+  Varnode *initvn = initop->getIn(slot);
+
+  Varnode *out = multiop->getOut();
+  if (out->isFree()) return 0;
+  if (!checkPointerUsages(out)) return 0;
+
   return true;
 }
 
