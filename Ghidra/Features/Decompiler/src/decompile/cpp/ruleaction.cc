@@ -11518,7 +11518,12 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,Funcdata &data)
     }
     if (opc = CPUI_CALL) {
       FuncCallSpecs *fc = data.getCallSpecs(descend);
+      int4 slot = descend->getSlot(out);
       if (fc == (FuncCallSpecs *)0) continue;
+      ProtoParameter *param = fc->getParam(slot-1);
+      Datatype *dt = param->getType();
+      if (dt->getMetatype() != TYPE_PTR) continue;
+      return true;
     }
   }
   return false;
