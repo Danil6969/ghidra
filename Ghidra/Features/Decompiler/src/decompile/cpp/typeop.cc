@@ -983,6 +983,10 @@ Datatype *TypeOpEqual::propagateAcrossCompare(Datatype *alttype,TypeFactory *typ
   }
   else
     newtype = alttype;
+  // Don't propagate flexible types because their sizes may not necessarily match
+  // Comparison operators usually extend smaller operand, so they can be compared after all
+  if (alttype->isMemsizeType()) return (Datatype *)0;
+  if (newtype->isMemsizeType()) return (Datatype *)0;
   return newtype;
 }
 
