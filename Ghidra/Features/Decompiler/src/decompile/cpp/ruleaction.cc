@@ -5994,14 +5994,13 @@ int4 RuleUnlinkPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
 
 {
   if (RulePtrArith::canProcess(op,data)) {
-    if (unlinkAddOp(op,data)) {
-      return 1;
-    }
+    if (unlinkAddOp(op,data)) return 1;
   }
   if (RuleCancelOutPtrAdd::canProcess(op)) {
-    if (unlinkAddOp(op,data)) {
-      return 1;
-    }
+    if (unlinkAddOp(op,data)) return 1;
+  }
+  if (RuleInferPointerMult::canProcess(op,data)) {
+    if (unlinkAddOp(op,data)) return 1;
   }
   return 0;
 }
