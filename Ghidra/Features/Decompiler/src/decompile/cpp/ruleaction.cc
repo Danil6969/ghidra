@@ -11236,23 +11236,28 @@ bool RuleInferPointerAdd::checkPointerUsages(Varnode *vn)
 {
   for(list<PcodeOp *>::const_iterator iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
     PcodeOp *op = *iter;
-    if (op->code() != CPUI_INT_ADD) continue;
-    Varnode *out = op->getOut();
-    if (out == (Varnode *)0) continue;
-    PcodeOp *descend = out->loneDescend();
-    if (descend == (PcodeOp *)0) continue;
-
+    PcodeOp *descend = op;
     OpCode opc = descend->code();
-    while (opc == CPUI_INT_ADD) {
-      descend = descend->getOut()->loneDescend();
+    if (!(opc == CPUI_INT_ADD || opc == CPUI_INT_MULT)) continue;
+    Varnode *out = vn;
+    PcodeOp *addop = op;
+    if (!addop->containsInput(out)) return false;
+    int4 addslot = addop->getSlot(out);
+    while (opc == CPUI_INT_ADD || opc == CPUI_INT_MULT) {
+      addop = descend;
+      if (!addop->containsInput(out)) return false;
+      addslot = addop->getSlot(out);
+      out = descend->getOut();
+      descend = out->loneDescend();
       if (descend == (PcodeOp *)0) break;
       opc = descend->code();
     }
 
     if (descend == (PcodeOp *)0) continue;
     opc = descend->code();
-    if (opc == CPUI_LOAD) return true;
-    if (opc == CPUI_STORE) return true;
+    if (opc == CPUI_LOAD || opc == CPUI_STORE) {
+      return true;
+    }
   }
   return false;
 }
