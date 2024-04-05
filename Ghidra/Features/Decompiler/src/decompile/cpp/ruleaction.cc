@@ -11506,6 +11506,11 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,Funcdata &data)
     if (descend == (PcodeOp *)0) continue;
     opc = descend->code();
     if (opc == CPUI_LOAD || opc == CPUI_STORE) {
+      Varnode *ptrvn = addop->getIn(1-addslot);
+      Varnode *othervn = addop->getIn(addslot);
+      Datatype *ptrdt = ptrvn->getTypeReadFacing(addop);
+      Datatype *otherdt = othervn->getTypeReadFacing(addop);
+      if (ptrdt->getMetatype() != TYPE_PTR) return false;
       return true;
     }
     if (opc = CPUI_CALL) {
