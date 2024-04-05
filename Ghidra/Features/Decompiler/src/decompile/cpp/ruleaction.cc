@@ -11513,6 +11513,7 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,Funcdata &data)
       int4 slot = descend->getSlot(out);
       if (fc == (FuncCallSpecs *)0) continue;
       ProtoParameter *param = fc->getParam(slot-1);
+      if (param == (ProtoParameter *)0) continue;
       Datatype *dt = param->getType();
       if (dt->getMetatype() != TYPE_PTR) continue;
       return true;
