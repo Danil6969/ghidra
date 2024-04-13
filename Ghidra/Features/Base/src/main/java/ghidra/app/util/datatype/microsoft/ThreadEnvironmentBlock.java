@@ -722,9 +722,9 @@ public class ThreadEnvironmentBlock {
 	 * @throws CodeUnitInsertionException for problems laying down the structure on the block
 	 * @throws InvalidInputException for problems with the symbol name attached to the TEB
 	 */
-	public void createBlockAndStructure() throws MemoryConflictException, LockException,
-			IllegalArgumentException, AddressOverflowException, CodeUnitInsertionException,
-			InvalidInputException {
+	public void createBlockAndStructure()
+			throws MemoryConflictException, LockException, IllegalArgumentException,
+			AddressOverflowException, CodeUnitInsertionException, InvalidInputException {
 		Memory memory = program.getMemory();
 		MemoryBlock block = memory.getBlock(BLOCK_NAME);
 		if (block != null) {
@@ -738,6 +738,7 @@ public class ThreadEnvironmentBlock {
 			block = memory.createUninitializedBlock(BLOCK_NAME, tebAddress, blockSize, false);
 		}
 		block.setWrite(true);
+		block.setArtificial(true);
 		LayDownStructure laydown = new LayDownStructure(is64Bit);
 		create(laydown);
 		if (is64Bit) {
@@ -822,6 +823,7 @@ public class ThreadEnvironmentBlock {
 				null, false);
 		}
 		block1.setWrite(true);
+		block1.setArtificial(true);
 		LayDownFlat laydown = new LayDownFlat(program, tebAddress, is64Bit);
 		create(laydown);
 		Data data = program.getListing().getDataAt(tebAddress).getComponent(6);

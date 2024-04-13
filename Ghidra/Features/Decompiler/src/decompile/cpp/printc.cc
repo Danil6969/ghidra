@@ -2331,7 +2331,6 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
 	entry.token = &object_member;
 	entry.field = field;
 	entry.parent = ct;
-	entry.fieldname = field->name;
 	entry.hilite = EmitMarkup::no_color;
 	ct = field->type;
 	succeeded = true;
@@ -2344,9 +2343,8 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
 	stack.emplace_back();
 	PartialSymbolEntry &entry( stack.back() );
 	entry.token = &subscript;
-	ostringstream s;
-	s << dec << el;
-	entry.fieldname = s.str();
+	entry.offset = el;
+	entry.size = 0;
 	entry.field = (const TypeField *)0;
 	entry.hilite = EmitMarkup::const_color;
 	ct = arrayof;
@@ -2363,7 +2361,6 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
 	entry.token = &object_member;
 	entry.field = field;
 	entry.parent = ct;
-	entry.fieldname = entry.field->name;
 	entry.hilite = EmitMarkup::no_color;
 	ct = field->type;
 	succeeded = true;
@@ -2421,11 +2418,17 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
     pushOp(stack[i].token,op);
   pushSymbol(sym,vn,op);	// Push base symbol name
   for(int4 i=0;i<stack.size();++i) {
-    const TypeField *field = stack[i].field;
-    if (field == (const TypeField *)0)
-      pushAtom(Atom(stack[i].fieldname,syntax,stack[i].hilite,op));
+    PartialSymbolEntry &entry (stack[i]);
+    if (entry.field == (const TypeField *)0) {
+      if (entry.size <= 0)
+	push_integer(entry.offset, entry.size, (entry.offset < 0), syntax, (Varnode *)0, op);
+      else {
+	string field = unnamedField(entry.offset,entry.size);
+	pushAtom(Atom(field,syntax,entry.hilite,op));
+      }
+    }
     else
-      pushAtom(Atom(stack[i].fieldname,fieldtoken,stack[i].hilite,stack[i].parent,field->ident,op));
+      pushAtom(Atom(entry.field->name,fieldtoken,stack[i].hilite,stack[i].parent,entry.field->ident,op));
   }
   if (printPartial) {
     push_integer(off,4,false,syntax,(Varnode *)0,op);
