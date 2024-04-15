@@ -343,8 +343,6 @@ bool HomogeneousAggregate::filter(Datatype *dt) const
   if (!primitives.isValid() || primitives.size() == 0 || primitives.containsUnknown()
       || !primitives.isAligned() || primitives.containsHoles())
     return false;
-  if (res.empty())
-    return false;
   Datatype *base = primitives.get(0).dt;
   if (base->getMetatype() != metaType)
     return false;
