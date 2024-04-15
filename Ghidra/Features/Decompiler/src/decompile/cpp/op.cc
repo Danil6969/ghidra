@@ -1259,10 +1259,10 @@ int4 functionalEqualityLevel(Varnode *vn1,Varnode *vn2,Varnode **res1,Varnode **
   if (op1->isMarker()) return -1;
   if (op2->isCall()) return -1;
   if (opc == CPUI_LOAD) {
-				// FIXME: We assume two loads produce the same
-				// result if the address is the same and the loads
-				// occur in the same instruction
-    if (op1->getAddr() != op2->getAddr()) return -1;
+				// Generally two loads are treated as inequivalent due to possible multithreading,
+				// including IO, polling, synchronization and such
+				// FIXME: Find special cases when they can be safely treated as equivalent, maybe constant spaces or something
+    return -1;
   }
   if (num >= 3) {
     if (opc != CPUI_PTRADD) return -1; // If this is a PTRADD
