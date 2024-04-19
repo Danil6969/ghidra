@@ -635,10 +635,10 @@ void PrintC::opTypeCast(const PcodeOp *op)
 	    pushOp(&addressof,op);
 	  }
 	}
-      }
-      else {
-	// just reinterpret with the same bytes in memory but replaced type
-	pushAtom(Atom("CAST",optoken,EmitMarkup::no_color,op));
+	else {
+	  // just reinterpret with the same bytes in memory but replaced type
+	  pushAtom(Atom("CAST",optoken,EmitMarkup::no_color,op));
+	}
       }
       if (noAddress) {
 	pushOp(&comma,op);
