@@ -623,7 +623,8 @@ void PrintC::opTypeCast(const PcodeOp *op)
 	// cast with dereference
 	pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
       }
-      else if (!inArr && outArr) {
+      else {
+	if (!inArr && outArr) {
 	  if (needsToArr(inVn)) {
 	    ostringstream s;
 	    s << "TOARR" << outVn->getSize();
@@ -633,6 +634,7 @@ void PrintC::opTypeCast(const PcodeOp *op)
 	  else {
 	    pushOp(&addressof,op);
 	  }
+	}
       }
       else {
 	// just reinterpret with the same bytes in memory but replaced type
