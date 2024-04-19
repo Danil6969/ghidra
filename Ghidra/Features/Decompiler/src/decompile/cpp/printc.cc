@@ -513,7 +513,8 @@ void PrintC::opArrFunc(const PcodeOp *op)
       pushOp(&hidden,op);
       pushVn(op->getIn(0),op,mods);
     }
-    else if (needsToArr(op->getIn(0))) {
+    else {
+      if (needsToArr(op->getIn(0))) {
 	pushOp(&function_call,op);
 	s << name << op->getIn(0)->getSize();
 	pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
@@ -526,11 +527,13 @@ void PrintC::opArrFunc(const PcodeOp *op)
 	pushOp(&addressof,op);
 	pushVn(op->getIn(0),op,mods);
       }
+    }
     if (in1Arr || op->code() == CPUI_SUBPIECE) {
       pushOp(&hidden,op);
       pushVn(op->getIn(1),op,mods);
     }
-    else if (needsToArr(op->getIn(1))) {
+    else {
+      if (needsToArr(op->getIn(1))) {
 	pushOp(&function_call,op);
 	s << name << op->getIn(1)->getSize();
 	pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
@@ -542,6 +545,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
 	pushOp(&addressof,op);
 	pushVn(op->getIn(1),op,mods);
       }
+    }
   }
   else {
     if (in0Arr) {
@@ -881,7 +885,8 @@ void PrintC::opExtractInd(const PcodeOp *op)
     pushOp(&hidden, op);
     pushVn(op->getIn(1), op, mods);
   }
-  else if (needsToArr(op->getIn(1))) {
+  else {
+    if (needsToArr(op->getIn(1))) {
       pushOp(&function_call, op);
       s << name << op->getIn(1)->getSize();
       pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
@@ -893,6 +898,7 @@ void PrintC::opExtractInd(const PcodeOp *op)
       pushOp(&addressof,op);
       pushVn(op->getIn(1),op,mods);
     }
+  }
   if (!outArr)
     pushOp(&comma,op);
   pushOp(&hidden, op);
@@ -925,7 +931,8 @@ void PrintC::opInsertInd(const PcodeOp *op)
     pushOp(&hidden, op);
     pushVn(op->getIn(1), op, mods);
   }
-  else if (needsToArr(op->getIn(1))) {
+  else {
+    if (needsToArr(op->getIn(1))) {
       pushOp(&function_call, op);
       s << name << op->getIn(1)->getSize();
       pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
@@ -937,11 +944,13 @@ void PrintC::opInsertInd(const PcodeOp *op)
       pushOp(&addressof,op);
       pushVn(op->getIn(1),op,mods);
     }
+  }
   if (in2Arr) {
     pushOp(&hidden, op);
     pushVn(op->getIn(2), op, mods);
   }
-  else if (needsToArr(op->getIn(2))) {
+  else {
+    if (needsToArr(op->getIn(2))) {
       pushOp(&function_call,op);
       s << name << op->getIn(2)->getSize();
       pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
@@ -953,6 +962,7 @@ void PrintC::opInsertInd(const PcodeOp *op)
       pushOp(&addressof,op);
       pushVn(op->getIn(2),op,mods);
     }
+  }
   if (!outArr)
     pushOp(&comma,op);
   pushOp(&hidden, op);
