@@ -624,15 +624,15 @@ void PrintC::opTypeCast(const PcodeOp *op)
 	pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
       }
       else if (!inArr && outArr) {
-	if (needsToArr(inVn)) {
-	  ostringstream s;
-	  s << "TOARR" << outVn->getSize();
-	  // cast with array allocation on stack
-	  pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
-	}
-	else {
-	  pushOp(&addressof,op);
-	}
+	  if (needsToArr(inVn)) {
+	    ostringstream s;
+	    s << "TOARR" << outVn->getSize();
+	    // cast with array allocation on stack
+	    pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+	  }
+	  else {
+	    pushOp(&addressof,op);
+	  }
       }
       else {
 	// just reinterpret with the same bytes in memory but replaced type
