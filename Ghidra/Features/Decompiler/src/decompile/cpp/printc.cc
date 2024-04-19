@@ -507,7 +507,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
   if (!outArr)
     pushOp(&comma,op);
   if (op->numInput() == 2) {
-    bool in1Arr = (op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY) || (nm.substr(0,3) == "SUB");
+    bool in1Arr = op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
     pushOp(&comma,op);
     if (in0Arr) {
       pushOp(&hidden,op);
@@ -526,7 +526,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
       pushOp(&addressof,op);
       pushVn(op->getIn(0),op,mods);
     }
-    if (in1Arr) {
+    if (in1Arr || op->code() == CPUI_SUBPIECE) {
       pushOp(&hidden,op);
       pushVn(op->getIn(1),op,mods);
     }
