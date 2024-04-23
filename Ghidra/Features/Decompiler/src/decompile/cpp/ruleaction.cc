@@ -6875,7 +6875,7 @@ bool RulePtrArith::verifyPreferredPointer(PcodeOp *op,int4 slot)
   return (1 != evaluatePointerExpression(preOp, preslot));	// Does earlier varnode look like the base pointer
 }
 
-/// \brief Determine if pointer op is valid by doing several checks
+/// \brief Determine if pointer op is valid by doing several sanity checks
 ///
 /// \param op is the root INT_ADD op
 /// \param ptrBase input of op under preffered slot
@@ -6884,14 +6884,48 @@ bool RulePtrArith::verifyPreferredPointer(PcodeOp *op,int4 slot)
 bool RulePtrArith::isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOther)
 
 {
+  // Datatypes to inspect
+  Datatype *containingDatatypePtr = (Datatype *)0;
+  Datatype *assumedDatatypePtr = (Datatype *)0;
+  Datatype *intermediateDatatype = (Datatype *)0;
+  Datatype *assumedDatatype = (Datatype *)0;
+  Datatype *containingDatatype = (Datatype *)0;
+
+  Varnode *in0,*in1;
+  uintb in1const;
+  type_metatype meta = TYPE_UNKNOWN;
+  sub_metatype submeta = SUB_UNKNOWN;
+
   PcodeOp *ptrBaseOp = ptrBase->getDef();
-  if (ptrBaseOp != (PcodeOp *)0 && ptrBaseOp->code() == CPUI_PTRSUB) {
-    Varnode *invn0 = ptrBaseOp->getIn(0);
-    Datatype *ct1 = ptrBase->getTypeReadFacing(op);
-    Datatype *ct2 = invn0->getTypeReadFacing(ptrBaseOp);
-    if (ct1 == ct2) {
-      if (!ptrOther->isConstant()) {
-	return false;
+  if (ptrBaseOp == (PcodeOp *)0) return true;
+
+  if (ptrBaseOp->code() == CPUI_PTRSUB) {
+    in0 = ptrBaseOp->getIn(0);
+    in1 = ptrBaseOp->getIn(1);
+    if (!in1->isConstant()) return false;
+    in1const = in1->getOffset();
+    assumedDatatypePtr = ptrBase->getTypeReadFacing(op);
+    intermediateDatatype = in0->getTypeReadFacing(ptrBaseOp);
+
+    if (assumedDatatypePtr == intermediateDatatype) {
+      if (!ptrOther->isConstant()) return false;
+    }
+    else {
+      PcodeOp *inop = in0->getDef();
+      if (inop == (PcodeOp *)0) return true;
+      if (inop->code() == CPUI_PTRADD) {
+	meta = assumedDatatypePtr->getMetatype();
+	submeta = assumedDatatypePtr->getSubMeta();
+	if (assumedDatatypePtr->getMetatype() != TYPE_PTR) return true;
+	if (submeta != SUB_PTR && submeta != SUB_PTR_STRUCT) return true;
+	assumedDatatype = ((TypePointer *)assumedDatatypePtr)->getPtrTo();
+
+	containingDatatypePtr = inop->getIn(0)->getTypeReadFacing(inop);
+	submeta = containingDatatypePtr->getSubMeta();
+	if (containingDatatypePtr->getMetatype() != TYPE_PTR) return true;
+	if (submeta != SUB_PTR && submeta != SUB_PTR_STRUCT) return true;
+	containingDatatype = ((TypePointer *)containingDatatypePtr)->getPtrTo();
+	return true;
       }
     }
   }
