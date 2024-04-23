@@ -6875,6 +6875,28 @@ bool RulePtrArith::verifyPreferredPointer(PcodeOp *op,int4 slot)
   return (1 != evaluatePointerExpression(preOp, preslot));	// Does earlier varnode look like the base pointer
 }
 
+/// \brief Determine if pointer op is valid by doing several checks
+///
+/// \param op is the root INT_ADD op
+/// \param ptrBase input of op under preffered slot
+/// \param ptrOther another input of op
+/// \return true if all checks passed
+bool RulePtrArith::isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOther)
+
+{
+  PcodeOp *ptrBaseOp = ptrBase->getDef();
+  if (ptrBaseOp != (PcodeOp *)0 && ptrBaseOp->code() == CPUI_PTRSUB) {
+    Datatype *ct1 = ptrBase->getTypeReadFacing(op);
+    Datatype *ct2 = ptrBaseOp->getIn(0)->getTypeReadFacing(ptrBaseOp);
+    if (ct1 == ct2) {
+      if (!ptrOther->isConstant()) {
+	return false;
+      }
+    }
+  }
+  return true;
+}
+
 /// \brief Determine if the expression rooted at the given INT_ADD operation is ready for conversion
 ///
 /// Converting an expression of INT_ADDs into PTRSUBs and PTRADDs requires that the base pointer
@@ -6892,21 +6914,13 @@ int4 RulePtrArith::evaluatePointerExpression(PcodeOp *op,int4 slot)
 {
   int4 res = 1;		// Assume we are going to push
   int4 count = 0;	// Count descendants
-  Varnode *othervn = op->getIn(1 - slot);
+  Varnode *ptrOther = op->getIn(1 - slot);
   Varnode *ptrBase = op->getIn(slot);
   if (ptrBase->isFree() && !ptrBase->isConstant())
     return 0;
-  PcodeOp *ptrBaseOp = ptrBase->getDef();
-  if (ptrBaseOp != (PcodeOp *)0 && ptrBaseOp->code() == CPUI_PTRSUB) {
-    Datatype *ct1 = ptrBase->getTypeReadFacing(op);
-    Datatype *ct2 = ptrBaseOp->getIn(0)->getTypeReadFacing(ptrBaseOp);
-    if (ct1 == ct2) {
-      if (!othervn->isConstant()) {
-	return 0;
-      }
-    }
-  }
-  if (othervn->getTypeReadFacing(op)->getMetatype() == TYPE_PTR)
+  if (!isPointerOpValid(op,ptrBase,ptrOther))
+    return 0;
+  if (ptrOther->getTypeReadFacing(op)->getMetatype() == TYPE_PTR)
     res = 2;
   Varnode *outVn = op->getOut();
   list<PcodeOp *>::const_iterator iter;
@@ -6923,7 +6937,7 @@ int4 RulePtrArith::evaluatePointerExpression(PcodeOp *op,int4 slot)
     }
     else if ((opc == CPUI_LOAD || opc == CPUI_STORE) && decOp->getIn(1) == outVn) {	// If use is as pointer for LOAD or STORE
       if (ptrBase->isSpacebase() && (ptrBase->isInput()||(ptrBase->isConstant())) &&
-          (othervn->isConstant()))
+          (ptrOther->isConstant()))
 	return 0;
       res = 2;
     }
