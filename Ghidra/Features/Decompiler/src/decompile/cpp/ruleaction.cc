@@ -6923,6 +6923,7 @@ bool RulePtrArith::isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOth
 	if (assumedDatatypePtr->getMetatype() != TYPE_PTR) return true;
 	if (submeta != SUB_PTR && submeta != SUB_PTR_STRUCT) return true;
 	assumedDatatype = ((TypePointer *)assumedDatatypePtr)->getPtrTo();
+	if (!assumedDatatype->isStructuredType()) return true;
 
 	containingDatatypePtr = inop->getIn(0)->getTypeReadFacing(inop);
 	submeta = containingDatatypePtr->getSubMeta();
@@ -6934,6 +6935,10 @@ bool RulePtrArith::isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOth
 	int8 newoff;
 	Datatype *derivedDatatype = containingDatatype->getSubType(in1const, &newoff);
 	if (derivedDatatype == (Datatype *)0)
+	  // Datatype is unknown, so it's concidered not safe to put ptrsub there
+	  return false;
+	if (!derivedDatatype->isStructuredType())
+	  // Datatype is unstructured whereas assumed is, will lead to ptrsub errors
 	  return false;
       }
     }
