@@ -144,6 +144,17 @@ bool Datatype::isMemsizeType(void) const
   return false;
 }
 
+bool Datatype::isStructuredType(void) const
+
+{
+  type_metatype meta = getMetatype();
+  if (meta == TYPE_STRUCT) return true;
+  if (meta == TYPE_UNION) return true;
+  if (meta == TYPE_SPACEBASE) return true;
+  if (meta == TYPE_ARRAY) return true;
+  return false;
+}
+
 /// Print a raw description of the type to stream. Intended for debugging.
 /// Not intended to produce parsable C.
 /// \param s is the output stream
