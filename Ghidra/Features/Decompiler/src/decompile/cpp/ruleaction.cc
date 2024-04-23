@@ -707,14 +707,14 @@ bool RuleTermOrder::form3(PcodeOp *op,Funcdata &data)
   if (!vn1->isConstant()) {
     if (vn1->isFree()) return false;
   }
-  PcodeOp *inOp = vn2->getDef();
-  if (inOp == (PcodeOp *)0) return false;
-  if (inOp->code() != CPUI_INT_ADD) return false;
-  Varnode *invn1 = inOp->getIn(0);
+  PcodeOp *inop = vn2->getDef();
+  if (inop == (PcodeOp *)0) return false;
+  if (inop->code() != CPUI_INT_ADD) return false;
+  Varnode *invn1 = inop->getIn(0);
   if (!invn1->isConstant()) {
     if (invn1->isFree()) return false;
   }
-  Varnode *invn2 = inOp->getIn(1);
+  Varnode *invn2 = inop->getIn(1);
   if (!invn2->isConstant()) {
     if (invn2->isFree()) return false;
   }
@@ -6886,8 +6886,9 @@ bool RulePtrArith::isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOth
 {
   PcodeOp *ptrBaseOp = ptrBase->getDef();
   if (ptrBaseOp != (PcodeOp *)0 && ptrBaseOp->code() == CPUI_PTRSUB) {
+    Varnode *invn0 = ptrBaseOp->getIn(0);
     Datatype *ct1 = ptrBase->getTypeReadFacing(op);
-    Datatype *ct2 = ptrBaseOp->getIn(0)->getTypeReadFacing(ptrBaseOp);
+    Datatype *ct2 = invn0->getTypeReadFacing(ptrBaseOp);
     if (ct1 == ct2) {
       if (!ptrOther->isConstant()) {
 	return false;
