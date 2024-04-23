@@ -6876,6 +6876,7 @@ bool RulePtrArith::verifyPreferredPointer(PcodeOp *op,int4 slot)
 }
 
 /// \brief Determine if pointer op is valid by doing several sanity checks
+/// All invalid cases are written from new line for the sake of readability
 ///
 /// \param op is the root INT_ADD op
 /// \param ptrBase input of op under preffered slot
@@ -6890,6 +6891,7 @@ bool RulePtrArith::isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOth
   Datatype *intermediateDatatype = (Datatype *)0;
   Datatype *assumedDatatype = (Datatype *)0;
   Datatype *containingDatatype = (Datatype *)0;
+  Datatype *derivedDatatype = (Datatype *)0;
 
   Varnode *in0,*in1;
   uintb in1const;
@@ -6902,13 +6904,15 @@ bool RulePtrArith::isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOth
   if (ptrBaseOp->code() == CPUI_PTRSUB) {
     in0 = ptrBaseOp->getIn(0);
     in1 = ptrBaseOp->getIn(1);
-    if (!in1->isConstant()) return false;
+    if (!in1->isConstant())
+      return false;
     in1const = in1->getOffset();
     assumedDatatypePtr = ptrBase->getTypeReadFacing(op);
     intermediateDatatype = in0->getTypeReadFacing(ptrBaseOp);
 
     if (assumedDatatypePtr == intermediateDatatype) {
-      if (!ptrOther->isConstant()) return false;
+      if (!ptrOther->isConstant())
+	return false;
     }
     else {
       PcodeOp *inop = in0->getDef();
@@ -6925,7 +6929,12 @@ bool RulePtrArith::isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOth
 	if (containingDatatypePtr->getMetatype() != TYPE_PTR) return true;
 	if (submeta != SUB_PTR && submeta != SUB_PTR_STRUCT) return true;
 	containingDatatype = ((TypePointer *)containingDatatypePtr)->getPtrTo();
-	return true;
+
+	meta = containingDatatype->getMetatype();
+	int8 newoff;
+	Datatype *derivedDatatype = containingDatatype->getSubType(in1const, &newoff);
+	if (derivedDatatype == (Datatype *)0)
+	  return false;
       }
     }
   }
