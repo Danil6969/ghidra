@@ -1099,6 +1099,7 @@ public:
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
   static bool verifyPreferredPointer(PcodeOp *op,int4 slot);
+  static bool isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOther);
   static int4 evaluatePointerExpression(PcodeOp *op,int4 slot);
 };
 class RuleStructOffset0 : public Rule {
