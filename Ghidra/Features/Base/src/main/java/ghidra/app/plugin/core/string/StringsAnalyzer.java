@@ -190,7 +190,7 @@ public class StringsAnalyzer extends AbstractAnalyzer {
 
 	public StringsAnalyzer() {
 		super(NAME, DESCRIPTION, AnalyzerType.BYTE_ANALYZER);
-		setDefaultEnablement(true);
+		setDefaultEnablement(false);
 		setSupportsOneTimeAnalysis();
 		setPriority(AnalysisPriority.DATA_TYPE_PROPOGATION.after().after().after().after().after());
 	}
