@@ -1169,7 +1169,17 @@ bool ActionConstantPtr::checkCopy(PcodeOp *op,Funcdata &data)
 
 {
   Varnode *vn = op->getOut();
-  PcodeOp *retOp = vn->loneDescend();
+  PcodeOp *retOp = (PcodeOp *)0;
+  PcodeOp *multiOp = (PcodeOp *)0;
+  PcodeOp *descendOp = vn->loneDescend();
+  if (descendOp != (PcodeOp *)0) {
+    retOp = descendOp;
+    // If multiequal is used then skip it
+    if (descendOp->code() == CPUI_MULTIEQUAL) {
+      multiOp = descendOp;
+      retOp = multiOp->getOut()->loneDescend();
+    }
+  }
   if (retOp != (PcodeOp *)0 && retOp->code() == CPUI_RETURN && data.getFuncProto().isOutputLocked()) {
     type_metatype meta = data.getFuncProto().getOutput()->getType()->getMetatype();
     if (meta != TYPE_PTR && meta != TYPE_UNKNOWN) {
