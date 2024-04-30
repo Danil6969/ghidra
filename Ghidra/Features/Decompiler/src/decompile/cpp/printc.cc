@@ -1462,7 +1462,11 @@ void PrintC::opPtrsub(const PcodeOp *op)
   }
   else {
     clear();
-    throw LowlevelError("PTRSUB off of non structured pointer type");
+    ostringstream s;
+    s << "PTRSUB off of non structured pointer type\n";
+    s << "Op address: ";
+    s << std::hex << op->getAddr().getOffset();
+    throw LowlevelError(s.str());
   }
 }
 
@@ -1653,7 +1657,7 @@ void PrintC::push_integer(uintb val,int4 sz,bool sign,tagtype tag,
   else if ((mods & force_hex)!=0) {
     displayFormat = Symbol::force_hex;
   }
-  else if ((val<=10)||((mods & force_dec))) {
+  else if (mods & force_dec) {
     displayFormat = Symbol::force_dec;
   }
   else {			// Otherwise decide if dec or hex is more natural
