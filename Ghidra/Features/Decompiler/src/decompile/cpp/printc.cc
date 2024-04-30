@@ -534,23 +534,12 @@ void PrintC::opArrFunc(const PcodeOp *op)
       pushType(op->getIn(0)->getHigh()->getType());
     }
     else {
-      if (needsToArr(op->getIn(0))) {
-	pushOp(&function_call,op);
-	s << name << op->getIn(0)->getSize();
-	pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
-	s.str("");
-	pushOp(&comma,op);
-	pushVn(op->getIn(0),op,mods);
-	pushType(op->getIn(0)->getHigh()->getType());
-      }
-      else {
-	pushOp(&addressof,op);
-	pushVn(op->getIn(0),op,mods);
-      }
+      pushOp(&addressof,op);
+      pushVn(op->getIn(0),op,mods);
     }
   }
-  // Input 1
   if (numInput == 2) {
+    // Input 1
     bool in1Arr = op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
     in1Arr |= op->code() == CPUI_SUBPIECE;
     if (in1Arr) {
@@ -572,25 +561,6 @@ void PrintC::opArrFunc(const PcodeOp *op)
 	pushVn(op->getIn(1),op,mods);
       }
     }
-  }
-  else {
-    if (in0Arr) {
-      pushOp(&hidden,op);
-      pushVn(op->getIn(0),op,mods);
-    }
-    else if (needsToArr(op->getIn(0))) {
-	pushOp(&function_call,op);
-	s << name << op->getIn(0)->getSize();
-	pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
-	s.str("");
-	pushOp(&comma,op);
-	pushVn(op->getIn(0),op,mods);
-	pushType(op->getIn(0)->getHigh()->getType());
-      }
-      else {
-	pushOp(&addressof,op);
-	pushVn(op->getIn(0),op,mods);
-      }
   }
   if (!outArr)
     pushType(outVn->getHigh()->getType());
@@ -1687,7 +1657,7 @@ void PrintC::push_integer(uintb val,int4 sz,bool sign,tagtype tag,
   else if ((mods & force_hex)!=0) {
     displayFormat = Symbol::force_hex;
   }
-  else if (mods & force_dec) {
+  else if ((mods & force_dec)!=0) {
     displayFormat = Symbol::force_dec;
   }
   else {			// Otherwise decide if dec or hex is more natural
