@@ -496,14 +496,15 @@ void PrintC::opFunc(const PcodeOp *op)
 void PrintC::opArrFunc(const PcodeOp *op)
 
 {
+  ostringstream s;
   pushOp(&function_call,op);
   string nm = op->getOpcode()->getOperatorName(op);
+  const Varnode *outVn = op->getOut();
   bool outArr = op->getOut()->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
   if (!outArr)
     nm = nm + "T";
   pushAtom(Atom(nm,optoken,EmitMarkup::no_color,op));
   bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
-  ostringstream s;
   string name = "TOARR";
   if (!outArr)
     pushOp(&comma,op);
@@ -538,6 +539,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
 	pushOp(&function_call,op);
 	s << name << op->getIn(1)->getSize();
 	pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+	s.str("");
 	pushOp(&comma,op);
 	pushVn(op->getIn(1),op,mods);
 	pushType(op->getIn(1)->getHigh()->getType());
@@ -557,6 +559,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
 	pushOp(&function_call,op);
 	s << name << op->getIn(0)->getSize();
 	pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+	s.str("");
 	pushOp(&comma,op);
 	pushVn(op->getIn(0),op,mods);
 	pushType(op->getIn(0)->getHigh()->getType());
@@ -567,7 +570,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
       }
   }
   if (!outArr)
-    pushType(op->getOut()->getHigh()->getType());
+    pushType(outVn->getHigh()->getType());
 }
 
 void PrintC::opConv(const PcodeOp *op)
