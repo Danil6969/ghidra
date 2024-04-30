@@ -497,7 +497,6 @@ void PrintC::opArrFunc(const PcodeOp *op)
 
 {
   ostringstream s;
-  pushOp(&function_call,op);
   string nm = op->getOpcode()->getOperatorName(op);
   const Varnode *outVn = op->getOut();
   bool outArr = outVn->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
@@ -512,9 +511,12 @@ void PrintC::opArrFunc(const PcodeOp *op)
   pushAtom(Atom(nm,optoken,EmitMarkup::no_color,op));
   bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
   string name = "TOARR";
-  if (!outArr)
+  int4 numInput = op->numInput();
+  if (numInput > 2) {
+    throw LowlevelError("Unexpected number of inputs in array op");
+  }
+  if (numInput == 2) {
     pushOp(&comma,op);
-  if (op->numInput() == 2) {
     bool in1Arr = op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
     pushOp(&comma,op);
     if (in0Arr) {
