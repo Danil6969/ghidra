@@ -538,7 +538,12 @@ void PrintC::opArrFunc(const PcodeOp *op)
 	pushVn(op->getIn(0),op,mods);
       }
     }
-    if (in1Arr || op->code() == CPUI_SUBPIECE) {
+  }
+  // Input 1
+  if (numInput == 2) {
+    bool in1Arr = op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
+    in1Arr |= op->code() == CPUI_SUBPIECE;
+    if (in1Arr) {
       pushOp(&hidden,op);
       pushVn(op->getIn(1),op,mods);
     }
