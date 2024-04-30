@@ -422,8 +422,9 @@ bool PrintC::checkAddressOfCast(const PcodeOp *op) const
       if (rootType->getMetatype() == TYPE_PTR) {
 	rootType = ((TypePointer *)rootType)->getPtrTo();
 	int8 off = ptrsub->getIn(1)->getOffset();
-	symbolType = rootType->getSubType(off, &off);
-	if (off != 0)
+	int8 newoff = off;
+	symbolType = rootType->getSubType(off, &newoff);
+	if (newoff != 0)
 	  return false;
       }
     }
@@ -612,9 +613,9 @@ void PrintC::opTypeCast(const PcodeOp *op)
       pushVn(inVn,op,mods);
     }
     else {
-      bool noAddress = !outArr || inArr || needsToArr(inVn);
+      bool hasFunc = !outArr || inArr || needsToArr(inVn);
       bool castArr = inArr && !outArr;
-      if (noAddress) {
+      if (hasFunc) {
 	pushOp(&function_call,op);
       }
       if (castArr) {
@@ -640,13 +641,13 @@ void PrintC::opTypeCast(const PcodeOp *op)
 	  pushAtom(Atom("CAST",optoken,EmitMarkup::no_color,op));
 	}
       }
-      if (noAddress) {
+      if (hasFunc) {
 	pushOp(&comma,op);
       }
       pushVn(inVn,op,mods);
       if (!inArr && outArr && needsToArr(inVn))
 	pushType(inVn->getHigh()->getType()); // TOARR prints input type
-      else if (noAddress)
+      else if (hasFunc)
 	pushType(outVn->getHigh()->getType()); // anything else prints output type except address
     }
   }
