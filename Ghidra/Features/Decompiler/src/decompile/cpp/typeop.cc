@@ -2162,10 +2162,27 @@ string TypeOpPiece::getOperatorName(const PcodeOp *op) const
   return s.str();
 }
 
+Datatype *TypeOpPiece::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  return TypeOpFunc::getInputLocal(op,slot);
+}
+
 Datatype *TypeOpPiece::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
 
 {
-  return (Datatype *)0;		// Never need a cast into a PIECE
+  const Varnode *vn = op->getIn(slot);
+  int4 sz = vn->getSize();
+  Datatype *ct = tlst->getBaseNoChar(1,TYPE_UINT);
+  Datatype *dt = vn->getHighTypeReadFacing(op);
+  type_metatype meta = dt->getMetatype();
+  if (meta == TYPE_UINT)
+    return tlst->getTypeArray(sz,ct);
+  if (meta == TYPE_INT)
+    return tlst->getTypeArray(sz,ct);
+  if (meta == TYPE_UNKNOWN)
+    return tlst->getTypeArray(sz,ct);
+  return (Datatype *)0;
 }
 
 Datatype *TypeOpPiece::getOutputLocal(const PcodeOp *op) const
