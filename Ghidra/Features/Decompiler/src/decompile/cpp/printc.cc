@@ -500,9 +500,15 @@ void PrintC::opArrFunc(const PcodeOp *op)
   pushOp(&function_call,op);
   string nm = op->getOpcode()->getOperatorName(op);
   const Varnode *outVn = op->getOut();
-  bool outArr = op->getOut()->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
-  if (!outArr)
-    nm = nm + "T";
+  bool outArr = outVn->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
+  if (!outArr) {
+    pushOp(&function_call,op);
+    s << "CASTARR" << outVn->getSize();
+    // cast with dereference
+    pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+    pushOp(&comma,op);
+  }
+  pushOp(&function_call,op);
   pushAtom(Atom(nm,optoken,EmitMarkup::no_color,op));
   bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
   string name = "TOARR";
