@@ -779,6 +779,7 @@ class TypeOpPiece : public TypeOpFunc {
   int4 farPointerSize;		///< Size of far (extended) pointer (if not 0)
 public:
   TypeOpPiece(TypeFactory *t);			///< Constructor
+  virtual Datatype *getInputLocal(const PcodeOp *op,int4 slot) const;
   virtual Datatype *getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const;
   virtual Datatype *getOutputLocal(const PcodeOp *op) const;
   virtual Datatype *getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const;
