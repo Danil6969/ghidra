@@ -517,11 +517,21 @@ void PrintC::opArrFunc(const PcodeOp *op)
   }
   if (numInput == 2) {
     pushOp(&comma,op);
-    bool in1Arr = op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
-    pushOp(&comma,op);
-    if (in0Arr) {
-      pushOp(&hidden,op);
+  }
+  // Input 0
+  if (in0Arr) {
+    pushOp(&hidden,op);
+    pushVn(op->getIn(0),op,mods);
+  }
+  else {
+    if (needsToArr(op->getIn(0))) {
+      pushOp(&function_call,op);
+      s << name << op->getIn(0)->getSize();
+      pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+      s.str("");
+      pushOp(&comma,op);
       pushVn(op->getIn(0),op,mods);
+      pushType(op->getIn(0)->getHigh()->getType());
     }
     else {
       if (needsToArr(op->getIn(0))) {
@@ -909,6 +919,7 @@ void PrintC::opExtractInd(const PcodeOp *op)
       pushOp(&function_call, op);
       s << name << op->getIn(1)->getSize();
       pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
+      s.str("");
       pushOp(&comma, op);
       pushVn(op->getIn(1), op, mods);
       pushType(op->getIn(1)->getHigh()->getType());
@@ -955,6 +966,7 @@ void PrintC::opInsertInd(const PcodeOp *op)
       pushOp(&function_call, op);
       s << name << op->getIn(1)->getSize();
       pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
+      s.str("");
       pushOp(&comma, op);
       pushVn(op->getIn(1), op, mods);
       pushType(op->getIn(1)->getHigh()->getType());
@@ -973,6 +985,7 @@ void PrintC::opInsertInd(const PcodeOp *op)
       pushOp(&function_call,op);
       s << name << op->getIn(2)->getSize();
       pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+      s.str("");
       pushOp(&comma,op);
       pushVn(op->getIn(2),op,mods);
       pushType(op->getIn(2)->getHigh()->getType());
