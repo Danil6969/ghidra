@@ -1933,6 +1933,37 @@ void PrintC::resetDefaultsPrintC(void)
   setCStyleComments();
 }
 
+bool PrintC::isStringLocation(uintb val,const PcodeOp *op,const TypePointer *ct)
+
+{
+  if (val==0) return false;
+  AddrSpace *spc = glb->getDefaultDataSpace();
+  uintb fullEncoding;
+  Address point;
+  if (op != (const PcodeOp *)0)
+    point = op->getAddr();
+  Address stringaddr = glb->resolveConstant(spc,val,ct->getSize(),point,fullEncoding);
+  if (stringaddr.isInvalid()) return false;
+  if (!glb->symboltab->getGlobalScope()->isReadOnly(stringaddr,1,Address()))
+    return false;	     // Check that string location is readonly
+
+  ostringstream str;
+  Datatype *subct = ct->getPtrTo();
+  if (!printCharacterConstant(str,stringaddr,subct))
+    return false;		// Can we get a nice ASCII string
+
+  const Scope *symScope = op->getParent()->getFuncdata()->getScopeLocal();
+  SymbolEntry *entry = symScope->queryContainer(stringaddr, 1, Address());
+  if (entry == (SymbolEntry *)0) return false;
+  Symbol *symbol = entry->getSymbol();
+  if (symbol == (Symbol *)0) return false;
+  Datatype *ptrType = symbol->getType();
+  if (ptrType->getMetatype() != TYPE_ARRAY) return false;
+  Datatype *baseType = ((TypeArray *)ptrType)->getBase();
+  if (!baseType->isCharPrint()) return false;
+  return true;
+}
+
 /// \brief Push a single character constant to the RPN stack
 ///
 /// For C, a character constant is usually emitted as the character in single quotes.
@@ -2124,9 +2155,14 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
       return;
     }
     subtype = ((TypePointer *)ct)->getPtrTo();
-    if (subtype->isCharPrint()) {
-      if (pushPtrCharConstant(val,(const TypePointer *)ct,vn,op))
-	return;
+    if (isStringLocation(val,op,(const TypePointer *)ct)) {
+      if (!subtype->isCharPrint()) {
+	pushOp(&typecast,op);
+	pushType(ct);
+      }
+      if (!pushPtrCharConstant(val,(const TypePointer *)ct,vn,op))
+	throw LowlevelError("Passed isStringLocation but didn't pass pushPtrCharConstant, shouldn't reach this");
+      return;
     }
     else if (subtype->getMetatype()==TYPE_CODE) {
       if (pushPtrCodeConstant(val,(const TypePointer *)ct,vn,op))
