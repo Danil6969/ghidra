@@ -326,7 +326,7 @@ define context contextreg
 
   # Insert here first if needed more
 
-  exceptFlag=(62,62)   noflow
+  exceptFlag=(60,62)   noflow
   exceptVariant=(63,63)   noflow
   exceptOffset=(64,95) noflow
 ;
@@ -1792,10 +1792,18 @@ Suffix3D: imm8        is imm8 [ suffix3D=imm8; ] { }
 
 exceptRel: reloc is exceptOffset [ reloc = inst_next + exceptOffset; ] { export *[ram]:$(SIZE) reloc; }
 
+@define FLAG_CLEARED	"exceptFlag=0"
+@define FLAG_TRY		"exceptFlag=1"
+@define FLAG_CATCH		"exceptFlag=2"
+@define FLAG_EXCEPT		"exceptFlag=3"
+@define FLAG_ON			"exceptFlag=4"
+@define FLAG_FINALLY	"exceptFlag=5"
+
 define pcodeop getException;
 define pcodeop catch;
 
-:^instruction is exceptFlag=1 & exceptVariant=0 & exceptOffset & instruction & exceptRel [ exceptFlag = 0; ]
+# catch clause
+:^instruction is $(FLAG_CATCH) & exceptVariant=0 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
 {
     e:1 = catch();
     if (!e) goto <lab_skip>;
@@ -1805,7 +1813,7 @@ define pcodeop catch;
 	build instruction;
 }
 
-:^instruction is exceptFlag=1 & exceptVariant=1 & exceptOffset & instruction & exceptRel [ exceptFlag = 0; ]
+:^instruction is $(FLAG_CATCH) & exceptVariant=1 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
 {
     e:1 = catch();
     if (e) goto <lab_catch>;
