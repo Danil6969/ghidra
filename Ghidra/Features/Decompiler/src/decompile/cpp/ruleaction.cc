@@ -11563,10 +11563,19 @@ bool RuleInferPointerMult::canProcess(PcodeOp *op,Funcdata &data)
 bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,Funcdata &data)
 
 {
+  PcodeOp *multiop = vn->getDef();
+  if (multiop == (PcodeOp *)0) return false;
+  if (multiop->code() != CPUI_MULTIEQUAL) return false;
+
   for(list<PcodeOp *>::const_iterator iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
     PcodeOp *op = *iter;
     PcodeOp *descend = op;
     OpCode opc = descend->code();
+    if (opc == CPUI_MULTIEQUAL) {
+      if (descend == multiop) continue;
+      // Check if used somewhere farther
+      if (checkPointerUsages(descend->getOut(),data)) return true;
+    }
     if (!(opc == CPUI_INT_ADD || opc == CPUI_INT_MULT)) continue;
     Varnode *out = vn;
     PcodeOp *addop = op;
