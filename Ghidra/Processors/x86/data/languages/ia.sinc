@@ -2,10 +2,14 @@
 
 @ifdef IA64
 @define SIZE     "8"
+@define SIZE2    "16"
 @define STACKPTR "RSP"
+@define BASEPTR  "RBP"
 @else
 @define SIZE     "4"
+@define SIZE2    "8"
 @define STACKPTR "ESP"
+@define BASEPTR  "EBP"
 @endif
 
 define endian=little;
@@ -1800,9 +1804,22 @@ exceptRel: reloc is exceptOffset [ reloc = inst_next + exceptOffset; ] { export 
 @define FLAG_FINALLY	"exceptFlag=5"
 
 define pcodeop getException;
+define pcodeop getExceptionRecord;
+define pcodeop getContextRecord;
 define pcodeop catch;
+define pcodeop except;
 
-# catch clause
+macro setupExceptionInformation() {
+	local field0:$(SIZE) = getExceptionRecord();
+	local field1:$(SIZE) = getContextRecord();
+	*($(BASEPTR) - $(SIZE2)) = field0;
+	*($(BASEPTR) - $(SIZE)) = field1;
+}
+
+# These clauses can have 2 opposite variants: direct and inverse
+
+# catch clauses
+# catch clause variant 0
 :^instruction is $(FLAG_CATCH) & exceptVariant=0 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
 {
     e:1 = catch();
@@ -1813,6 +1830,7 @@ define pcodeop catch;
 	build instruction;
 }
 
+# catch clause variant 1
 :^instruction is $(FLAG_CATCH) & exceptVariant=1 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
 {
     e:1 = catch();
@@ -1821,6 +1839,31 @@ define pcodeop catch;
 	goto <lab_skip>;
 	<lab_catch>
 	getException();
+	goto exceptRel;
+	<lab_skip>
+}
+
+# except clauses
+# except clause variant 0
+:^instruction is $(FLAG_EXCEPT) & exceptVariant=0 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+{
+    e:1 = except();
+    if (!e) goto <lab_skip>;
+	setupExceptionInformation();
+	goto exceptRel;
+	<lab_skip>
+	build instruction;
+}
+
+# except clause variant 1
+:^instruction is $(FLAG_EXCEPT) & exceptVariant=1 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+{
+    e:1 = except();
+    if (e) goto <lab_catch>;
+	build instruction;
+	goto <lab_skip>;
+	<lab_catch>
+	setupExceptionInformation();
 	goto exceptRel;
 	<lab_skip>
 }
