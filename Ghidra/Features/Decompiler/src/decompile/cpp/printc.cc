@@ -2151,17 +2151,20 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
     push_float(val,ct->getSize(),tag,vn,op);
     return;
   case TYPE_ARRAY:
-    if (!option_nocasts) {
-      pushOp(&function_call,op);
-      pushAtom(Atom("TOARR",optoken,EmitMarkup::no_color,op));
-      pushOp(&comma,op);
+    if (option_nocasts) {
+      push_integer(val,ct->getSize(),false,tag,vn,op);
     }
-    push_integer(val,ct->getSize(),false,tag,vn,op);
-    if (!option_nocasts) {
-      pushOp(&comma, op);
-      Datatype *dt = glb->types->getBase(ct->getSize(), TYPE_UINT);
-      pushType(dt);
-      push_integer(ct->getSize(),ct->getSize(),false,tag,vn,op);
+    else {
+      ostringstream s;
+      Datatype *ct = vn->getHigh()->getType();
+      int4 sz = vn->getSize();
+      pushOp(&function_call,op);
+      s << "TOARR" << sz;
+      pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+      pushOp(&comma,op);
+      push_integer(val,ct->getSize(),false,tag,vn,op);
+      // TOARR prints input type
+      pushType(ct);
     }
     return;
   case TYPE_SPACEBASE:
@@ -2832,7 +2835,6 @@ void PrintC::pushToArr(const PcodeOp *op,const Varnode *vn,uint4 m)
   pushOp(&function_call,op);
   s << "TOARR" << sz;
   pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
-  s.str("");
   pushOp(&comma,op);
   pushVn(vn,op,m);
   // TOARR prints input type
