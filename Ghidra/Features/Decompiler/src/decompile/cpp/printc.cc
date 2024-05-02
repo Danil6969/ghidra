@@ -510,7 +510,6 @@ void PrintC::opArrFunc(const PcodeOp *op)
   pushOp(&function_call,op);
   pushAtom(Atom(nm,optoken,EmitMarkup::no_color,op));
   bool in0Arr = op->getIn(0)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
-  string name = "TOARR";
   int4 numInput = op->numInput();
   if (numInput > 2) {
     throw LowlevelError("Unexpected number of inputs in array op");
@@ -525,13 +524,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
   }
   else {
     if (needsToArr(op->getIn(0))) {
-      pushOp(&function_call,op);
-      s << name << op->getIn(0)->getSize();
-      pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
-      s.str("");
-      pushOp(&comma,op);
-      pushVn(op->getIn(0),op,mods);
-      pushType(op->getIn(0)->getHigh()->getType());
+      pushToArr(op,op->getIn(0),mods);
     }
     else {
       pushOp(&addressof,op);
@@ -548,13 +541,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
     }
     else {
       if (needsToArr(op->getIn(1))) {
-	pushOp(&function_call,op);
-	s << name << op->getIn(1)->getSize();
-	pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
-	s.str("");
-	pushOp(&comma,op);
-	pushVn(op->getIn(1),op,mods);
-	pushType(op->getIn(1)->getHigh()->getType());
+	pushToArr(op,op->getIn(1),mods);
       }
       else {
 	pushOp(&addressof,op);
@@ -611,40 +598,40 @@ void PrintC::opTypeCast(const PcodeOp *op)
     else {
       bool hasFunc = !outArr || inArr || needsToArr(inVn);
       bool castArr = inArr && !outArr;
-      if (hasFunc) {
-	pushOp(&function_call,op);
-      }
-      if (castArr) {
-	ostringstream s;
-	s << "CASTARR" << outVn->getSize();
-	// cast with dereference
-	pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+      if (!inArr && outArr && needsToArr(inVn)) {
+	// TOARR printing
+	if (inVn->getSize() != outVn->getSize()) {
+	  throw LowlevelError("Output and input sizes don't match");
+	}
+	pushToArr(op,inVn,mods);
       }
       else {
-	if (!inArr && outArr) {
-	  if (needsToArr(inVn)) {
-	    ostringstream s;
-	    s << "TOARR" << outVn->getSize();
-	    // cast with array allocation on stack
-	    pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
-	  }
-	  else {
-	    pushOp(&addressof,op);
-	  }
+	if (hasFunc) {
+	  pushOp(&function_call, op);
+	}
+	if (castArr) {
+	  ostringstream s;
+	  s << "CASTARR" << outVn->getSize();
+	  // cast with dereference
+	  pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
 	}
 	else {
-	  // just reinterpret with the same bytes in memory but replaced type
-	  pushAtom(Atom("CAST",optoken,EmitMarkup::no_color,op));
+	  if (!inArr && outArr) {
+	    pushOp(&addressof, op);
+	  }
+	  else {
+	    // just reinterpret with the same bytes in memory but replaced type
+	    pushAtom(Atom("CAST", optoken, EmitMarkup::no_color, op));
+	  }
+	}
+	if (hasFunc) {
+	  pushOp(&comma, op);
+	}
+	pushVn(inVn, op, mods);
+	if (hasFunc) {
+	  pushType(outVn->getHigh()->getType()); // anything else prints output type except address
 	}
       }
-      if (hasFunc) {
-	pushOp(&comma,op);
-      }
-      pushVn(inVn,op,mods);
-      if (!inArr && outArr && needsToArr(inVn))
-	pushType(inVn->getHigh()->getType()); // TOARR prints input type
-      else if (hasFunc)
-	pushType(outVn->getHigh()->getType()); // anything else prints output type except address
     }
   }
   else {
@@ -879,20 +866,13 @@ void PrintC::opExtractInd(const PcodeOp *op)
   pushAtom(Atom(nm, optoken, EmitMarkup::no_color, op));
   pushOp(&comma, op);
   bool in1Arr = op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
-  string name = "TOARR";
   if (in1Arr) {
     pushOp(&hidden, op);
     pushVn(op->getIn(1), op, mods);
   }
   else {
     if (needsToArr(op->getIn(1))) {
-      pushOp(&function_call, op);
-      s << name << op->getIn(1)->getSize();
-      pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
-      s.str("");
-      pushOp(&comma, op);
-      pushVn(op->getIn(1), op, mods);
-      pushType(op->getIn(1)->getHigh()->getType());
+      pushToArr(op,op->getIn(1),mods);
     }
     else {
       pushOp(&addressof,op);
@@ -926,20 +906,13 @@ void PrintC::opInsertInd(const PcodeOp *op)
   pushOp(&comma, op);
   bool in1Arr = op->getIn(1)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
   bool in2Arr = op->getIn(2)->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
-  string name = "TOARR";
   if (in1Arr) {
     pushOp(&hidden, op);
     pushVn(op->getIn(1), op, mods);
   }
   else {
     if (needsToArr(op->getIn(1))) {
-      pushOp(&function_call, op);
-      s << name << op->getIn(1)->getSize();
-      pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
-      s.str("");
-      pushOp(&comma, op);
-      pushVn(op->getIn(1), op, mods);
-      pushType(op->getIn(1)->getHigh()->getType());
+      pushToArr(op,op->getIn(1),mods);
     }
     else {
       pushOp(&addressof,op);
@@ -952,13 +925,7 @@ void PrintC::opInsertInd(const PcodeOp *op)
   }
   else {
     if (needsToArr(op->getIn(2))) {
-      pushOp(&function_call,op);
-      s << name << op->getIn(2)->getSize();
-      pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
-      s.str("");
-      pushOp(&comma,op);
-      pushVn(op->getIn(2),op,mods);
-      pushType(op->getIn(2)->getHigh()->getType());
+      pushToArr(op,op->getIn(2),mods);
     }
     else {
       pushOp(&addressof,op);
@@ -2843,6 +2810,22 @@ void PrintC::pushTypePointerRel(const PcodeOp *op,const Varnode *vn,uint4 m)
     TypePointerRel *ptrel = (TypePointerRel *) ptype;
     int4 off = ptrel->getPointerOffset();
     push_integer(off,4,true,syntax,(Varnode *)0,op);
+}
+
+void PrintC::pushToArr(const PcodeOp *op,const Varnode *vn,uint4 m)
+
+{
+  ostringstream s;
+  Datatype *ct = vn->getHigh()->getType();
+  int4 sz = vn->getSize();
+  pushOp(&function_call,op);
+  s << "TOARR" << sz;
+  pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+  s.str("");
+  pushOp(&comma,op);
+  pushVn(vn,op,m);
+  // TOARR prints input type
+  pushType(ct);
 }
 
 void PrintC::docTypeDefinitions(const TypeFactory *typegrp)
