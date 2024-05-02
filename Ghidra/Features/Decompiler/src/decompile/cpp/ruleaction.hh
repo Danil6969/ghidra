@@ -1779,6 +1779,7 @@ class RuleByteLoop : public Rule {
     bool contains(Varnode *key);
     void putValue(Varnode *key,uintb value);
     uintb getValue(Varnode *key);
+    void clear(void);
   };
   class LargeVarnodeValues {
     map<Varnode *,vector<uint1>> vals;
