@@ -1660,8 +1660,8 @@ void PrintC::push_integer(uintb val,int4 sz,bool sign,tagtype tag,
   else if ((mods & force_dec)!=0) {
     displayFormat = Symbol::force_dec;
   }
-  else {			// Otherwise decide if dec or hex is more natural
-    displayFormat = (PrintLanguage::mostNaturalBase(val)==16) ? Symbol::force_hex : Symbol::force_dec;
+  else {			// Otherwise use hex by default
+    displayFormat = Symbol::force_hex;
   }
 
   ostringstream t;
