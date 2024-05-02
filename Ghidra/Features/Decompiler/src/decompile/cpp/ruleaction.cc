@@ -12167,8 +12167,14 @@ map<Varnode *,uintb>::iterator RuleByteLoop::VarnodeValues::getEntry(Varnode *ke
   map<Varnode *,uintb>::iterator iter;
   for(iter=vals.begin();iter!=vals.end();++iter) {
     Varnode *vn = (*iter).first;
-    if (vn->getAddr()!=key->getAddr()) continue;
-    if (vn->getSize()!=key->getSize()) continue;
+
+    Address vnAddress = vn->getAddr();
+    Address keyAddress = key->getAddr();
+    int4 vnSize = vn->getSize();
+    int4 keySize = key->getSize();
+
+    if (vnAddress != keyAddress) continue;
+    if (vnSize != keySize) continue;
     return iter;
   }
   return vals.end();
@@ -12200,6 +12206,12 @@ uintb RuleByteLoop::VarnodeValues::getValue(Varnode *key)
   if (key->isConstant()) return key->getOffset();
   if (!contains(key)) return 0;
   return getEntry(key)->second;
+}
+
+void RuleByteLoop::VarnodeValues::clear(void)
+
+{
+  vals.clear();
 }
 
 /// \brief Initialize counts and counterVn
@@ -12643,6 +12655,8 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   PcodeOp *initOp = (PcodeOp *)0;
   if (!setInitOp(counterVn,initOp)) return 0;
 
+  // Initialize objects
+  values.clear();
   extractlist = vector<PcodeOp *>();
   insertlist = vector<PcodeOp *>();
   multiplier = 0;
