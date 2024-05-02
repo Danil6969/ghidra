@@ -5840,7 +5840,7 @@ void ActionDatabase::universalAction(Architecture *conf)
     actfullloop->addAction(actprop3);
     {
       actprop4 = new ActionPool(Action::rule_repeatapply, "oppool4");
-      actprop4->addRule( new RuleOpToAdrr("analysis") );
+      //actprop4->addRule( new RuleOpToAdrr("analysis") );
     }
     actfullloop->addAction(actprop4);
   }
