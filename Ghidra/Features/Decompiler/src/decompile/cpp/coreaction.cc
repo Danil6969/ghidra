@@ -3268,8 +3268,9 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
     PcodeOp *useOp = *iter;
     uint4 opc = useOp->code();
     bool isIndexVn = false;
+    string nm = "";
     if (opc == CPUI_CALLOTHER) {
-      string nm = useOp->getOpcode()->getOperatorName(useOp);
+      nm = useOp->getOpcode()->getOperatorName(useOp);
       if (nm == Funcdata::extractind)
 	isIndexVn = (vn == useOp->getIn(2));
       else if (nm == Funcdata::insertind)
