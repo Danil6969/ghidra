@@ -371,6 +371,17 @@ bool PrintC::checkArrayDeref(const Varnode *vn) const
 bool PrintC::needsToArr(const Varnode *vn) const
 
 {
+  const PcodeOp *op = vn->getDef();
+  while (op != (PcodeOp *)0) {
+    OpCode opc = op->code();
+    if (opc == CPUI_COPY) {
+      vn = op->getIn(0);
+      op = vn->getDef();
+    }
+    else {
+      op = (PcodeOp *)0;
+    }
+  }
   if (vn->getType()->getMetatype() == TYPE_PARTIALUNION) return false; // Unions should always be printed without TOARR
   if (vn->isConstant()) return true;
   if (vn->isImplied()) return true;
