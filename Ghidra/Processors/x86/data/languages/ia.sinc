@@ -2,14 +2,10 @@
 
 @ifdef IA64
 @define SIZE     "8"
-@define SIZE2    "16"
 @define STACKPTR "RSP"
-@define BASEPTR  "RBP"
 @else
 @define SIZE     "4"
-@define SIZE2    "8"
 @define STACKPTR "ESP"
-@define BASEPTR  "EBP"
 @endif
 
 define endian=little;
@@ -1805,15 +1801,15 @@ exceptRel: reloc is exceptOffset [ reloc = inst_next + exceptOffset; ] { export 
 
 define pcodeop getException;
 define pcodeop getExceptionRecord;
-define pcodeop getContextRecord;
 define pcodeop catch;
 define pcodeop except;
 
 macro setupExceptionInformation() {
-	local field0:$(SIZE) = getExceptionRecord();
-	local field1:$(SIZE) = getContextRecord();
-	*($(BASEPTR) - $(SIZE2)) = field0;
-	*($(BASEPTR) - $(SIZE)) = field1;
+@ifdef IA64
+	RAX = getExceptionRecord();
+@else
+	EAX = getExceptionRecord();
+@endif
 }
 
 # These clauses can have 2 opposite variants: direct and inverse
