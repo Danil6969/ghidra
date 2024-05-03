@@ -215,6 +215,7 @@
       <register name="r9"/>
       <register name="r8"/>
       <register name="r3"/>
+      <register name="MACL"/>
     </unaffected> 
     <killedbycall>
       <register name="r0"/>
@@ -225,7 +226,6 @@
       <register name="fr2"/>
       <register name="fr3"/>
       <register name="MACH"/>
-      <register name="MACL"/>
       <register name="PR"/>
       <register name="FPUL"/>
       <register name="S"/>
