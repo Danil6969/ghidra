@@ -241,7 +241,8 @@ protected:
   virtual void emitTypeDefinition(const Datatype *ct);
   virtual bool checkPrintNegation(const Varnode *vn);
   void pushTypePointerRel(const PcodeOp *op,const Varnode *vn,uint4 m);
-  void pushToArr(const PcodeOp *op,const Varnode *vn,uint4 m);
+  void pushToArrVarnode(const PcodeOp *op,const Varnode *vn,uint4 m);
+  void pushToArrInteger(const PcodeOp *op,const Varnode *vn,uintb val,const Datatype *ct,tagtype tag);
 public:
   PrintC(Architecture *g,const string &nm="c-language");	///< Constructor
   void setNULLPrinting(bool val) { option_NULL = val; }		///< Toggle the printing of a 'NULL' token
