@@ -535,7 +535,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
   }
   else {
     if (needsToArr(op->getIn(0))) {
-      pushToArr(op,op->getIn(0),mods);
+      pushToArrVarnode(op,op->getIn(0),mods);
     }
     else {
       pushOp(&addressof,op);
@@ -552,7 +552,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
     }
     else {
       if (needsToArr(op->getIn(1))) {
-	pushToArr(op,op->getIn(1),mods);
+	pushToArrVarnode(op,op->getIn(1),mods);
       }
       else {
 	pushOp(&addressof,op);
@@ -614,7 +614,7 @@ void PrintC::opTypeCast(const PcodeOp *op)
 	if (inVn->getSize() != outVn->getSize()) {
 	  throw LowlevelError("Output and input sizes don't match");
 	}
-	pushToArr(op,inVn,mods);
+	pushToArrVarnode(op,inVn,mods);
       }
       else {
 	if (hasFunc) {
@@ -883,7 +883,7 @@ void PrintC::opExtractInd(const PcodeOp *op)
   }
   else {
     if (needsToArr(op->getIn(1))) {
-      pushToArr(op,op->getIn(1),mods);
+      pushToArrVarnode(op,op->getIn(1),mods);
     }
     else {
       pushOp(&addressof,op);
@@ -923,7 +923,7 @@ void PrintC::opInsertInd(const PcodeOp *op)
   }
   else {
     if (needsToArr(op->getIn(1))) {
-      pushToArr(op,op->getIn(1),mods);
+      pushToArrVarnode(op,op->getIn(1),mods);
     }
     else {
       pushOp(&addressof,op);
@@ -936,7 +936,7 @@ void PrintC::opInsertInd(const PcodeOp *op)
   }
   else {
     if (needsToArr(op->getIn(2))) {
-      pushToArr(op,op->getIn(2),mods);
+      pushToArrVarnode(op,op->getIn(2),mods);
     }
     else {
       pushOp(&addressof,op);
@@ -2155,16 +2155,7 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
       push_integer(val,ct->getSize(),false,tag,vn,op);
     }
     else {
-      ostringstream s;
-      Datatype *ct = vn->getHigh()->getType();
-      int4 sz = vn->getSize();
-      pushOp(&function_call,op);
-      s << "TOARR" << sz;
-      pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
-      pushOp(&comma,op);
-      push_integer(val,ct->getSize(),false,tag,vn,op);
-      // TOARR prints input type
-      pushType(ct);
+      pushToArrInteger(op,vn,val,ct,tag);
     }
     return;
   case TYPE_SPACEBASE:
@@ -2826,7 +2817,7 @@ void PrintC::pushTypePointerRel(const PcodeOp *op,const Varnode *vn,uint4 m)
     push_integer(off,4,true,syntax,(Varnode *)0,op);
 }
 
-void PrintC::pushToArr(const PcodeOp *op,const Varnode *vn,uint4 m)
+void PrintC::pushToArrVarnode(const PcodeOp *op,const Varnode *vn,uint4 m)
 
 {
   ostringstream s;
@@ -2837,6 +2828,20 @@ void PrintC::pushToArr(const PcodeOp *op,const Varnode *vn,uint4 m)
   pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
   pushOp(&comma,op);
   pushVn(vn,op,m);
+  // TOARR prints input type
+  pushType(ct);
+}
+
+void PrintC::pushToArrInteger(const PcodeOp *op,const Varnode *vn,uintb val,const Datatype *ct,tagtype tag)
+
+{
+  ostringstream s;
+  int4 sz = ct->getSize();
+  pushOp(&function_call,op);
+  s << "TOARR" << sz;
+  pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+  pushOp(&comma,op);
+  push_integer(val,sz,false,tag,vn,op);
   // TOARR prints input type
   pushType(ct);
 }
