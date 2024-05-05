@@ -167,6 +167,19 @@ bool PcodeOp::isCollapsible(void) const
   return true;
 }
 
+bool PcodeOp::isReturnAddressConstant(void) const
+
+{
+  if (code() != CPUI_COPY) return false;
+  const Varnode *vn = getIn(0);
+  if (!vn->isConstant()) return false;
+  const Translate *trans = parent->getFuncdata()->getArch()->translate;
+  int4 length = trans->instructionLength(getAddr());
+  Address nextAddress = getAddr() + length;
+  if (vn->getOffset() != nextAddress.getOffset()) return false;
+  return true;
+}
+
 /// Produce a hash of the following attributes: output size, the opcode, and the identity
 /// of each input varnode.  This is suitable for determining if two PcodeOps calculate identical values
 /// \return the calculated hash or 0 if the op is not cse hashable
