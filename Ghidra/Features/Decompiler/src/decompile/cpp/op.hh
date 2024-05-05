@@ -214,6 +214,7 @@ public:
   bool isCpoolTransformed(void) const { return ((addlflags&PcodeOp::is_cpool_transformed)!=0); }
   bool isSubpieceNonCollapsible(void) const; ///< Return \b true if this is subpiece and it shouldn't be collapsed
   bool isCollapsible(void) const; ///< Return \b true if this can be collapsed to a COPY of a constant
+  bool isReturnAddressConstant(void) const;
   bool stopsTypePropagation(void) const { return ((addlflags&stop_type_propagation)!=0); }	///< Is data-type propagation from below stopped
   void setStopTypePropagation(void) { addlflags |= stop_type_propagation; }	///< Stop data-type propagation from below
   void clearStopTypePropagation(void) { addlflags &= ~stop_type_propagation; }	///< Allow data-type propagation from below
