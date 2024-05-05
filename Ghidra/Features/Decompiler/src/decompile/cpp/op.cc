@@ -167,19 +167,35 @@ bool PcodeOp::isCollapsible(void) const
   return true;
 }
 
-bool PcodeOp::isReturnAddressConstant(void) const
+bool PcodeOp::isReturnAddressConstant(Funcdata *data) const
 
 {
+  PcodeOp *op = (PcodeOp *)0;
+  PcodeOp *nextop = (PcodeOp *)0;
+  const Varnode *vn = (Varnode *)0;
   OpCode opc = code();
-  if (opc != CPUI_COPY) return false;
-  const Varnode *vn = getIn(0);
+  if (opc == CPUI_COPY) {
+    vn = getIn(0);
+  }
+  else if (opc == CPUI_STORE) {
+    vn = getIn(2);
+  }
+  else return false;
   if (!vn->isConstant()) return false;
-  const Translate *trans = parent->getFuncdata()->getArch()->translate;
-  int4 length = trans->instructionLength(getAddr());
-  Address nextAddress = getAddr() + length;
+  Address currentAddress = getAddr();
+  Address nextAddress;
+  if (parent != (BlockBasic *)0) {
+    const Translate *trans = parent->getFuncdata()->getArch()->translate;
+    int4 length = trans->instructionLength(getAddr());
+    nextAddress = currentAddress + length;
+  }
+  else {
+    list<PcodeOp *>::const_iterator iter = insertiter;
+    return false;
+  }
   if (vn->getOffset() != nextAddress.getOffset()) return false;
-  PcodeOp *nextop = nextOp();
-  PcodeOp *op = nextop;
+  nextop = nextOp();
+  op = nextop;
   while (op != (PcodeOp *)0) {
     opc = op->code();
     if (opc == CPUI_CALL) break;
@@ -398,6 +414,7 @@ PcodeOp *PcodeOp::nextOp(void) const
   BlockBasic *p;
 
   p = parent;			// Current parent
+  if (p == (BlockBasic *)0) return (PcodeOp *)0;
   iter = basiciter;		// Current iterator
 
   iter ++;
