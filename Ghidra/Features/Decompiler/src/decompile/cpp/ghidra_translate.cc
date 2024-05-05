@@ -136,6 +136,34 @@ int4 GhidraTranslate::oneInstruction(PcodeEmit &emit,const Address &baseaddr) co
   return offset;
 }
 
+int4 GhidraTranslate::instructionLength(const Address &baseaddr) const
+
+{
+  int4 offset;
+  PackedDecode decoder(glb);
+  bool success;
+  try {
+    success = glb->getPcode(baseaddr,decoder);	// Request p-code for one instruction
+  }
+  catch(JavaError &err) {
+    ostringstream s;
+    s << "Error generating pcode at address: " << baseaddr.getShortcut();
+    baseaddr.printRaw(s);
+    throw LowlevelError(s.str());
+  }
+  if (!success) {
+    ostringstream s;
+    s << "No pcode could be generated at address: " << baseaddr.getShortcut();
+    baseaddr.printRaw(s);
+    throw BadDataError(s.str());
+  }
+
+  int4 el = decoder.openElement();
+  offset = decoder.readSignedInteger(ATTRIB_OFFSET);
+
+  return offset;
+}
+
 /// Parse the \<sleigh> element passed back by the Ghidra client, describing address spaces
 /// and other information that needs to be cached by the decompiler.
 /// \param decoder is the stream decoder
