@@ -49,8 +49,7 @@ public:
     throw LowlevelError("Cannot currently get all registers through this interface"); }
   virtual void getUserOpNames(vector<string> &res) const;
   virtual int4 oneInstruction(PcodeEmit &emit,const Address &baseaddr) const;
-  virtual int4 instructionLength(const Address &baseaddr) const {
-    throw LowlevelError("Cannot currently get instruction length through this interface"); }
+  virtual int4 instructionLength(const Address &baseaddr) const;
   virtual int4 printAssembly(AssemblyEmit &emit,const Address &baseaddr) const {
     throw LowlevelError("Cannot dump assembly through this interface"); }
 };
