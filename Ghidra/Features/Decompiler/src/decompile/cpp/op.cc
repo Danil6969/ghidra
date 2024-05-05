@@ -170,14 +170,29 @@ bool PcodeOp::isCollapsible(void) const
 bool PcodeOp::isReturnAddressConstant(void) const
 
 {
-  if (code() != CPUI_COPY) return false;
+  OpCode opc = code();
+  if (opc != CPUI_COPY) return false;
   const Varnode *vn = getIn(0);
   if (!vn->isConstant()) return false;
   const Translate *trans = parent->getFuncdata()->getArch()->translate;
   int4 length = trans->instructionLength(getAddr());
   Address nextAddress = getAddr() + length;
   if (vn->getOffset() != nextAddress.getOffset()) return false;
-  return true;
+  PcodeOp *nextop = nextOp();
+  PcodeOp *op = nextop;
+  while (op != (PcodeOp *)0) {
+    opc = op->code();
+    if (opc == CPUI_CALL) break;
+    if (opc == CPUI_CALLIND) break;
+    nextop = op->nextOp();
+    if (nextop->getAddr() == nextAddress)
+      break;
+    op = nextop;
+    opc = op->code();
+  }
+  if (opc == CPUI_CALL) return true;
+  if (opc == CPUI_CALLIND) return true;
+  return false;
 }
 
 /// Produce a hash of the following attributes: output size, the opcode, and the identity
