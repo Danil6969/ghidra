@@ -423,7 +423,7 @@ Varnode *Heritage::normalizeWriteSize(Varnode *vn,const Address &addr,int4 size)
       fd->opInsertBefore(newop,op);
     }
   }
-  if (overlap !=0 && !op->isReturnAddressConstant()) {
+  if (overlap != 0 && !op->isReturnAddressConstant(op->getParent()->getFuncdata())) {
     newop = fd->newOp(2,op->getAddr());
     if (addr.isBigEndian())
       midvn = fd->newVarnodeOut(overlap+vn->getSize(),vn->getAddr(),newop);
@@ -436,7 +436,7 @@ Varnode *Heritage::normalizeWriteSize(Varnode *vn,const Address &addr,int4 size)
   }
   else
     midvn = vn;
-  if (mostsigsize != 0) {
+  if (mostsigsize != 0 && !op->isReturnAddressConstant(op->getParent()->getFuncdata())) {
     newop = fd->newOp(2,op->getAddr());
     bigout = fd->newVarnodeOut(size,addr,newop);
     fd->opSetOpcode(newop,CPUI_PIECE);
