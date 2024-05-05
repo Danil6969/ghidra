@@ -183,31 +183,56 @@ bool PcodeOp::isReturnAddressConstant(Funcdata *data) const
   else return false;
   if (!vn->isConstant()) return false;
   Address currentAddress = getAddr();
-  Address nextAddress;
+  Address nextAddress = currentAddress;
   if (parent != (BlockBasic *)0) {
     const Translate *trans = parent->getFuncdata()->getArch()->translate;
     int4 length = trans->instructionLength(getAddr());
-    nextAddress = currentAddress + length;
+    nextAddress = nextAddress + length;
+    if (vn->getOffset() != nextAddress.getOffset()) return false;
+    nextop = nextOp();
+    op = nextop;
+    while (op != (PcodeOp *)0) {
+      opc = op->code();
+      if (opc == CPUI_CALL) break;
+      if (opc == CPUI_CALLIND) break;
+      nextop = op->nextOp();
+      if (nextop->getAddr() == nextAddress) break;
+      op = nextop;
+      opc = op->code();
+    }
+    if (opc == CPUI_CALL) return true;
+    if (opc == CPUI_CALLIND) return true;
   }
   else {
     list<PcodeOp *>::const_iterator iter = insertiter;
-    return false;
+    list<PcodeOp *>::const_iterator end = data->endOpDead();
+    if (iter == end) return false;
+    op = *iter;
+    while (iter != end) {
+      nextop = *iter;
+      if (nextop->getAddr() != currentAddress) {
+	nextAddress = nextop->getAddr();
+	break;
+      }
+      op = nextop;
+      opc = op->code();
+      if (opc == CPUI_CALL) break;
+      if (opc == CPUI_CALLIND) break;
+      iter++;
+    }
+    while (iter != end) {
+      nextop = *iter;
+      if (nextop->getAddr() != currentAddress) {
+	nextAddress = nextop->getAddr();
+	break;
+      }
+      iter++;
+    }
+    if (nextAddress == currentAddress) return false;
+    if (vn->getOffset() != nextAddress.getOffset()) return false;
+    if (opc == CPUI_CALL) return true;
+    if (opc == CPUI_CALLIND) return true;
   }
-  if (vn->getOffset() != nextAddress.getOffset()) return false;
-  nextop = nextOp();
-  op = nextop;
-  while (op != (PcodeOp *)0) {
-    opc = op->code();
-    if (opc == CPUI_CALL) break;
-    if (opc == CPUI_CALLIND) break;
-    nextop = op->nextOp();
-    if (nextop->getAddr() == nextAddress)
-      break;
-    op = nextop;
-    opc = op->code();
-  }
-  if (opc == CPUI_CALL) return true;
-  if (opc == CPUI_CALLIND) return true;
   return false;
 }
 
