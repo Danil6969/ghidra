@@ -1207,6 +1207,14 @@ void FlowInfo::doInjection(InjectPayload *payload,InjectContext &icontext,PcodeO
     if ((*viter).second.seqnum == op->getSeqNum())	// (if injection op is the first op for its address)
       (*viter).second.seqnum = firstop->getSeqNum();	//    change the seqnum to the first injected op
   }
+  iter = op->getInsertIter();
+  // Previous operation
+  iter--;
+  PcodeOp *retaddrop = *iter;
+  if (retaddrop->isReturnAddressConstant(&data)) {
+    // Get rid of return address saving op
+    data.opDestroyRaw(retaddrop);
+  }
   // Get rid of the original call
   data.opDestroyRaw(op);
 }
