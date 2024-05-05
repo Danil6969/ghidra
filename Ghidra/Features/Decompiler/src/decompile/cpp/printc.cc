@@ -2155,7 +2155,8 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
       push_integer(val,ct->getSize(),false,tag,vn,op);
     }
     else {
-      pushToArrInteger(op,vn,val,ct,tag);
+      Datatype *dt = glb->types->getBaseNoChar(ct->getSize(),TYPE_UINT);
+      pushToArrInteger(op,vn,val,dt,tag);
     }
     return;
   case TYPE_SPACEBASE:
