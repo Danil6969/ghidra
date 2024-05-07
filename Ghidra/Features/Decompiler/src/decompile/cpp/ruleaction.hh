@@ -1723,6 +1723,7 @@ class RuleInferPointerMult : public Rule {
   static bool checkPointerUsages(Varnode *vn,Funcdata &data);
   static PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
   static intb getCounterIncrement(PcodeOp *op);
+  static bool isMainOp(PcodeOp *mainop,PcodeOp *otherop);
 public:
   static bool canProcess(PcodeOp *op,Funcdata &data);
   RuleInferPointerMult(const string &g) : Rule(g,0,"inferpointermult") {}	///< Constructor
