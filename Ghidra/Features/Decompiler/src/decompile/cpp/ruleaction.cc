@@ -11738,19 +11738,27 @@ int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
 
   // Collect descends
   vector<PcodeOp *> descends;
+  vector<PcodeOp *> mainops;
   for(list<PcodeOp *>::const_iterator iter=out->beginDescend();iter!=out->endDescend();++iter) {
     PcodeOp *descend = *iter;
     // Main op is processed separately
-    if (isMainOp(op,descend)) continue;
-    descends.push_back(descend);
+    if (isMainOp(op,descend)) {
+      mainops.push_back(descend);
+    }
+    else {
+      descends.push_back(descend);
+    }
   }
 
-  Varnode *invn1 = op->getIn(1);
   intb val = isnegative ? -1 : 1;
-  int4 sz = invn1->getSize();
-  data.opSetInput(op,data.newConstant(sz,val & calc_mask(sz)),1);
+  for(vector<PcodeOp *>::const_iterator iter=mainops.begin();iter!=mainops.end();++iter) {
+    PcodeOp *mainop = *iter;
+    Varnode *invn1 = mainop->getIn(1);
+    int4 sz = invn1->getSize();
+    data.opSetInput(mainop,data.newConstant(sz,val & calc_mask(sz)),1);
+  }
   val = isnegative ? -increment : increment;
-  sz = out->getSize();
+  int4 sz = out->getSize();
   for(vector<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
     PcodeOp *descend = *iter;
     PcodeOp *newop = data.newOpAfter(multiop,CPUI_INT_MULT,out,data.newConstant(sz,val & calc_mask(sz)));
