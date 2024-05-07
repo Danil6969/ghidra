@@ -11673,6 +11673,31 @@ intb RuleInferPointerMult::getCounterIncrement(PcodeOp *op)
   return sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
 }
 
+bool RuleInferPointerMult::isMainOp(PcodeOp *mainop,PcodeOp *otherop)
+
+{
+  if (otherop == mainop) {
+    return true;
+  }
+  intb increment = getCounterIncrement(mainop);
+  if (otherop->code() != CPUI_INT_ADD) return false;
+  if (otherop->getIn(0) != mainop->getIn(0)) return false;
+  if (!otherop->getIn(1)->isConstant()) return false;
+  Varnode *cvn = otherop->getIn(1);
+  intb c = sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
+  if (c != increment) return false;
+  if (otherop->getAddr() == mainop->getAddr()) {
+    return true;
+  }
+  PcodeOp *lone = otherop->getOut()->loneDescend();
+  if (lone != (PcodeOp *)0) {
+    if (lone->code() == CPUI_INDIRECT) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void RuleInferPointerMult::getOpList(vector<uint4> &oplist) const
 
 {
@@ -11716,8 +11741,7 @@ int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
   for(list<PcodeOp *>::const_iterator iter=out->beginDescend();iter!=out->endDescend();++iter) {
     PcodeOp *descend = *iter;
     // Main op is processed separately
-    if (descend == op)
-      continue;
+    if (isMainOp(op,descend)) continue;
     descends.push_back(descend);
   }
 
