@@ -1150,6 +1150,42 @@ bool Varnode::hasPointerUsages() const
   return false;
 }
 
+/// Is this alloca length in one of forms:
+/// 1) Positive stack growth: non_const_vn
+/// 2) Negative stack growth:
+/// 2.1) non_const_varnode * -1
+/// 2.2) -non_const_varnode
+bool Varnode::isAllocaLength(Funcdata *data) const
+
+{
+  Architecture *glb = data->getArch();
+  AddrSpace *stackspc = glb->getStackSpace();
+  bool isNegativeStack = stackspc->stackGrowsNegative();
+  // Negative stack growth
+  if (isNegativeStack) {
+    const PcodeOp *op = getDef();
+    if (op == (PcodeOp *)0) return false;
+    OpCode opc = op->code();
+    if (opc == CPUI_INT_MULT) {
+      const Varnode *invn = op->getIn(0);
+      const Varnode *cvn = op->getIn(1);
+      if (invn->isConstant()) return false;
+      if (!cvn->isConstant()) return false;
+      if (cvn->getOffset() != calc_mask(cvn->getSize())) return false;
+      return true;
+    }
+    if (opc == CPUI_INT_2COMP) {
+      const Varnode *invn = op->getIn(0);
+      if (invn->isConstant()) return false;
+      return true;
+    }
+    return false;
+  }
+  // Positive stack growth
+  if (isConstant()) return false;
+  return true;
+}
+
 /// \param m is the underlying address space manager
 VarnodeBank::VarnodeBank(AddrSpaceManager *m)
   : searchvn(0,Address(Address::m_minimal),(Datatype *)0)
