@@ -1463,6 +1463,8 @@ int4 ActionVarnodeProps::apply(Funcdata &data)
 	    }
 	  }
 	}
+	if (vn->getDef()->isAllocaAddress(data))
+	  continue;
 	vn->clearAutoLiveHold();
 	count += 1;
       }
@@ -4216,6 +4218,10 @@ int4 ActionDeadCode::apply(Funcdata &data)
     op = *iter;
 
     op->clearIndirectSource();
+    if (op->isAllocaAddress(data)) {
+      pushConsumed(~((uintb)0),op->getOut(),worklist);
+      op->getOut()->setAutoLiveHold();
+    }
     if (op->isCall()) {
       // Postpone setting consumption on CALL and CALLIND inputs
       if (op->isCallWithoutSpec()) {
