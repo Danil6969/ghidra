@@ -478,7 +478,7 @@ class ActionNameVars : public Action {
   static void makeRec(ProtoParameter *param,Varnode *vn,map<HighVariable *,OpRecommend> &recmap);
   static void lookForBadJumpTables(Funcdata &data);	///< Mark the switch variable for bad jump-tables
   static void lookForFuncParamNames(Funcdata &data,const vector<Varnode *> &varlist);
-  static PcodeOp *getCopyOp(Varnode *vn);	///< Iterate and find copy op or return 0
+  static PcodeOp *getUseOp(Varnode *vn);	///< Iterate and find copy op or return 0
   static void createSurrogates(Varnode *vn,Funcdata &data);	///< Replace raw copy with ptradd
   static void linkSpacebaseSymbol(Varnode *vn,Funcdata &data,vector<Varnode *> &namerec);
   static void linkSymbols(Funcdata &data,vector<Varnode *> &namerec);

@@ -3041,14 +3041,16 @@ void ActionNameVars::lookForFuncParamNames(Funcdata &data,const vector<Varnode *
   }
 }
 
-PcodeOp *ActionNameVars::getCopyOp(Varnode *vn)
+PcodeOp *ActionNameVars::getUseOp(Varnode *vn)
 
 {
   list<PcodeOp *>::const_iterator iter;
   for(iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
     PcodeOp *op = *iter;
-    if (op->code() == CPUI_COPY)
-      return op;
+    if (op->code() == CPUI_COPY) return op; // Some random cases when stack variable at offset 0 is used
+    if (op->code() == CPUI_INT_ADD) {
+      if (op->getIn(1)->isConstant()) return op; // Variables for which alloca is attached to
+    }
   }
   return (PcodeOp *)0;
 }
@@ -3057,11 +3059,23 @@ void ActionNameVars::createSurrogates(Varnode *vn,Funcdata &data)
 
 {
   PcodeOp *op;
-  while (op = getCopyOp(vn),op != (PcodeOp *)0) {
-    Varnode *in = op->getIn(0);
+  while (op = getUseOp(vn),op != (PcodeOp *)0) {
+    Varnode *invn = (Varnode *)0;
+    Varnode *cvn = (Varnode *)0;
+    OpCode opc = op->code();
+    if (opc == CPUI_COPY) {
+      invn = op->getIn(0);
+      cvn = data.newConstant(invn->getSize(), 0);
+    }
+    if (opc == CPUI_INT_ADD) {
+      invn = op->getIn(0);
+      cvn = op->getIn(1);
+    }
+    if (invn == (Varnode *)0) continue;
+    if (cvn == (Varnode *)0) continue;
     vector<Varnode *> inlist;
-    inlist.push_back(in);
-    inlist.push_back(data.newConstant(in->getSize(), 0));
+    inlist.push_back(invn);
+    inlist.push_back(cvn);
     data.opSetAllInput(op,inlist);
     data.opSetOpcode(op,CPUI_PTRSUB);
   }
