@@ -5968,16 +5968,6 @@ int4 RuleEqual2Constant::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
-PcodeOp *RuleUnlinkPtrAdd::getOpToUnlink(PcodeOp *op)
-
-{
-  Varnode *outVn = op->getOut();
-  if (outVn->hasNoDescend()) return (PcodeOp *)0;
-  if (outVn->loneDescend() != (PcodeOp *)0) return (PcodeOp *)0;
-  list<PcodeOp *>::const_iterator iter = outVn->beginDescend();
-  return *iter;
-}
-
 bool RuleUnlinkPtrAdd::unlinkAddOp(PcodeOp *op,Funcdata &data)
 
 {
@@ -5988,23 +5978,10 @@ bool RuleUnlinkPtrAdd::unlinkAddOp(PcodeOp *op,Funcdata &data)
   if (unlinkAddOp(op->getIn(0)->getDef(),data)) return true;
   if (unlinkAddOp(op->getIn(1)->getDef(),data)) return true;
 
-  PcodeOp *unlinkop = getOpToUnlink(op);
-  if (unlinkop == (PcodeOp *)0) return false;
-  int4 slot = unlinkop->getSlot(op->getOut());
-  PcodeOp *oldOp = unlinkop->getIn(slot)->getDef();
-  OpCode opc = oldOp->code();
-  Varnode *oldOut = oldOp->getOut();
-  int4 num = oldOp->numInput();
-  PcodeOp *newOp = data.newOp(num,oldOp->getAddr());
-  Varnode *newOut = RulePushPtr::buildVarnodeOut(oldOut,newOp,data);
-  newOut->updateType(oldOut->getType(),false,false);
-  data.opSetOpcode(newOp,opc);
-  for (int4 i=0;i<num;++i) {
-    Varnode *inVn = oldOp->getIn(i);
-    data.opSetInput(newOp,inVn,i);
-  }
-  data.opSetInput(unlinkop,newOut,slot);
-  data.opInsertBefore(newOp,unlinkop);
+  Varnode *outVn = op->getOut();
+  if (outVn->hasNoDescend()) return false;
+  if (outVn->loneDescend() != (PcodeOp *)0) return false;
+  data.splitUses(outVn);
   return true;
 }
 
