@@ -1161,9 +1161,9 @@ bool Varnode::isAllocaLength(Funcdata *data) const
   Architecture *glb = data->getArch();
   AddrSpace *stackspc = glb->getStackSpace();
   bool isNegativeStack = stackspc->stackGrowsNegative();
+  const PcodeOp *op = getDef();
   // Negative stack growth
   if (isNegativeStack) {
-    const PcodeOp *op = getDef();
     if (op == (PcodeOp *)0) return false;
     OpCode opc = op->code();
     if (opc == CPUI_INT_MULT) {
@@ -1183,6 +1183,17 @@ bool Varnode::isAllocaLength(Funcdata *data) const
   }
   // Positive stack growth
   if (isConstant()) return false;
+  if (op == (PcodeOp *)0) return true;
+  OpCode opc = op->code();
+  if (opc == CPUI_INT_MULT) {
+    const Varnode *cvn = op->getIn(1);
+    if (!cvn->isConstant()) return true;
+    if (cvn->getOffset() != calc_mask(cvn->getSize())) return true;
+    return false;
+  }
+  if (opc == CPUI_INT_2COMP) {
+    return false;
+  }
   return true;
 }
 
