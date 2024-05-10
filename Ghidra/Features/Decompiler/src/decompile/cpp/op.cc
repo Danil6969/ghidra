@@ -167,7 +167,7 @@ bool PcodeOp::isCollapsible(void) const
   return true;
 }
 
-bool PcodeOp::isReturnAddressConstant(Funcdata *data) const
+bool PcodeOp::isReturnAddressConstant(Funcdata &data) const
 
 {
   PcodeOp *op = (PcodeOp *)0;
@@ -205,7 +205,7 @@ bool PcodeOp::isReturnAddressConstant(Funcdata *data) const
   }
   else {
     list<PcodeOp *>::const_iterator iter = insertiter;
-    list<PcodeOp *>::const_iterator end = data->endOpDead();
+    list<PcodeOp *>::const_iterator end = data.endOpDead();
     if (iter == end) return false;
     op = *iter;
     while (iter != end) {
@@ -234,6 +234,73 @@ bool PcodeOp::isReturnAddressConstant(Funcdata *data) const
     if (opc == CPUI_CALLIND) return true;
   }
   return false;
+}
+
+/// Is this stack variable address in one of these forms:
+/// 1) ptrsub(spacebase,const_varnode)
+/// 2) spacebase + varnode
+/// 3) alloca_address
+bool PcodeOp::isStackVariableAddress(Funcdata &data) const
+
+{
+  Architecture *glb = data.getArch();
+  AddrSpace *stackspc = glb->getStackSpace();
+  VarnodeData fullSpacebase = stackspc->getSpacebaseFull(0);
+  VarnodeData truncatedSpacebase = stackspc->getSpacebase(0);
+  OpCode opc = code();
+  if (opc == CPUI_PTRSUB) {
+    const Varnode *invn0 = getIn(0);
+    const Varnode *invn1 = getIn(1);
+    VarnodeData spacebase;
+    spacebase.space = invn0->getSpace();
+    spacebase.offset = invn0->getOffset();
+    spacebase.size = invn0->getSize();
+    if (spacebase != fullSpacebase && spacebase != truncatedSpacebase) return false;
+    if (!invn1->isConstant()) return false;
+    return true;
+  }
+  if (opc == CPUI_INT_ADD) {
+    const Varnode *invn0 = getIn(0);
+    const Varnode *invn1 = getIn(1);
+    VarnodeData spacebase;
+    spacebase.space = invn0->getSpace();
+    spacebase.offset = invn0->getOffset();
+    spacebase.size = invn0->getSize();
+    if (spacebase == fullSpacebase) return true;
+    if (spacebase == truncatedSpacebase) return true;
+    if (isAllocaAddress(data)) return true;
+    return false;
+  }
+  if (opc == CPUI_LOAD) return false;
+  if (opc == CPUI_INT_2COMP) return false;
+  if (opc == CPUI_INT_MULT) return false;
+  return false;
+}
+
+/// Is this alloca address in form:
+/// &attach_variable + alloca_length
+bool PcodeOp::isAllocaAddress(Funcdata &data) const
+
+{
+  if (code() != CPUI_INT_ADD) return false;
+  int4 slot = -1; // Slot for the stack variable allocated right before alloca
+  const PcodeOp *inop0 = getIn(0)->getDef();
+  const PcodeOp *inop1 = getIn(1)->getDef();
+  // Usually alloca requires some stack variable
+  // so there should be always something it can be attached to
+  if (inop0 != (PcodeOp *)0 && inop0->isStackVariableAddress(data)) {
+    if (inop1 != (PcodeOp *)0 && inop1->isStackVariableAddress(data)) return false;
+    slot = 0;
+  }
+  if (inop1 != (PcodeOp *)0 && inop1->isStackVariableAddress(data)) {
+    if (inop0 != (PcodeOp *)0 && inop0->isStackVariableAddress(data)) return false;
+    slot = 1;
+  }
+  if (slot == -1) return false;
+  const Varnode *lengthvn = getIn(1 - slot);
+  if (lengthvn->isConstant()) return false;
+  if (!lengthvn->isAllocaLength(data)) return false;
+  return true;
 }
 
 /// Produce a hash of the following attributes: output size, the opcode, and the identity

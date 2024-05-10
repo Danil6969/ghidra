@@ -1155,10 +1155,10 @@ bool Varnode::hasPointerUsages() const
 /// 2) Negative stack growth:
 /// 2.1) non_const_varnode * -1
 /// 2.2) -non_const_varnode
-bool Varnode::isAllocaLength(Funcdata *data) const
+bool Varnode::isAllocaLength(Funcdata &data) const
 
 {
-  Architecture *glb = data->getArch();
+  Architecture *glb = data.getArch();
   AddrSpace *stackspc = glb->getStackSpace();
   bool isNegativeStack = stackspc->stackGrowsNegative();
   const PcodeOp *op = getDef();

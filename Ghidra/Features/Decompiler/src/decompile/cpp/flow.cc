@@ -1211,7 +1211,7 @@ void FlowInfo::doInjection(InjectPayload *payload,InjectContext &icontext,PcodeO
   // Previous operation
   iter--;
   PcodeOp *retaddrop = *iter;
-  if (retaddrop->isReturnAddressConstant(&data)) {
+  if (retaddrop->isReturnAddressConstant(data)) {
     // Get rid of return address saving op
     data.opDestroyRaw(retaddrop);
   }
