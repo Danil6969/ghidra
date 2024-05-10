@@ -105,7 +105,6 @@ class Funcdata {
   bool syncVarnodesWithSymbol(VarnodeLocSet::const_iterator &iter,uint4 fl,Datatype *ct);
   bool descend2Undef(Varnode *vn);		///< Transform all reads of the given Varnode to a special \b undefined constant
 
-  void splitUses(Varnode *vn);			///< Make all reads of the given Varnode unique
   Varnode *cloneVarnode(const Varnode *vn);	///< Clone a Varnode (between copies of the function)
   void destroyVarnode(Varnode *vn);		///< Delete the given Varnode from \b this function
   void coverVarnodes(SymbolEntry *entry,vector<Varnode *> &list);
@@ -292,6 +291,7 @@ public:
   Varnode *newExtendedConstant(int4 s,uint8 *val,PcodeOp *op);	///< Create extended precision constant
   void adjustInputVarnodes(const Address &addr,int4 sz);
   void deleteVarnode(Varnode *vn) { vbank.destroy(vn); }	///< Delete the given varnode
+  void splitUses(Varnode *vn);					///< Make all reads of the given Varnode unique
 
   Address findDisjointCover(Varnode *vn,int4 &sz);	///< Find range covering given Varnode and any intersecting Varnodes
 
