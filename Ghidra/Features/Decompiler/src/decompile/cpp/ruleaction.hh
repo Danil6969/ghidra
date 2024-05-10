@@ -1059,7 +1059,6 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RuleUnlinkPtrAdd : public Rule {
-  static PcodeOp *getOpToUnlink(PcodeOp *op);
   static bool unlinkAddOp(PcodeOp *op,Funcdata &data);
 public:
   RuleUnlinkPtrAdd(const string &g) : Rule(g, 0, "unlinkptradd") {}	///< Constructor
