@@ -11535,28 +11535,6 @@ int4 RuleInferPointerAdd::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
-bool RuleInferPointerMult::canProcess(PcodeOp *op,Funcdata &data)
-
-{
-  intb increment = getCounterIncrement(op);
-  if (increment == 0) return false;
-  if (increment == 1) return false;
-  if (increment == -1) return false;
-
-  Varnode *invn0 = op->getIn(0);
-  if (invn0->isFree()) return false;
-  PcodeOp *multiop = invn0->getDef();
-  int4 slot;
-  PcodeOp *initop = getCounterInitOp(multiop, slot);
-  if (initop == 0) return false;
-  Varnode *initvn = initop->getIn(slot);
-
-  Varnode *out = multiop->getOut();
-  if (out->isFree()) return 0;
-
-  return true;
-}
-
 bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,Funcdata &data)
 
 {
@@ -11689,43 +11667,33 @@ bool RuleInferPointerMult::isMainOp(PcodeOp *mainop,PcodeOp *otherop)
   return false;
 }
 
-void RuleInferPointerMult::getOpList(vector<uint4> &oplist) const
-
-{
-  oplist.push_back(CPUI_INT_ADD);
-}
-
-/// \class RuleInferPointerMult
-/// \brief Infer pointer counter multiplication everywhere it is used but make assignments simpler instead
-/// Only possible if writen twice. First is the initializer and the second is the increment:
-///  - `V = W * c; ... = V; V = V + d*c => V = W; ... = V * c; V = V + d`
-int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
+bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
 
 {
   if (!data.hasTypeRecoveryStarted()) return 0;
   // Shall not touch if haven't split out other descendants yet
-  if (op->getOut()->loneDescend() == (PcodeOp *)0) return 0;
+  if (op->getOut()->loneDescend() == (PcodeOp *)0) return false;
   intb increment = getCounterIncrement(op);
-  if (increment == 0) return 0;
-  if (increment == 1) return 0;
-  if (increment == -1) return 0;
+  if (increment == 0) return false;
+  if (increment == 1) return false;
+  if (increment == -1) return false;
 
   Varnode *invn0 = op->getIn(0);
-  if (invn0->isFree()) return 0;
+  if (invn0->isFree()) return false;
   PcodeOp *multiop = invn0->getDef();
   int4 slot;
   PcodeOp *initop = getCounterInitOp(multiop, slot);
-  if (initop == 0) return 0;
+  if (initop == 0) return false;
   Varnode *initvn = initop->getIn(slot);
 
   intb a = sign_extend(initvn->getOffset(),8*initvn->getSize()-1);
   bool isnegative = increment < 0;
   intb b = isnegative ? -increment : increment;
-  if (a % b != 0) return 0;
+  if (a % b != 0) return false;
 
   Varnode *out = multiop->getOut();
-  if (out->isFree()) return 0;
-  if (!checkPointerUsages(out,data)) return 0;
+  if (out->isFree()) return false;
+  if (!checkPointerUsages(out,data)) return false;
 
   // Collect descends
   vector<PcodeOp *> descends;
@@ -11761,7 +11729,46 @@ int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
     val = a / b;
     data.opSetInput(initop,data.newConstant(initvn->getSize(),val & calc_mask(initvn->getSize())),slot);
   }
-  return 1;
+  return true;
+}
+
+void RuleInferPointerMult::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_ADD);
+}
+
+/// \class RuleInferPointerMult
+/// \brief Infer pointer counter multiplication everywhere it is used but make assignments simpler instead
+/// Only possible if writen twice. First is the initializer and the second is the increment:
+///  - `V = W * c; ... = V; V = V + d*c => V = W; ... = V * c; V = V + d`
+int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  if (formIncrement(op,data)) return 1;
+  return 0;
+}
+
+bool RuleInferPointerMult::canProcess(PcodeOp *op,Funcdata &data)
+
+{
+  intb increment = getCounterIncrement(op);
+  if (increment == 0) return false;
+  if (increment == 1) return false;
+  if (increment == -1) return false;
+
+  Varnode *invn0 = op->getIn(0);
+  if (invn0->isFree()) return false;
+  PcodeOp *multiop = invn0->getDef();
+  int4 slot;
+  PcodeOp *initop = getCounterInitOp(multiop, slot);
+  if (initop == 0) return false;
+  Varnode *initvn = initop->getIn(slot);
+
+  Varnode *out = multiop->getOut();
+  if (out->isFree()) return 0;
+
+  return true;
 }
 
 // Returns change of counter or 0 if not a valid counter vn
