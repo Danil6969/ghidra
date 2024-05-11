@@ -11295,13 +11295,28 @@ int4 RuleLzcountShiftBool::applyOp(PcodeOp *op,Funcdata &data)
 bool RuleInferPointerAdd::checkPointerUsages(Varnode *vn,Funcdata &data)
 
 {
+  PcodeOp *multiop = vn->getDef();
+  if (multiop == (PcodeOp *)0) return false;
+  if (multiop->code() != CPUI_MULTIEQUAL) return false;
+
   for(list<PcodeOp *>::const_iterator iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
     PcodeOp *op = *iter;
     PcodeOp *descend = op;
     OpCode opc = descend->code();
-    Varnode *out = vn;
+    if (opc == CPUI_MULTIEQUAL) {
+      if (descend == multiop) continue;
+      // Check if used somewhere farther
+      if (checkPointerUsages(descend->getOut(),data)) return true;
+    }
     if (!(opc == CPUI_INT_ADD || opc == CPUI_INT_MULT)) continue;
+    Varnode *out = vn;
+    PcodeOp *addop = op;
+    if (!addop->containsInput(out)) return false;
+    int4 addslot = addop->getSlot(out);
     while (opc == CPUI_INT_ADD || opc == CPUI_INT_MULT) {
+      addop = descend;
+      if (!addop->containsInput(out)) return false;
+      addslot = addop->getSlot(out);
       out = descend->getOut();
       descend = out->loneDescend();
       if (descend == (PcodeOp *)0) break;
@@ -11311,6 +11326,21 @@ bool RuleInferPointerAdd::checkPointerUsages(Varnode *vn,Funcdata &data)
     if (descend == (PcodeOp *)0) continue;
     opc = descend->code();
     if (opc == CPUI_LOAD || opc == CPUI_STORE) {
+      Varnode *ptrvn = addop->getIn(1-addslot);
+      Varnode *othervn = addop->getIn(addslot);
+      Datatype *ptrdt = ptrvn->getTypeReadFacing(addop);
+      Datatype *otherdt = othervn->getTypeReadFacing(addop);
+      if (ptrdt->getMetatype() != TYPE_PTR) return false;
+      return true;
+    }
+    if (opc = CPUI_CALL) {
+      FuncCallSpecs *fc = data.getCallSpecs(descend);
+      int4 slot = descend->getSlot(out);
+      if (fc == (FuncCallSpecs *)0) continue;
+      ProtoParameter *param = fc->getParam(slot-1);
+      if (param == (ProtoParameter *)0) continue;
+      Datatype *dt = param->getType();
+      if (dt->getMetatype() != TYPE_PTR) continue;
       return true;
     }
   }
