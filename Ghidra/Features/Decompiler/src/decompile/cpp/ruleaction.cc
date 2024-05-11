@@ -11292,7 +11292,7 @@ int4 RuleLzcountShiftBool::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
-bool RuleInferPointerAdd::checkPointerUsages(Varnode *vn)
+bool RuleInferPointerAdd::checkPointerUsages(Varnode *vn,Funcdata &data)
 
 {
   for(list<PcodeOp *>::const_iterator iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
@@ -11442,7 +11442,7 @@ bool RuleInferPointerAdd::formConstant(PcodeOp *op,Funcdata &data)
   Varnode *multiOut = multiOp->getOut();
   if (multiOut->isFree()) return false;
   if (multiOut->getSize() != size) return false;
-  if (!checkPointerUsages(multiOut)) return false;
+  if (!checkPointerUsages(multiOut,data)) return false;
 
   // Collect descends
   vector<PcodeOp *> descends;
@@ -11495,7 +11495,7 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
   Varnode *multiOut = multiOp->getOut();
   if (multiOut->isFree()) return false;
   if (multiOut->getSize() != size) return false;
-  if (!checkPointerUsages(multiOut)) return false;
+  if (!checkPointerUsages(multiOut,data)) return false;
 
   // Collect descends
   vector<PcodeOp *> descends;
