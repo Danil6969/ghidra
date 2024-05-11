@@ -1380,8 +1380,15 @@ void PrintC::opPtrsub(const PcodeOp *op)
     }
     else {
       int4 off = high->getSymbolOffset();
-      if (off == 0)
-	pushSymbol(symbol,(Varnode *)0,op);
+      if (off == 0) {
+	if (isStringLocation(in1const,op,(const TypePointer *)ct)) {
+	  if (!pushPtrCharConstant(in1const,(const TypePointer *)ct,(Varnode *)0,op))
+	    throw LowlevelError("Passed isStringLocation but didn't pass pushPtrCharConstant, shouldn't reach this");
+	}
+	else {
+	  pushSymbol(symbol,(Varnode *)0,op);
+	}
+      }
       else {
 	// If this "value" is getting used as a storage location
 	// we can't use a cast in its description, so turn off
