@@ -1724,8 +1724,10 @@ class RuleInferPointerMult : public Rule {
   static PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
   static intb getCounterIncrement(PcodeOp *op);
   static bool isMainOp(PcodeOp *mainop,PcodeOp *otherop);
+  // Forms for the rule
+  static bool formIncrement(PcodeOp *op,Funcdata &data);
+  static bool formAssignment(PcodeOp *op,Funcdata &data);
 public:
-  static bool canProcess(PcodeOp *op,Funcdata &data);
   RuleInferPointerMult(const string &g) : Rule(g,0,"inferpointermult") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
@@ -1733,6 +1735,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+  static bool canProcess(PcodeOp *op,Funcdata &data);
 };
 
 class RulePointerComparison : public Rule {
