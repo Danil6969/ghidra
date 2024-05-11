@@ -1701,14 +1701,14 @@ public:
 };
 
 class RuleInferPointerAdd : public Rule {
-  bool checkPointerUsages(Varnode *vn);
-  PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
-  intb getCounterIncrement(PcodeOp *op);
+  static bool checkPointerUsages(Varnode *vn);
+  static PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
+  static intb getCounterIncrement(PcodeOp *op);
   static bool isMainOp(PcodeOp *mainop,PcodeOp *otherop);
-  bool getOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size);
+  static bool getOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size);
   // Forms for the rule
-  bool formConstant(PcodeOp *op,Funcdata &data);
-  bool formSpacebase(PcodeOp *op,Funcdata &data);
+  static bool formConstant(PcodeOp *op,Funcdata &data);
+  static bool formSpacebase(PcodeOp *op,Funcdata &data);
 public:
   RuleInferPointerAdd(const string &g) : Rule(g,0,"inferpointeradd") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
