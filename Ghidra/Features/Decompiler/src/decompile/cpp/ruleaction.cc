@@ -7319,13 +7319,14 @@ int4 RulePushPtr::applyOp(PcodeOp *op,Funcdata &data)
 
   if (RulePtrArith::evaluatePointerExpression(op, slot) != 1) return 0;
   Varnode *vn = op->getOut();
+  list<PcodeOp *>::const_iterator iter;
   Varnode *vnadd2 = op->getIn(1-slot);
   vector<PcodeOp *> duplicateList;
   if (vn->loneDescend() == (PcodeOp *)0)
     collectDuplicateNeeds(duplicateList, vnadd2);
 
   for(;;) {
-    list<PcodeOp *>::const_iterator iter = vn->beginDescend();
+    iter = vn->beginDescend();
     if (iter == vn->endDescend()) break;
     PcodeOp *decop = *iter;
     int4 j = decop->getSlot(vn);
@@ -11372,6 +11373,25 @@ intb RuleInferPointerAdd::getCounterIncrement(PcodeOp *op)
   return sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
 }
 
+bool RuleInferPointerAdd::isMainOp(PcodeOp *mainop,PcodeOp *otherop)
+
+{
+  if (otherop == mainop) return true;
+  intb increment = getCounterIncrement(mainop);
+  if (otherop->code() != CPUI_INT_ADD) return false;
+  if (otherop->getIn(0) != mainop->getIn(0)) return false;
+  if (!otherop->getIn(1)->isConstant()) return false;
+  Varnode *cvn = otherop->getIn(1);
+  intb c = sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
+  if (c != increment) return false;
+  if (otherop->getAddr() == mainop->getAddr()) return true;
+  PcodeOp *lone = otherop->getOut()->loneDescend();
+  if (lone != (PcodeOp *)0) {
+    if (lone->code() == CPUI_INDIRECT) return true;
+  }
+  return false;
+}
+
 bool RuleInferPointerAdd::getOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size)
 
 {
@@ -11429,7 +11449,7 @@ bool RuleInferPointerAdd::formConstant(PcodeOp *op,Funcdata &data)
     if (repeatSlot != -1) return false; // Don't know how to handle this case yet
 
     // Main op isn't processed
-    if (descend == op) continue;
+    if (isMainOp(op,descend)) continue;
     descends.push_back(descend);
   }
 
@@ -11482,7 +11502,7 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
     if (repeatSlot != -1) return false; // Don't know how to handle this case yet
 
     // Main op isn't processed
-    if (descend == op) continue;
+    if (isMainOp(op,descend)) continue;
     descends.push_back(descend);
   }
 
@@ -11653,9 +11673,7 @@ intb RuleInferPointerMult::getCounterIncrement(PcodeOp *op)
 bool RuleInferPointerMult::isMainOp(PcodeOp *mainop,PcodeOp *otherop)
 
 {
-  if (otherop == mainop) {
-    return true;
-  }
+  if (otherop == mainop) return true;
   intb increment = getCounterIncrement(mainop);
   if (otherop->code() != CPUI_INT_ADD) return false;
   if (otherop->getIn(0) != mainop->getIn(0)) return false;
@@ -11663,14 +11681,10 @@ bool RuleInferPointerMult::isMainOp(PcodeOp *mainop,PcodeOp *otherop)
   Varnode *cvn = otherop->getIn(1);
   intb c = sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
   if (c != increment) return false;
-  if (otherop->getAddr() == mainop->getAddr()) {
-    return true;
-  }
+  if (otherop->getAddr() == mainop->getAddr()) return true;
   PcodeOp *lone = otherop->getOut()->loneDescend();
   if (lone != (PcodeOp *)0) {
-    if (lone->code() == CPUI_INDIRECT) {
-      return true;
-    }
+    if (lone->code() == CPUI_INDIRECT) return true;
   }
   return false;
 }
