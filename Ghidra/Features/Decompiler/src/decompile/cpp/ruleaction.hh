@@ -1701,14 +1701,14 @@ public:
 };
 
 class RuleInferPointerMult : public Rule {
-  static bool checkPointerUsages(Varnode *vn,Funcdata &data);
   static PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
-  static intb getCounterIncrement(PcodeOp *op);
   static bool isMainOp(PcodeOp *mainop,PcodeOp *otherop);
   // Forms for the rule
   static bool formIncrement(PcodeOp *op,Funcdata &data);
   static bool formAssignment(PcodeOp *op,Funcdata &data);
 public:
+  static bool checkPointerUsages(Varnode *vn,Funcdata &data);
+  static intb getCounterIncrement(PcodeOp *op);
   RuleInferPointerMult(const string &g) : Rule(g,0,"inferpointermult") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
@@ -1720,9 +1720,7 @@ public:
 };
 
 class RuleInferPointerAdd : public Rule {
-  static bool checkPointerUsages(Varnode *vn,Funcdata &data);
   static PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
-  static intb getCounterIncrement(PcodeOp *op);
   static bool isMainOp(PcodeOp *mainop,PcodeOp *otherop);
   static bool getOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size);
   // Forms for the rule
