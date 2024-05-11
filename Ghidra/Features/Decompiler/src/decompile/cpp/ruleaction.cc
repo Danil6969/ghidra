@@ -7036,8 +7036,8 @@ bool RulePtrArith::canProcess(PcodeOp *op,Funcdata &data)
     if (ct->getMetatype() == TYPE_PTR) break;
   }
   if (slot == op->numInput()) return false;
-  if (RulePtrArith::evaluatePointerExpression(op, slot) != 2) return false;
-  if (!RulePtrArith::verifyPreferredPointer(op, slot)) return false;
+  if (evaluatePointerExpression(op, slot) != 2) return false;
+  if (!verifyPreferredPointer(op, slot)) return false;
 
   AddTreeState state(data,op,slot);
   if (state.canApply()) return true;
@@ -7319,7 +7319,12 @@ int4 RulePushPtr::applyOp(PcodeOp *op,Funcdata &data)
 
   if (RulePtrArith::evaluatePointerExpression(op, slot) != 1) return 0;
   Varnode *vn = op->getOut();
-  list<PcodeOp *>::const_iterator iter;
+  list<PcodeOp *>::const_iterator iter = vn->beginDescend();
+  while (iter != vn->endDescend()) {
+    PcodeOp *decop = *iter;
+    //if (decop->isAllocaAddress(data)) return 0;
+    iter++;
+  }
   Varnode *vnadd2 = op->getIn(1-slot);
   vector<PcodeOp *> duplicateList;
   if (vn->loneDescend() == (PcodeOp *)0)
@@ -11368,8 +11373,10 @@ intb RuleInferPointerAdd::getCounterIncrement(PcodeOp *op)
   if (inadd != op) return 0;
 
   int4 slot;
-  PcodeOp *initOp = getCounterInitOp(multiop, slot);
-  if (initOp == (PcodeOp *)0) return 0;
+  PcodeOp *initop = getCounterInitOp(multiop, slot);
+  if (initop == (PcodeOp *)0) return 0;
+  Varnode *initvn = initop->getIn(slot);
+  if (initvn == (Varnode *)0) return 0;
   return sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
 }
 
@@ -11625,27 +11632,31 @@ PcodeOp *RuleInferPointerMult::getCounterInitOp(PcodeOp *multiop,int4 &slot)
 intb RuleInferPointerMult::getCounterIncrement(PcodeOp *op)
 
 {
+  // Shall not touch if haven't split out other descendants yet
+  if (op->getOut()->loneDescend() == (PcodeOp *)0) return 0;
   // Increment must be constant
-  Varnode *invn1 = op->getIn(1);
-  if (!invn1->isConstant()) return 0;
+  Varnode *cvn = op->getIn(1);
+  if (!cvn->isConstant()) return 0;
 
-  Varnode *invn0 = op->getIn(0);
-  if (invn0->isFree()) return 0;
-  PcodeOp *multiop = invn0->getDef();
+  Varnode *invn = op->getIn(0);
+  if (invn->isFree()) return 0;
+  PcodeOp *multiop = invn->getDef();
   if (multiop == (PcodeOp *)0) return 0;
   if (multiop->code() != CPUI_MULTIEQUAL) return 0;
   // Check multi input
-  Varnode *inmulti1 = multiop->getIn(1);
-  if (inmulti1->isFree()) return 0;
+  Varnode *inmulti = multiop->getIn(1);
+  if (inmulti->isFree()) return 0;
+  PcodeOp *inadd = inmulti->getDef();
+  if (inadd == (PcodeOp *)0) return 0;
   // Must loop to intadd
-  if (inmulti1->getDef() != op) return 0;
+  if (inadd != op) return 0;
 
   int4 slot;
   PcodeOp *initop = getCounterInitOp(multiop, slot);
   if (initop == (PcodeOp *)0) return 0;
   Varnode *initvn = initop->getIn(slot);
   if (initvn == (Varnode *)0) return 0;
-  return sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
+  return sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
 }
 
 bool RuleInferPointerMult::isMainOp(PcodeOp *mainop,PcodeOp *otherop)
@@ -11670,9 +11681,9 @@ bool RuleInferPointerMult::isMainOp(PcodeOp *mainop,PcodeOp *otherop)
 bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
 
 {
-  if (!data.hasTypeRecoveryStarted()) return 0;
-  // Shall not touch if haven't split out other descendants yet
-  if (op->getOut()->loneDescend() == (PcodeOp *)0) return false;
+  if (!data.hasTypeRecoveryStarted()) return false;
+  // Specific to this form
+  if (op->code() != CPUI_INT_ADD) return false;
   intb increment = getCounterIncrement(op);
   if (increment == 0) return false;
   if (increment == 1) return false;
@@ -11732,20 +11743,34 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
   return true;
 }
 
+bool RuleInferPointerMult::formAssignment(PcodeOp *op,Funcdata &data)
+
+{
+  if (!data.hasTypeRecoveryStarted()) return false;
+  // Specific to this form
+  if (op->code() != CPUI_INT_MULT) return false;
+  return false;
+}
+
 void RuleInferPointerMult::getOpList(vector<uint4> &oplist) const
 
 {
   oplist.push_back(CPUI_INT_ADD);
+  oplist.push_back(CPUI_INT_MULT);
 }
 
 /// \class RuleInferPointerMult
 /// \brief Infer pointer counter multiplication everywhere it is used but make assignments simpler instead
-/// Only possible if writen twice. First is the initializer and the second is the increment:
-///  - `V = W * c; ... = V; V = V + d*c => V = W; ... = V * c; V = V + d`
+/// Only possible if written twice. The forms:
+/// 1) The first is the initializer and the second is the increment:
+///  - `V = W * c; ... = V; V = V +- c => V = W; ... = V * c; V = V +- 1`
+/// 2) The first is the initializer and the second is the assignment:
+///  - `V = W * c; ... = V; V = X * c => V = W; ... = V * c; V = X`
 int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
 
 {
   if (formIncrement(op,data)) return 1;
+  if (formAssignment(op,data)) return 1;
   return 0;
 }
 
