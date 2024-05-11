@@ -1700,25 +1700,6 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 
-class RuleInferPointerAdd : public Rule {
-  static bool checkPointerUsages(Varnode *vn,Funcdata &data);
-  static PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
-  static intb getCounterIncrement(PcodeOp *op);
-  static bool isMainOp(PcodeOp *mainop,PcodeOp *otherop);
-  static bool getOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size);
-  // Forms for the rule
-  static bool formConstant(PcodeOp *op,Funcdata &data);
-  static bool formSpacebase(PcodeOp *op,Funcdata &data);
-public:
-  RuleInferPointerAdd(const string &g) : Rule(g,0,"inferpointeradd") {}	///< Constructor
-  virtual Rule *clone(const ActionGroupList &grouplist) const {
-    if (!grouplist.contains(getGroup())) return (Rule *)0;
-    return new RuleInferPointerAdd(getGroup());
-  }
-  virtual void getOpList(vector<uint4> &oplist) const;
-  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
-};
-
 class RuleInferPointerMult : public Rule {
   static bool checkPointerUsages(Varnode *vn,Funcdata &data);
   static PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
@@ -1736,6 +1717,25 @@ public:
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
   static bool canProcess(PcodeOp *op,Funcdata &data);
+};
+
+class RuleInferPointerAdd : public Rule {
+  static bool checkPointerUsages(Varnode *vn,Funcdata &data);
+  static PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
+  static intb getCounterIncrement(PcodeOp *op);
+  static bool isMainOp(PcodeOp *mainop,PcodeOp *otherop);
+  static bool getOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size);
+  // Forms for the rule
+  static bool formConstant(PcodeOp *op,Funcdata &data);
+  static bool formSpacebase(PcodeOp *op,Funcdata &data);
+public:
+  RuleInferPointerAdd(const string &g) : Rule(g,0,"inferpointeradd") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleInferPointerAdd(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 
 class RulePointerComparison : public Rule {
