@@ -11541,7 +11541,7 @@ bool RuleInferPointerMult::canProcess(PcodeOp *op,Funcdata &data)
   Varnode *initvn = initop->getIn(slot);
 
   Varnode *out = multiop->getOut();
-  if (out->isFree()) return 0;
+  if (out->isFree()) return false;
 
   return true;
 }
