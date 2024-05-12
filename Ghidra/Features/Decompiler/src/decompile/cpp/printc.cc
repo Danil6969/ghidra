@@ -1382,7 +1382,7 @@ void PrintC::opPtrsub(const PcodeOp *op)
       int4 off = high->getSymbolOffset();
       if (off == 0) {
 	if (isStringLocation(in1const,op,(const TypePointer *)ct)) {
-	  if (!pushPtrCharConstant(in1const,(const TypePointer *)ct,(Varnode *)0,op))
+	  if (!pushPtrCharConstant(in1const,ptype,(Varnode *)0,op))
 	    throw LowlevelError("Passed isStringLocation but didn't pass pushPtrCharConstant, shouldn't reach this");
 	}
 	else {
@@ -1862,7 +1862,8 @@ bool PrintC::printCharacterConstant(ostream &s,const Address &addr,Datatype *cha
 
   // Retrieve UTF8 version of string
   bool isTrunc = false;
-  const vector<uint1> &buffer(manager->getStringData(addr, charType, isTrunc));
+  vector <uint1> stringdata = manager->getStringData(addr, charType, isTrunc);
+  const vector<uint1> &buffer(stringdata);
   if (buffer.empty())
     return false;
   if (doEmitWideCharPrefix() && charType->getSize() > 1 && !charType->isOpaqueString())
