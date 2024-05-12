@@ -1862,8 +1862,7 @@ bool PrintC::printCharacterConstant(ostream &s,const Address &addr,Datatype *cha
 
   // Retrieve UTF8 version of string
   bool isTrunc = false;
-  vector <uint1> stringdata = manager->getStringData(addr, charType, isTrunc);
-  const vector<uint1> &buffer(stringdata);
+  const vector<uint1> &buffer(manager->getStringData(addr, charType, isTrunc));
   if (buffer.empty())
     return false;
   if (doEmitWideCharPrefix() && charType->getSize() > 1 && !charType->isOpaqueString())
@@ -1933,11 +1932,6 @@ bool PrintC::isStringLocation(uintb val,const PcodeOp *op,const TypePointer *ct)
   if (!glb->symboltab->getGlobalScope()->isReadOnly(stringaddr,1,Address()))
     return false;	     // Check that string location is readonly
 
-  ostringstream str;
-  Datatype *subct = ct->getPtrTo();
-  if (!printCharacterConstant(str,stringaddr,subct))
-    return false;		// Can we get a nice ASCII string
-
   const Scope *symScope = op->getParent()->getFuncdata()->getScopeLocal();
   SymbolEntry *entry = symScope->queryContainer(stringaddr, 1, Address());
   if (entry == (SymbolEntry *)0) return false;
@@ -1947,6 +1941,12 @@ bool PrintC::isStringLocation(uintb val,const PcodeOp *op,const TypePointer *ct)
   if (ptrType->getMetatype() != TYPE_ARRAY) return false;
   Datatype *baseType = ((TypeArray *)ptrType)->getBase();
   if (!baseType->isCharPrint()) return false;
+
+  ostringstream str;
+  Datatype *subct = ct->getPtrTo();
+  if (!printCharacterConstant(str,stringaddr,subct))
+    return false;		// Can we get a nice ASCII string
+
   return true;
 }
 
