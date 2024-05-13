@@ -11317,7 +11317,7 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,Funcdata &data)
       addop = descend;
       if (!addop->containsInput(out)) return false;
       addslot = addop->getSlot(out);
-      out = descend->getOut();
+      out = addop->getOut();
       descend = out->loneDescend();
       if (descend == (PcodeOp *)0) break;
       opc = descend->code();
@@ -11327,10 +11327,10 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,Funcdata &data)
     opc = descend->code();
     if (opc == CPUI_LOAD || opc == CPUI_STORE) {
       Varnode *ptrvn = addop->getIn(1-addslot);
-      Varnode *othervn = addop->getIn(addslot);
       Datatype *ptrdt = ptrvn->getTypeReadFacing(addop);
+      Varnode *othervn = addop->getIn(addslot);
       Datatype *otherdt = othervn->getTypeReadFacing(addop);
-      if (ptrdt->getMetatype() != TYPE_PTR) return false;
+      if (ptrdt->getMetatype() != TYPE_PTR) continue;
       return true;
     }
     if (opc = CPUI_CALL) {
