@@ -634,7 +634,7 @@ void PrintLanguage::emitLineComment(int4 indent,const Comment *comm)
       int4 count = 1;
       while(pos < text.size()) {
 	tok = text[pos];
-	if (isspace(tok)) break;
+	if (isspace((unsigned char)tok)) break;
 	count += 1;
 	pos += 1;
       }
