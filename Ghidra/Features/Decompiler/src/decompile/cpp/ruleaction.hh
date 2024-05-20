@@ -1709,6 +1709,7 @@ class RuleInferPointerMult : public Rule {
 public:
   static bool checkPointerUsages(Varnode *vn,Funcdata &data);
   static intb getCounterIncrement(PcodeOp *op);
+  static intb getCounterMultiplier(PcodeOp *op);
   RuleInferPointerMult(const string &g) : Rule(g,0,"inferpointermult") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
