@@ -11292,7 +11292,7 @@ int4 RuleLzcountShiftBool::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
-bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,Funcdata &data)
+bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,set<Varnode *> visitedVarnodes,Funcdata &data)
 
 {
   PcodeOp *multiop = vn->getDef();
@@ -11306,7 +11306,7 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,Funcdata &data)
     if (opc == CPUI_MULTIEQUAL) {
       if (descend == multiop) continue;
       // Check if used somewhere farther
-      if (checkPointerUsages(descend->getOut(),data)) return true;
+      if (checkPointerUsages(descend->getOut(),visitedVarnodes,data)) return true;
     }
     if (!(opc == CPUI_INT_ADD || opc == CPUI_INT_MULT)) continue;
     Varnode *out = vn;
@@ -11485,7 +11485,9 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
 
   Varnode *out = multiop->getOut();
   if (out->isFree()) return false;
-  if (!checkPointerUsages(out,data)) return false;
+  set<Varnode *> visitedVarnodes;
+  if (!checkPointerUsages(out,visitedVarnodes,data)) return false;
+  visitedVarnodes.clear();
 
   // Collect descends
   vector<PcodeOp *> descends;
@@ -11547,7 +11549,9 @@ bool RuleInferPointerMult::formAssignment(PcodeOp *op,Funcdata &data)
 
   Varnode *out = multiop->getOut();
   if (out->isFree()) return false;
-  if (!checkPointerUsages(out,data)) return false;
+  set<Varnode *> visitedVarnodes;
+  if (!checkPointerUsages(out,visitedVarnodes,data)) return false;
+  visitedVarnodes.clear();
 
   // Collect descends
   vector<PcodeOp *> descends;
@@ -11724,7 +11728,9 @@ bool RuleInferPointerAdd::formConstant(PcodeOp *op,Funcdata &data)
   Varnode *multiOut = multiOp->getOut();
   if (multiOut->isFree()) return false;
   if (multiOut->getSize() != size) return false;
-  if (!RuleInferPointerMult::checkPointerUsages(multiOut,data)) return false;
+  set<Varnode *> visitedVarnodes;
+  if (!RuleInferPointerMult::checkPointerUsages(multiOut,visitedVarnodes,data)) return false;
+  visitedVarnodes.clear();
 
   // Collect descends
   vector<PcodeOp *> descends;
@@ -11777,7 +11783,9 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
   Varnode *multiOut = multiOp->getOut();
   if (multiOut->isFree()) return false;
   if (multiOut->getSize() != size) return false;
-  if (!RuleInferPointerMult::checkPointerUsages(multiOut,data)) return false;
+  set<Varnode *> visitedVarnodes;
+  if (!RuleInferPointerMult::checkPointerUsages(multiOut,visitedVarnodes,data)) return false;
+  visitedVarnodes.clear();
 
   // Collect descends
   vector<PcodeOp *> descends;

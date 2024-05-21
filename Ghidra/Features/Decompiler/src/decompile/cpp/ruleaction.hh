@@ -1707,7 +1707,7 @@ class RuleInferPointerMult : public Rule {
   static bool formIncrement(PcodeOp *op,Funcdata &data);
   static bool formAssignment(PcodeOp *op,Funcdata &data);
 public:
-  static bool checkPointerUsages(Varnode *vn,Funcdata &data);
+  static bool checkPointerUsages(Varnode *vn,set<Varnode *> visitedVarnodes,Funcdata &data);
   static intb getCounterIncrement(PcodeOp *op);
   static intb getCounterMultiplier(PcodeOp *op);
   RuleInferPointerMult(const string &g) : Rule(g,0,"inferpointermult") {}	///< Constructor
