@@ -11295,6 +11295,8 @@ int4 RuleLzcountShiftBool::applyOp(PcodeOp *op,Funcdata &data)
 bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,set<Varnode *> visitedVarnodes,Funcdata &data)
 
 {
+  if (visitedVarnodes.find(vn) != visitedVarnodes.end()) return false;
+  visitedVarnodes.insert(vn);
   PcodeOp *multiop = vn->getDef();
   if (multiop == (PcodeOp *)0) return false;
   if (multiop->code() != CPUI_MULTIEQUAL) return false;
