@@ -11433,7 +11433,8 @@ intb RuleInferPointerMult::getCounterMultiplier(PcodeOp *op)
 
   int4 slot;
   PcodeOp *initop = getCounterInitOp(multiop,slot);
-  if (initop == (PcodeOp *)0) return 0; // Do we have to see this all the time?
+  // Seems to be required since we have multiequal which requires at least 2 definitions
+  if (initop == (PcodeOp *)0) return 0;
   return sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
 }
 
