@@ -1381,7 +1381,8 @@ void PrintC::opPtrsub(const PcodeOp *op)
     else {
       int4 off = high->getSymbolOffset();
       if (off == 0) {
-	if (isStringLocation(in1const,op,(const TypePointer *)ct)) {
+	Datatype *stringdt = (Datatype *)0;
+	if (isStringLocation(in1const,op,(const TypePointer *)ct,stringdt)) {
 	  if (!pushPtrCharConstant(in1const,ptype,(Varnode *)0,op))
 	    throw LowlevelError("Passed isStringLocation but didn't pass pushPtrCharConstant, shouldn't reach this");
 	}
@@ -1918,7 +1919,7 @@ void PrintC::resetDefaultsPrintC(void)
   setCStyleComments();
 }
 
-bool PrintC::isStringLocation(uintb val,const PcodeOp *op,const TypePointer *ct)
+bool PrintC::isStringLocation(uintb val,const PcodeOp *op,const TypePointer *ct,Datatype *&dt)
 
 {
   if (val==0) return false;
@@ -1947,6 +1948,7 @@ bool PrintC::isStringLocation(uintb val,const PcodeOp *op,const TypePointer *ct)
   if (!printCharacterConstant(str,stringaddr,subct))
     return false;		// Can we get a nice ASCII string
 
+  dt = baseType;
   return true;
 }
 
@@ -2101,6 +2103,7 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
 			    const PcodeOp *op)
 {
   Datatype *subtype;
+  Datatype *stringdt = (Datatype *)0;
   switch(ct->getMetatype()) {
   case TYPE_UINT:
     if (ct->isCharPrint())
@@ -2141,7 +2144,7 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
       return;
     }
     subtype = ((TypePointer *)ct)->getPtrTo();
-    if (isStringLocation(val,op,(const TypePointer *)ct)) {
+    if (isStringLocation(val,op,(const TypePointer *)ct,stringdt)) {
       if (!subtype->isCharPrint()) {
 	pushOp(&typecast,op);
 	pushType(ct);
