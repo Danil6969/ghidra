@@ -2076,7 +2076,7 @@ bool PrintC::pushPtrCharConstant(uintb val,const TypePointer *ct,const Varnode *
 
   ostringstream str;
   Datatype *subct = ct->getPtrTo();
-  if (!printCharacterConstant(str,stringaddr,subct))
+  if (!printCharacterConstant(str,stringaddr,baseType))
     return false;		// Can we get a nice ASCII string
 
   pushAtom(Atom(str.str(),vartoken,EmitMarkup::const_color,op,vn));
