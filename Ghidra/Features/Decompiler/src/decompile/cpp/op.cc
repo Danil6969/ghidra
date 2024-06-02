@@ -284,6 +284,11 @@ bool PcodeOp::isAllocaShift(Funcdata &data) const
 
 {
   OpCode opc = code();
+  if (opc == CPUI_CAST) {
+    const PcodeOp *inop0 = getIn(0)->getDef();
+    if (inop0 == (PcodeOp *)0) return false;
+    return inop0->isAllocaShift(data);
+  }
   if (opc != CPUI_INT_ADD && opc != CPUI_INT_SUB) return false;
   int4 slot = -1; // Slot for the stack variable allocated right before alloca
   const PcodeOp *inop0 = getIn(0)->getDef();
