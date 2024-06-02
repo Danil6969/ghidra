@@ -1463,7 +1463,7 @@ int4 ActionVarnodeProps::apply(Funcdata &data)
 	    }
 	  }
 	}
-	if (vn->getDef()->isAllocaAddress(data))
+	if (vn->getDef()->isAllocaShift(data))
 	  continue;
 	vn->clearAutoLiveHold();
 	count += 1;
@@ -3182,6 +3182,20 @@ int4 ActionNameVars::apply(Funcdata &data)
   return 0;
 }
 
+bool ActionMarkExplicit::isAllocaTreeUsed(Varnode *vn,Funcdata &data)
+
+{
+  list<PcodeOp *>::const_iterator iter;
+  iter = vn->beginDescend();
+  while (iter != vn->endDescend()) {
+    PcodeOp *op = *iter;
+    if (!op->isAllocaShift(data)) return true;
+    if (isAllocaTreeUsed(op->getOut(),data)) return true;
+    iter++;
+  }
+  return false;
+}
+
 bool ActionMarkExplicit::isArrFunc(PcodeOp *op)
 
 {
@@ -3211,6 +3225,10 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
 
   PcodeOp *def = vn->getDef();
   if (def == (PcodeOp *)0) return -1;
+  Funcdata &data = *def->getParent()->getFuncdata();
+  /*if (def->isAllocaShift(data)) {
+    if (isAllocaTreeUsed(vn,data)) return -1;
+  }*/
   if (def->isMarker()) return -1;
   if (def->isCall()) {
     if ((def->code() == CPUI_NEW)&&(def->numInput() == 1))
@@ -4232,7 +4250,7 @@ int4 ActionDeadCode::apply(Funcdata &data)
     op = *iter;
 
     op->clearIndirectSource();
-    if (op->isAllocaAddress(data)) {
+    if (op->isAllocaShift(data)) {
       pushConsumed(~((uintb)0),op->getOut(),worklist);
       op->getOut()->setAutoLiveHold();
     }
