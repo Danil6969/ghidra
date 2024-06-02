@@ -586,7 +586,7 @@ void PrintLanguage::resetDefaultsInternal(void)
 /// delimiters with the given indent level
 /// \param indent is the number of characters to indent
 /// \param comm is the Comment object containing the character data and associated markup info
-void PrintLanguage::emitLineComment(int4 indent,const Comment *comm)
+void PrintLanguage::emitLineComment(int4 indent,const Comment *comm,bool extralinebreak)
 
 {
   const string &text( comm->getText() );
@@ -594,7 +594,8 @@ void PrintLanguage::emitLineComment(int4 indent,const Comment *comm)
   uintb off = comm->getAddr().getOffset();
   if (indent <0)
     indent = line_commentindent; // User specified default indent
-  emit->tagLine(indent);
+  if (extralinebreak)
+    emit->tagLine(indent);
   int4 id = emit->startComment();
   // The comment delimeters should not be printed as
   // comment tags, so that they won't get filled
