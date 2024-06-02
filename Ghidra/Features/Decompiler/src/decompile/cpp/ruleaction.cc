@@ -7322,7 +7322,7 @@ int4 RulePushPtr::applyOp(PcodeOp *op,Funcdata &data)
   list<PcodeOp *>::const_iterator iter = vn->beginDescend();
   while (iter != vn->endDescend()) {
     PcodeOp *decop = *iter;
-    //if (decop->isAllocaShift(data)) return 0;
+    if (decop->isAllocaShift(data)) return 0;
     iter++;
   }
   Varnode *vnadd2 = op->getIn(1-slot);
