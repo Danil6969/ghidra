@@ -1087,6 +1087,14 @@ void PrintC::opIntSext(const PcodeOp *op,const PcodeOp *readOp)
 void PrintC::opIntSub(const PcodeOp *op)
 
 {
+  const Funcdata *fd = op->getParent()->getFuncdata();
+  AddrSpace *stackspc = glb->getStackSpace();
+  if (stackspc->stackGrowsNegative()) {
+    if (op->isAllocaShift(*(Funcdata *)fd)) {
+      opBinary(&binary_minus,op);
+      return;
+    }
+  }
   opBinary(&binary_minus,op);
 }
 
@@ -2956,6 +2964,12 @@ bool PrintC::emitArrCopy(const PcodeOp *op)
 void PrintC::emitExpression(const PcodeOp *op)
    
 {
+  const Funcdata *fd = op->getParent()->getFuncdata();
+  if (op->isAllocaShift(*(Funcdata *)fd)) {
+    Comment label(Comment::user1,fd->getAddress(),fd->getAddress(),0,"Alloca");
+    emitLineComment(0,&label,false);
+    emit->tagLine();
+  }
   const Varnode *outvn = op->getOut();
   if (outvn != (Varnode *)0) {
     if (option_inplace_ops && emitInplaceOp(op)) return;
