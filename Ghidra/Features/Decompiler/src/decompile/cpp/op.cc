@@ -243,6 +243,7 @@ bool PcodeOp::isReturnAddressConstant(Funcdata &data) const
 bool PcodeOp::isStackVariableAddress(Funcdata &data) const
 
 {
+  if (isAllocaShift(data)) return true;
   Architecture *glb = data.getArch();
   AddrSpace *stackspc = glb->getStackSpace();
   VarnodeData fullSpacebase = stackspc->getSpacebaseFull(0);
@@ -266,10 +267,9 @@ bool PcodeOp::isStackVariableAddress(Funcdata &data) const
     spacebase.space = invn0->getSpace();
     spacebase.offset = invn0->getOffset();
     spacebase.size = invn0->getSize();
-    if (spacebase == fullSpacebase) return true;
-    if (spacebase == truncatedSpacebase) return true;
-    if (isAllocaAddress(data)) return true;
-    return false;
+    if (spacebase != fullSpacebase && spacebase != truncatedSpacebase) return false;
+    if (!invn1->isConstant()) return false;
+    return true;
   }
   if (opc == CPUI_LOAD) return false;
   if (opc == CPUI_INT_2COMP) return false;
@@ -277,9 +277,9 @@ bool PcodeOp::isStackVariableAddress(Funcdata &data) const
   return false;
 }
 
-/// Is this alloca address in form:
+/// Is this alloca shift op in form:
 /// &attach_variable + alloca_length
-bool PcodeOp::isAllocaAddress(Funcdata &data) const
+bool PcodeOp::isAllocaShift(Funcdata &data) const
 
 {
   if (code() != CPUI_INT_ADD) return false;
