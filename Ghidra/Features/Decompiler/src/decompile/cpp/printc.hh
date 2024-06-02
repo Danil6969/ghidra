@@ -299,7 +299,7 @@ public:
   virtual void opIntZext(const PcodeOp *op,const PcodeOp *readOp);
   virtual void opIntSext(const PcodeOp *op,const PcodeOp *readOp);
   virtual void opIntAdd(const PcodeOp *op) { opBinary(&binary_plus,op); }
-  virtual void opIntSub(const PcodeOp *op) { opBinary(&binary_minus,op); }
+  virtual void opIntSub(const PcodeOp *op);
   virtual void opIntCarry(const PcodeOp *op) { opFunc(op); }
   virtual void opIntScarry(const PcodeOp *op) { opFunc(op); }
   virtual void opIntSborrow(const PcodeOp *op) { opFunc(op); }
