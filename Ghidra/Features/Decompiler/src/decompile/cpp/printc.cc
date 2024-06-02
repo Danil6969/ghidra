@@ -1084,6 +1084,12 @@ void PrintC::opIntSext(const PcodeOp *op,const PcodeOp *readOp)
     opArrFunc(op);
 }
 
+void PrintC::opIntSub(const PcodeOp *op)
+
+{
+  opBinary(&binary_minus,op);
+}
+
 /// Print the BOOL_NEGATE but check for opportunities to flip the next operator instead
 /// \param op is the BOOL_NEGATE PcodeOp
 void PrintC::opBoolNegate(const PcodeOp *op)
