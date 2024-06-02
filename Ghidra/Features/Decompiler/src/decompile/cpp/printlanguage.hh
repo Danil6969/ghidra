@@ -395,7 +395,7 @@ protected:
   /// \param op is the particular PcodeOp reading the Varnode
   virtual void pushImpliedField(const Varnode *vn,const PcodeOp *op)=0;
 
-  virtual void emitLineComment(int4 indent,const Comment *comm);	///< Emit a comment line
+  virtual void emitLineComment(int4 indent,const Comment *comm,bool extralinebreak=true);	///< Emit a comment line
 
   /// \brief Emit a variable declaration
   ///
