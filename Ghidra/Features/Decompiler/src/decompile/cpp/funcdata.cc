@@ -258,7 +258,8 @@ void Funcdata::spacebase(void)
 				// it still has multiple descendants
 	  PcodeOp *op = vn->getDef();
 	  if ((op != (PcodeOp *)0)&&(op->code() == CPUI_INT_ADD))
-	    splitUses(vn);
+	    if (!op->isAllocaShift(*this))
+	      splitUses(vn);
 	}
 	else {
 	  vn->setFlags(Varnode::spacebase); // Mark all base registers (not just input)
