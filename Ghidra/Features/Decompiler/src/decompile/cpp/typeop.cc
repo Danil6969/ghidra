@@ -1573,7 +1573,7 @@ Datatype *TypeOpIntAnd::getInputLocal(const PcodeOp *op,int4 slot) const
       return tlst->getMemsizeType(true);
     }
   }
-  return tlst->getBaseNoChar(sz,TYPE_UINT);
+  return tlst->getBaseNoChar(sz,TYPE_INT);
 }
 
 Datatype *TypeOpIntAnd::getOutputLocal(const PcodeOp *op) const
