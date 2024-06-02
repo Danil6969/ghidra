@@ -277,15 +277,23 @@ bool PcodeOp::isStackVariableAddress(Funcdata &data) const
   return false;
 }
 
-/// Is this alloca shift op in form:
-/// &attach_variable + alloca_length
+/// Is this alloca shift op in one of these forms:
+/// 1) &attach_variable + alloca_length
+/// 2) &attach_variable - alloca_length
 bool PcodeOp::isAllocaShift(Funcdata &data) const
 
 {
-  if (code() != CPUI_INT_ADD) return false;
+  OpCode opc = code();
+  if (opc != CPUI_INT_ADD && opc != CPUI_INT_SUB) return false;
   int4 slot = -1; // Slot for the stack variable allocated right before alloca
   const PcodeOp *inop0 = getIn(0)->getDef();
   const PcodeOp *inop1 = getIn(1)->getDef();
+  if (inop0 != (PcodeOp *)0) {
+    opc = inop0->code();
+    if (opc == CPUI_CAST) {
+      inop0 = inop0->getIn(0)->getDef();
+    }
+  }
   // Usually alloca requires some stack variable
   // so there should be always something it can be attached to
   if (inop0 != (PcodeOp *)0 && inop0->isStackVariableAddress(data)) {
@@ -297,8 +305,17 @@ bool PcodeOp::isAllocaShift(Funcdata &data) const
     slot = 1;
   }
   if (slot == -1) return false;
-  const Varnode *lengthvn = getIn(1 - slot);
+  const Varnode *lengthvn = getIn(1-slot);
   if (lengthvn->isConstant()) return false;
+  opc = code();
+  if (opc == CPUI_INT_SUB) {
+    if (getIn(1)->isConstant()) return false;
+    Architecture *glb = data.getArch();
+    AddrSpace *stackspc = glb->getStackSpace();
+    if (!stackspc->stackGrowsNegative()) return false;
+    return true;
+  }
+  if (opc != CPUI_INT_ADD) return false;
   if (!lengthvn->isAllocaLength(data)) return false;
   return true;
 }
