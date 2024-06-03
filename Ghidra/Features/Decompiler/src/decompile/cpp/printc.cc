@@ -2965,12 +2965,12 @@ void PrintC::emitExpression(const PcodeOp *op)
    
 {
   const Funcdata *fd = op->getParent()->getFuncdata();
-  if (op->isAllocaShift(*(Funcdata *)fd)) {
+  const Varnode *outvn = op->getOut();
+  if (outvn != (Varnode *)0 && outvn->isAllocaAddress(*(Funcdata *)fd)) {
     Comment label(Comment::user1,fd->getAddress(),fd->getAddress(),0,"Alloca");
     emitLineComment(0,&label,false);
     emit->tagLine();
   }
-  const Varnode *outvn = op->getOut();
   if (outvn != (Varnode *)0) {
     if (option_inplace_ops && emitInplaceOp(op)) return;
     if (emitArrCopy(op)) return;
