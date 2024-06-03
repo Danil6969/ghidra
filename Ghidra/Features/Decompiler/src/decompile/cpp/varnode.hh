@@ -346,8 +346,9 @@ public:
   static bool comparePointers(const Varnode *a,const Varnode *b) { return (*a < *b); }	///< Compare Varnodes as pointers
   static void printRaw(ostream &s,const Varnode *vn);	///< Print raw info about a Varnode to stream
   bool hasPointerUsages() const;
+  const PcodeOp *getAllocaShiftOp(Funcdata &data) const;
+  bool isAllocaAddress(Funcdata &data) const { return getAllocaShiftOp(data) != (PcodeOp *)0; }	///< Does \b this varnode have corresponding alloca shift op
   bool isAllocaLength(Funcdata &data) const;
-  bool isAllocaAddress(Funcdata &data) const;
 };
 
 /// \brief A container for Varnode objects from a specific function
