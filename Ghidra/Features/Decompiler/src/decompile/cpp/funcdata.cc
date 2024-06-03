@@ -256,10 +256,10 @@ void Funcdata::spacebase(void)
 				// We have given it a chance for descendants to
 				// be eliminated naturally, now force a split if
 				// it still has multiple descendants
+	  if (vn->isAllocaAddress(*this)) continue; // This is volatile and doesn't follow usual rules
 	  PcodeOp *op = vn->getDef();
 	  if ((op != (PcodeOp *)0)&&(op->code() == CPUI_INT_ADD))
-	    if (!op->isAllocaShift(*this))
-	      splitUses(vn);
+	    splitUses(vn);
 	}
 	else {
 	  vn->setFlags(Varnode::spacebase); // Mark all base registers (not just input)
