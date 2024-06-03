@@ -1150,6 +1150,33 @@ bool Varnode::hasPointerUsages() const
   return false;
 }
 
+const PcodeOp * Varnode::getAllocaShiftOp(Funcdata &data) const
+
+{
+  Architecture *glb = data.getArch();
+  AddrSpace *stackspc = glb->getStackSpace();
+  // Negative stack growth
+  if (stackspc->stackGrowsNegative()) {
+    const PcodeOp *op = getDef();
+    if (op == (PcodeOp *)0) return (PcodeOp *)0;
+    if (!op->isAllocaShift(data)) return (PcodeOp *)0;
+    return op;
+  }
+  // Positive stack growth
+  list<PcodeOp *>::const_iterator iter;
+  for(iter=beginDescend();iter!=endDescend();iter++) {
+    PcodeOp *op = *iter;
+    if (op->code() == CPUI_CAST) {
+      PcodeOp *lone = op->getOut()->loneDescend();
+      if (lone == (PcodeOp *)0) continue; // For now assert we shall have exactly 1 descendant
+      op = lone;
+    }
+    if (!op->isAllocaShift(data)) continue;
+    return op;
+  }
+  return (PcodeOp *)0;
+}
+
 /// Is this alloca length in one of forms:
 /// 1) Positive stack growth: non_const_vn
 /// 2) Negative stack growth:
@@ -1194,27 +1221,6 @@ bool Varnode::isAllocaLength(Funcdata &data) const
     return false;
   }
   return true;
-}
-
-bool Varnode::isAllocaAddress(Funcdata &data) const
-
-{
-  Architecture *glb = data.getArch();
-  AddrSpace *stackspc = glb->getStackSpace();
-  // Negative stack growth
-  if (stackspc->stackGrowsNegative()) {
-    const PcodeOp *op = getDef();
-    if (op == (PcodeOp *)0) return false;
-    return op->isAllocaShift(data);
-  }
-  // Positive stack growth
-  list<PcodeOp *>::const_iterator iter;
-  for(iter=beginDescend();iter!=endDescend();iter++) {
-    PcodeOp *op = *iter;
-    if (op->isAllocaShift(data))
-      return true;
-  }
-  return false;
 }
 
 /// \param m is the underlying address space manager
