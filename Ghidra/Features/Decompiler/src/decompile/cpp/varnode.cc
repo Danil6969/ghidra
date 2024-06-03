@@ -1160,10 +1160,9 @@ bool Varnode::isAllocaLength(Funcdata &data) const
 {
   Architecture *glb = data.getArch();
   AddrSpace *stackspc = glb->getStackSpace();
-  bool isNegativeStack = stackspc->stackGrowsNegative();
   const PcodeOp *op = getDef();
   // Negative stack growth
-  if (isNegativeStack) {
+  if (stackspc->stackGrowsNegative()) {
     if (op == (PcodeOp *)0) return false;
     OpCode opc = op->code();
     if (opc == CPUI_INT_MULT) {
@@ -1195,6 +1194,27 @@ bool Varnode::isAllocaLength(Funcdata &data) const
     return false;
   }
   return true;
+}
+
+bool Varnode::isAllocaAddress(Funcdata &data) const
+
+{
+  Architecture *glb = data.getArch();
+  AddrSpace *stackspc = glb->getStackSpace();
+  // Negative stack growth
+  if (stackspc->stackGrowsNegative()) {
+    const PcodeOp *op = getDef();
+    if (op == (PcodeOp *)0) return false;
+    return op->isAllocaShift(data);
+  }
+  // Positive stack growth
+  list<PcodeOp *>::const_iterator iter;
+  for(iter=beginDescend();iter!=endDescend();iter++) {
+    PcodeOp *op = *iter;
+    if (op->isAllocaShift(data))
+      return true;
+  }
+  return false;
 }
 
 /// \param m is the underlying address space manager
