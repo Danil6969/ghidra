@@ -347,6 +347,7 @@ public:
   static void printRaw(ostream &s,const Varnode *vn);	///< Print raw info about a Varnode to stream
   bool hasPointerUsages() const;
   bool isAllocaLength(Funcdata &data) const;
+  bool isAllocaAddress(Funcdata &data) const;
 };
 
 /// \brief A container for Varnode objects from a specific function
