@@ -236,47 +236,6 @@ bool PcodeOp::isReturnAddressConstant(Funcdata &data) const
   return false;
 }
 
-/// Is this stack variable address in one of these forms:
-/// 1) ptrsub(spacebase,const_varnode)
-/// 2) spacebase + varnode
-/// 3) alloca_address
-bool PcodeOp::isStackVariableAddress(Funcdata &data) const
-
-{
-  if (isAllocaShift(data)) return true;
-  Architecture *glb = data.getArch();
-  AddrSpace *stackspc = glb->getStackSpace();
-  VarnodeData fullSpacebase = stackspc->getSpacebaseFull(0);
-  VarnodeData truncatedSpacebase = stackspc->getSpacebase(0);
-  OpCode opc = code();
-  if (opc == CPUI_PTRSUB) {
-    const Varnode *invn0 = getIn(0);
-    const Varnode *invn1 = getIn(1);
-    VarnodeData spacebase;
-    spacebase.space = invn0->getSpace();
-    spacebase.offset = invn0->getOffset();
-    spacebase.size = invn0->getSize();
-    if (spacebase != fullSpacebase && spacebase != truncatedSpacebase) return false;
-    if (!invn1->isConstant()) return false;
-    return true;
-  }
-  if (opc == CPUI_INT_ADD) {
-    const Varnode *invn0 = getIn(0);
-    const Varnode *invn1 = getIn(1);
-    VarnodeData spacebase;
-    spacebase.space = invn0->getSpace();
-    spacebase.offset = invn0->getOffset();
-    spacebase.size = invn0->getSize();
-    if (spacebase != fullSpacebase && spacebase != truncatedSpacebase) return false;
-    if (!invn1->isConstant()) return false;
-    return true;
-  }
-  if (opc == CPUI_LOAD) return false;
-  if (opc == CPUI_INT_2COMP) return false;
-  if (opc == CPUI_INT_MULT) return false;
-  return false;
-}
-
 /// Is this alloca shift op in one of these forms:
 /// 1) &attach_variable + alloca_length
 /// 2) &attach_variable - alloca_length
@@ -291,22 +250,24 @@ bool PcodeOp::isAllocaShift(Funcdata &data) const
   }
   if (opc != CPUI_INT_ADD && opc != CPUI_INT_SUB) return false;
   int4 slot = -1; // Slot for the stack variable allocated right before alloca
-  const PcodeOp *inop0 = getIn(0)->getDef();
-  const PcodeOp *inop1 = getIn(1)->getDef();
-  if (inop0 != (PcodeOp *)0) {
-    opc = inop0->code();
+  const Varnode *invn0 = getIn(0);
+  const Varnode *invn1 = getIn(1);
+  const PcodeOp *inop = invn0->getDef();
+  if (inop != (PcodeOp *)0) {
+    opc = inop->code();
     if (opc == CPUI_CAST) {
-      inop0 = inop0->getIn(0)->getDef();
+      invn0 = inop->getIn(0);
+      inop = invn0->getDef();
     }
   }
   // Usually alloca requires some stack variable
   // so there should be always something it can be attached to
-  if (inop0 != (PcodeOp *)0 && inop0->isStackVariableAddress(data)) {
-    if (inop1 != (PcodeOp *)0 && inop1->isStackVariableAddress(data)) return false;
+  if (invn0->isStackVariableAddress(data)) {
+    if (invn1->isStackVariableAddress(data)) return false;
     slot = 0;
   }
-  if (inop1 != (PcodeOp *)0 && inop1->isStackVariableAddress(data)) {
-    if (inop0 != (PcodeOp *)0 && inop0->isStackVariableAddress(data)) return false;
+  if (invn1->isStackVariableAddress(data)) {
+    if (invn0->isStackVariableAddress(data)) return false;
     slot = 1;
   }
   if (slot == -1) return false;

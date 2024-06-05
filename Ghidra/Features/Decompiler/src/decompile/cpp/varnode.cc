@@ -1223,6 +1223,39 @@ bool Varnode::isAllocaLength(Funcdata &data) const
   return true;
 }
 
+/// Is this stack variable address in one of these forms:
+/// 1) ptrsub(spacebase,const_varnode)
+/// 2) spacebase + varnode
+/// 3) alloca_address
+bool Varnode::isStackVariableAddress(Funcdata &data) const
+
+{
+  const PcodeOp *op = getDef();
+  const Varnode *invn0 = (Varnode *)0;
+  if (op == (PcodeOp *)0) {
+    invn0 = this;
+  }
+  else {
+    if (op->isAllocaShift(data)) return true;
+    OpCode opc = op->code();
+    if (opc == CPUI_PTRSUB || opc == CPUI_INT_ADD) {
+      if (!op->getIn(1)->isConstant()) return false;
+      invn0 = op->getIn(0);
+    }
+  }
+  if (invn0 == (Varnode *)0) return false;
+  Architecture *glb = data.getArch();
+  AddrSpace *stackspc = glb->getStackSpace();
+  VarnodeData fullSpacebase = stackspc->getSpacebaseFull(0);
+  VarnodeData truncatedSpacebase = stackspc->getSpacebase(0);
+  VarnodeData spacebase;
+  spacebase.space = invn0->getSpace();
+  spacebase.offset = invn0->getOffset();
+  spacebase.size = invn0->getSize();
+  if (spacebase != fullSpacebase && spacebase != truncatedSpacebase) return false;
+  return true;
+}
+
 /// \param m is the underlying address space manager
 VarnodeBank::VarnodeBank(AddrSpaceManager *m)
   : searchvn(0,Address(Address::m_minimal),(Datatype *)0)
