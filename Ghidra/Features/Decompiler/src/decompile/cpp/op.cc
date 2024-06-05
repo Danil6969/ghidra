@@ -254,8 +254,8 @@ bool PcodeOp::isAllocaShift(Funcdata &data) const
   const Varnode *invn1 = getIn(1);
   const PcodeOp *inop = invn0->getDef();
   if (inop != (PcodeOp *)0) {
-    opc = inop->code();
-    if (opc == CPUI_CAST) {
+    OpCode inopc = inop->code();
+    if (inopc == CPUI_CAST) {
       invn0 = inop->getIn(0);
       inop = invn0->getDef();
     }
@@ -273,7 +273,13 @@ bool PcodeOp::isAllocaShift(Funcdata &data) const
   if (slot == -1) return false;
   const Varnode *lengthvn = getIn(1-slot);
   if (lengthvn->isConstant()) return false;
-  opc = code();
+  const Varnode *attachvn = getIn(slot);
+  PcodeOp *useop = *(attachvn->beginDescend());
+  if (useop != this) {
+    uintm useord = useop->getSeqNum().getOrder();
+    uintm thisord = getSeqNum().getOrder();
+    if (useord > thisord) return false;
+  }
   if (opc == CPUI_INT_SUB) {
     if (getIn(1)->isConstant()) return false;
     Architecture *glb = data.getArch();
