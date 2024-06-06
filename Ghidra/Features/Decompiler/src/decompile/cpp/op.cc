@@ -161,6 +161,9 @@ bool PcodeOp::isCollapsible(void) const
   if (inrefs.size()==0) return false;
   // Check specific opcode dependent requirements
   if (isSubpieceNonCollapsible()) return false;
+  if (code() == CPUI_INT_MULT) {
+    if (getIn(0)->isPtrdiffSubtrahend(*(Funcdata *)getParent()->getFuncdata())) return false;
+  }
   for(int4 i=0;i<inrefs.size();++i)
     if (!getIn(i)->isConstant()) return false;
   if (getOut()->getSize() > sizeof(uintb)) return false;
