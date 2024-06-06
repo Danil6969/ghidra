@@ -1259,13 +1259,17 @@ bool Varnode::isStackVariableAddress(Funcdata &data) const
 bool Varnode::isPtrdiffSubtrahend(Funcdata &data) const
 
 {
+  bool typesrecovered = data.hasTypeRecoveryStarted();
   PcodeOp *descend = loneDescend();
   if (descend == (PcodeOp *)0) return false;
-  Varnode *outvn = descend->getOut();
-  Datatype *ct = outvn->getTypeDefFacing();
-  if (ct->getMetatype() == TYPE_PTR) return false;
-  if (ct->getMetatype() == TYPE_PTRREL) return false;
-  ct = (Datatype *)0;
+  Datatype *ct = (Datatype *)0;
+  if (typesrecovered) {
+    Varnode *outvn = descend->getOut();
+    Datatype *ct = outvn->getTypeDefFacing();
+    if (ct->getMetatype() == TYPE_PTR) return false;
+    if (ct->getMetatype() == TYPE_PTRREL) return false;
+    ct = (Datatype *) 0;
+  }
 
   if (descend->code() == CPUI_INT_MULT) {
     PcodeOp *multop = descend;
@@ -1281,15 +1285,17 @@ bool Varnode::isPtrdiffSubtrahend(Funcdata &data) const
     Varnode *minuendvn = multop->getIn(0);
     Varnode *subtrahendvn = descend->getIn(1);
 
-    if (!minuendvn->isConstant()) {
-      ct = minuendvn->getTypeReadFacing(multop);
-      if (ct->getMetatype() != TYPE_PTR && ct->getMetatype() != TYPE_PTRREL) return false;
-      ct = (Datatype *)0;
-    }
-    if (!subtrahendvn->isConstant()) {
-      ct = subtrahendvn->getTypeReadFacing(descend);
-      if (ct->getMetatype() != TYPE_PTR && ct->getMetatype() != TYPE_PTRREL) return false;
-      ct = (Datatype *)0;
+    if (typesrecovered) {
+      if (!minuendvn->isConstant()) {
+	ct = minuendvn->getTypeReadFacing(multop);
+	if (ct->getMetatype() != TYPE_PTR && ct->getMetatype() != TYPE_PTRREL) return false;
+	ct = (Datatype *) 0;
+      }
+      if (!subtrahendvn->isConstant()) {
+	ct = subtrahendvn->getTypeReadFacing(descend);
+	if (ct->getMetatype() != TYPE_PTR && ct->getMetatype() != TYPE_PTRREL) return false;
+	ct = (Datatype *) 0;
+      }
     }
     return true;
   }
