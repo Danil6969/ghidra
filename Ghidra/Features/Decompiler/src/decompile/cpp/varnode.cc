@@ -1256,6 +1256,27 @@ bool Varnode::isStackVariableAddress(Funcdata &data) const
   return true;
 }
 
+bool Varnode::isPtrdiffSubtrahend(Funcdata &data) const
+
+{
+  PcodeOp *descend = loneDescend();
+  if (descend == (PcodeOp *)0) return false;
+  if (descend->code() == CPUI_INT_MULT) {
+    PcodeOp *multop = descend;
+    if (multop->getIn(0) != this) return false;
+    Varnode *cvn = multop->getIn(1);
+    if (!cvn->isConstant()) return false;
+    if (cvn->getOffset() != calc_mask(cvn->getSize())) return false;
+    descend = multop->getOut()->loneDescend();
+    if (descend == (PcodeOp *)0) return false;
+  }
+  Varnode *outvn = descend->getOut();
+  Varnode *invn0 = descend->getIn(0);
+  Varnode *invn1 = descend->getIn(1);
+  Datatype *outdt = outvn->getTypeDefFacing();
+  return true;
+}
+
 /// \param m is the underlying address space manager
 VarnodeBank::VarnodeBank(AddrSpaceManager *m)
   : searchvn(0,Address(Address::m_minimal),(Datatype *)0)
