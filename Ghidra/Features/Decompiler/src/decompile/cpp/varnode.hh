@@ -350,6 +350,7 @@ public:
   bool isAllocaAddress(Funcdata &data) const { return getAllocaShiftOp(data) != (PcodeOp *)0; }	///< Does \b this varnode have corresponding alloca shift op
   bool isAllocaLength(Funcdata &data) const;
   bool isStackVariableAddress(Funcdata &data) const;
+  bool isPtrdiffSubtrahend(Funcdata &data) const;
 };
 
 /// \brief A container for Varnode objects from a specific function
