@@ -1261,20 +1261,40 @@ bool Varnode::isPtrdiffSubtrahend(Funcdata &data) const
 {
   PcodeOp *descend = loneDescend();
   if (descend == (PcodeOp *)0) return false;
+  Varnode *outvn = descend->getOut();
+  Datatype *ct = outvn->getTypeDefFacing();
+  if (ct->getMetatype() == TYPE_PTR) return false;
+  if (ct->getMetatype() == TYPE_PTRREL) return false;
+  ct = (Datatype *)0;
+
   if (descend->code() == CPUI_INT_MULT) {
     PcodeOp *multop = descend;
     if (multop->getIn(0) != this) return false;
+
+    descend = multop->getOut()->loneDescend();
+    if (descend == (PcodeOp *)0) return false;
+
     Varnode *cvn = multop->getIn(1);
     if (!cvn->isConstant()) return false;
     if (cvn->getOffset() != calc_mask(cvn->getSize())) return false;
-    descend = multop->getOut()->loneDescend();
-    if (descend == (PcodeOp *)0) return false;
+
+    Varnode *minuendvn = multop->getIn(0);
+    Varnode *subtrahendvn = descend->getIn(1);
+
+    if (!minuendvn->isConstant()) {
+      ct = minuendvn->getTypeReadFacing(multop);
+      if (ct->getMetatype() != TYPE_PTR && ct->getMetatype() != TYPE_PTRREL) return false;
+      ct = (Datatype *)0;
+    }
+    if (!subtrahendvn->isConstant()) {
+      ct = subtrahendvn->getTypeReadFacing(descend);
+      if (ct->getMetatype() != TYPE_PTR && ct->getMetatype() != TYPE_PTRREL) return false;
+      ct = (Datatype *)0;
+    }
+    return true;
   }
-  Varnode *outvn = descend->getOut();
-  Varnode *invn0 = descend->getIn(0);
-  Varnode *invn1 = descend->getIn(1);
-  Datatype *outdt = outvn->getTypeDefFacing();
-  return true;
+
+  return false;
 }
 
 /// \param m is the underlying address space manager
