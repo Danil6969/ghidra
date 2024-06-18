@@ -1223,6 +1223,25 @@ bool Varnode::isAllocaLength(Funcdata &data) const
   return true;
 }
 
+/// Does this varnode has location of stack pointer register
+/// 1) Full spacebase
+/// 2) Truncated spacebase
+bool Varnode::isStackPointerLocated(Funcdata &data) const
+
+{
+  Architecture *glb = data.getArch();
+  AddrSpace *stackspc = glb->getStackSpace();
+  VarnodeData fullSpacebase = stackspc->getSpacebaseFull(0);
+  VarnodeData truncatedSpacebase = stackspc->getSpacebase(0);
+  VarnodeData spacebase;
+  spacebase.space = getSpace();
+  spacebase.offset = getOffset();
+  spacebase.size = getSize();
+  if (spacebase == fullSpacebase) return true;
+  if (spacebase == truncatedSpacebase) return true;
+  return false;
+}
+
 /// Is this stack variable address in one of these forms:
 /// 1) ptrsub(spacebase,const_varnode)
 /// 2) spacebase + varnode
@@ -1244,15 +1263,7 @@ bool Varnode::isStackVariableAddress(Funcdata &data) const
     }
   }
   if (invn0 == (Varnode *)0) return false;
-  Architecture *glb = data.getArch();
-  AddrSpace *stackspc = glb->getStackSpace();
-  VarnodeData fullSpacebase = stackspc->getSpacebaseFull(0);
-  VarnodeData truncatedSpacebase = stackspc->getSpacebase(0);
-  VarnodeData spacebase;
-  spacebase.space = invn0->getSpace();
-  spacebase.offset = invn0->getOffset();
-  spacebase.size = invn0->getSize();
-  if (spacebase != fullSpacebase && spacebase != truncatedSpacebase) return false;
+  if (!invn0->isStackPointerLocated(data)) return false;
   return true;
 }
 
@@ -1284,6 +1295,8 @@ bool Varnode::isPtrdiffSubtrahend(Funcdata &data) const
 
     Varnode *minuendvn = multop->getIn(0);
     Varnode *subtrahendvn = descend->getIn(1);
+
+    if (subtrahendvn->isStackVariableAddress(data)) return false;
 
     if (typesrecovered) {
       if (!minuendvn->isConstant()) {
