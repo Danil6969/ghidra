@@ -1385,6 +1385,24 @@ int4 TypeOpIntAdd::propagateAddPointer(uintb &off,PcodeOp *op,int4 slot,int4 sz)
 	  }
 	  return 3;
 	}
+	PcodeOp *addop = multop;
+	if (addop->code() == CPUI_INT_ADD) {
+	  int4 constslot = -1;
+	  if (addop->getIn(0)->isConstant())
+	    constslot = 0;
+	  if (addop->getIn(1)->isConstant())
+	    constslot = 1;
+	  multop = addop->getIn(1-constslot)->getDef();
+	  if (constslot != -1 && multop != (PcodeOp *)0) {
+	    uintb unused;
+	    int4 res = propagateAddPointer(unused,multop,1-slot,sz);
+	    // If we don't propagate inner pointer because it is a pointer difference
+	    if (res == 2)
+	      // This means we have another pointer here too
+	      // Then we assume this is a pointer difference
+	      return 2;
+	  }
+	}
       }
       if (sz == 1)
 	return 3;
