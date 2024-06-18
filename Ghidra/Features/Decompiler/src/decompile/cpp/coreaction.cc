@@ -1279,6 +1279,11 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
       else if (!glb->infer_pointers)
 	return (SymbolEntry *)0;
       break;
+    case CPUI_INT_MULT:
+    {
+      if (!vn->isPtrdiffSubtrahend(data)) return (SymbolEntry *)0;
+      break;
+    }
     case CPUI_STORE:
       if (slot != 2)
 	return (SymbolEntry *)0;
@@ -3226,9 +3231,7 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
   PcodeOp *def = vn->getDef();
   if (def == (PcodeOp *)0) return -1;
   Funcdata &data = *def->getParent()->getFuncdata();
-  /*if (def->isAllocaShift(data)) {
-    if (isAllocaTreeUsed(vn,data)) return -1;
-  }*/
+  //if (vn->isAllocaAddress(data)) return -1;
   if (def->isMarker()) return -1;
   if (def->isCall()) {
     if ((def->code() == CPUI_NEW)&&(def->numInput() == 1))
