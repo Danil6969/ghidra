@@ -1288,6 +1288,7 @@ bool Varnode::isPtrdiffSubtrahend(Funcdata &data) const
 
     descend = multop->getOut()->loneDescend();
     if (descend == (PcodeOp *)0) return false;
+    if (descend->numInput() != 2) return false;
 
     Varnode *cvn = multop->getIn(1);
     if (!cvn->isConstant()) return false;
