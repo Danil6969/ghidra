@@ -239,6 +239,31 @@ bool PcodeOp::isReturnAddressConstant(Funcdata &data) const
   return false;
 }
 
+int4 PcodeOp::getAllocaAttachSlot(Funcdata &data) const
+
+{
+  if (numInput() != 2) return -1;
+  const Varnode *invn0 = getIn(0);
+  const Varnode *invn1 = getIn(1);
+  const PcodeOp *inop = invn0->getDef();
+  if (inop != (PcodeOp *)0) {
+    OpCode inopc = inop->code();
+    if (inopc == CPUI_CAST) {
+      invn0 = inop->getIn(0);
+      inop = invn0->getDef();
+    }
+  }
+  // Usually alloca requires some stack variable
+  // so there should be always something it can be attached to
+  if (invn0->isStackVariableAddress(data)) {
+    if (!invn1->isStackVariableAddress(data)) return 0;
+  }
+  if (invn1->isStackVariableAddress(data)) {
+    if (!invn0->isStackVariableAddress(data)) return 1;
+  }
+  return -1;
+}
+
 /// Is this alloca shift op in one of these forms:
 /// 1) &attach_variable + alloca_length
 /// 2) &attach_variable - alloca_length
