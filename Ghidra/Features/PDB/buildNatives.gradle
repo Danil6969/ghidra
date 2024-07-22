@@ -22,6 +22,7 @@ if (findProject(':Generic') == null) {
 	apply from: "../../../GPL/nativeBuildProperties.gradle"
 }
 
+/*
 if ("win_x86_64".equals(getCurrentPlatformName())) {
 
 	String makeName = "win_x86_64PDBMake"
@@ -57,3 +58,4 @@ if ("win_x86_64".equals(getCurrentPlatformName())) {
 		args	solutionBatchFilePath.replace("/", File.separator)
 	}	
 }
+*/
