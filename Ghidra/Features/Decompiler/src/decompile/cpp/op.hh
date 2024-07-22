@@ -144,6 +144,9 @@ private:
   void setOrder(uintm ord) { start.setOrder(ord); } ///< Order this op within the ops for a single instruction
   void setParent(BlockBasic *p) { parent = p; }	///< Set the parent basic block of this op
   void setBasicIter(list<PcodeOp *>::iterator iter) { basiciter = iter; } ///< Store the iterator into this op's basic block
+  bool isSubpieceNonCollapsible(void) const; ///< Return \b true if this is subpiece and it shouldn't be collapsed
+  int4 getAllocaAttachSlot(Funcdata &data) const;
+  bool isFirstAllocaDefinition(Funcdata &data) const;
 
 public:
   PcodeOp(int4 s,const SeqNum &sq); ///< Construct an unattached PcodeOp
@@ -212,10 +215,8 @@ public:
   bool isCalculatedBool(void) const { return ((flags&(PcodeOp::calculated_bool|PcodeOp::booloutput))!=0); }
   /// \brief Return \b true if we have already examined this cpool
   bool isCpoolTransformed(void) const { return ((addlflags&PcodeOp::is_cpool_transformed)!=0); }
-  bool isSubpieceNonCollapsible(void) const; ///< Return \b true if this is subpiece and it shouldn't be collapsed
   bool isCollapsible(void) const; ///< Return \b true if this can be collapsed to a COPY of a constant
   bool isReturnAddressConstant(Funcdata &data) const;
-  int4 getAllocaAttachSlot(Funcdata &data) const;
   bool isAllocaShift(Funcdata &data) const;
   bool stopsTypePropagation(void) const { return ((addlflags&stop_type_propagation)!=0); }	///< Is data-type propagation from below stopped
   void setStopTypePropagation(void) { addlflags |= stop_type_propagation; }	///< Stop data-type propagation from below
