@@ -277,27 +277,7 @@ bool PcodeOp::isAllocaShift(Funcdata &data) const
     return inop0->isAllocaShift(data);
   }
   if (opc != CPUI_INT_ADD && opc != CPUI_INT_SUB) return false;
-  int4 slot = -1; // Slot for the stack variable allocated right before alloca
-  const Varnode *invn0 = getIn(0);
-  const Varnode *invn1 = getIn(1);
-  const PcodeOp *inop = invn0->getDef();
-  if (inop != (PcodeOp *)0) {
-    OpCode inopc = inop->code();
-    if (inopc == CPUI_CAST) {
-      invn0 = inop->getIn(0);
-      inop = invn0->getDef();
-    }
-  }
-  // Usually alloca requires some stack variable
-  // so there should be always something it can be attached to
-  if (invn0->isStackVariableAddress(data)) {
-    if (invn1->isStackVariableAddress(data)) return false;
-    slot = 0;
-  }
-  if (invn1->isStackVariableAddress(data)) {
-    if (invn0->isStackVariableAddress(data)) return false;
-    slot = 1;
-  }
+  int4 slot = getAllocaAttachSlot(data); // Slot for the stack variable allocated right before alloca
   if (slot == -1) return false;
   const Varnode *lengthvn = getIn(1-slot);
   if (lengthvn->isConstant()) return false;
