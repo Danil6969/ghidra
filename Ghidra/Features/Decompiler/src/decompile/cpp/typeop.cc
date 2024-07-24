@@ -1456,6 +1456,10 @@ Datatype *TypeOpIntSub::getOutputLocal(const PcodeOp *op) const
 Datatype *TypeOpIntSub::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
 
 {
+  if (op->isAllocaShift()) {
+    AddrSpace *spc = tlst->getArch()->getDefaultDataSpace();
+    return tlst->getTypePointer(op->getOut()->getSize(),tlst->getBase(1,TYPE_VOID),spc->getWordSize());
+  }
   return castStrategy->arithmeticOutputStandard(op);	// Use arithmetic typing rules
 }
 
