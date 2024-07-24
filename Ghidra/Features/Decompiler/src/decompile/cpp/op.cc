@@ -264,6 +264,20 @@ int4 PcodeOp::getAllocaAttachSlot(Funcdata &data) const
   return -1;
 }
 
+bool PcodeOp::isFirstAllocaDefinition(Funcdata &data) const
+
+{
+  int4 attachSlot = getAllocaAttachSlot(data);
+  const Varnode *attachvn = getIn(attachSlot);
+  PcodeOp *useop = *(attachvn->beginDescend());
+  if (useop != this) {
+    uintm useord = useop->getSeqNum().getOrder();
+    uintm thisord = getSeqNum().getOrder();
+    if (useord > thisord) return false;
+  }
+  return true;
+}
+
 /// Is this alloca shift op in one of these forms:
 /// 1) &attach_variable + alloca_length
 /// 2) &attach_variable - alloca_length
@@ -277,19 +291,13 @@ bool PcodeOp::isAllocaShift(Funcdata &data) const
     return inop0->isAllocaShift(data);
   }
   if (opc != CPUI_INT_ADD && opc != CPUI_INT_SUB) return false;
-  int4 slot = getAllocaAttachSlot(data); // Slot for the stack variable allocated right before alloca
-  if (slot == -1) return false;
-  const Varnode *lengthvn = getIn(1-slot);
+  int4 attachSlot = getAllocaAttachSlot(data); // Slot for the stack variable allocated right before alloca
+  if (attachSlot == -1) return false;
+  const Varnode *lengthvn = getIn(1-attachSlot);
   if (lengthvn->isConstant()) return false;
-  const Varnode *attachvn = getIn(slot);
-  PcodeOp *useop = *(attachvn->beginDescend());
-  if (useop != this) {
-    uintm useord = useop->getSeqNum().getOrder();
-    uintm thisord = getSeqNum().getOrder();
-    if (useord > thisord) return false;
-  }
+  if (!isFirstAllocaDefinition(data)) return false;
   if (opc == CPUI_INT_SUB) {
-    if (getIn(1)->isConstant()) return false;
+    if (attachSlot != 0) return false;
     Architecture *glb = data.getArch();
     AddrSpace *stackspc = glb->getStackSpace();
     if (!stackspc->stackGrowsNegative()) return false;
@@ -298,6 +306,15 @@ bool PcodeOp::isAllocaShift(Funcdata &data) const
   if (opc != CPUI_INT_ADD) return false;
   if (!lengthvn->isAllocaLength(data)) return false;
   return true;
+}
+
+bool PcodeOp::isAllocaShift(void) const
+
+{
+  if (parent == (BlockBasic *)0) return false;
+  Funcdata *fd = parent->getFuncdata();
+  if (fd == (Funcdata *)0) return false;
+  return isAllocaShift(*fd);
 }
 
 /// Produce a hash of the following attributes: output size, the opcode, and the identity
