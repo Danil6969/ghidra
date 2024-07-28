@@ -6810,8 +6810,9 @@ void AddTreeState::buildTree(void)
   // Create PTRSUB portion of operation
   if (isSubtype) {
     newop = data.newOpBefore(baseOp,CPUI_PTRSUB,multNode,data.newConstant(ptrsize,offset));
-    if (multNode->getType()->needsResolution())
-      data.inheritResolution(multNode->getType(),newop, 0, baseOp, baseSlot);
+    // Need to add a check to not inherit any pointer types for multiplier node
+    //if (multNode->getType()->needsResolution())
+      //data.inheritResolution(multNode->getType(),newop, 0, baseOp, baseSlot);
     if (size != 0)
       newop->setStopTypePropagation();
     multNode = newop->getOut();
