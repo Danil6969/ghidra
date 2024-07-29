@@ -2909,6 +2909,7 @@ int4 ActionSetCasts::apply(Funcdata &data)
 	count += resolveUnion(op, i, data);
 	count += castInput(op,i,data,castStrategy);
       }
+      if (opc == CPUI_COPY) continue;
       if (opc == CPUI_LOAD) {
 	checkPointerIssues(op, op->getOut(), data);
       }
