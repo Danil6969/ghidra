@@ -510,7 +510,8 @@ void PrintC::opArrFunc(const PcodeOp *op)
   ostringstream s;
   string nm = op->getOpcode()->getOperatorName(op);
   const Varnode *outVn = op->getOut();
-  bool outArr = outVn->getHigh()->getType()->getMetatype() == TYPE_ARRAY;
+  Datatype *outType = outVn->getHighTypeDefFacing();
+  bool outArr = outType->getMetatype() == TYPE_ARRAY;
   if (!outArr) {
     pushOp(&function_call,op);
     s << "CASTARR" << outVn->getSize();
@@ -561,7 +562,7 @@ void PrintC::opArrFunc(const PcodeOp *op)
     }
   }
   if (!outArr)
-    pushType(outVn->getHigh()->getType());
+    pushType(outType);
 }
 
 void PrintC::opConv(const PcodeOp *op)
@@ -591,8 +592,8 @@ void PrintC::opTypeCast(const PcodeOp *op)
 {
   const Varnode *outVn = op->getOut();
   const Varnode *inVn = op->getIn(0);
-  Datatype *outType = outVn->getHigh()->getType();
-  Datatype *inType = inVn->getHigh()->getType();
+  Datatype *outType = outVn->getHighTypeDefFacing();
+  Datatype *inType = inVn->getHighTypeReadFacing(op);
   type_metatype outMeta = outType->getMetatype();
   type_metatype inMeta = inType->getMetatype();
   bool outArr = outMeta == TYPE_ARRAY;
@@ -640,7 +641,7 @@ void PrintC::opTypeCast(const PcodeOp *op)
 	}
 	pushVn(inVn, op, mods);
 	if (hasFunc) {
-	  pushType(outVn->getHigh()->getType()); // anything else prints output type except address
+	  pushType(outType); // anything else prints output type except address
 	}
       }
     }
@@ -678,7 +679,7 @@ void PrintC::opLoad(const PcodeOp *op)
   uint4 m = mods;
   if (usearray&&(!isSet(force_pointer)))
     m |= print_load_value;
-  else if (op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY) {
+  else if (op->getOut()->getHighTypeDefFacing()->getMetatype() != TYPE_ARRAY) {
     pushOp(&dereference,op);
   }
   pushVn(op->getIn(1),op,m);
@@ -690,7 +691,7 @@ void PrintC::opStore(const PcodeOp *op)
   // We assume the STORE is a statement
   bool usearray = checkArrayDeref(op->getIn(1));
   uint4 m = mods;
-  if (op->getIn(2)->getHigh()->getType()->getMetatype() != TYPE_ARRAY)
+  if (op->getIn(2)->getHighTypeReadFacing(op)->getMetatype() != TYPE_ARRAY)
     pushOp(&assignment,op);	// This is an assignment
   else {
     ostringstream s;
@@ -701,7 +702,7 @@ void PrintC::opStore(const PcodeOp *op)
   }
   if (usearray && (!isSet(force_pointer)))
     m |= print_store_value;
-  else if (op->getIn(2)->getHigh()->getType()->getMetatype() != TYPE_ARRAY) {
+  else if (op->getIn(2)->getHighTypeReadFacing(op)->getMetatype() != TYPE_ARRAY) {
     pushOp(&dereference,op);
   }
   // implied vn's pushed on in reverse order for efficiency
