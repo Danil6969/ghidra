@@ -1087,10 +1087,9 @@ void PrintC::opIntSext(const PcodeOp *op,const PcodeOp *readOp)
 void PrintC::opIntSub(const PcodeOp *op)
 
 {
-  const Funcdata *fd = op->getParent()->getFuncdata();
   AddrSpace *stackspc = glb->getStackSpace();
   if (stackspc->stackGrowsNegative()) {
-    if (op->isAllocaShift(*(Funcdata *)fd)) {
+    if (op->isAllocaShift()) {
       opBinary(&binary_minus,op);
       return;
     }
