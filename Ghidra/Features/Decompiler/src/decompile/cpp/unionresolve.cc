@@ -699,7 +699,26 @@ void ScoreUnionFields::scoreTrialUp(const Trial &trial,bool lastLevel)
     case CPUI_INT_SUB:
     case CPUI_PTRSUB:
       if (meta == TYPE_PTR) {
-	score = 5;	// Don't try to back up further
+	int4 constslot = -1;
+	if (def->getIn(0)->isConstant()) {
+	  constslot = 0;
+	}
+	if (def->getIn(1)->isConstant()) {
+	  constslot = 1;
+	}
+	if (constslot != -1) {
+	  Varnode *vn = def->getIn(constslot);
+	  TypePointer *baseType = (TypePointer *)trial.fitType;
+	  int8 off = vn->getOffset();
+	  int8 parOff;
+	  TypePointer *par;
+	  resType = baseType->downChain(off,par,parOff,trial.array,typegrp);
+	  if (resType != (Datatype*)0)
+	    score = 5;
+	}
+	else {
+	  score = 5;	// Don't try to back up further
+	}
       }
       else if (meta == TYPE_ARRAY || meta == TYPE_STRUCT || meta == TYPE_UNION || meta == TYPE_CODE || meta == TYPE_FLOAT)
 	score = -5;
