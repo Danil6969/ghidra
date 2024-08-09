@@ -1190,14 +1190,24 @@ bool Varnode::isAllocaLength(Funcdata &data) const
   const PcodeOp *op = getDef();
   // Negative stack growth
   if (stackspc->stackGrowsNegative()) {
-    if (op == (PcodeOp *)0) return false;
-    OpCode opc = op->code();
+    OpCode opc;
+    while (true) {
+      if (op == (PcodeOp *)0) return false;
+      opc = op->code();
+      if (opc != CPUI_COPY)
+	if (opc != CPUI_CAST)
+	  break;
+      const Varnode *invn = op->getIn(0);
+      op = invn->getDef();
+    }
+
     if (opc == CPUI_INT_MULT) {
       const Varnode *invn = op->getIn(0);
       const Varnode *cvn = op->getIn(1);
       if (invn->isConstant()) return false;
       if (!cvn->isConstant()) return false;
-      if (cvn->getOffset() != calc_mask(cvn->getSize())) return false;
+      intb off = sign_extend(cvn->getOffset(),cvn->getSize());
+      if (off >= 0) return false;
       return true;
     }
     if (opc == CPUI_INT_2COMP) {
