@@ -245,14 +245,28 @@ int4 PcodeOp::getAllocaAttachSlot(Funcdata &data) const
   if (numInput() != 2) return -1;
   const Varnode *invn0 = getIn(0);
   const Varnode *invn1 = getIn(1);
-  const PcodeOp *inop = invn0->getDef();
-  if (inop != (PcodeOp *)0) {
+  const PcodeOp *inop;
+
+  inop = invn0->getDef();
+  while (inop != (PcodeOp *)0) {
     OpCode inopc = inop->code();
-    if (inopc == CPUI_CAST) {
-      invn0 = inop->getIn(0);
-      inop = invn0->getDef();
-    }
+    if (inopc != CPUI_COPY)
+      if (inopc != CPUI_CAST)
+	break;
+    invn0 = inop->getIn(0);
+    inop = invn0->getDef();
   }
+
+  inop = invn1->getDef();
+  while (inop != (PcodeOp *)0) {
+    OpCode inopc = inop->code();
+    if (inopc != CPUI_COPY)
+      if (inopc != CPUI_CAST)
+	break;
+    invn1 = inop->getIn(0);
+    inop = invn1->getDef();
+  }
+
   // Usually alloca requires some stack variable
   // so there should be always something it can be attached to
   if (invn0->isStackVariableAddress(data)) {
