@@ -35,7 +35,8 @@ class StackSolver {
   vector<Varnode *> vnlist;	///< The indexed set of variables, one for each reference to the stack-pointer
   vector<int4> companion;	///< Index of companion input for variable produced by CPUI_INDIRECT
   Address spacebase;		///< Starting address of the stack-pointer
-  vector<int4> soln;		///< Collected solutions (corresponding to array of variables)
+  vector<int4> solutions;	///< Collected solutions (corresponding to array of variables)
+  vector<bool> status;		///< Status for each solution: true - valid (ready), false - invalid (unready)
   int4 missedvariables;		///< Number of variables for which we are missing an equation
   void duplicate(void);		///< Duplicate each equation, multiplying by -1
   void propagate(int4 varnum,int4 val);	///< Propagate solution for one variable to other variables
@@ -47,7 +48,8 @@ public:
   int4 getNumVariables(void) const { return vnlist.size(); }	///< Get the number of variables in the system
   Varnode *getVariable(int4 i) const { return vnlist[i]; }	///< Get the i-th Varnode variable
   int4 getCompanion(int4 i) const { return companion[i]; }	///< Get the i-th variable's companion index
-  int4 getSolution(int4 i) const { return soln[i]; }		///< Get the i-th variable's solution
+  int4 getSolution(int4 i) const { return solutions[i]; }	///< Get the i-th variable's solution
+  bool getStatus(int4 i) const { return status[i]; }		///< Get the i-th variable's status
 };
 
 /// \param a is the first equation to compare
@@ -68,12 +70,13 @@ bool StackEqn::compare(const StackEqn &a,const StackEqn &b)
 void StackSolver::propagate(int4 varnum,int4 val)
 
 {
-  if (soln[varnum] != 65535) return; // This variable already specified
-  soln[varnum] = val;
+  if (status[varnum]) return; // This variable already specified
+  solutions[varnum] = val;
+  status[varnum] = true;
 
   StackEqn eqn;
   vector<int4> workstack;
-  workstack.reserve(soln.size());
+  workstack.reserve(solutions.size());
   workstack.push_back(varnum);
   vector<StackEqn>::iterator top;
 
@@ -85,8 +88,9 @@ void StackSolver::propagate(int4 varnum,int4 val)
     top = lower_bound(eqs.begin(),eqs.end(),eqn,StackEqn::compare);
     while((top!=eqs.end())&&((*top).var1 == varnum)) {
       int4 var2 = (*top).var2;
-      if (soln[var2] == 65535) {
-	soln[var2] = soln[varnum]-(*top).rhs;
+      if (!status[var2]) {
+	solutions[var2] = solutions[varnum]-(*top).rhs;
+	status[var2] = true;
 	workstack.push_back(var2);
       }
       ++top;
@@ -116,8 +120,10 @@ void StackSolver::solve(void)
   // Use guesses to resolve subsystems not uniquely determined
   int4 i,size,var1,var2,count,lastcount;
 
-  soln.clear();
-  soln.resize(vnlist.size(),65535); // Initialize solutions vector
+  solutions.clear();
+  solutions.resize(vnlist.size(),65535); // Initialize solutions vector
+  status.clear();
+  status.resize(vnlist.size(),false);
   duplicate();			// Duplicate and sort the equations
 
   propagate(0,0);		// We know one variable
@@ -128,11 +134,11 @@ void StackSolver::solve(void)
     for(i=0;i<size;++i) {
       var1 = guess[i].var1;
       var2 = guess[i].var2;
-      if ((soln[var1]!=65535)&&(soln[var2]==65535))
-	propagate(var2,soln[var1]-guess[i].rhs);
-      else if ((soln[var1]==65535)&&(soln[var2]!=65535))
-	propagate(var1,soln[var2]+guess[i].rhs);
-      else if ((soln[var1]==65535)&&(soln[var2]==65535))
+      if ((status[var1])&&(!status[var2]))
+	propagate(var2,solutions[var1]-guess[i].rhs);
+      else if ((!status[var1])&&(status[var2]))
+	propagate(var1,solutions[var2]+guess[i].rhs);
+      else if ((!status[var1])&&(!status[var2]))
 	count += 1;
     }
     if (count == lastcount) break;
@@ -418,7 +424,8 @@ void ActionStackPtrFlow::analyzeExtraPop(Funcdata &data,AddrSpace *stackspace,in
   for(int4 i=1;i<solver.getNumVariables();++i) {
     Varnode *vn = solver.getVariable(i);
     int4 soln = solver.getSolution(i);
-    if (soln == 65535) {
+    bool status = solver.getStatus(i);
+    if (!status) {
       if (!warningprinted) {
 	data.warningHeader("Unable to track spacebase fully for "+stackspace->getName());
 	warningprinted = true;
