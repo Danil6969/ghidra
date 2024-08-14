@@ -1256,7 +1256,7 @@ bool Varnode::isStackPointerLocated(Funcdata &data) const
 /// 1) ptrsub(spacebase,const_varnode)
 /// 2) spacebase + varnode
 /// 3) alloca_address
-bool Varnode::isStackVariableAddress(Funcdata &data) const
+bool Varnode::isStackVariableAddress(Funcdata &data,bool allocaAllowed) const
 
 {
   const PcodeOp *op = getDef();
@@ -1265,7 +1265,9 @@ bool Varnode::isStackVariableAddress(Funcdata &data) const
     invn0 = this;
   }
   else {
-    if (op->isAllocaShift(data)) return true;
+    if (allocaAllowed) {
+      if (op->isAllocaShift(data)) return true;
+    }
     OpCode opc = op->code();
     if (opc == CPUI_PTRSUB || opc == CPUI_INT_ADD) {
       if (!op->getIn(1)->isConstant()) return false;
