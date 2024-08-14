@@ -1309,7 +1309,7 @@ bool Varnode::isPtrdiffSubtrahend(Funcdata &data) const
     Varnode *minuendvn = multop->getIn(0);
     Varnode *subtrahendvn = descend->getIn(1);
 
-    if (subtrahendvn->isStackVariableAddress(data)) return false;
+    if (subtrahendvn->isStackVariableAddress(data,false)) return false;
 
     if (typesrecovered) {
       if (!minuendvn->isConstant()) {
