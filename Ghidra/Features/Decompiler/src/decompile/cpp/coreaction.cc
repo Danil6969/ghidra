@@ -247,7 +247,9 @@ int4 StackSolver::extraLoopCounts(PcodeOp *op)
 
 /// Determine stack change inside loop during each iteration
 /// \param op is the last op which changes stack pointer and is inside loop
-int4 StackSolver::loopStackChange(PcodeOp *op) {
+int4 StackSolver::loopStackChange(PcodeOp *op)
+
+{
   if (op == (PcodeOp *)0) return 0;
   Varnode *constvn = (Varnode *)0;
   Varnode *othervn = (Varnode *)0;
@@ -350,6 +352,7 @@ void StackSolver::build(const Funcdata &data,AddrSpace *id,int4 spcbase)
       guess.push_back(eqn);
     }
     else if (op->code() == CPUI_MULTIEQUAL) {
+      // TODO: block unkown cases propagation
       for(int4 j=0;j<op->numInput();++j) {
 	othervn = op->getIn(j);
 	if (othervn->getAddr() != spacebase) { missedvariables += 1; continue; }
