@@ -153,16 +153,20 @@ bool PcodeOp::isSubpieceNonCollapsible() const
 
 /// Can this be collapsed to a copy op, i.e. are all inputs constants
 /// \return \b true if this op can be callapsed
-bool PcodeOp::isCollapsible(void) const
+bool PcodeOp::isCollapsible(bool checkSpecifics) const
 
 {
   if ((flags & PcodeOp::nocollapse)!=0) return false;
   if (!isAssignment()) return false;
   if (inrefs.size()==0) return false;
-  // Check specific opcode dependent requirements
-  if (isSubpieceNonCollapsible()) return false;
-  if (code() == CPUI_INT_MULT) {
-    if (getIn(0)->isPtrdiffSubtrahend(*(Funcdata *)getParent()->getFuncdata())) return false;
+  if (checkSpecifics) {
+    // Check specific opcode dependent requirements
+    if (isSubpieceNonCollapsible()) return false;
+    if (code() == CPUI_INT_MULT) {
+      Funcdata &fd = *(Funcdata *) getParent()->getFuncdata();
+      const Varnode *invn0 = getIn(0);
+      if (invn0->isPtrdiffSubtrahend(fd)) return false;
+    }
   }
   for(int4 i=0;i<inrefs.size();++i)
     if (!getIn(i)->isConstant()) return false;
