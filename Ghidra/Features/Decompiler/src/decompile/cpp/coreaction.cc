@@ -43,7 +43,8 @@ class StackSolver {
 public:
   void solve(void);		///< Solve the system of equations
   int4 extraLoopCounts(PcodeOp *op);
-  int4 loopStackChange(PcodeOp *op);
+  bool loopStackChange(Varnode *vn,int4 &change);
+  bool buildMultiequalLoop(PcodeOp *op,Varnode *&othervn,int4 &rhsoffset);
   void build(const Funcdata &data,AddrSpace *id,int4 spcbase);	///< Build the system of equations
   int4 getNumVariables(void) const { return vnlist.size(); }	///< Get the number of variables in the system
   Varnode *getVariable(int4 i) const { return vnlist[i]; }	///< Get the i-th Varnode variable
@@ -148,6 +149,7 @@ void StackSolver::solve(void)
 
 /// Determine counts of loop except first iteration
 /// \param op is the last op which changes stack pointer and is inside loop
+/// \return amount of loop iterations or 0 if not a loop
 int4 StackSolver::extraLoopCounts(PcodeOp *op)
 
 {
@@ -247,28 +249,57 @@ int4 StackSolver::extraLoopCounts(PcodeOp *op)
 
 /// Determine stack change inside loop during each iteration
 /// \param op is the last op which changes stack pointer and is inside loop
-int4 StackSolver::loopStackChange(PcodeOp *op)
+/// \return amount of change in each loop iteration or 0 if not a loop
+bool StackSolver::loopStackChange(Varnode *vn,int4 &change)
 
 {
-  if (op == (PcodeOp *)0) return 0;
-  Varnode *constvn = (Varnode *)0;
-  Varnode *othervn = (Varnode *)0;
+  if (vn->isConstant()) {
+    change = sign_extend(vn->getOffset(),8*vn->getSize()-1);
+    return true;
+  }
+  PcodeOp *op = vn->getDef();
+  if (op == (PcodeOp *)0) return false;
+  Varnode *invn0 = (Varnode *)0;
+  Varnode *invn1 = (Varnode *)0;
+  int4 change0 = 0;
+  int4 change1 = 0;
   OpCode opc = op->code();
   switch (opc) {
     case CPUI_INT_ADD:
-      othervn = op->getIn(0);
-      constvn = op->getIn(1);
-      if (othervn->isConstant()) {
-	constvn = othervn;
-	othervn = op->getIn(1);
-      }
-      if (!constvn->isConstant()) return 0;
-      if (othervn->getAddr() != spacebase) return 0;
-      return constvn->getOffset();
-    default:
-      return 0;
+      if (vn->getAddr() != spacebase) return false;
+      invn0 = op->getIn(0);
+      invn1 = op->getIn(1);
+      if (!loopStackChange(invn0,change0)) return false;
+      if (!loopStackChange(invn1,change1)) return false;
+      change = change0 + change1;
+      return true;
+    case CPUI_MULTIEQUAL:
+      if (vn->getAddr() != spacebase) return false;
+      change = 0;
+      return true;
   }
-  return 0;
+  return false;
+}
+
+bool StackSolver::buildMultiequalLoop(PcodeOp *op,Varnode *&vn,int4 &offset)
+
+{
+  for(int4 j=0;j<op->numInput();++j) {
+    Varnode *othervn = op->getIn(j);
+    if (othervn->getAddr() != spacebase) { missedvariables += 1; continue; }
+    PcodeOp *otherop = othervn->getDef();
+
+    int4 extracounts = extraLoopCounts(otherop);
+    if (extracounts <= 0) continue;
+    int4 change = 0;
+    if (!loopStackChange(othervn,change)) continue;
+
+    //if (j != 1) return false;
+    vn = othervn;
+    offset = change * extracounts;
+    return true;
+  }
+  return false;
 }
 
 /// Collect references to the stack-pointer as variables, and examine their defining PcodeOps
@@ -352,23 +383,24 @@ void StackSolver::build(const Funcdata &data,AddrSpace *id,int4 spcbase)
       guess.push_back(eqn);
     }
     else if (op->code() == CPUI_MULTIEQUAL) {
-      // TODO: block unkown cases propagation
-      for(int4 j=0;j<op->numInput();++j) {
-	othervn = op->getIn(j);
-	if (othervn->getAddr() != spacebase) { missedvariables += 1; continue; }
-	int4 rhsoffset = 0;
-	PcodeOp *otherop = othervn->getDef();
-	int4 extracounts = extraLoopCounts(otherop);
-	if (extracounts > 0) {
-	  int4 change = loopStackChange(otherop);
-	  if (change > 0) {
-	    rhsoffset = change * extracounts;
-	  }
-	}
+      int4 rhsoffset = 0;
+      othervn = (Varnode *)0;
+      if (buildMultiequalLoop(op,othervn,rhsoffset)) {
 	iter = lower_bound(vnlist.begin(),vnlist.end(),othervn,Varnode::comparePointers);
 	eqn.var1 = i;
 	eqn.var2 = iter-vnlist.begin();
 	eqn.rhs = rhsoffset;
+	eqs.push_back(eqn);
+	continue;
+      }
+      // TODO: block unkown cases propagation
+      for(int4 j=0;j<op->numInput();++j) {
+	othervn = op->getIn(j);
+	if (othervn->getAddr() != spacebase) { missedvariables += 1; continue; }
+	iter = lower_bound(vnlist.begin(),vnlist.end(),othervn,Varnode::comparePointers);
+	eqn.var1 = i;
+	eqn.var2 = iter-vnlist.begin();
+	eqn.rhs = 0;
 	eqs.push_back(eqn);
       }
     }
