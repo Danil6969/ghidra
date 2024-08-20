@@ -380,7 +380,7 @@
       <register name="ECX"/>
     </likelytrash>
   </prototype>
-  <prototype name="__thiscall_lto_1" extrapop="4" stackshift="4">
+  <prototype name="__thiscall_lto_1" extrapop="unknown" stackshift="4">
     <input>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
@@ -424,7 +424,7 @@
       <register name="ECX"/>
     </likelytrash>
   </prototype>
-  <prototype name="__thiscall_lto_2" extrapop="4" stackshift="4">
+  <prototype name="__thiscall_lto_2" extrapop="unknown" stackshift="4">
     <input>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
@@ -471,7 +471,7 @@
       <register name="ECX"/>
     </likelytrash>
   </prototype>
-  <prototype name="__thiscall_lto_3" extrapop="4" stackshift="4">
+  <prototype name="__thiscall_lto_3" extrapop="unknown" stackshift="4">
     <input>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
@@ -521,7 +521,7 @@
       <register name="ECX"/>
     </likelytrash>
   </prototype>
-  <prototype name="__thiscall_lto_4" extrapop="4" stackshift="4">
+  <prototype name="__thiscall_lto_4" extrapop="unknown" stackshift="4">
     <input>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
