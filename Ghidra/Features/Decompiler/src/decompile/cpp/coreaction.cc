@@ -5895,6 +5895,7 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop2->addRule( new RuleInferPointerMult("analysis") );
 	actprop2->addRule( new RulePtrArith("typerecovery") );
 	actprop2->addRule( new RuleUnlinkPtrAdd("typerecovery") );
+	actprop2->addRule( new RuleAllocaPushParams("analysis") );
 	//	actprop2->addRule( new RuleIndirectConcat("analysis") );
 	actprop2->addRule( new RuleLoadVarnode("stackvars") );
 	actprop2->addRule( new RuleStoreVarnode("stackvars") );
