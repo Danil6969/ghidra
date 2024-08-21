@@ -459,6 +459,7 @@ class ActionMarkImplied : public Action {
   };
   static bool isPossibleAliasStep(Varnode *vn1,Varnode *vn2);	///< Check for additive relationship
   static bool isPossibleAlias(Varnode *vn1,Varnode *vn2,int4 depth);	///< Check for possible duplicate value
+  static bool isConstantMember(PcodeOp *op);	///< Check if this must be a constant member regardless of calls (compiler inserted hidden fields)
   static bool checkImpliedCover(Funcdata &data,Varnode *vn);	///< Check for cover violation if Varnode is implied
 public:
   ActionMarkImplied(const string &g) : Action(rule_onceperfunc,"markimplied",g) {}	///< Constructor
