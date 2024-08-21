@@ -3653,7 +3653,6 @@ bool ActionMarkImplied::isPossibleAlias(Varnode *vn1,Varnode *vn2,int4 depth)
 bool ActionMarkImplied::isConstantMember(PcodeOp *op)
 
 {
-  // TODO not finished yet
   PcodeOp *ptrsubop = op;
   if (ptrsubop->code() == CPUI_LOAD) {
     ptrsubop = ptrsubop->getIn(1)->getDef();
