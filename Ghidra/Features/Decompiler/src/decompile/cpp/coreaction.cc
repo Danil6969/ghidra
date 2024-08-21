@@ -3650,6 +3650,46 @@ bool ActionMarkImplied::isPossibleAlias(Varnode *vn1,Varnode *vn2,int4 depth)
   return true;
 }
 
+bool ActionMarkImplied::isConstantMember(PcodeOp *op)
+
+{
+  // TODO not finished yet
+  PcodeOp *ptrsubop = op;
+  if (ptrsubop->code() == CPUI_LOAD) {
+    ptrsubop = ptrsubop->getIn(1)->getDef();
+    if (ptrsubop == (PcodeOp *)0) return false;
+  }
+  if (ptrsubop->code() != CPUI_PTRSUB) return false;
+
+  Varnode *in0 = ptrsubop->getIn(0);
+  Varnode *in1 = ptrsubop->getIn(1);
+  if (!in1->isConstant()) return false;
+  uintb in1const = ptrsubop->getIn(1)->getOffset();
+  TypePointer *ptype = (TypePointer *)in0->getHighTypeReadFacing(ptrsubop);
+  if (ptype->getMetatype() != TYPE_PTR) return false;
+
+  TypePointerRel *ptrel;
+  Datatype *ct;
+  if (ptype->isFormalPointerRel()) {
+    ptrel = (TypePointerRel *)ptype;
+    ct = ptrel->getParent();
+  }
+  else {
+    ptrel = (TypePointerRel *)0;
+    ct = ptype->getPtrTo();
+  }
+
+  if (ct->getMetatype() != TYPE_STRUCT) return false;
+  int8 newoff;
+  const TypeField *fld = ct->findTruncation(in1const,0,op,0,newoff);
+  if (fld == (const TypeField*)0) return false;
+  if (newoff != 0) return false;
+  string fieldname = fld->name;
+  if (fieldname == "_vfptr") return true;
+  if (fieldname == "_vbptr") return true;
+  return false;
+}
+
 /// Marking a Varnode as \e implied causes the input Varnodes to its defining op to propagate farther
 /// in the output.  This may cause eventual variables to hold different values at the same
 /// point in the code. Any input must test that its propagated Cover doesn't intersect its current Cover.
@@ -3664,6 +3704,7 @@ bool ActionMarkImplied::checkImpliedCover(Funcdata &data,Varnode *vn)
   int4 i;
 
   op = vn->getDef();
+  if (isConstantMember(op)) return true;
   if (op->code() == CPUI_LOAD) { // Check for loads crossing stores
     list<PcodeOp *>::const_iterator oiter,iterend;
     iterend = data.endOp(CPUI_STORE);
