@@ -6006,6 +6006,129 @@ int4 RuleUnlinkPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
+PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop)
+
+{
+  PcodeOp *ptrop = storeop->getIn(1)->getDef();
+  if (ptrop == (PcodeOp *)0) return (PcodeOp *)0;
+  if (ptrop->code() != CPUI_INT_ADD) return (PcodeOp *)0;
+  Varnode *basevn = ptrop->getIn(0);
+  Varnode *offvn = ptrop->getIn(1);
+  if (!offvn->isConstant()) return (PcodeOp *)0;
+  BlockBasic *curblock = storeop->getParent();
+  list<PcodeOp *>::iterator begiter = curblock->beginOp();
+  list<PcodeOp *>::iterator enditer = curblock->endOp();
+  // Shift right to given store op
+  for(;;) {
+    if (begiter == enditer) return (PcodeOp *)0;
+    if (storeop == *begiter) break;
+    begiter++;
+  }
+  list<PcodeOp *>::iterator iter = begiter;
+  for(;;) {
+    iter++;
+    if (iter == enditer) break;
+    PcodeOp *op = *iter;
+    OpCode opc = op->code();
+    switch (opc) {
+      case CPUI_LOAD:
+      {
+	if (op->getIn(0)->getOffset() != storeop->getIn(0)->getOffset()) continue;
+	PcodeOp *addop = op->getIn(1)->getDef();
+	if (addop == (PcodeOp *)0) continue;
+	if (addop->code() != CPUI_INT_ADD) continue;
+	if (addop->getIn(0) != basevn) continue;
+	if (!addop->getIn(1)->isConstant()) continue;
+	if (addop->getIn(1)->getOffset() != offvn->getOffset()) continue;
+	return op;
+      }
+      case CPUI_STORE:
+      {
+	if (op->getIn(0)->getOffset() != storeop->getIn(0)->getOffset()) continue;
+	PcodeOp *addop = op->getIn(1)->getDef();
+	if (addop == (PcodeOp *)0) continue;
+	if (addop->code() != CPUI_INT_ADD) continue;
+	if (addop->getIn(0) != basevn) continue;
+	if (!addop->getIn(1)->isConstant()) continue;
+	if (addop->getIn(1)->getOffset() != offvn->getOffset()) continue;
+	break;
+      }
+      case CPUI_INT_ADD:
+	continue;
+      default:
+	break;
+    }
+    break;
+  }
+  return (PcodeOp *)0;
+}
+
+void RuleAllocaPushParams::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_STORE);
+}
+
+int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  if (op->isReturnAddressConstant(data)) {
+    if (getCorrespondingLoadOp(op) != (PcodeOp *)0) return 0;
+    if (!op->getIn(1)->isStackPointerLocated(data)) return 0;
+    data.opDestroy(op);
+    return 1;
+  }
+  AddrSpace *stackspc = data.getArch()->getStackSpace();
+  if (stackspc->stackGrowsNegative()) {
+    Varnode *valvn = op->getIn(2);
+    Varnode *ptrvn = op->getIn(1);
+    if (!ptrvn->isStackPointerLocated(data)) return 0;
+    PcodeOp *ptrop = ptrvn->getDef();
+    if (ptrop == (PcodeOp *) 0) return 0;
+    if (ptrop->code() != CPUI_INT_ADD) return 0;
+
+    Varnode *offvn = ptrop->getIn(1);
+    //Must be pushed to a negative constant
+    if (!offvn->isConstant()) return 0;
+    intb off = sign_extend(offvn->getOffset(),8*offvn->getSize()-1);
+    if (off >= 0) return 0;
+    Varnode *basevn = ptrop->getIn(0);
+    if (!basevn->isStackPointerLocated(data)) return 0;
+    PcodeOp *baseop = basevn->getDef();
+    if (baseop == (PcodeOp *)0) return 0;
+    if (baseop->code() == CPUI_MULTIEQUAL) {
+      // There may be extra pop not fully identified
+      // Ignore that and skip to the first definition
+      basevn = baseop->getIn(0);
+      if (!basevn->isStackPointerLocated(data)) return 0;
+      baseop = basevn->getDef();
+      if (baseop == (PcodeOp *)0) return 0;
+      // TODO check that addition is negative
+    }
+    if (!baseop->isAllocaShift(data)) return 0;
+    PcodeOp *loadop = getCorrespondingLoadOp(op);
+    if (loadop == (PcodeOp *)0) return 0;
+    Varnode *loadout = loadop->getOut();
+    if (loadout->hasNoDescend()) return 0;
+    list<PcodeOp *>::const_iterator iter = loadout->beginDescend();
+    PcodeOp *callop = *iter;
+    if (callop->code() != CPUI_CALL && callop->code() != CPUI_CALLIND) return 0;
+    iter++;
+    while (iter != loadout->endDescend()) {
+      if (*iter != callop) return 0; //Make sure we are reusing for the same call op
+      iter++;
+    }
+    // Simplify load
+    data.opRemoveInput(loadop,1);
+    data.opSetOpcode(loadop,CPUI_COPY);
+    data.opSetInput(loadop,valvn,0);
+    // Now get rid of stack store
+    data.opDestroy(op);
+    return 1;
+  }
+  return 0;
+}
+
 void RuleCancelOutPtrAdd::gatherNegateOps(PcodeOp *op,vector<PcodeOp *> &negateops)
 
 {
