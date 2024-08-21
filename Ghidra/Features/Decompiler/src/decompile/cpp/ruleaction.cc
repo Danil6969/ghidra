@@ -6092,6 +6092,7 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
     if (!offvn->isConstant()) return 0;
     intb off = sign_extend(offvn->getOffset(),8*offvn->getSize()-1);
     if (off >= 0) return 0;
+
     Varnode *basevn = ptrop->getIn(0);
     if (!basevn->isStackPointerLocated(data)) return 0;
     PcodeOp *baseop = basevn->getDef();
@@ -6105,11 +6106,13 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
       if (baseop == (PcodeOp *)0) return 0;
       // TODO check that addition is negative
     }
+
     if (!baseop->isAllocaShift(data)) return 0;
     PcodeOp *loadop = getCorrespondingLoadOp(op);
     if (loadop == (PcodeOp *)0) return 0;
     Varnode *loadout = loadop->getOut();
     if (loadout->hasNoDescend()) return 0;
+
     list<PcodeOp *>::const_iterator iter = loadout->beginDescend();
     PcodeOp *callop = *iter;
     if (callop->code() != CPUI_CALL && callop->code() != CPUI_CALLIND) return 0;
@@ -6118,6 +6121,7 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
       if (*iter != callop) return 0; //Make sure we are reusing for the same call op
       iter++;
     }
+
     // Simplify load
     data.opRemoveInput(loadop,1);
     data.opSetOpcode(loadop,CPUI_COPY);
