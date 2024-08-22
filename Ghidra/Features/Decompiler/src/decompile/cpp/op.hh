@@ -217,6 +217,7 @@ public:
   bool isCpoolTransformed(void) const { return ((addlflags&PcodeOp::is_cpool_transformed)!=0); }
   bool isCollapsible(void) const; ///< Return \b true if this can be collapsed to a COPY of a constant
   bool isReturnAddressConstant(Funcdata &data) const;
+  bool isReturnAddressConstant(void) const;
   bool isAllocaShift(Funcdata &data) const;
   bool isAllocaShift(void) const;
   bool stopsTypePropagation(void) const { return ((addlflags&stop_type_propagation)!=0); }	///< Is data-type propagation from below stopped
