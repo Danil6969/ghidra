@@ -6073,7 +6073,17 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
 
 {
   if (op->isReturnAddressConstant(data)) {
-    if (getCorrespondingLoadOp(op) != (PcodeOp *)0) return 0;
+    PcodeOp *loadop = getCorrespondingLoadOp(op);
+    if (loadop != (PcodeOp *)0) {
+      Varnode *loadout = loadop->getOut();
+      if (!loadout->hasNoDescend()) {
+	PcodeOp *loneop = loadout->loneDescend();
+	if (loneop == (PcodeOp *)0) return 0;
+	OpCode loneopc = loneop->code();
+	if (loneop->getAddr().getOffset() != op->getAddr().getOffset()) return 0;
+	if (loneopc != CPUI_CALL && loneopc != CPUI_CALLIND) return 0;
+      }
+    }
     if (!op->getIn(1)->isStackPointerLocated(data)) return 0;
     data.opDestroy(op);
     return 1;
