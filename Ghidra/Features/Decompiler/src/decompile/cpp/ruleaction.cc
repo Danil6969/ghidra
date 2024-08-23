@@ -4324,7 +4324,18 @@ int4 RuleStoreVarnode::applyOp(PcodeOp *op,Funcdata &data)
   vector<PcodeOp *> useops;
   gatherPointerUsageOps(op,useops);
   if (!useops.empty()) {
-    return 0;
+    vector<PcodeOp *>::const_iterator iter,enditer;
+    enditer = useops.end();
+    for (iter = useops.begin();iter!=enditer;++iter) {
+      PcodeOp *useop = *iter;
+      if (useop->code() == CPUI_COPY) {
+	if (useop->getOut()->hasNoDescend()) return 0;
+      }
+      if (useop->code() == CPUI_INDIRECT) {
+	PcodeOp *guardop = (PcodeOp *)useop->getIn(1)->getOffset();
+	if (guardop->code() == CPUI_STORE) return 0;
+      }
+    }
   }
 
   size = op->getIn(2)->getSize();
