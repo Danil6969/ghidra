@@ -4256,6 +4256,50 @@ int4 RuleLoadVarnode::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+//Get ops which use pointer to the same address as given
+void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *storeop,vector<PcodeOp *> &res)
+
+{
+  list<PcodeOp *>::const_iterator iter,enditer;
+  PcodeOp *otherop,*useop;
+
+  Varnode *addrvn = storeop->getIn(1);
+  PcodeOp *addrop = addrvn->getDef();
+  if (addrop == (PcodeOp *)0) return;
+  if (addrop->code() != CPUI_INT_ADD) return;
+
+  Varnode *basevn = addrop->getIn(0);
+  Varnode *offvn = addrop->getIn(1);
+  if (!offvn->isConstant()) return;
+  intb off = sign_extend(offvn->getOffset(),8*offvn->getSize()-1);
+
+  enditer = basevn->endDescend();
+  for (iter=basevn->beginDescend();iter!=enditer;++iter) {
+    otherop = *iter;
+    if (otherop->code() == CPUI_INT_ADD) {
+      if (otherop->getIn(0) != basevn) continue;
+      intb otheroff = sign_extend(otherop->getIn(1)->getOffset(),8*otherop->getIn(1)->getSize()-1);
+      if (otheroff != off) continue;
+      useop = otherop->getOut()->loneDescend();
+      if (useop == (PcodeOp *)0) continue;
+      if (useop == storeop) continue;
+      res.push_back(useop);
+      continue;
+    }
+    if (otherop->code() == CPUI_PTRSUB) {
+      if (otherop->getIn(0) != basevn) continue;
+      intb otheroff = sign_extend(otherop->getIn(1)->getOffset(),8*otherop->getIn(1)->getSize()-1);
+      if (otheroff != off) continue;
+      useop = otherop->getOut()->loneDescend();
+      if (useop == (PcodeOp *)0) continue;
+      if (useop == storeop) continue;
+      res.push_back(useop);
+      continue;
+    }
+    continue;
+  }
+}
+
 /// \class RuleStoreVarnode
 /// \brief Convert STORE operations using a constant offset to COPY
 ///
@@ -4277,6 +4321,11 @@ int4 RuleStoreVarnode::applyOp(PcodeOp *op,Funcdata &data)
 
   baseoff = RuleLoadVarnode::checkSpacebase(data.getArch(),op,offoff);
   if (baseoff == (AddrSpace *)0) return 0;
+  vector<PcodeOp *> useops;
+  gatherPointerUsageOps(op,useops);
+  if (!useops.empty()) {
+    return 0;
+  }
 
   size = op->getIn(2)->getSize();
   offoff = AddrSpace::addressToByte(offoff,baseoff->getWordSize());
