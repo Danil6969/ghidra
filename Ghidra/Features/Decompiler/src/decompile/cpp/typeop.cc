@@ -419,7 +419,7 @@ Datatype *TypeOpLoad::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn,
 	newtype = outvn->getTempType();
   }
   else
-    newtype = outvn->getTempType(); // Don't propagate anything
+    newtype = (Datatype *)0; // Don't propagate anything
   return newtype;
 }
 
@@ -926,6 +926,12 @@ TypeOpEqual::TypeOpEqual(TypeFactory *t)
 Datatype *TypeOpEqual::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
+  const Varnode *vn = op->getIn(slot);
+  if (vn->isConstant()) {
+    if (vn->getOffset() == 0) {
+      return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
+    }
+  }
   return TypeOpBinary::getInputLocal(op,slot);
 }
 
@@ -2151,7 +2157,7 @@ Datatype *TypeOpIndirect::propagateType(Datatype *alttype,PcodeOp *op,Varnode *i
     newtype = tlst->getTypePointer(alttype->getSize(),tlst->getBase(1,TYPE_UNKNOWN),spc->getWordSize());
   }
   else
-    newtype = alttype;
+    newtype = (Datatype *)0; // Don't propagate anything
   return newtype;
 }
 
