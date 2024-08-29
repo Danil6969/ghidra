@@ -879,8 +879,36 @@ public class FunctionDB extends DatabaseObject implements Function {
 		return autoParams != null ? autoParams.size() : 0;
 	}
 
+	int getOtherAutoParamsCount() {
+		int otherAutoParamsCount = 0;
+		for (Variable param : params) {
+			if (param instanceof AutoParameterImpl) continue;
+			String name = param.getName();
+			if (name == null) continue;
+			boolean isOtherAuto = name.equals("__return_storage_ptr__");
+			isOtherAuto |= name.equals("this");
+			if (isOtherAuto) {
+				otherAutoParamsCount++;
+			}
+		}
+		return otherAutoParamsCount;
+	}
+
 	private void renumberParameterOrdinals() {
-		int ordinal = autoParams != null ? autoParams.size() : 0;
+		int autoParamsCount = getAutoParamCount();
+		int otherAutoParamsCount = getOtherAutoParamsCount();
+		int ordinal = autoParamsCount - otherAutoParamsCount;
+		// Check that we have valid order for each default parameter
+		for (ParameterDB param : params) {
+			ordinal++;
+			String name = param.getName();
+			if (name == null) continue;
+			if (!name.startsWith(Function.DEFAULT_PARAM_PREFIX)) continue;
+			if (ordinal <= 0) {
+				throw new AssertException("Invalid order because of auto params");
+			}
+		}
+		ordinal = autoParamsCount - otherAutoParamsCount;
 		for (ParameterDB param : params) {
 			param.setOrdinal(ordinal++);
 		}
