@@ -713,8 +713,10 @@ void ScoreUnionFields::scoreTrialUp(const Trial &trial,bool lastLevel)
 	  int8 parOff;
 	  TypePointer *par;
 	  resType = baseType->downChain(off,par,parOff,trial.array,typegrp);
-	  if (resType != (Datatype*)0)
+	  if (resType != (Datatype*)0) {
+	    newslot = 0;
 	    score = 5;
+	  }
 	}
 	else {
 	  score = 5;	// Don't try to back up further
@@ -921,7 +923,12 @@ void ScoreUnionFields::scoreConstantFit(const Trial &trial)
   }
   else if (meta == TYPE_INT || meta == TYPE_UINT || meta == TYPE_PTR) {
     if (val == 0) {
-      score = 2;	// Zero is equally valid as pointer or integer
+      if (meta == TYPE_PTR) {
+	score = 1;
+      }
+      else {
+	score = 2;
+      }
     }
     else {
       AddrSpace *spc = typegrp.getArch()->getDefaultDataSpace();
