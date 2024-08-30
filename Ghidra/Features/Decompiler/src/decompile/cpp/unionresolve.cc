@@ -455,9 +455,8 @@ void ScoreUnionFields::scoreTrialDown(const Trial &trial,bool lastLevel)
 	      }
 	    }
 	    else {
-	      if (vn->getType()->getMetatype() == TYPE_PTR) {
+	      if (vn->getType()->getMetatype() == TYPE_PTR)
 		score = 1;
-	      }
 	      else
 		score = 5;        // Indexing into something that is not an array
 	    }
