@@ -454,13 +454,20 @@ void ScoreUnionFields::scoreTrialDown(const Trial &trial,bool lastLevel)
 		resType = trial.fitType;
 	      }
 	    }
-	    else
-	      score = 5;	// Indexing into something that is not an array
+	    else {
+	      if (vn->getType()->getMetatype() == TYPE_PTR) {
+		score = 1;
+	      }
+	      else
+		score = 5;        // Indexing into something that is not an array
+	    }
 	  }
 	}
       }
       else if (meta == TYPE_ARRAY || meta == TYPE_STRUCT || meta == TYPE_UNION || meta == TYPE_CODE || meta == TYPE_FLOAT)
 	score = -5;
+      else if (meta == TYPE_INT || meta == TYPE_UINT)
+	score = 2;
       else
 	score = 1;
       break;
