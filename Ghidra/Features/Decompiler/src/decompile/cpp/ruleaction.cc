@@ -7129,6 +7129,7 @@ bool RulePtrArith::isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOth
       int4 size = assumedDatatype->getSize();
       if (size != 0) {
 	if ((-offset) % size != 0) {
+	  // This prevents transformation which will break propagation in case of ephemeral relative pointers
 	  return false;
 	}
       }
