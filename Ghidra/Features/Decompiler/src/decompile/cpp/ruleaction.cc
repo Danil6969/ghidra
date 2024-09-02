@@ -7061,8 +7061,8 @@ bool RulePtrArith::isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOth
 
 {
   // Datatypes to inspect
-  Datatype *containingDatatypePtr = (Datatype *)0;
   Datatype *assumedDatatypePtr = (Datatype *)0;
+  Datatype *containingDatatypePtr = (Datatype *)0;
   Datatype *intermediateDatatype = (Datatype *)0;
   Datatype *assumedDatatype = (Datatype *)0;
   Datatype *containingDatatype = (Datatype *)0;
@@ -7115,6 +7115,22 @@ bool RulePtrArith::isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOth
 	if (!derivedDatatype->isStructuredType())
 	  // Datatype is unstructured whereas assumed is, will lead to ptrsub errors
 	  return false;
+      }
+    }
+  }
+
+  if (ptrOther->isConstant()) {
+    intb offset = sign_extend(ptrOther->getOffset(),8*ptrOther->getSize()-1);
+    if (offset < 0) {
+      assumedDatatypePtr = ptrBase->getTypeReadFacing(op);
+      if (assumedDatatypePtr->getSubMeta() != SUB_PTRREL) return true;
+      if (assumedDatatypePtr->isFormalPointerRel()) return true;
+      assumedDatatype = ((TypePointer *)assumedDatatypePtr)->getPtrTo();
+      int4 size = assumedDatatype->getSize();
+      if (size != 0) {
+	if ((-offset) % size != 0) {
+	  return false;
+	}
       }
     }
   }
