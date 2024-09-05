@@ -237,7 +237,7 @@ public:
   bool isCseMatch(const PcodeOp *op) const; ///< Return \b true if this and \e op represent common subexpressions
   bool isMoveable(const PcodeOp *point) const;	///< Can \b this be moved to after \e point, without disturbing data-flow
   TypeOp *getOpcode(void) const { return opcode; } ///< Get the opcode for this op
-  OpCode code(void) const { return opcode->getOpcode(); } ///< Get the opcode id (enum) for this op
+  OpCode code(void) const; ///< Get the opcode id (enum) for this op
   bool isCommutative(void) const { return ((flags & PcodeOp::commutative)!=0); } ///< Return \b true if inputs commute
   uintb collapse(bool &markedInput) const;	///< Calculate the constant output produced by this op
   void collapseConstantSymbol(Varnode *newConst) const;	///< Propagate constant symbol from inputs to given output
