@@ -488,6 +488,14 @@ bool PcodeOp::isMoveable(const PcodeOp *point) const
   return true;
 }
 
+OpCode PcodeOp::code(void) const
+
+{
+  if (opcode == 0)
+    return (OpCode)0;
+  return opcode->getOpcode();
+}
+
 /// Set the behavioral class (opcode) of this operation. For most applications this should only be called
 /// by the PcodeOpBank.  This is fairly low-level but does cache various boolean flags associated with the opcode
 /// \param t_op is the behavioural class to set
