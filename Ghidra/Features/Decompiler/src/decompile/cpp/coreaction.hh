@@ -202,8 +202,11 @@ public:
   virtual int4 apply(Funcdata &data);
 };
 
-/// \brief Eliminate locally constant indirect calls
+/// \brief Eliminate locally constant indirect calls or at least resolve prototype
 class ActionDeindirect : public Action {
+  static Datatype *getSizeStrippedDatatype(Datatype *pt,int4 size,TypeFactory *types);
+  static Datatype *getOffsetStrippedDatatype(Datatype *pt,int8 offset,TypeFactory *types);
+  static Datatype *getOutDatatype(Varnode *vn,int8 &offset);
 public:
   ActionDeindirect(const string &g) : Action(0,"deindirect",g) {}	///< Constructor
   virtual Action *clone(const ActionGroupList &grouplist) const {
