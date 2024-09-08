@@ -1415,6 +1415,137 @@ int4 ActionConstantPtr::apply(Funcdata &data)
   return 0;
 }
 
+Datatype *ActionDeindirect::getSizeStrippedDatatype(Datatype *pt,int4 size,TypeFactory *types)
+
+{
+  if (pt == (Datatype *)0) return pt;
+  if (pt->getMetatype() != TYPE_PTR) return pt;
+  TypePointer *ptr = (TypePointer *)pt;
+  Datatype *ptrto = ptr->getPtrTo();
+  Datatype *dt = ptrto;
+  int4 typesize = dt->getSize();
+  int8 newoff = 0;
+  while (true) {
+    if (dt->getMetatype() == TYPE_PTR) break;
+    dt = dt->getSubType(0,&newoff);
+    if (newoff != 0) break;
+    if (dt == (Datatype *)0) break;
+  }
+  if (dt == (Datatype *)0) return dt;
+  return types->getTypePointer(ptr->getSize(),dt,ptr->getWordSize());
+}
+
+Datatype *ActionDeindirect::getOffsetStrippedDatatype(Datatype *pt,int8 offset,TypeFactory *types)
+
+{
+  if (pt == (Datatype *)0) return pt;
+  if (pt->getMetatype() != TYPE_PTR) return pt;
+  TypePointer *ptr = (TypePointer *)pt;
+  Datatype *ptrto = ptr->getPtrTo();
+  Datatype *dt = ptrto;
+  int8 newoff = 0;
+  while (true) {
+    if (offset == 0) break;
+    dt = dt->getSubType(offset,&newoff);
+    if (newoff == 0) break;
+    offset = newoff;
+    if (dt == (Datatype *)0) break;
+  }
+  if (dt == (Datatype *)0) return dt;
+  return types->getTypePointer(ptr->getSize(),dt,ptr->getWordSize());
+}
+
+Datatype *ActionDeindirect::getOutDatatype(Varnode *vn,int8 &offset)
+
+{
+  TypePointer *ptr = (TypePointer *)0; // The pointer datatype
+  Datatype *ct = (Datatype *)0; // The source datatype
+  Datatype *ptrto = (Datatype *)0; // The pointed-to datatype
+  Datatype *dt = (Datatype *)0; // The resulting datatype
+
+  Varnode *invn0 = (Varnode *)0;
+  Varnode *invn1 = (Varnode *)0;
+  Varnode *invn2 = (Varnode *)0;
+
+  int8 off1 = 0;
+  int8 off2 = 0;
+  int8 off = 0;
+
+  int4 loadsize = 0;
+  int4 typesize = 0;
+
+  PcodeOp *op = vn->getDef();
+  if (op == (PcodeOp *)0) {
+    dt = vn->getType();
+    return dt;
+  }
+
+  Funcdata *fd = op->getParent()->getFuncdata();
+  TypeFactory *types = fd->getArch()->types;
+  OpCode opc = op->code();
+  switch (opc) {
+    case CPUI_LOAD:
+      offset = 0;
+      invn1 = op->getIn(1);
+      ct = getOutDatatype(invn1,offset);
+      loadsize = op->getOut()->getSize();
+      ptr = (TypePointer *)getSizeStrippedDatatype(ct,loadsize,types);
+      ptrto = ptr->getPtrTo();
+      return ptrto;
+    case CPUI_INT_ADD:
+      invn1 = op->getIn(1);
+      if (!invn1->isConstant()) return ct;
+
+      off = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
+      if (offset < 0) {
+	off += offset;
+	offset = 0;
+      }
+
+      invn0 = op->getIn(0);
+      ct = getOutDatatype(invn0,off);
+      dt = getOffsetStrippedDatatype(ct,off,types);
+      return dt;
+    case CPUI_MULTIEQUAL:
+      invn0 = op->getIn(0);
+      ct = getOutDatatype(invn0,offset);
+      return ct;
+    case CPUI_PTRADD:
+      invn1 = op->getIn(1);
+      if (!invn1->isConstant()) return ct;
+      invn2 = op->getIn(2);
+      if (!invn2->isConstant()) return ct;
+
+      off1 = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
+      off2 = sign_extend(invn2->getOffset(),8*invn2->getSize()-1);
+      off = off1 * off2;
+      if (offset < 0) {
+	off += offset;
+	offset = 0;
+      }
+
+      invn0 = op->getIn(0);
+      ct = getOutDatatype(invn0,off);
+      dt = getOffsetStrippedDatatype(ct,off,types);
+      return dt;
+    case CPUI_PTRSUB:
+      invn1 = op->getIn(1);
+      if (!invn1->isConstant()) return ct;
+
+      off = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
+      if (offset < 0) {
+	off += offset;
+	offset = 0;
+      }
+
+      invn0 = op->getIn(0);
+      ct = getOutDatatype(invn0,off);
+      dt = getOffsetStrippedDatatype(ct,off,types);
+      return dt;
+  }
+  return (Datatype *)0;
+}
+
 int4 ActionDeindirect::apply(Funcdata &data)
 
 {
@@ -1461,6 +1592,20 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	  (((TypePointer *)ct)->getPtrTo()->getMetatype()==TYPE_CODE)) {
 	TypeCode *tc = (TypeCode *)((TypePointer *)ct)->getPtrTo();
 	const FuncProto *fp = tc->getPrototype();
+
+	if (fp==(const FuncProto *)0) {
+	  // We may have to parse all the ops tree by recursion
+	  // so we can find the real prototype
+	  intb offset = 0;
+	  ct = getOutDatatype(vn,offset);
+	  if (ct->getMetatype() == TYPE_PTR) {
+	    if (((TypePointer *)ct)->getPtrTo()->getMetatype()==TYPE_CODE) {
+	      tc = (TypeCode *)((TypePointer *)ct)->getPtrTo();
+	      fp = tc->getPrototype();
+	    }
+	  }
+	}
+
 	if (fp!=(const FuncProto *)0) {
 	  if (!fc->isInputLocked()) {
 	    // We use isInputLocked as a test of whether the
