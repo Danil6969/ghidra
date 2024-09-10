@@ -318,8 +318,8 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 			return false;		// User cancelled when making the choice
 		}
 		fieldNumber = allFields.indexOf(userChoice);
-		if (fieldNumber < 0 || fieldNumber == currentChoice) {
-			return false;	// User chose original value or something not in list, treat as cancel
+		if (fieldNumber < 0) {
+			return false;	// User chose something not in list, treat as cancel
 		}
 		fieldNumber -= 1;	// Convert choice index to field number
 		return true;
