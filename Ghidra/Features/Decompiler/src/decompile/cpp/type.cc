@@ -2089,7 +2089,8 @@ Datatype *TypeUnion::resolveInFlow(PcodeOp *op,int4 slot)
   const ResolvedUnion *res = fd->getUnionField(this, op, slot);
   if (res != (ResolvedUnion *)0)
     return res->getDatatype();
-  ScoreUnionFields scoreFields(*fd->getArch()->types,this,op,slot);
+  TypeFactory &types = *fd->getArch()->types;
+  ScoreUnionFields scoreFields(types,this,op,slot);
   fd->setUnionField(this, op, slot, scoreFields.getResult());
   return scoreFields.getResult().getDatatype();
 }
