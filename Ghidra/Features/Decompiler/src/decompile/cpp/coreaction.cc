@@ -1418,44 +1418,45 @@ int4 ActionConstantPtr::apply(Funcdata &data)
 Datatype *ActionDeindirect::getSizeStrippedDatatype(Datatype *pt,int4 size,TypeFactory *types)
 
 {
-  if (pt == (Datatype *)0) return pt;
+  if (pt == (Datatype *)0) return (Datatype *)0;
   if (pt->getMetatype() != TYPE_PTR) return pt;
   TypePointer *ptr = (TypePointer *)pt;
-  Datatype *ptrto = ptr->getPtrTo();
-  Datatype *dt = ptrto;
-  int4 typesize = dt->getSize();
+  Datatype *ct = ptr->getPtrTo();
+  int4 typesize = ct->getSize();
   int8 newoff = 0;
   while (true) {
-    if (dt->getMetatype() == TYPE_PTR) break;
-    dt = dt->getSubType(0,&newoff);
+    if (ct->getMetatype() == TYPE_PTR) break;
+    ct = ct->getSubType(0,&newoff);
     if (newoff != 0) break;
-    if (dt == (Datatype *)0) break;
+    if (ct == (Datatype *)0) break;
   }
-  if (dt == (Datatype *)0) return dt;
-  return types->getTypePointer(ptr->getSize(),dt,ptr->getWordSize());
+  if (ct == (Datatype *)0) return ct;
+  Datatype *dt = types->getTypePointer(ptr->getSize(),ct,ptr->getWordSize());
+  //ptrto = ;
+  return dt;
 }
 
 Datatype *ActionDeindirect::getOffsetStrippedDatatype(Datatype *pt,int8 offset,TypeFactory *types)
 
 {
-  if (pt == (Datatype *)0) return pt;
+  if (pt == (Datatype *)0) return (Datatype *)0;
   if (pt->getMetatype() != TYPE_PTR) return pt;
   TypePointer *ptr = (TypePointer *)pt;
-  Datatype *ptrto = ptr->getPtrTo();
-  Datatype *dt = ptrto;
+  Datatype *ct = ptr->getPtrTo();
   int8 newoff = 0;
   while (true) {
     if (offset == 0) break;
-    dt = dt->getSubType(offset,&newoff);
+    ct = ct->getSubType(offset,&newoff);
     if (newoff == 0) break;
     offset = newoff;
-    if (dt == (Datatype *)0) break;
+    if (ct == (Datatype *)0) break;
   }
-  if (dt == (Datatype *)0) return dt;
-  return types->getTypePointer(ptr->getSize(),dt,ptr->getWordSize());
+  if (ct == (Datatype *)0) return (Datatype *)0;
+  Datatype *dt = types->getTypePointer(ptr->getSize(),ct,ptr->getWordSize());
+  return dt;
 }
 
-Datatype *ActionDeindirect::getOutDatatype(Varnode *vn,int8 &offset)
+Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset)
 
 {
   TypePointer *ptr = (TypePointer *)0; // The pointer datatype
@@ -1474,26 +1475,29 @@ Datatype *ActionDeindirect::getOutDatatype(Varnode *vn,int8 &offset)
   int4 loadsize = 0;
   int4 typesize = 0;
 
-  PcodeOp *op = vn->getDef();
-  if (op == (PcodeOp *)0) {
-    dt = vn->getType();
+  Funcdata *fd = op->getParent()->getFuncdata();
+  TypeFactory *types = fd->getArch()->types;
+  Varnode *vn = op->getIn(slot);
+  PcodeOp *def = vn->getDef();
+  if (def == (PcodeOp *)0) {
+    dt = vn->getTypeReadFacing(op);
     return dt;
   }
 
-  Funcdata *fd = op->getParent()->getFuncdata();
-  TypeFactory *types = fd->getArch()->types;
-  OpCode opc = op->code();
+  OpCode opc = def->code();
   switch (opc) {
     case CPUI_LOAD:
       offset = 0;
-      invn1 = op->getIn(1);
-      ct = getOutDatatype(invn1,offset);
-      loadsize = op->getOut()->getSize();
-      ptr = (TypePointer *)getSizeStrippedDatatype(ct,loadsize,types);
-      ptrto = ptr->getPtrTo();
-      return ptrto;
+      ct = getOutDatatype(def,1,offset);
+      loadsize = def->getOut()->getSize();
+      dt = getSizeStrippedDatatype(ct,loadsize,types);
+      if (dt == (Datatype *)0) return (TypePointer *)0;
+      if (dt->getMetatype() != TYPE_PTR) return (TypePointer *)0;
+      ptr = (TypePointer *)dt;
+      dt = ptr->getPtrTo();
+      return dt;
     case CPUI_INT_ADD:
-      invn1 = op->getIn(1);
+      invn1 = def->getIn(1);
       if (!invn1->isConstant()) return ct;
 
       off = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
@@ -1502,18 +1506,17 @@ Datatype *ActionDeindirect::getOutDatatype(Varnode *vn,int8 &offset)
 	offset = 0;
       }
 
-      invn0 = op->getIn(0);
-      ct = getOutDatatype(invn0,off);
+      ct = getOutDatatype(def,0,off);
       dt = getOffsetStrippedDatatype(ct,off,types);
       return dt;
     case CPUI_MULTIEQUAL:
-      invn0 = op->getIn(0);
-      ct = getOutDatatype(invn0,offset);
-      return ct;
+      invn0 = def->getIn(0);
+      dt = getOutDatatype(def,0,offset);
+      return dt;
     case CPUI_PTRADD:
-      invn1 = op->getIn(1);
+      invn1 = def->getIn(1);
       if (!invn1->isConstant()) return ct;
-      invn2 = op->getIn(2);
+      invn2 = def->getIn(2);
       if (!invn2->isConstant()) return ct;
 
       off1 = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
@@ -1524,12 +1527,11 @@ Datatype *ActionDeindirect::getOutDatatype(Varnode *vn,int8 &offset)
 	offset = 0;
       }
 
-      invn0 = op->getIn(0);
-      ct = getOutDatatype(invn0,off);
+      ct = getOutDatatype(def,0,off);
       dt = getOffsetStrippedDatatype(ct,off,types);
       return dt;
     case CPUI_PTRSUB:
-      invn1 = op->getIn(1);
+      invn1 = def->getIn(1);
       if (!invn1->isConstant()) return ct;
 
       off = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
@@ -1538,12 +1540,11 @@ Datatype *ActionDeindirect::getOutDatatype(Varnode *vn,int8 &offset)
 	offset = 0;
       }
 
-      invn0 = op->getIn(0);
-      ct = getOutDatatype(invn0,off);
+      ct = getOutDatatype(def,0,off);
       dt = getOffsetStrippedDatatype(ct,off,types);
       return dt;
   }
-  return (Datatype *)0;
+  return dt;
 }
 
 int4 ActionDeindirect::apply(Funcdata &data)
@@ -1597,8 +1598,8 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	  // We may have to parse all the ops tree by recursion
 	  // so we can find the real prototype
 	  intb offset = 0;
-	  ct = getOutDatatype(vn,offset);
-	  if (ct->getMetatype() == TYPE_PTR) {
+	  ct = getOutDatatype(op,0,offset);
+	  if (ct != (Datatype *)0 && ct->getMetatype() == TYPE_PTR) {
 	    if (((TypePointer *)ct)->getPtrTo()->getMetatype()==TYPE_CODE) {
 	      tc = (TypeCode *)((TypePointer *)ct)->getPtrTo();
 	      fp = tc->getPrototype();
