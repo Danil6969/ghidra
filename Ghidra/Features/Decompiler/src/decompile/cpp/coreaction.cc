@@ -1487,10 +1487,13 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset)
   OpCode opc = def->code();
   switch (opc) {
     case CPUI_LOAD:
-      offset = 0;
-      ct = getOutDatatype(def,1,offset);
+      ct = getOutDatatype(def,1,off);
+      dt = ct;
+      if (off != 0) {
+	dt = getOffsetStrippedDatatype(ct,off,types);
+      }
       loadsize = def->getOut()->getSize();
-      dt = getSizeStrippedDatatype(ct,loadsize,types);
+      dt = getSizeStrippedDatatype(dt,loadsize,types);
       if (dt == (Datatype *)0) return (TypePointer *)0;
       if (dt->getMetatype() != TYPE_PTR) return (TypePointer *)0;
       ptr = (TypePointer *)dt;
@@ -1501,13 +1504,9 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset)
       if (!invn1->isConstant()) return ct;
 
       off = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
-      if (offset < 0) {
-	off += offset;
-	offset = 0;
-      }
+      offset += off;
 
-      ct = getOutDatatype(def,0,off);
-      dt = getOffsetStrippedDatatype(ct,off,types);
+      dt = getOutDatatype(def,0,offset);
       return dt;
     case CPUI_MULTIEQUAL:
       invn0 = def->getIn(0);
@@ -1522,26 +1521,18 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset)
       off1 = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
       off2 = sign_extend(invn2->getOffset(),8*invn2->getSize()-1);
       off = off1 * off2;
-      if (offset < 0) {
-	off += offset;
-	offset = 0;
-      }
+      offset += off;
 
-      ct = getOutDatatype(def,0,off);
-      dt = getOffsetStrippedDatatype(ct,off,types);
+      dt = getOutDatatype(def,0,offset);
       return dt;
     case CPUI_PTRSUB:
       invn1 = def->getIn(1);
       if (!invn1->isConstant()) return ct;
 
       off = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
-      if (offset < 0) {
-	off += offset;
-	offset = 0;
-      }
+      offset += off;
 
-      ct = getOutDatatype(def,0,off);
-      dt = getOffsetStrippedDatatype(ct,off,types);
+      dt = getOutDatatype(def,0,offset);
       return dt;
   }
   return dt;
