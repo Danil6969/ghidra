@@ -1456,7 +1456,7 @@ Datatype *ActionDeindirect::getOffsetStrippedDatatype(Datatype *pt,int8 offset,T
   return dt;
 }
 
-Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset)
+Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,set<PcodeOp *> visitedOps)
 
 {
   TypePointer *ptr = (TypePointer *)0; // The pointer datatype
@@ -1475,6 +1475,9 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset)
   int4 loadsize = 0;
   int4 typesize = 0;
 
+  if (visitedOps.find(op) != visitedOps.end()) return (Datatype *)0;
+  visitedOps.insert(op);
+
   Funcdata *fd = op->getParent()->getFuncdata();
   TypeFactory *types = fd->getArch()->types;
   Varnode *vn = op->getIn(slot);
@@ -1487,7 +1490,7 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset)
   OpCode opc = def->code();
   switch (opc) {
     case CPUI_LOAD:
-      ct = getOutDatatype(def,1,off);
+      ct = getOutDatatype(def,1,off,visitedOps);
       dt = ct;
       if (off != 0) {
 	dt = getOffsetStrippedDatatype(ct,off,types);
@@ -1506,11 +1509,11 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset)
       off = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
       offset += off;
 
-      dt = getOutDatatype(def,0,offset);
+      dt = getOutDatatype(def,0,offset,visitedOps);
       return dt;
     case CPUI_MULTIEQUAL:
       invn0 = def->getIn(0);
-      dt = getOutDatatype(def,0,offset);
+      dt = getOutDatatype(def,0,offset,visitedOps);
       return dt;
     case CPUI_PTRADD:
       invn1 = def->getIn(1);
@@ -1523,7 +1526,7 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset)
       off = off1 * off2;
       offset += off;
 
-      dt = getOutDatatype(def,0,offset);
+      dt = getOutDatatype(def,0,offset,visitedOps);
       return dt;
     case CPUI_PTRSUB:
       invn1 = def->getIn(1);
@@ -1532,7 +1535,7 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset)
       off = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
       offset += off;
 
-      dt = getOutDatatype(def,0,offset);
+      dt = getOutDatatype(def,0,offset,visitedOps);
       return dt;
   }
   return dt;
@@ -1589,7 +1592,8 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	  // We may have to parse all the ops tree by recursion
 	  // so we can find the real prototype
 	  intb offset = 0;
-	  ct = getOutDatatype(op,0,offset);
+	  set<PcodeOp *> visitedOps;
+	  ct = getOutDatatype(op,0,offset,visitedOps);
 	  if (ct != (Datatype *)0 && ct->getMetatype() == TYPE_PTR) {
 	    if (((TypePointer *)ct)->getPtrTo()->getMetatype()==TYPE_CODE) {
 	      tc = (TypeCode *)((TypePointer *)ct)->getPtrTo();
