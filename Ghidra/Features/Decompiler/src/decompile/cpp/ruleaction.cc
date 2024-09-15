@@ -12440,6 +12440,7 @@ int4 RuleInferVbptr::applyOp(PcodeOp *op,Funcdata &data)
     int8 structoffset;
     vbptrfield = outerdt->findTruncation(newoffset,ptrop->getOut()->getSize(),ptrop,ptrslot,structoffset);
     newoffset = structoffset;
+    if (vbptrfield == (TypeField *)0) return 0;
   }
   if (newoffset != 0) return 0;
   if (vbptrfield->name != "_vbptr") return 0;
