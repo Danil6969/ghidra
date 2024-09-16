@@ -145,7 +145,6 @@ private:
   void setParent(BlockBasic *p) { parent = p; }	///< Set the parent basic block of this op
   void setBasicIter(list<PcodeOp *>::iterator iter) { basiciter = iter; } ///< Store the iterator into this op's basic block
   bool isSubpieceNonCollapsible(void) const; ///< Return \b true if this is subpiece and it shouldn't be collapsed
-  int4 getAllocaAttachSlot(Funcdata &data) const;
   bool isFirstAllocaDefinition(Funcdata &data) const;
 
 public:
@@ -218,6 +217,7 @@ public:
   bool isCollapsible(void) const; ///< Return \b true if this can be collapsed to a COPY of a constant
   bool isReturnAddressConstant(Funcdata &data) const;
   bool isReturnAddressConstant(void) const;
+  int4 getAllocaAttachSlot(Funcdata &data) const;
   bool isAllocaShift(Funcdata &data) const;
   bool isAllocaShift(void) const;
   bool stopsTypePropagation(void) const { return ((addlflags&stop_type_propagation)!=0); }	///< Is data-type propagation from below stopped
