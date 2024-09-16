@@ -1185,11 +1185,9 @@ const PcodeOp * Varnode::getAllocaShiftOp(Funcdata &data) const
 bool Varnode::isAllocaLength(Funcdata &data) const
 
 {
-  Architecture *glb = data.getArch();
-  AddrSpace *stackspc = glb->getStackSpace();
   const PcodeOp *op = getDef();
   // Negative stack growth
-  if (stackspc->stackGrowsNegative()) {
+  if (data.isStackGrowsNegative()) {
     OpCode opc;
     while (true) {
       if (op == (PcodeOp *)0) return false;
