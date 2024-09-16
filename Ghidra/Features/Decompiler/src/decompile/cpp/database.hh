@@ -772,7 +772,7 @@ public:
   void getScopePath(vector<const Scope *> &vec) const;		///< Get the ordered list of scopes up to \b this
   const Scope *findDistinguishingScope(const Scope *op2) const;	///< Find first ancestor of \b this not shared by given scope
   Architecture *getArch(void) const { return glb; }		///< Get the Architecture associated with \b this
-  Funcdata * getFuncdata(void) const { return fd; }
+  Funcdata *getFuncdata(void) const { return fd; }		///< Get the Funcdata object associated with the called function
   Scope *getParent(void) const { return parent; }		///< Get the parent Scope (or NULL if \b this is the global Scope)
   Symbol *addSymbol(const string &nm,Datatype *ct);		///< Add a new Symbol \e without mapping it to an address
   SymbolEntry *addMapPoint(Symbol *sym,const Address &addr,
