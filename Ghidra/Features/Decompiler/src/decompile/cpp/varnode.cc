@@ -1153,10 +1153,8 @@ bool Varnode::hasPointerUsages() const
 const PcodeOp * Varnode::getAllocaShiftOp(Funcdata &data) const
 
 {
-  Architecture *glb = data.getArch();
-  AddrSpace *stackspc = glb->getStackSpace();
   // Negative stack growth
-  if (stackspc->stackGrowsNegative()) {
+  if (data.isStackGrowsNegative()) {
     const PcodeOp *op = getDef();
     if (op == (PcodeOp *)0) return (PcodeOp *)0;
     if (!op->isAllocaShift(data)) return (PcodeOp *)0;
