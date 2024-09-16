@@ -954,6 +954,7 @@ Symbol *Funcdata::handleSymbolConflict(SymbolEntry *entry,Varnode *vn)
 
   // If we reach here, we have a conflicting variable
   buildDynamicSymbol(vn);
+  if (vn->getSymbolEntry() == (SymbolEntry *)0) return (Symbol *)0;
   return vn->getSymbolEntry()->getSymbol();
 }
 
@@ -1228,8 +1229,10 @@ void Funcdata::buildDynamicSymbol(Varnode *vn)
   DynamicHash dhash;
 
   dhash.uniqueHash(vn,this);	// Calculate a unique dynamic hash for this varnode
-  if (dhash.getHash() == 0)
-    throw RecovError("Unable to find unique hash for varnode");
+  if (dhash.getHash() == 0) {
+    //throw RecovError("Unable to find unique hash for varnode");
+    return;
+  }
 
   Symbol *sym;
   if (vn->isConstant())
