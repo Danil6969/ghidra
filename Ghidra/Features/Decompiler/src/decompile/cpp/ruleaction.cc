@@ -6148,8 +6148,7 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
     data.opDestroy(op);
     return 1;
   }
-  AddrSpace *stackspc = data.getArch()->getStackSpace();
-  if (stackspc->stackGrowsNegative()) {
+  if (data.isStackGrowsNegative()) {
     Varnode *valvn = op->getIn(2);
     Varnode *ptrvn = op->getIn(1);
     if (!ptrvn->isStackPointerLocated(data)) return 0;
