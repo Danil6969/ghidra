@@ -4477,9 +4477,13 @@ int4 ActionDeadCode::apply(Funcdata &data)
     op = *iter;
 
     op->clearIndirectSource();
-    if (op->isAllocaShift(data)) {
-      pushConsumed(~((uintb)0),op->getOut(),worklist);
-      op->getOut()->setAutoLiveHold();
+    if (op->isAllocaShift(data) && !data.isStackGrowsNegative()) {
+      int4 slot = op->getAllocaAttachSlot(data);
+      Varnode *invn = op->getIn(slot);
+      if (!invn->hasNoDescend()) {
+	pushConsumed(~((uintb)0),op->getOut(),worklist);
+	op->getOut()->setAutoLiveHold();
+      }
     }
     if (op->isCall()) {
       // Postpone setting consumption on CALL and CALLIND inputs
