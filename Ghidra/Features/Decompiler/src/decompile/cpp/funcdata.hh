@@ -147,6 +147,7 @@ public:
   int4 getSize(void) const { return size; }				///< Get the function body size in bytes
   Architecture *getArch(void) const { return glb; }			///< Get the program/architecture owning \b this function
   FunctionSymbol *getSymbol(void) const { return functionSymbol; }	///< Return the symbol associated with \b this function
+  bool isStackGrowsNegative(void) const { return glb->getStackSpace()->stackGrowsNegative(); }	///< Return \b true if the stack \e grows toward smaller addresses
   bool isHighOn(void) const { return ((flags&highlevel_on)!=0); }	///< Are high-level variables assigned to Varnodes
   bool isProcStarted(void) const { return ((flags&processing_started)!=0); }	///< Has processing of the function started
   bool isProcComplete(void) const { return ((flags&processing_complete)!=0); }	///< Is processing of the function complete
