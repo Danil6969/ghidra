@@ -1858,10 +1858,22 @@ SymbolEntry *ScopeInternal::addMapInternal(Symbol *sym,uint4 exfl,const Address 
   SymbolEntry::inittype initdata(sym,exfl,addr.getSpace(),off,uselim);
   Address lastaddress = addr + (sz-1);
   if (lastaddress.getOffset() < addr.getOffset()) {
-    string msg = "Symbol ";
-    msg += sym->getName();
-    msg += " extends beyond the end of the address space";
-    throw LowlevelError(msg);
+    ostringstream msg;
+    msg << "Symbol at address ";
+    msg << addr.getSpace()->getName();
+    msg << ":";
+    intb offset = sign_extend(addr.getOffset(),8*addr.getSpace()->getAddrSize()-1);
+    if (offset < 0) {
+      msg << "-";
+      msg << std::hex << -offset;
+    }
+    else {
+      msg << std::hex << offset;
+    }
+    msg << " and size ";
+    msg << sz;
+    msg << " extends beyond the end of the address space";
+    throw LowlevelError(msg.str());
   }
     
   list<SymbolEntry>::iterator iter = rangemap->insert(initdata,addr.getOffset(),lastaddress.getOffset());
