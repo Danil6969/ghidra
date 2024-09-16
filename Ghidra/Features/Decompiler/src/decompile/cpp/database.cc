@@ -1870,7 +1870,7 @@ SymbolEntry *ScopeInternal::addMapInternal(Symbol *sym,uint4 exfl,const Address 
     else {
       msg << std::hex << offset;
     }
-    msg << " and size ";
+    msg << " with size ";
     msg << sz;
     msg << " extends beyond the end of the address space";
     throw LowlevelError(msg.str());
