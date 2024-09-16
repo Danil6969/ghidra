@@ -355,21 +355,21 @@ Varnode *Funcdata::setInputVarnode(Varnode *vn)
       if ((-1 != vn->overlap(*invn))||(-1 != invn->overlap(*vn))) {
 	if ((vn->getSize() == invn->getSize())&&(vn->getAddr() == invn->getAddr()))
 	  return invn;
-	ostringstream s;
-	s << "Overlapping input varnodes";
-	s << "\nfirst varnode's address is ";
-	s << vn->getAddr().getSpace()->getName();
-	s << ":";
-	s << vn->getAddr().getOffset();
-	s << ", size is ";
-	s << vn->getSize();
-	s << "\nsecond varnode's address is ";
-	s << invn->getAddr().getSpace()->getName();
-	s << ":";
-	s << invn->getAddr().getOffset();
-	s << ", size is ";
-	s << invn->getSize();
-	throw LowlevelError(s.str());
+	ostringstream msg;
+	msg << "Overlapping input varnodes";
+	msg << "\nfirst varnode's address is ";
+	msg << vn->getAddr().getSpace()->getName();
+	msg << ":";
+	msg << vn->getAddr().getOffset();
+	msg << ", size is ";
+	msg << vn->getSize();
+	msg << "\nsecond varnode's address is ";
+	msg << invn->getAddr().getSpace()->getName();
+	msg << ":";
+	msg << invn->getAddr().getOffset();
+	msg << ", size is ";
+	msg << invn->getSize();
+	throw LowlevelError(msg.str());
       }
     }
   }
