@@ -1230,8 +1230,7 @@ void Funcdata::buildDynamicSymbol(Varnode *vn)
 
   dhash.uniqueHash(vn,this);	// Calculate a unique dynamic hash for this varnode
   if (dhash.getHash() == 0) {
-    //throw RecovError("Unable to find unique hash for varnode");
-    warningHeader("Unable to find unique hash for varnode");
+    warningHeader("Assertion failed: Unable to find unique hash for varnode");
     return;
   }
 
