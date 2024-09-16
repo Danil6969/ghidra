@@ -311,8 +311,9 @@ void Merge::mergeRangeMust(VarnodeLocSet::const_iterator startiter,VarnodeLocSet
     vn = *startiter;
     if (vn->getHigh() == high) continue;
     mergeTestMust(vn);
-    if (!merge(high,vn->getHigh(),false))
-      throw LowlevelError("Forced merge caused intersection");
+    if (!merge(high,vn->getHigh(),false)) {
+      data.warningHeader("Assertion failed: Forced merge caused intersection");
+    }
   }
 }
 
