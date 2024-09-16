@@ -324,9 +324,7 @@ bool PcodeOp::isAllocaShift(Funcdata &data) const
   if (!isFirstAllocaDefinition(data)) return false;
   if (opc == CPUI_INT_SUB) {
     if (attachSlot != 0) return false;
-    Architecture *glb = data.getArch();
-    AddrSpace *stackspc = glb->getStackSpace();
-    if (!stackspc->stackGrowsNegative()) return false;
+    if (!data.isStackGrowsNegative()) return false;
     return true;
   }
   if (opc != CPUI_INT_ADD) return false;
