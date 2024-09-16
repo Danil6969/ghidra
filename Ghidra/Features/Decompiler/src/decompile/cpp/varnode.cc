@@ -1150,7 +1150,7 @@ bool Varnode::hasPointerUsages() const
   return false;
 }
 
-const PcodeOp * Varnode::getAllocaShiftOp(Funcdata &data) const
+const PcodeOp *Varnode::getAllocaShiftOp(Funcdata &data) const
 
 {
   // Negative stack growth
