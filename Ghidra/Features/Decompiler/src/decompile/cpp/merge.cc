@@ -879,6 +879,7 @@ void Merge::mergeIndirect(PcodeOp *indop)
   if (!mergeTestRequired(outvn->getHigh(),indop->getIn(0)->getHigh()) ||
       (!merge(indop->getIn(0)->getHigh(),outvn->getHigh(),false))) // Try merge again
     //  if (!merge(indop->Input(0)->High(),outvn->High()))
+    data.warningHeader("Assertion failed: Unable to merge address forced indirect");
     mergeOp(indop); // Have to merge anyway
 }
 
