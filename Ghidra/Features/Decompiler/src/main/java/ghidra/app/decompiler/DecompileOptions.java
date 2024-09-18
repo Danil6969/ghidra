@@ -287,7 +287,7 @@ public class DecompileOptions {
 	private final static String COMMENTSTYLE_OPTIONSTRING = "Display.Comment style";
 	private final static String COMMENTSTYLE_OPTIONDESCRIPTION =
 		"Choice between either the C style comments /* */ or C++ style // ";
-	public static final int SUGGESTED_DECOMPILE_TIMEOUT_SECS = 30;
+	public static final int SUGGESTED_DECOMPILE_TIMEOUT_SECS = 900;
 	public static final int SUGGESTED_MAX_PAYLOAD_BYTES = 50;
 	public static final int SUGGESTED_MAX_INSTRUCTIONS = 100000;		// Must match Architecture::resetDefaultsInternal
 	public static final int SUGGESTED_MAX_JUMPTABLE_ENTRIES = 1024;		// Must match Architecture::resetDefaultsInternal
