@@ -1858,9 +1858,10 @@ SymbolEntry *ScopeInternal::addMapInternal(Symbol *sym,uint4 exfl,const Address 
   SymbolEntry::inittype initdata(sym,exfl,addr.getSpace(),off,uselim);
   Address lastaddress = addr + (sz-1);
   if (lastaddress.getOffset() < addr.getOffset()) {
+    string spcname = addr.getSpace()->getName();
     ostringstream msg;
     msg << "Symbol at address ";
-    msg << addr.getSpace()->getName();
+    msg << spcname;
     msg << ":";
     intb offset = sign_extend(addr.getOffset(),8*addr.getSpace()->getAddrSize()-1);
     if (offset < 0) {
@@ -1872,7 +1873,12 @@ SymbolEntry *ScopeInternal::addMapInternal(Symbol *sym,uint4 exfl,const Address 
     }
     msg << " with size ";
     msg << sz;
-    msg << " extends beyond the end of the address space";
+    msg << "\nextends beyond the end of the address space";
+    if (spcname == "stack") {
+      msg << "\n";
+      msg << "Hint: edit stack using Function -> Edit Stack Frame.\n";
+      msg << "Make sure you don't have any problems there";
+    }
     throw LowlevelError(msg.str());
   }
     
