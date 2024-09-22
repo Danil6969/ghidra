@@ -1137,17 +1137,31 @@ void Varnode::printRaw(ostream &s,const Varnode *vn)
   vn->printRaw(s);
 }
 
-bool Varnode::hasPointerUsages() const
+bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) const
 
 {
-  vector<PcodeOp *> descends;
+  if (visitedVarnodes.find(this) != visitedVarnodes.end()) return false;
+  visitedVarnodes.insert(this);
   for(list<PcodeOp *>::const_iterator iter=beginDescend();iter!=endDescend();++iter) {
     PcodeOp *descend = *iter;
     if (descend == (PcodeOp *)0) continue;
-    if (descend->code() == CPUI_LOAD) return true;
-    if (descend->code() == CPUI_STORE) return true;
+    OpCode opc = descend->code();
+    if (opc == CPUI_LOAD) return true;
+    if (opc == CPUI_STORE) return true;
+    if (opc == CPUI_MULTIEQUAL) {
+      // Recurse to multiequal output
+      if (descend->getOut()->hasPointerUsagesRecurse(visitedVarnodes)) return true;
+    }
   }
   return false;
+}
+
+bool Varnode::hasPointerUsages(void) const
+
+{
+  // Must protect against self recursion (repeating PcodeOps)
+  set<const Varnode *> visitedVarnodes;
+  return hasPointerUsagesRecurse(visitedVarnodes);
 }
 
 const PcodeOp *Varnode::getAllocaShiftOp(Funcdata &data) const
