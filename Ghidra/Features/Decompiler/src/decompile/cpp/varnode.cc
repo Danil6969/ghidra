@@ -1142,15 +1142,20 @@ bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) cons
 {
   if (visitedVarnodes.find(this) != visitedVarnodes.end()) return false;
   visitedVarnodes.insert(this);
+
+  if (isConstant()) return false;
+
   for(list<PcodeOp *>::const_iterator iter=beginDescend();iter!=endDescend();++iter) {
     PcodeOp *descend = *iter;
     if (descend == (PcodeOp *)0) continue;
-    OpCode opc = descend->code();
-    if (opc == CPUI_LOAD) return true;
-    if (opc == CPUI_STORE) return true;
-    if (opc == CPUI_MULTIEQUAL) {
-      // Recurse to multiequal output
-      if (descend->getOut()->hasPointerUsagesRecurse(visitedVarnodes)) return true;
+    switch (descend->code()) {
+      case CPUI_LOAD:
+	return true;
+      case CPUI_STORE:
+	return true;
+      case CPUI_MULTIEQUAL:
+	if (descend->getOut()->hasPointerUsagesRecurse(visitedVarnodes))
+	  return true;
     }
   }
   return false;
