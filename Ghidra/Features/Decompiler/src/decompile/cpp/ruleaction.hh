@@ -1140,6 +1140,8 @@ public:
 };
 class RulePtraddUndo : public Rule {
 public:
+  static bool isConstantSubtraction(PcodeOp *op,int4 slot);
+  static bool hasTypeMismatch(PcodeOp *op,int4 size,int4 slot,Funcdata &data);
   static bool canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data);
   RulePtraddUndo(const string &g) : Rule(g, 0, "ptraddundo") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
