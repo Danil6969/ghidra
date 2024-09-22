@@ -7614,29 +7614,75 @@ int4 RulePushPtr::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
-bool RulePtraddUndo::canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data)
+bool RulePtraddUndo::hasTypeMismatch(PcodeOp *op,int4 size,int4 slot,Funcdata &data)
 
 {
   Varnode *basevn;
   TypePointer *tp;
 
-  if (!data.hasTypeRecoveryStarted()) return false;
   basevn = op->getIn(slot);
   tp = (TypePointer *)basevn->getTypeReadFacing(op);
   // Make sure we are still a pointer
-  if (tp->getMetatype() == TYPE_PTR) {
-    Datatype *pt = tp->getPtrTo();
-    if (tp->isFormalPointerRel()) {
-      // Must use parent datatype
-      pt = ((TypePointerRel *)tp)->getParent();
-    }
-    if (pt->getAlignSize()==AddrSpace::addressToByteInt(size,tp->getWordSize())) {	// of the correct size
-      Varnode *indVn = op->getIn(1-slot);
-      if ((!indVn->isConstant()) || (indVn->getOffset() != 0))					// and that index isn't zero
-	return false;
-    }
+  if (tp->getMetatype() != TYPE_PTR) return true;
+  Datatype *pt = tp->getPtrTo();
+  if (tp->isFormalPointerRel()) {
+    // Must use parent datatype
+    pt = ((TypePointerRel *)tp)->getParent();
   }
+  // of the correct size
+  if (pt->getAlignSize()!=AddrSpace::addressToByteInt(size,tp->getWordSize())) return true;
+  Varnode *indVn = op->getIn(1-slot);
+  // and that index isn't zero
+  if (indVn->isConstant()) {
+    if (indVn->getOffset() == 0)
+      return true;
+  }
+  return false;
+}
+
+/// \brief Check if it is following expression: c + (V + d) * -1
+bool RulePtraddUndo::isConstantSubtraction(PcodeOp *op,int4 slot)
+
+{
+  if (op->code() != CPUI_PTRADD) {
+    if (op->code() != CPUI_INT_ADD)
+      return false;
+  }
+  if (!op->getIn(1-slot)->isConstant()) return false;
+  PcodeOp *multop = op->getOut()->loneDescend();
+  if (multop == (PcodeOp *)0) return false;
+  if (multop->code() != CPUI_INT_MULT) return false;
+  Varnode *invn = multop->getIn(1);
+  if (!invn->isConstant()) return false;
+  if (invn->getOffset() != calc_mask(invn->getSize())) return false;
+  PcodeOp *addop = multop->getOut()->loneDescend();
+  if (addop == (PcodeOp *)0) return false;
+  if (addop->code() != CPUI_PTRADD) {
+    if (addop->code() != CPUI_INT_ADD)
+      return false;
+  }
+  int4 multslot = addop->getSlot(multop->getOut());
+  if (!addop->getIn(1-multslot)->isConstant()) return false;
   return true;
+}
+
+/// \brief Check if there are problems with ptradd
+///
+/// \param op is add or ptradd op
+/// \param size is size of the pointed-to datatype
+/// \param slot is slot of the pointer
+/// \param data is the function being analyzed
+/// \return true if given ptradd is invalid
+bool RulePtraddUndo::canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data)
+
+{
+  if (!data.hasTypeRecoveryStarted()) return false;
+
+  if (hasTypeMismatch(op,size,slot,data)) return true;
+
+  // Check for various non-ptradd patterns
+  if (isConstantSubtraction(op,slot)) return true;
+  return false;
 }
 
 /// \class RulePtraddUndo
