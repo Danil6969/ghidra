@@ -1082,6 +1082,7 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RuleCancelOutPtrAdd : public Rule {
+  static bool checkPointerUsages(PcodeOp *op);
   static void gatherNegateOps(PcodeOp *op,vector<PcodeOp *> &negateops);
   static void gatherPossiblePairingOps(Varnode *op,vector<PcodeOp *> &multis,vector<Varnode *> &others);
   static PcodeOp *getPosition(PcodeOp *op,Varnode *targetVn,bool checkDescendants);
