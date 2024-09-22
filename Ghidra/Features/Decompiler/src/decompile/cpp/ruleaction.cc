@@ -6209,6 +6209,7 @@ bool RuleCancelOutPtrAdd::checkPointerUsages(PcodeOp *op)
 
   Varnode *invn0 = (Varnode *)0;
   Varnode *invn1 = (Varnode *)0;
+  Varnode *invn2 = (Varnode *)0;
   PcodeOp *inop0 = (PcodeOp *)0;
   PcodeOp *inop1 = (PcodeOp *)0;
 
@@ -6294,9 +6295,10 @@ void RuleCancelOutPtrAdd::gatherPossiblePairingOps(Varnode *vn,vector<PcodeOp *>
   }
   if (opc == CPUI_MULTIEQUAL) {
     multis.push_back(op);
-    return;
   }
-  others.push_back(vn);
+  else {
+    others.push_back(vn);
+  }
 }
 
 PcodeOp *RuleCancelOutPtrAdd::getPosition(PcodeOp *op,Varnode *targetVn,bool checkDescendants)
@@ -6326,7 +6328,7 @@ PcodeOp *RuleCancelOutPtrAdd::getPosition(PcodeOp *op,Varnode *targetVn,bool che
   return (PcodeOp *)0;
 }
 
-bool RuleCancelOutPtrAdd::processOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *multi,Funcdata &data)
+bool RuleCancelOutPtrAdd::processOp(PcodeOp *op,PcodeOp *negateOp,PcodeOp *multi,Funcdata &data)
 
 {
   if (negateOp == (PcodeOp *)0) return false;
@@ -6349,8 +6351,8 @@ bool RuleCancelOutPtrAdd::processOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *m
   Varnode *diff0 = inOp0->getIn(1);
   Varnode *diff1 = inOp1->getIn(1);
 
-  PcodeOp *negatePos = getPosition(rootOp,negateOp->getOut(),true);
-  PcodeOp *multiPos = getPosition(rootOp,multi->getOut(),true);
+  PcodeOp *negatePos = getPosition(op,negateOp->getOut(),true);
+  PcodeOp *multiPos = getPosition(op,multi->getOut(),true);
   if (negatePos == (PcodeOp *)0) return false;
   if (multiPos == (PcodeOp *)0) return false;
   int4 negateSlot = negatePos->getSlot(negateOp->getOut());
@@ -6367,7 +6369,7 @@ bool RuleCancelOutPtrAdd::processOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *m
   return true;
 }
 
-bool RuleCancelOutPtrAdd::canProcessOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *multi)
+bool RuleCancelOutPtrAdd::canProcessOp(PcodeOp *op,PcodeOp *negateOp,PcodeOp *multi)
 
 {
   if (negateOp == (PcodeOp *)0) return false;
@@ -6390,8 +6392,8 @@ bool RuleCancelOutPtrAdd::canProcessOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp
   Varnode *diff0 = inOp0->getIn(1);
   Varnode *diff1 = inOp1->getIn(1);
 
-  PcodeOp *negatePos = getPosition(rootOp, negateOp->getOut(),false);
-  PcodeOp *multiPos = getPosition(rootOp,multi->getOut(),false);
+  PcodeOp *negatePos = getPosition(op,negateOp->getOut(),false);
+  PcodeOp *multiPos = getPosition(op,multi->getOut(),false);
   if (negatePos == (PcodeOp *)0) return false;
   if (multiPos == (PcodeOp *)0) return false;
 
@@ -6402,14 +6404,16 @@ bool RuleCancelOutPtrAdd::canProcess(PcodeOp *op)
 
 {
   if (!checkPointerUsages(op)) return false;
+
   vector<PcodeOp *> negateops;
   gatherNegateOps(op,negateops);
+  vector<Varnode *> others;
+  vector<PcodeOp *> multis;
+  gatherPossiblePairingOps(op->getOut(),multis,others);
+
   vector<PcodeOp *>::const_iterator iter;
   for (iter=negateops.begin();iter!=negateops.end();++iter) {
     PcodeOp *negateOp = *iter;
-    vector<Varnode *> others;
-    vector<PcodeOp *> multis;
-    gatherPossiblePairingOps(op->getOut(),multis,others);
     vector<PcodeOp *>::const_iterator iter;
     for (iter=multis.begin();iter!=multis.end();++iter) {
       if (canProcessOp(op,negateOp,*iter)) return true;
@@ -6428,11 +6432,13 @@ int4 RuleCancelOutPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
 
 {
   if (!checkPointerUsages(op)) return 0;
+
   vector<PcodeOp *> negateops;
   gatherNegateOps(op,negateops);
   vector<Varnode *> others;
   vector<PcodeOp *> multis;
   gatherPossiblePairingOps(op->getOut(),multis,others);
+
   vector<PcodeOp *>::const_iterator iter;
   for (iter=negateops.begin();iter!=negateops.end();++iter) {
     PcodeOp *negateOp = *iter;
