@@ -6912,23 +6912,11 @@ Varnode *AddTreeState::buildExtra(void)
 bool AddTreeState::erasableByUndoPtradd(void)
 
 {
-  if (!data.hasTypeRecoveryStarted()) return false;
-  int4 size = 1;
-  Varnode *basevn = ptr;
+  Varnode *basevn;
+  TypePointer *tp;
+
   int4 slot = baseOp->getSlot(ptr);
-  TypePointer *tp = (TypePointer *)basevn->getTypeReadFacing(baseOp);
-  if (tp->getMetatype() == TYPE_PTR) {
-    Datatype *pt = tp->getPtrTo();
-    if (tp->isFormalPointerRel()) {
-      pt = ((TypePointerRel *)tp)->getParent();
-    }
-    if (pt->getAlignSize()==AddrSpace::addressToByteInt(size,tp->getWordSize())) {
-      Varnode *indVn = baseOp->getIn(1-slot);
-      if ((!indVn->isConstant()) || (indVn->getOffset() != 0))
-	return false;
-    }
-  }
-  return true;
+  return RulePtraddUndo::canProcessOp(baseOp,1,slot,data);
 }
 
 /// The base data-type being pointed to is unit sized (or smaller).  Everything is a multiple, so an ADD
@@ -7626,6 +7614,31 @@ int4 RulePushPtr::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+bool RulePtraddUndo::canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data)
+
+{
+  Varnode *basevn;
+  TypePointer *tp;
+
+  if (!data.hasTypeRecoveryStarted()) return false;
+  basevn = op->getIn(slot);
+  tp = (TypePointer *)basevn->getTypeReadFacing(op);
+  // Make sure we are still a pointer
+  if (tp->getMetatype() == TYPE_PTR) {
+    Datatype *pt = tp->getPtrTo();
+    if (tp->isFormalPointerRel()) {
+      // Must use parent datatype
+      pt = ((TypePointerRel *)tp)->getParent();
+    }
+    if (pt->getAlignSize()==AddrSpace::addressToByteInt(size,tp->getWordSize())) {	// of the correct size
+      Varnode *indVn = op->getIn(1-slot);
+      if ((!indVn->isConstant()) || (indVn->getOffset() != 0))					// and that index isn't zero
+	return false;
+    }
+  }
+  return true;
+}
+
 /// \class RulePtraddUndo
 /// \brief Remove PTRADD operations with mismatched data-type information
 ///
@@ -7644,24 +7657,8 @@ int4 RulePtraddUndo::applyOp(PcodeOp *op,Funcdata &data)
   Varnode *basevn;
   TypePointer *tp;
 
-  if (!data.hasTypeRecoveryStarted()) return 0;
   int4 size = (int4)op->getIn(2)->getOffset(); // Size the PTRADD thinks we are pointing
-  basevn = op->getIn(0);
-  tp = (TypePointer *)basevn->getTypeReadFacing(op);
-  // Make sure we are still a pointer
-  if (tp->getMetatype() == TYPE_PTR) {
-    Datatype *pt = tp->getPtrTo();
-    if (tp->isFormalPointerRel()) {
-      // Must use parent datatype
-      pt = ((TypePointerRel *)tp)->getParent();
-    }
-    if (pt->getAlignSize()==AddrSpace::addressToByteInt(size,tp->getWordSize())) {	// of the correct size
-      Varnode *indVn = op->getIn(1);
-      if ((!indVn->isConstant()) || (indVn->getOffset() != 0))					// and that index isn't zero
-	return 0;
-    }
-  }
-
+  if (!canProcessOp(op,size,0,data)) return 0;
   data.opUndoPtradd(op,false);
   return 1;
 }
