@@ -6054,13 +6054,13 @@ void RuleUnlinkPtrAdd::getOpList(vector<uint4> &oplist) const
 int4 RuleUnlinkPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  if (RulePtrArith::canProcess(op,data)) {
+  if (RulePtrArith::canApply(op,data)) {
     if (unlinkAddOp(op,data)) return 1;
   }
-  if (RuleCancelOutPtrAdd::canProcess(op)) {
+  if (RuleCancelOutPtrAdd::canApply(op)) {
     if (unlinkAddOp(op,data)) return 1;
   }
-  if (RuleInferPointerMult::canProcess(op,data)) {
+  if (RuleInferPointerMult::canApply(op,data)) {
     if (unlinkAddOp(op,data)) return 1;
   }
   return 0;
@@ -6400,7 +6400,7 @@ bool RuleCancelOutPtrAdd::canProcessOp(PcodeOp *op,PcodeOp *negateOp,PcodeOp *mu
   return true;
 }
 
-bool RuleCancelOutPtrAdd::canProcess(PcodeOp *op)
+bool RuleCancelOutPtrAdd::canApply(PcodeOp *op)
 
 {
   if (!checkPointerUsages(op)) return false;
@@ -7287,7 +7287,7 @@ bool RulePtrArith::preprocess(PcodeOp *op,Funcdata &data)
   return false;
 }
 
-bool RulePtrArith::canProcess(PcodeOp *op,Funcdata &data)
+bool RulePtrArith::canApply(PcodeOp *op,Funcdata &data)
 
 {
   int4 slot;
@@ -11877,7 +11877,7 @@ int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
-bool RuleInferPointerMult::canProcess(PcodeOp *op,Funcdata &data)
+bool RuleInferPointerMult::canApply(PcodeOp *op,Funcdata &data)
 
 {
   intb increment = getCounterIncrement(op);
