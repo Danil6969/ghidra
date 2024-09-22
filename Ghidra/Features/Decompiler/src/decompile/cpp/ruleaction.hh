@@ -1086,8 +1086,8 @@ class RuleCancelOutPtrAdd : public Rule {
   static void gatherNegateOps(PcodeOp *op,vector<PcodeOp *> &negateops);
   static void gatherPossiblePairingOps(Varnode *op,vector<PcodeOp *> &multis,vector<Varnode *> &others);
   static PcodeOp *getPosition(PcodeOp *op,Varnode *targetVn,bool checkDescendants);
-  static bool processOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *multi,Funcdata &data);
-  static bool canProcessOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp *multi);
+  static bool processOp(PcodeOp *op,PcodeOp *negateOp,PcodeOp *multi,Funcdata &data);
+  static bool canProcessOp(PcodeOp *op,PcodeOp *negateOp,PcodeOp *multi);
 public:
   static bool canProcess(PcodeOp *op);
   RuleCancelOutPtrAdd(const string &g) : Rule(g, 0, "canceloutptradd") {}	///< Constructor
