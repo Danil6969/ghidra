@@ -1140,6 +1140,7 @@ public:
 };
 class RulePtraddUndo : public Rule {
 public:
+  static bool canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data);
   RulePtraddUndo(const string &g) : Rule(g, 0, "ptraddundo") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
