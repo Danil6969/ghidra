@@ -173,6 +173,7 @@ private:
   void addDescend(PcodeOp *op);	///< Add a descendant (reading) PcodeOp to this Varnode's list
   void eraseDescend(PcodeOp *op); ///< Erase a descendant (reading) PcodeOp from this Varnode's list
   void destroyDescend(void);	///< Clear all descendant (reading) PcodeOps
+  bool hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) const;
 public:
   // only to be used by HighVariable
   void setHigh(HighVariable *tv,int2 mg) { high = tv; mergegroup = mg; } ///< Set the HighVariable owning this Varnode
@@ -345,7 +346,7 @@ public:
   void encode(Encoder &encoder) const; ///< Encode a description of \b this to a stream
   static bool comparePointers(const Varnode *a,const Varnode *b) { return (*a < *b); }	///< Compare Varnodes as pointers
   static void printRaw(ostream &s,const Varnode *vn);	///< Print raw info about a Varnode to stream
-  bool hasPointerUsages() const;
+  bool hasPointerUsages(void) const;
   const PcodeOp *getAllocaShiftOp(Funcdata &data) const;
   bool isAllocaAddress(Funcdata &data) const { return getAllocaShiftOp(data) != (PcodeOp *)0; }	///< Does \b this varnode have corresponding alloca shift op
   bool isAllocaLength(Funcdata &data) const;
