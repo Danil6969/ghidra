@@ -6202,6 +6202,50 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
+bool RuleCancelOutPtrAdd::checkPointerUsages(PcodeOp *op)
+
+{
+  if (op->getOut()->hasPointerUsages()) return true;
+
+  Varnode *invn0 = (Varnode *)0;
+  Varnode *invn1 = (Varnode *)0;
+  PcodeOp *inop0 = (PcodeOp *)0;
+  PcodeOp *inop1 = (PcodeOp *)0;
+
+  switch (op->code()) {
+    case CPUI_INT_ADD:
+      invn0 = op->getIn(0);
+      invn1 = op->getIn(1);
+
+      inop0 = invn0->getDef();
+      inop1 = invn1->getDef();
+
+      if (inop0 != (PcodeOp *)0) {
+	if (checkPointerUsages(inop0)) return true;
+      }
+      if (inop1 != (PcodeOp *)0) {
+	if (checkPointerUsages(inop1)) return true;
+      }
+      break;
+    case CPUI_INT_MULT:
+      invn0 = op->getIn(0);
+      invn1 = op->getIn(1);
+
+      inop0 = invn0->getDef();
+      inop1 = invn1->getDef();
+
+      if (invn1->isConstant()) {
+	if (invn1->getOffset() == calc_mask(invn1->getSize())) {
+	  if (inop0 != (PcodeOp *)0) {
+	    if (checkPointerUsages(inop0)) return true;
+	  }
+	}
+      }
+      break;
+  }
+  return false;
+}
+
 void RuleCancelOutPtrAdd::gatherNegateOps(PcodeOp *op,vector<PcodeOp *> &negateops)
 
 {
@@ -6357,7 +6401,7 @@ bool RuleCancelOutPtrAdd::canProcessOp(PcodeOp *rootOp,PcodeOp *negateOp,PcodeOp
 bool RuleCancelOutPtrAdd::canProcess(PcodeOp *op)
 
 {
-  if (!op->getOut()->hasPointerUsages()) return false;
+  if (!checkPointerUsages(op)) return false;
   vector<PcodeOp *> negateops;
   gatherNegateOps(op,negateops);
   vector<PcodeOp *>::const_iterator iter;
@@ -6383,19 +6427,15 @@ void RuleCancelOutPtrAdd::getOpList(vector<uint4> &oplist) const
 int4 RuleCancelOutPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  if (!op->getOut()->hasPointerUsages()) {
-    if (!op->getIn(0)->hasPointerUsages()) {
-      return 0;
-    }
-  }
+  if (!checkPointerUsages(op)) return 0;
   vector<PcodeOp *> negateops;
   gatherNegateOps(op,negateops);
+  vector<Varnode *> others;
+  vector<PcodeOp *> multis;
+  gatherPossiblePairingOps(op->getOut(),multis,others);
   vector<PcodeOp *>::const_iterator iter;
   for (iter=negateops.begin();iter!=negateops.end();++iter) {
     PcodeOp *negateOp = *iter;
-    vector<Varnode *> others;
-    vector<PcodeOp *> multis;
-    gatherPossiblePairingOps(op->getOut(),multis,others);
     vector<PcodeOp *>::const_iterator iter;
     for (iter=multis.begin();iter!=multis.end();++iter) {
       if (processOp(op,negateOp,*iter,data)) return 1;
