@@ -6383,7 +6383,11 @@ void RuleCancelOutPtrAdd::getOpList(vector<uint4> &oplist) const
 int4 RuleCancelOutPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  if (!op->getOut()->hasPointerUsages()) return 0;
+  if (!op->getOut()->hasPointerUsages()) {
+    if (!op->getIn(0)->hasPointerUsages()) {
+      return 0;
+    }
+  }
   vector<PcodeOp *> negateops;
   gatherNegateOps(op,negateops);
   vector<PcodeOp *>::const_iterator iter;
