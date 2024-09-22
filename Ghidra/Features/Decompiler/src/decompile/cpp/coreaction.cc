@@ -1594,6 +1594,7 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	  intb offset = 0;
 	  set<PcodeOp *> visitedOps;
 	  ct = getOutDatatype(op,0,offset,visitedOps);
+	  visitedOps.clear();
 	  if (ct != (Datatype *)0 && ct->getMetatype() == TYPE_PTR) {
 	    if (((TypePointer *)ct)->getPtrTo()->getMetatype()==TYPE_CODE) {
 	      tc = (TypeCode *)((TypePointer *)ct)->getPtrTo();
