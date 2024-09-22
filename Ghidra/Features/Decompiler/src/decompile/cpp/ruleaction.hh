@@ -1723,6 +1723,7 @@ public:
   static bool checkPointerUsages(Varnode *vn,set<Varnode *> visitedVarnodes,Funcdata &data);
   static intb getCounterIncrement(PcodeOp *op);
   static intb getCounterMultiplier(PcodeOp *op);
+  static bool canApply(PcodeOp *op,Funcdata &data);
   RuleInferPointerMult(const string &g) : Rule(g,0,"inferpointermult") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
@@ -1730,7 +1731,6 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
-  static bool canApply(PcodeOp *op,Funcdata &data);
 };
 
 class RuleInferPointerAdd : public Rule {
