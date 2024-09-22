@@ -11855,28 +11855,6 @@ bool RuleInferPointerMult::formAssignment(PcodeOp *op,Funcdata &data)
   return true;
 }
 
-void RuleInferPointerMult::getOpList(vector<uint4> &oplist) const
-
-{
-  oplist.push_back(CPUI_INT_ADD);
-  oplist.push_back(CPUI_INT_MULT);
-}
-
-/// \class RuleInferPointerMult
-/// \brief Infer pointer counter multiplication everywhere it is used but make assignments simpler instead
-/// Only possible if written twice. The forms:
-/// 1) The first is the initializer and the second is the increment:
-///  - `V = W * c; ... = V; V = V +- c => V = W; ... = V * c; V = V +- 1`
-/// 2) The first is the initializer and the second is the assignment:
-///  - `V = W * c; ... = V; V = X * c => V = W; ... = V * c; V = X`
-int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
-
-{
-  if (formIncrement(op,data)) return 1;
-  if (formAssignment(op,data)) return 1;
-  return 0;
-}
-
 bool RuleInferPointerMult::canApply(PcodeOp *op,Funcdata &data)
 
 {
@@ -11897,6 +11875,28 @@ bool RuleInferPointerMult::canApply(PcodeOp *op,Funcdata &data)
   if (out->isFree()) return false;
 
   return true;
+}
+
+void RuleInferPointerMult::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_ADD);
+  oplist.push_back(CPUI_INT_MULT);
+}
+
+/// \class RuleInferPointerMult
+/// \brief Infer pointer counter multiplication everywhere it is used but make assignments simpler instead
+/// Only possible if written twice. The forms:
+/// 1) The first is the initializer and the second is the increment:
+///  - `V = W * c; ... = V; V = V +- c => V = W; ... = V * c; V = V +- 1`
+/// 2) The first is the initializer and the second is the assignment:
+///  - `V = W * c; ... = V; V = X * c => V = W; ... = V * c; V = X`
+int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  if (formIncrement(op,data)) return 1;
+  if (formAssignment(op,data)) return 1;
+  return 0;
 }
 
 PcodeOp *RuleInferPointerAdd::getCounterInitOp(PcodeOp *multiop,int4 &slot)
