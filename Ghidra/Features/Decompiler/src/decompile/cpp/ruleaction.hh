@@ -1089,7 +1089,7 @@ class RuleCancelOutPtrAdd : public Rule {
   static bool processOp(PcodeOp *op,PcodeOp *negateOp,PcodeOp *multi,Funcdata &data);
   static bool canProcessOp(PcodeOp *op,PcodeOp *negateOp,PcodeOp *multi);
 public:
-  static bool canProcess(PcodeOp *op);
+  static bool canApply(PcodeOp *op);
   RuleCancelOutPtrAdd(const string &g) : Rule(g, 0, "canceloutptradd") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
@@ -1102,7 +1102,7 @@ class RulePtrArith : public Rule {
   static bool replaceMultiplier(PcodeOp *op,Funcdata &data);
   static bool preprocess(PcodeOp *op,Funcdata &data);
 public:
-  static bool canProcess(PcodeOp *op,Funcdata &data);
+  static bool canApply(PcodeOp *op,Funcdata &data);
   RulePtrArith(const string &g) : Rule(g, 0, "ptrarith") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
@@ -1730,7 +1730,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
-  static bool canProcess(PcodeOp *op,Funcdata &data);
+  static bool canApply(PcodeOp *op,Funcdata &data);
 };
 
 class RuleInferPointerAdd : public Rule {
