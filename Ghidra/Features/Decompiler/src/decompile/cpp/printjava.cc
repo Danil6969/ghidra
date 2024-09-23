@@ -123,7 +123,7 @@ void PrintJava::adjustTypeOperators(void)
 {
   scope.print1 = ".";
   shift_right.print1 = ">>>";
-  TypeOp::selectJavaOperators(glb->inst,true);
+  TypeOp::selectLanguageOperators(glb->inst,"java");
 }
 
 /// References to java array objects where the underlying element is a java primitive look like:
