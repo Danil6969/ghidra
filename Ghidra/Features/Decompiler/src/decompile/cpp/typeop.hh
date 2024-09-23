@@ -175,8 +175,8 @@ public:
   static void registerInstructions(vector<TypeOp *> &inst,TypeFactory *tlst,
 				   const Translate *trans);
 
-  /// \brief Toggle Java specific aspects of the op-code information
-  static void selectJavaOperators(vector<TypeOp *> &inst,bool val);
+  /// \brief Toggle language specific aspects of the op-code information
+  static void selectLanguageOperators(vector<TypeOp *> &inst,string val);
 };
 
 // Major classes of operations
