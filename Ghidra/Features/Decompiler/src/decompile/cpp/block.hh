@@ -89,6 +89,7 @@ public:
     f_goto_goto = 1,		///< (Block ends in) non-structured branch
     f_break_goto = 2,		///< Block ends with a break;
     f_continue_goto = 4,	///< Block ends with a continue;
+    f_fallthrough_goto = 8,	///< Block ends with a fallthrough;
     f_switch_out = 0x10,	///< Output is decided by switch
     f_unstructured_targ = 0x20,	///< Block is destination of unstructured goto
     f_mark = 0x80,		///< Generic way to mark a block
