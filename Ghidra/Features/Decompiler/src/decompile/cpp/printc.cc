@@ -2775,7 +2775,7 @@ void PrintC::adjustTypeOperators(void)
 {
   scope.print1 = "::";
   shift_right.print1 = ">>";
-  TypeOp::selectJavaOperators(glb->inst,false);
+  TypeOp::selectLanguageOperators(glb->inst,"c");
 }
 
 void PrintC::setCommentStyle(const string &nm)
