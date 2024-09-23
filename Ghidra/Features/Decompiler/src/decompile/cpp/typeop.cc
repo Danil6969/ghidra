@@ -110,11 +110,11 @@ void TypeOp::registerInstructions(vector<TypeOp *> &inst,TypeFactory *tlst,
 /// Change basic data-type info (signed vs unsigned) and operator names ( '>>' vs '>>>' )
 /// depending on the specific language.
 /// \param inst is the array of TypeOp information objects
-/// \param val is set to \b true for Java operators, \b false for C operators
-void TypeOp::selectJavaOperators(vector<TypeOp *> &inst,bool val)
+/// \param val is set to language short name (extracted from print*.cc filename, asterisk part)
+void TypeOp::selectLanguageOperators(vector<TypeOp *> &inst,string val)
 
 {
-  if (val) {
+  if (val=="java") { // printjava.cc
     inst[CPUI_INT_ZEXT]->setMetatypeIn(TYPE_UNKNOWN);
     inst[CPUI_INT_ZEXT]->setMetatypeOut(TYPE_INT);
     inst[CPUI_INT_NEGATE]->setMetatypeIn(TYPE_INT);
@@ -129,7 +129,7 @@ void TypeOp::selectJavaOperators(vector<TypeOp *> &inst,bool val)
     inst[CPUI_INT_RIGHT]->setMetatypeOut(TYPE_INT);
     inst[CPUI_INT_RIGHT]->setSymbol(">>>");
   }
-  else {
+  else if (val=="c") { // printc.cc
     inst[CPUI_INT_ZEXT]->setMetatypeIn(TYPE_UINT);
     inst[CPUI_INT_ZEXT]->setMetatypeOut(TYPE_UINT);
     inst[CPUI_INT_NEGATE]->setMetatypeIn(TYPE_UINT);
