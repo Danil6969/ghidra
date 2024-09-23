@@ -367,10 +367,8 @@ public class ProgramCompilerSpec extends BasicCompilerSpec {
 
 		// TODO: registration of DECOMPILER_OUTPUT_LANGUAGE option should be tied to Processor
 		// and not presence of stored option.
-		if (decompilerPropertyList.contains(DECOMPILER_OUTPUT_LANGUAGE)) {
-			decompilerPropertyList.registerOption(DECOMPILER_OUTPUT_LANGUAGE, DECOMPILER_OUTPUT_DEF,
-				null, DECOMPILER_OUTPUT_DESC);
-		}
+		decompilerPropertyList.registerOption(DECOMPILER_OUTPUT_LANGUAGE, DECOMPILER_OUTPUT_DEF,
+			null, DECOMPILER_OUTPUT_DESC);
 
 		Options analysisPropertyList =
 			program.getOptions(Program.ANALYSIS_PROPERTIES + ".Decompiler Parameter ID");
