@@ -100,6 +100,7 @@ const string PrintC::KEYWORD_SWITCH = "switch";
 const string PrintC::KEYWORD_DEFAULT = "default";
 const string PrintC::KEYWORD_RETURN = "return";
 const string PrintC::KEYWORD_NEW = "new";
+const string PrintC::KEYWORD_FALLTHROUGH = "fallthrough";
 const string PrintC::typePointerRelToken = "ADJ";
 
 // Constructing this registers the capability
@@ -2747,6 +2748,9 @@ void PrintC::emitGotoStatement(const FlowBlock *bl,const FlowBlock *exp_bl,
     emit->print(KEYWORD_GOTO,EmitMarkup::keyword_color);
     emit->spaces(1);
     emitLabel(exp_bl);
+    break;
+  case FlowBlock::f_fallthrough_goto:
+    emit->print(KEYWORD_FALLTHROUGH,EmitMarkup::keyword_color);
     break;
   }
   emit->print(SEMICOLON);
