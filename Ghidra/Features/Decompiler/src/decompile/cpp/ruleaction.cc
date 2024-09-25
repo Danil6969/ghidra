@@ -4158,6 +4158,54 @@ bool RuleSubtractionCollapse::form2(PcodeOp *op,Funcdata &data)
   return true;
 }
 
+bool RuleSubtractionCollapse::form3(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *c[3];           // Constant varnodes
+  Varnode *v;              // Variable varnode
+  c[0] = (Varnode *)0;     // c
+  c[1] = (Varnode *)0;     // d
+  c[2] = (Varnode *)0;     // e
+  v = (Varnode *)0;        // V
+
+  c[0] = op->getIn(1);
+  PcodeOp *multop = op->getIn(0)->getDef();
+  if (multop == (PcodeOp *)0) return false;
+  if (multop->code() != CPUI_INT_MULT) return false;
+  Varnode *cvn = multop->getIn(1);
+  if (!cvn->isConstant()) return false;
+  if (cvn->getOffset() != calc_mask(cvn->getSize())) return false;
+
+  PcodeOp *addop = multop->getIn(0)->getDef();
+  if (addop == (PcodeOp *)0) return false;
+  if (addop->code() != CPUI_PTRADD) return false;
+  v = addop->getIn(0);
+  c[1] = addop->getIn(1);
+  c[2] = addop->getIn(2);
+
+  if (v->isFree()) return false;
+  if (!c[0]->isConstant()) return false;
+  if (!c[1]->isConstant()) return false;
+  if (!c[2]->isConstant()) return false;
+  if (c[0]->getSize() != c[1]->getSize()) return false;
+  if (c[1]->getSize() != c[2]->getSize()) return false;
+
+  intb val0 = sign_extend(c[0]->getOffset(),8*c[0]->getSize()-1);
+  intb val1 = sign_extend(c[1]->getOffset(),8*c[1]->getSize()-1);
+  intb val2 = sign_extend(c[2]->getOffset(),8*c[2]->getSize()-1);
+  intb val = val0 - (val1 * val2);
+  Varnode *newvn = data.newConstant(c[0]->getSize(),val&cvn->getOffset());
+  if (c[0]->getSymbolEntry() != (SymbolEntry *)0)
+    newvn->copySymbolIfValid(c[0]);
+  else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
+    newvn->copySymbolIfValid(c[1]);
+  PcodeOp *newmultop = data.newOpBefore(op, CPUI_INT_MULT,v,cvn);
+  data.opSetInput(op,newmultop->getOut(),0);
+  data.opSetInput(op,newvn,1);
+
+  return true;
+}
+
 void RuleSubtractionCollapse::getOpList(vector<uint4> &oplist) const
 
 {
@@ -4176,6 +4224,7 @@ int4 RuleSubtractionCollapse::applyOp(PcodeOp *op,Funcdata &data)
 {
   if (form1(op,data)) return 1;
   if (form2(op,data)) return 1;
+  if (form3(op,data)) return 1;
   return 0;
 }
 
@@ -7705,32 +7754,6 @@ bool RulePtraddUndo::hasTypeMismatch(PcodeOp *op,int4 size,int4 slot,Funcdata &d
   return false;
 }
 
-/// \brief Check if it is following expression: c + (V + d) * -1
-bool RulePtraddUndo::isConstantSubtraction(PcodeOp *op,int4 slot)
-
-{
-  if (op->code() != CPUI_PTRADD) {
-    if (op->code() != CPUI_INT_ADD)
-      return false;
-  }
-  if (!op->getIn(1-slot)->isConstant()) return false;
-  PcodeOp *multop = op->getOut()->loneDescend();
-  if (multop == (PcodeOp *)0) return false;
-  if (multop->code() != CPUI_INT_MULT) return false;
-  Varnode *invn = multop->getIn(1);
-  if (!invn->isConstant()) return false;
-  if (invn->getOffset() != calc_mask(invn->getSize())) return false;
-  PcodeOp *addop = multop->getOut()->loneDescend();
-  if (addop == (PcodeOp *)0) return false;
-  if (addop->code() != CPUI_PTRADD) {
-    if (addop->code() != CPUI_INT_ADD)
-      return false;
-  }
-  int4 multslot = addop->getSlot(multop->getOut());
-  if (!addop->getIn(1-multslot)->isConstant()) return false;
-  return true;
-}
-
 /// \brief Check if there are problems with ptradd
 ///
 /// \param op is add or ptradd op
@@ -7744,9 +7767,6 @@ bool RulePtraddUndo::canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data
   if (!data.hasTypeRecoveryStarted()) return false;
 
   if (hasTypeMismatch(op,size,slot,data)) return true;
-
-  // Check for various non-ptradd patterns
-  if (isConstantSubtraction(op,slot)) return true;
   return false;
 }
 
