@@ -4215,10 +4215,11 @@ void RuleSubtractionCollapse::getOpList(vector<uint4> &oplist) const
 /// \class RuleSubtractionCollapse
 /// \brief Collapse constants in subtraction expression
 ///
-/// Forms include:
+/// Integer add forms:
 ///  - `(V + (W + d) * -1) + c  =>  (V + W * -1) + (c-d)`
 ///  - `(V + d) * -1 + c        =>  V * -1 + (c-d)`
-///  - `(V + d * e) * -1 + c    =>  V * -1 + (c-(d*e))` (with ptradd)
+/// Pointer add forms:
+///  - `(V + d * e) * -1 + c    =>  V * -1 + (c-(d*e))`
 int4 RuleSubtractionCollapse::applyOp(PcodeOp *op,Funcdata &data)
 
 {
