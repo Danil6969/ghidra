@@ -5882,7 +5882,7 @@ void ActionDatabase::universalAction(Architecture *conf)
   ActionGroup *act;
   ActionGroup *actmainloop;
   ActionGroup *actfullloop;
-  ActionPool *actprop,*actprop2,*actprop3,*actprop4;
+  ActionPool *actprop,*actprop2,*actprop3;
   ActionPool *actcleanup;
   ActionGroup *actstackstall;
   AddrSpace *stackspace = conf->getStackSpace();
@@ -6110,11 +6110,6 @@ void ActionDatabase::universalAction(Architecture *conf)
       actprop3->addRule( new RulePointerComparison("analysis") );
     }
     actfullloop->addAction(actprop3);
-    {
-      actprop4 = new ActionPool(Action::rule_repeatapply, "oppool4");
-      //actprop4->addRule( new RuleOpToAdrr("analysis") );
-    }
-    actfullloop->addAction(actprop4);
   }
   act->addAction( actfullloop );
   act->addAction( new ActionStartCleanUp("cleanup") );
