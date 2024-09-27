@@ -4075,6 +4075,7 @@ bool RuleSubtractionCollapse::form1(PcodeOp *op,Funcdata &data)
   v[0] = (Varnode *)0;     // V
   v[1] = (Varnode *)0;     // W
 
+  if (op->code() != CPUI_INT_ADD) return false;
   PcodeOp *addop0 = op->getIn(0)->getDef();
   c[0] = op->getIn(1);
   if (addop0 == (PcodeOp *)0) return false;
@@ -4124,6 +4125,7 @@ bool RuleSubtractionCollapse::form2(PcodeOp *op,Funcdata &data)
   c[1] = (Varnode *)0;     // d
   v = (Varnode *)0;        // V
 
+  if (op->code() != CPUI_INT_ADD) return false;
   c[0] = op->getIn(1);
   PcodeOp *multop = op->getIn(0)->getDef();
   if (multop == (PcodeOp *)0) return false;
@@ -4168,6 +4170,7 @@ bool RuleSubtractionCollapse::form3(PcodeOp *op,Funcdata &data)
   c[2] = (Varnode *)0;     // e
   v = (Varnode *)0;        // V
 
+  if (op->code() != CPUI_INT_ADD) return false;
   c[0] = op->getIn(1);
   PcodeOp *multop = op->getIn(0)->getDef();
   if (multop == (PcodeOp *)0) return false;
