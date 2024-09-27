@@ -1828,25 +1828,5 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 
-class RuleOpToAdrr : public Rule {
-  AddrSpace *space;
-  bool isBigEndian;
-  uint4 spaceSize;
-  Varnode *getSubtractedIndex(Varnode *arrvn,Varnode *indexvn,Varnode *piecevn,PcodeOp *after,Funcdata &data);
-  bool extractindToAddr(PcodeOp *op,Funcdata &data);
-  bool insertindToAddr(PcodeOp *op,Funcdata &data);
-public:
-  RuleOpToAdrr(const string &g) : Rule(g,0,"optoaddr") {
-    isBigEndian = false;
-    spaceSize = 0;
-  }	///< Constructor
-  virtual Rule *clone(const ActionGroupList &grouplist) const {
-    if (!grouplist.contains(getGroup())) return (Rule *)0;
-    return new RuleOpToAdrr(getGroup());
-  }
-  virtual void getOpList(vector<uint4> &oplist) const;
-  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
-};
-
 } // End namespace ghidra
 #endif
