@@ -3919,17 +3919,17 @@ bool RuleAddMultCollapse::form1(PcodeOp *op,Funcdata &data)
 
 {
   Varnode *c[2];           // Constant varnodes
-  Varnode *sub,*sub2,*newvn;
+  Varnode *sub1,*sub2,*newvn;
   PcodeOp *subop;
 
   if (op->code() != CPUI_INT_ADD) return false;
   // Constant is in c[0], other is in sub
   c[0] = op->getIn(1);
   if (!c[0]->isConstant()) return false; // Neither input is a constant
-  sub = op->getIn(0);
+  sub1 = op->getIn(0);
   // Find other constant one level down
-  if (!sub->isWritten()) return false;
-  subop = sub->getDef();
+  if (!sub1->isWritten()) return false;
+  subop = sub1->getDef();
   if (subop->code() != CPUI_INT_ADD) return false; // Must be same exact operation
   c[1] = subop->getIn(1);
   if (!c[1]->isConstant()) return false;
@@ -3944,7 +3944,7 @@ bool RuleAddMultCollapse::form1(PcodeOp *op,Funcdata &data)
     newvn->copySymbolIfValid(c[0]);
   else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
     newvn->copySymbolIfValid(c[1]);
-  data.opSetInput(op,newvn,1); // Replace c[0] with c[0]+c[1] or c[0]*c[1]
+  data.opSetInput(op,newvn,1); // Replace c[0] with c[0]+c[1]
   data.opSetInput(op,sub2,0); // Replace sub with sub2
   return true;
 }
@@ -3953,22 +3953,21 @@ bool RuleAddMultCollapse::form2(PcodeOp *op,Funcdata &data)
 
 {
   Varnode *c[2];           // Constant varnodes
-  Varnode *sub,*sub2,*newvn;
+  Varnode *sub,*newvn;
   PcodeOp *subop;
 
   if (op->code() != CPUI_INT_MULT) return false;
   // Constant is in c[0], other is in sub
   c[0] = op->getIn(1);
   if (!c[0]->isConstant()) return false; // Neither input is a constant
-  sub = op->getIn(0);
   // Find other constant one level down
-  subop = sub->getDef();
+  subop = op->getIn(0)->getDef();
   if (subop == (PcodeOp *)0) return false;
   if (subop->code() != CPUI_INT_MULT) return false; // Must be same exact operation
   c[1] = subop->getIn(1);
   if (!c[1]->isConstant()) return false;
-  sub2 = subop->getIn(0);
-  if (sub2->isFree()) return false;
+  sub = subop->getIn(0);
+  if (sub->isFree()) return false;
 
   intb val0 = sign_extend(c[0]->getOffset(),8*c[0]->getSize()-1);
   intb val1 = sign_extend(c[1]->getOffset(),8*c[1]->getSize()-1);
@@ -3978,8 +3977,8 @@ bool RuleAddMultCollapse::form2(PcodeOp *op,Funcdata &data)
     newvn->copySymbolIfValid(c[0]);
   else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
     newvn->copySymbolIfValid(c[1]);
-  data.opSetInput(op,newvn,1); // Replace c[0] with c[0]+c[1] or c[0]*c[1]
-  data.opSetInput(op,sub2,0); // Replace sub with sub2
+  data.opSetInput(op,newvn,1); // Replace c[0] with c[0]*c[1]
+  data.opSetInput(op,sub,0); // Replace sub with sub2
   return true;
 }
 
@@ -4068,32 +4067,37 @@ int4 RuleAddMultCollapse::applyOp(PcodeOp *op,Funcdata &data)
 bool RuleSubtractionCollapse::form1(PcodeOp *op,Funcdata &data)
 
 {
-  Varnode *c[2];           // Constant varnodes
   Varnode *v[2];           // Variable varnodes
-  c[0] = (Varnode *)0;     // c
-  c[1] = (Varnode *)0;     // d
+  Varnode *c[2];           // Constant varnodes
+  intb val[2];             // Constant values
+  intb value;              // Final constant value
   v[0] = (Varnode *)0;     // V
   v[1] = (Varnode *)0;     // W
+  c[0] = (Varnode *)0;     // c
+  c[1] = (Varnode *)0;     // d
+  val[0] = 0;
+  val[1] = 0;
+  value = 0;
 
   if (op->code() != CPUI_INT_ADD) return false;
-  PcodeOp *addop0 = op->getIn(0)->getDef();
+  PcodeOp *addop1 = op->getIn(0)->getDef();
   c[0] = op->getIn(1);
-  if (addop0 == (PcodeOp *)0) return false;
-  if (addop0->code() != CPUI_INT_ADD) return false;
-  v[0] = addop0->getIn(0);
+  if (addop1 == (PcodeOp *)0) return false;
+  if (addop1->code() != CPUI_INT_ADD) return false;
+  v[0] = addop1->getIn(0);
 
-  PcodeOp *multop = addop0->getIn(1)->getDef();
+  PcodeOp *multop = addop1->getIn(1)->getDef();
   if (multop == (PcodeOp *)0) return false;
   if (multop->code() != CPUI_INT_MULT) return false;
   Varnode *cvn = multop->getIn(1);
   if (!cvn->isConstant()) return false;
   if (cvn->getOffset() != calc_mask(cvn->getSize())) return false;
 
-  PcodeOp *addop1 = multop->getIn(0)->getDef();
-  if (addop1 == (PcodeOp *)0) return false;
-  if (addop1->code() != CPUI_INT_ADD) return false;
-  v[1] = addop1->getIn(0);
-  c[1] = addop1->getIn(1);
+  PcodeOp *addop2 = multop->getIn(0)->getDef();
+  if (addop2 == (PcodeOp *)0) return false;
+  if (addop2->code() != CPUI_INT_ADD) return false;
+  v[1] = addop2->getIn(0);
+  c[1] = addop2->getIn(1);
 
   if (v[0]->isFree()) return false;
   if (v[1]->isFree()) return false;
@@ -4101,10 +4105,10 @@ bool RuleSubtractionCollapse::form1(PcodeOp *op,Funcdata &data)
   if (!c[1]->isConstant()) return false;
   if (c[0]->getSize() != c[1]->getSize()) return false;
 
-  intb val0 = sign_extend(c[0]->getOffset(),8*c[0]->getSize()-1);
-  intb val1 = sign_extend(c[1]->getOffset(),8*c[1]->getSize()-1);
-  intb val = val0 - val1;
-  Varnode *newvn = data.newConstant(c[0]->getSize(),val&cvn->getOffset());
+  val[0] = sign_extend(c[0]->getOffset(),8*c[0]->getSize()-1);
+  val[1] = sign_extend(c[1]->getOffset(),8*c[1]->getSize()-1);
+  value = val[0] - val[1];
+  Varnode *newvn = data.newConstant(c[0]->getSize(),value&cvn->getOffset());
   if (c[0]->getSymbolEntry() != (SymbolEntry *)0)
     newvn->copySymbolIfValid(c[0]);
   else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
@@ -4119,11 +4123,16 @@ bool RuleSubtractionCollapse::form1(PcodeOp *op,Funcdata &data)
 bool RuleSubtractionCollapse::form2(PcodeOp *op,Funcdata &data)
 
 {
-  Varnode *c[2];           // Constant varnodes
   Varnode *v;              // Variable varnode
+  Varnode *c[2];           // Constant varnodes
+  intb val[2];             // Constant values
+  intb value;              // Final constant value
+  v = (Varnode *)0;        // V
   c[0] = (Varnode *)0;     // c
   c[1] = (Varnode *)0;     // d
-  v = (Varnode *)0;        // V
+  val[0] = 0;
+  val[1] = 0;
+  value = 0;
 
   if (op->code() != CPUI_INT_ADD) return false;
   c[0] = op->getIn(1);
@@ -4145,10 +4154,10 @@ bool RuleSubtractionCollapse::form2(PcodeOp *op,Funcdata &data)
   if (!c[1]->isConstant()) return false;
   if (c[0]->getSize() != c[1]->getSize()) return false;
 
-  intb val0 = sign_extend(c[0]->getOffset(),8*c[0]->getSize()-1);
-  intb val1 = sign_extend(c[1]->getOffset(),8*c[1]->getSize()-1);
-  intb val = val0 - val1;
-  Varnode *newvn = data.newConstant(c[0]->getSize(),val&cvn->getOffset());
+  val[0] = sign_extend(c[0]->getOffset(),8*c[0]->getSize()-1);
+  val[1] = sign_extend(c[1]->getOffset(),8*c[1]->getSize()-1);
+  value = val[0] - val[1];
+  Varnode *newvn = data.newConstant(c[0]->getSize(),value&cvn->getOffset());
   if (c[0]->getSymbolEntry() != (SymbolEntry *)0)
     newvn->copySymbolIfValid(c[0]);
   else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
@@ -4163,12 +4172,18 @@ bool RuleSubtractionCollapse::form2(PcodeOp *op,Funcdata &data)
 bool RuleSubtractionCollapse::form3(PcodeOp *op,Funcdata &data)
 
 {
-  Varnode *c[3];           // Constant varnodes
   Varnode *v;              // Variable varnode
+  Varnode *c[3];           // Constant varnodes
+  intb val[3];             // Constant values
+  intb value;              // Final constant value
+  v = (Varnode *)0;        // V
   c[0] = (Varnode *)0;     // c
   c[1] = (Varnode *)0;     // d
   c[2] = (Varnode *)0;     // e
-  v = (Varnode *)0;        // V
+  val[0] = 0;
+  val[1] = 0;
+  val[2] = 0;
+  value = 0;
 
   if (op->code() != CPUI_INT_ADD) return false;
   c[0] = op->getIn(1);
@@ -4179,12 +4194,12 @@ bool RuleSubtractionCollapse::form3(PcodeOp *op,Funcdata &data)
   if (!cvn->isConstant()) return false;
   if (cvn->getOffset() != calc_mask(cvn->getSize())) return false;
 
-  PcodeOp *addop = multop->getIn(0)->getDef();
-  if (addop == (PcodeOp *)0) return false;
-  if (addop->code() != CPUI_PTRADD) return false;
-  v = addop->getIn(0);
-  c[1] = addop->getIn(1);
-  c[2] = addop->getIn(2);
+  PcodeOp *ptraddop = multop->getIn(0)->getDef();
+  if (ptraddop == (PcodeOp *)0) return false;
+  if (ptraddop->code() != CPUI_PTRADD) return false;
+  v = ptraddop->getIn(0);
+  c[1] = ptraddop->getIn(1);
+  c[2] = ptraddop->getIn(2);
 
   if (v->isFree()) return false;
   if (!c[0]->isConstant()) return false;
@@ -4193,11 +4208,11 @@ bool RuleSubtractionCollapse::form3(PcodeOp *op,Funcdata &data)
   if (c[0]->getSize() != c[1]->getSize()) return false;
   if (c[1]->getSize() != c[2]->getSize()) return false;
 
-  intb val0 = sign_extend(c[0]->getOffset(),8*c[0]->getSize()-1);
-  intb val1 = sign_extend(c[1]->getOffset(),8*c[1]->getSize()-1);
-  intb val2 = sign_extend(c[2]->getOffset(),8*c[2]->getSize()-1);
-  intb val = val0 - (val1 * val2);
-  Varnode *newvn = data.newConstant(c[0]->getSize(),val&cvn->getOffset());
+  val[0] = sign_extend(c[0]->getOffset(),8*c[0]->getSize()-1);
+  val[1] = sign_extend(c[1]->getOffset(),8*c[1]->getSize()-1);
+  val[2] = sign_extend(c[2]->getOffset(),8*c[2]->getSize()-1);
+  value = val[0] - (val[1] * val[2]);
+  Varnode *newvn = data.newConstant(c[0]->getSize(),value&cvn->getOffset());
   if (c[0]->getSymbolEntry() != (SymbolEntry *)0)
     newvn->copySymbolIfValid(c[0]);
   else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
@@ -4213,21 +4228,24 @@ void RuleSubtractionCollapse::getOpList(vector<uint4> &oplist) const
 
 {
   oplist.push_back(CPUI_INT_ADD);
+  oplist.push_back(CPUI_PTRADD);
 }
 
 /// \class RuleSubtractionCollapse
 /// \brief Collapse constants in subtraction expression
 ///
-/// Integer add forms:
+/// INT_ADD forms:
 ///  - `(V + (W + d) * -1) + c  =>  (V + W * -1) + (c-d)`
 ///  - `(V + d) * -1 + c        =>  V * -1 + (c-d)`
-/// Pointer add forms:
-///  - `(V + d * e) * -1 + c    =>  V * -1 + (c-(d*e))`
+/// PTRADD forms:
+///  - `PTRADD(V,d,e) * -1 + c    =>  V * -1 + (c-(d*e))`
 int4 RuleSubtractionCollapse::applyOp(PcodeOp *op,Funcdata &data)
 
 {
+  // INT_ADD
   if (form1(op,data)) return 1;
   if (form2(op,data)) return 1;
+  // PTRADD
   if (form3(op,data)) return 1;
   return 0;
 }
@@ -11798,7 +11816,7 @@ intb RuleInferPointerMult::getCounterIncrement(PcodeOp *op)
   if (inmulti->isFree()) return 0;
   PcodeOp *inadd = inmulti->getDef();
   if (inadd == (PcodeOp *)0) return 0;
-  // Must loop to intadd
+  // Must loop to INT_ADD
   if (inadd != op) return 0;
 
   int4 slot;
