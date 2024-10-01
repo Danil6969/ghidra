@@ -641,6 +641,14 @@ Rel8:   relAddr is rel8		     [ relAddr=inst_next+rel8; ]      { export *:1 relA
 Rel16:   relAddr is rel16		     [ relAddr=inst_next+rel16; ] { export *:1 relAddr; }
 
 @if defined(MCS251)
+BankAddr: PSW is b_0002 & PSW { tmp:3 = zext((($(RS1) << 1) + $(RS0)) * 8 + b_0002); export *[RAM]:1 tmp; }
+@elif defined(MX51)
+BankAddr: PSW is b_0002 & PSW { tmp:3 = zext((($(RS1) << 1) + $(RS0)) * 8 + b_0002 + 0x7f0000); export *[RAM]:1 tmp; }
+@elif defined(MCS51) || defined(MCS80390)
+BankAddr: PSW is b_0002 & PSW { tmp:3 = zext((($(RS1) << 1) + $(RS0)) * 8 + b_0002); export *[INTMEM]:1 tmp; }
+@endif
+
+@if defined(MCS251)
 # detect A5 prefix
 :^instruction	is phase=0 & ophi=0xa & oplo=0x5; instruction [ phase=1; A5Prefix=1; ] { }
 :^instruction	is phase=0 & instruction [ phase=1; A5Prefix=0; ] { }
@@ -733,7 +741,10 @@ Rel16:   relAddr is rel16		     [ relAddr=inst_next+rel16; ] { export *:1 relAdd
 :DJNZ Direct,Rel8 is $(GROUP1) & ophi=13 & oplo=5; Direct; Rel8	 { Direct = Direct - 1; if (Direct!=0) goto Rel8; }
 
 :INC Areg    is $(GROUP1) & ophi=0 & oplo=4 & Areg		{ ACC = ACC + 1; }
-:INC rn      is $(GROUP2) & ophi=0 & rnfill=1 & rn				    { rn = rn + 1; }
+:INC rn      is $(GROUP2) & ophi=0 & rnfill=1 & rn & BankAddr	{
+rn = rn + 1;
+BankAddr = rn;
+}
 :INC Direct  is $(GROUP1) & ophi=0 & oplo=5; Direct		{ Direct = Direct + 1; }
 @if defined(DUAL_DPTR) && defined(DPS_REG_NUM)
 :INC Direct  is $(GROUP1) & ophi=0 & oplo=5; Direct & direct=$(DPS_REG_NUM)   { 
@@ -789,7 +800,10 @@ Rel16:   relAddr is rel16		     [ relAddr=inst_next+rel16; ] { export *:1 relAdd
 :MOV Areg,Direct    is $(GROUP1) & ophi=14 & oplo=5 & Areg; Direct		 { ACC = Direct; }
 :MOV Areg,Ri        is $(GROUP2) & ophi=14 & Areg & rifill=3 & Ri					 { ACC = Ri; }
 :MOV Areg,Data      is $(GROUP1) & ophi=7 & oplo=4 & Areg; Data	         { ACC = Data; }
-:MOV rn,Areg        is $(GROUP2) & ophi=15 & rnfill=1 & rn & Areg					 { rn = ACC; }
+:MOV rn,Areg        is $(GROUP2) & ophi=15 & rnfill=1 & rn & Areg & BankAddr	{
+rn = ACC;
+BankAddr = rn;
+}
 :MOV rn,Direct      is $(GROUP2) & ophi=10 & rnfill=1 & rn; Direct				     { rn = Direct; }
 :MOV rn,Data        is $(GROUP2) & ophi=7 & rnfill=1 & rn; Data				 { rn = Data; }
 :MOV Direct,Areg    is $(GROUP1) & ophi=15 & oplo=5 & Areg; Direct		 { Direct = ACC; }
