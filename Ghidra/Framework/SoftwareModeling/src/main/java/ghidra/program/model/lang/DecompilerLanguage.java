@@ -21,7 +21,8 @@ package ghidra.program.model.lang;
  */
 public enum DecompilerLanguage {
 	C_LANGUAGE("c-language"), 
-	JAVA_LANGUAGE("java-language");
+	JAVA_LANGUAGE("java-language"),
+	GO_LANGUAGE("go-language");
 
 	private final String optionString;
 	
