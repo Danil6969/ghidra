@@ -856,7 +856,7 @@ m64:  "qword ptr" Mem  	is Mem      { export *:8 Mem; }
 # m80: Mem    is Mem      { export *:10 Mem; }
 m128: "xmmword ptr" Mem	is Mem      { export *:16 Mem; }
 m256: "ymmword ptr" Mem	is Mem      { export *:32 Mem; }
-m512: "zmmword ptr" Mem is Mem      { export *:64 Mem; }
+m512: "64b ptr" Mem is Mem      { export *:64 Mem; }
 
 # spec versions of the m8/m16/m32/... tables explicitly print the operand size
 spec_m8: "byte ptr "^Mem     is Mem      { export *:1 Mem; }
@@ -1567,7 +1567,7 @@ macro fpop() {
 	TOP = TOP + 1;
 }
 
-macro fpushv(val) {
+ macro fpushv(val) {
 	ST7 = ST6;
 	ST6 = ST5;
 	ST5 = ST4;
