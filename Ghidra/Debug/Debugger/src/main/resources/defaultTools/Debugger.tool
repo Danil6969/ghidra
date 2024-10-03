@@ -89,7 +89,7 @@
                     <COMPONENT_NODE TOP_INFO="0">
                         <COMPONENT_INFO NAME="Threads" OWNER="DebuggerThreadsPlugin" TITLE="Threads" ACTIVE="true" GROUP="Default" INSTANCE_ID="3398987890722027168" />
                         <COMPONENT_INFO NAME="Time" OWNER="DebuggerTimePlugin" TITLE="Time" ACTIVE="true" GROUP="Default" INSTANCE_ID="3398987890722027169" />
-                        <COMPONENT_INFO NAME="Pcode Stepper" OWNER="DebuggerPcodeStepperPlugin" TITLE="Pcode Stepper" ACTIVE="true" GROUP="Default" INSTANCE_ID="3381240965691561509" />
+                        <COMPONENT_INFO NAME="Pcode Stepper" OWNER="DebuggerPcodeStepperPlugin" TITLE="Pcode Stepper" ACTIVE="false" GROUP="Default" INSTANCE_ID="3381240965691561509" />
                     </COMPONENT_NODE>
                 </SPLIT_NODE>
             </SPLIT_NODE>
