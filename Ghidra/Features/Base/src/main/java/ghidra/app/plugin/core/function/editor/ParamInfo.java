@@ -15,6 +15,8 @@
  */
 package ghidra.app.plugin.core.function.editor;
 
+import java.util.List;
+
 import ghidra.program.model.data.*;
 import ghidra.program.model.listing.*;
 import ghidra.program.model.symbol.SourceType;
@@ -22,8 +24,6 @@ import ghidra.program.model.symbol.SymbolUtilities;
 import ghidra.util.SystemUtilities;
 import ghidra.util.exception.AssertException;
 import ghidra.util.exception.InvalidInputException;
-
-import java.util.List;
 
 public class ParamInfo {
 
