@@ -110,6 +110,7 @@ model {
 		                include "prettyprint.cc"
 		                include "printlanguage.cc"
 		                include "printc.cc"
+		                include "printgo.cc"
 		                include "printjava.cc"
 		                include "memstate.cc"
 		                include "opbehavior.cc"
