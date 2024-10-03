@@ -652,6 +652,8 @@ Base64: base64      is rexBprefix=0 & base64                            { export
 Base64: base64_x    is rexBprefix=1 & base64_x                          { export base64_x; }
 Index64: index64    is rexXprefix=0 & index64                           { export index64; }
 Index64: index64_x  is rexXprefix=1 & index64_x                         { export index64_x; }
+XmmReg:   xmmreg    is rexRprefix=0 & xmmreg                            { export xmmreg; }
+XmmReg:   xmmreg_x  is rexRprefix=1 & xmmreg_x                          { export xmmreg_x; }
 XmmReg1:  xmmreg1   is rexRprefix=0 & xmmreg1                           { export xmmreg1; }
 XmmReg1:  xmmreg1_x is rexRprefix=1 & xmmreg1_x                         { export xmmreg1_x; }
 XmmReg2:  xmmreg2   is rexBprefix=0 & xmmreg2                           { export xmmreg2; }
@@ -680,6 +682,7 @@ Rmr32:  r32         is r32                               { export r32; }
 CRmr32: r32         is r32                               { export r32; }
 Base:   base        is base                              { export base; }
 Index:  index       is index                             { export index; }
+XmmReg:   xmmreg    is xmmreg                            { export xmmreg; }
 XmmReg1:  xmmreg1   is xmmreg1                           { export xmmreg1; }
 XmmReg2:  xmmreg2   is xmmreg2                           { export xmmreg2; }
 YmmReg1:  ymmreg1   is ymmreg1                           { export ymmreg1; }
@@ -860,7 +863,7 @@ spec_m8: "byte ptr "^Mem     is Mem      { export *:1 Mem; }
 spec_m16: "word ptr "^Mem    is Mem      { export *:2 Mem; }
 spec_m32: "dword ptr "^Mem    is Mem      { export *:4 Mem; }
 spec_m64: "qword ptr "^Mem    is Mem      { export *:8 Mem; }
-spec_m80: "tbyte ptr "^Mem    is Mem      { export *:10 Mem; }
+spec_m80: "tword ptr "^Mem    is Mem      { export *:10 Mem; }
 # spec_m128: "16-byte ptr "^Mem   is Mem      { export *:16 Mem; }
 # spec_m512: "64-byte ptr "^Mem   is Mem      { export *:64 Mem; }
 
