@@ -365,7 +365,7 @@ public class EncodedStringsDialog extends DialogComponentProvider {
 		tableModel = new EncodedStringsTableModel(program, selectedAddresses);
 		tableModel.addTableModelListener(e -> {
 			Integer rowNum = rowToSelect.getAndSet(null);
-			if (rowNum != null && table.getRowCount() > rowNum) {
+			if (rowNum != null && rowNum < tableModel.getRowCount()) {
 				table.selectRow(rowNum);
 				table.requestFocusInWindow();
 			}
