@@ -435,6 +435,8 @@ define token modrm (8)
   mmxreg1       = (3,5)
   mmxreg2       = (0,2)
   xmmmod        = (6,7)
+  xmmreg        = (3,5)
+  ymmreg        = (3,5)
 
   xmmreg1       = (3,5)
   ymmreg1       = (3,5)
@@ -443,6 +445,8 @@ define token modrm (8)
   ymmreg2       = (0,2)
   zmmreg2       = (0,2)
 
+  xmmreg_x      = (3,5)
+  ymmreg_x      = (3,5)
   xmmreg1_x     = (3,5)
   ymmreg1_x     = (3,5)
   zmmreg1_x     = (3,5)
@@ -528,9 +532,9 @@ attach values ss  [ 1 2 4 8];
 
 attach variables [ mmxreg mmxreg1 mmxreg2 ] [ MM0 MM1 MM2 MM3 MM4 MM5 MM6 MM7 ];
 
-attach variables [ xmmreg1 xmmreg2 xmm_vsib ] [ XMM0 XMM1 XMM2 XMM3 XMM4 XMM5 XMM6 XMM7 ];
+attach variables [ xmmreg xmmreg1 xmmreg2 xmm_vsib ] [ XMM0 XMM1 XMM2 XMM3 XMM4 XMM5 XMM6 XMM7 ];
 
-attach variables [ xmmreg1_x xmmreg2_x xmm_vsib_x ] [ XMM8 XMM9 XMM10 XMM11 XMM12 XMM13 XMM14 XMM15 ];
+attach variables [ xmmreg_x xmmreg1_x xmmreg2_x xmm_vsib_x ] [ XMM8 XMM9 XMM10 XMM11 XMM12 XMM13 XMM14 XMM15 ];
 
 attach variables [ vexVVVV_XmmReg Xmm_imm8_7_4 ] [ XMM0 XMM1 XMM2 XMM3 XMM4 XMM5 XMM6 XMM7 XMM8 XMM9 XMM10 XMM11 XMM12 XMM13 XMM14 XMM15 ];
 
@@ -546,8 +550,8 @@ attach variables [ vexVVVV_r32 ] [ EAX  ECX  EDX  EBX  ESP  EBP  ESI  EDI _    _
 @endif
 
 
-attach variables [ ymmreg1 ymmreg2 ymm_vsib ]			[ YMM0 YMM1  YMM2  YMM3  YMM4  YMM5  YMM6  YMM7 ];
-attach variables [ ymmreg1_x ymmreg2_x ymm_vsib_x ]	[ YMM8 YMM9 YMM10 YMM11 YMM12 YMM13 YMM14 YMM15 ];
+attach variables [ ymmreg ymmreg1 ymmreg2 ymm_vsib ]			[ YMM0 YMM1  YMM2  YMM3  YMM4  YMM5  YMM6  YMM7 ];
+attach variables [ ymmreg_x ymmreg1_x ymmreg2_x ymm_vsib_x ]	[ YMM8 YMM9 YMM10 YMM11 YMM12 YMM13 YMM14 YMM15 ];
 
 attach variables [ bnd1 bnd2 ]       [ BND0 BND1 BND2 BND3 _ _ _ _ ];
 attach variables [ bnd1_lb bnd2_lb ] [ BND0_LB BND1_LB BND2_LB BND3_LB _ _ _ _ ];
