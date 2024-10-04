@@ -3067,7 +3067,7 @@ bool ActionSetCasts::ptrsubMatches(PcodeOp *op,Funcdata &data)
       dt = resUnion->getDatatype();
     }
   }
-  if (dt->isPtrsubMatching(offset)) return true;
+  if (dt->isPtrsubMatching(offset,0,0)) return true;
   return false;
 }
 
