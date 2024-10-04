@@ -61,8 +61,9 @@ public:
     volatile_write = 4,			///< VolatileWriteOp
     segment = 5,			///< SegmentOp
     jumpassist = 6,			///< JumpAssistOp
-    string_data = 7,			///< InternalStringOp
-    datatype = 8			///< DatatypeUserOp
+    pure = 7,				///< PureOp
+    string_data = 8,			///< InternalStringOp
+    datatype = 9			///< DatatypeUserOp
   };
   static const uint4 BUILTIN_STRINGDATA;	///< Built-in id for the InternalStringOp
   static const uint4 BUILTIN_VOLATILE_READ;	///< Built-in id for VolatileReadOp
