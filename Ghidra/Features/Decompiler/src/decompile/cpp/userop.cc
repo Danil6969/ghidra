@@ -354,7 +354,7 @@ void JumpAssistOp::decode(Decoder &decoder)
 }
 
 PureOp::PureOp(Architecture *g)
-  : UserPcodeOp(g,"",0)
+  : UserPcodeOp("",g,pure,0)
 {
 
 }
@@ -417,15 +417,15 @@ void UserOpManage::initialize(Architecture *g)
     registerOp(userop);
   }
   if (getOp(Funcdata::addrof) == (UserPcodeOp *)0) {
-    UserPcodeOp *addrOp = new UnspecializedPcodeOp(glb,Funcdata::addrof,useroplist.size());
+    UserPcodeOp *addrOp = new UnspecializedPcodeOp(Funcdata::addrof,glb,useroplist.size());
     registerOp(addrOp);
   }
   if (getOp(Funcdata::extractind) == (UserPcodeOp *)0) {
-    UserPcodeOp *extractindOp = new UnspecializedPcodeOp(glb,Funcdata::extractind,useroplist.size());
+    UserPcodeOp *extractindOp = new UnspecializedPcodeOp(Funcdata::extractind,glb,useroplist.size());
     registerOp(extractindOp);
   }
   if (getOp(Funcdata::insertind) == (UserPcodeOp *)0) {
-    UserPcodeOp *insertindOp = new UnspecializedPcodeOp(glb,Funcdata::insertind,useroplist.size());
+    UserPcodeOp *insertindOp = new UnspecializedPcodeOp(Funcdata::insertind,glb,useroplist.size());
     registerOp(insertindOp);
   }
 }
