@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +16,6 @@
 package ghidra.app.plugin.runtimeinfo;
 
 import java.awt.*;
-import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -27,8 +26,7 @@ import generic.jar.ResourceFile;
 import ghidra.GhidraClassLoader;
 import ghidra.framework.Application;
 import ghidra.util.Disposable;
-import ghidra.util.classfinder.ClassSearcher;
-import ghidra.util.classfinder.ExtensionPoint;
+import ghidra.util.classfinder.*;
 
 /**
  * A dialog that shows useful runtime information
@@ -188,13 +186,32 @@ class RuntimeInfoProvider extends ReusableDialogComponentProvider {
 	 * loaded.
 	 */
 	private void addExtensionPoints() {
-		Map<String, String> map = ClassSearcher.getClasses(ExtensionPoint.class)
+		JTabbedPane epTabbedPane = new JTabbedPane();
+		tabbedPane.add("Extension Points", epTabbedPane);
+
+		// Discovered Potential Extension Points
+		Map<String, String> map = ClassSearcher.getExtensionPointInfo()
 				.stream()
-				.collect(Collectors.toMap(e -> e.getName(),
-					e -> ClassSearcher.getExtensionPointName(e.getName())));
-		String name = "Extension Points";
-		tabbedPane.add(new MapTablePanel<String, String>(name, map, "Name", "Extension Point", 400,
-			true, plugin), name);
+				.collect(Collectors.toMap(ClassFileInfo::name, ClassFileInfo::path));
+		String name = "Extension Point Info (%d)".formatted(map.size());
+		epTabbedPane.add(
+			new MapTablePanel<String, String>(name, map, "Name", "Path", 400, true, plugin), name);
+		
+		// Loaded Extension Points
+		map = ClassSearcher.getLoaded()
+				.stream()
+				.collect(Collectors.toMap(ClassFileInfo::name, ClassFileInfo::suffix));
+		name = "Loaded (%d)".formatted(map.size());
+		epTabbedPane.add(
+			new MapTablePanel<String, String>(name, map, "Name", "Type", 400, true, plugin), name);
+		
+		// False Positive Extension Points
+		map = ClassSearcher.getFalsePositives()
+				.stream()
+				.collect(Collectors.toMap(ClassFileInfo::name, ClassFileInfo::suffix));
+		name = "False Positives (%d)".formatted(map.size());
+		epTabbedPane.add(
+			new MapTablePanel<String, String>(name, map, "Name", "Type", 400, true, plugin), name);
 	}
 
 	/**
@@ -231,11 +248,9 @@ class RuntimeInfoProvider extends ReusableDialogComponentProvider {
 	 */
 	private Map<Integer, String> getClasspathMap(String propertyName) {
 		Map<Integer, String> map = new HashMap<>();
-		StringTokenizer st =
-			new StringTokenizer(System.getProperty(propertyName, ""), File.pathSeparator);
 		int i = 0;
-		while (st.hasMoreTokens()) {
-			map.put(i++, st.nextToken());
+		for (String entry : GhidraClassLoader.getClasspath(propertyName)) {
+			map.put(i++, entry);
 		}
 		return map;
 	}

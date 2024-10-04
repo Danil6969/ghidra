@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assume.assumeTrue;
 
+import java.nio.file.Paths;
 import java.util.*;
 
 import org.junit.Before;
@@ -27,9 +28,11 @@ import org.junit.Test;
 import db.Transaction;
 import ghidra.app.plugin.core.debug.gui.AbstractGhidraHeadedDebuggerTest;
 import ghidra.app.services.TraceRmiLauncherService;
+import ghidra.debug.api.ValStr;
 import ghidra.debug.api.tracermi.TraceRmiLaunchOffer;
 import ghidra.debug.api.tracermi.TraceRmiLaunchOffer.*;
 import ghidra.framework.OperatingSystem;
+import ghidra.framework.plugintool.AutoConfigState.PathIsFile;
 import ghidra.util.task.ConsoleTaskMonitor;
 
 public class TraceRmiLauncherServicePluginTest extends AbstractGhidraHeadedDebuggerTest {
@@ -55,11 +58,11 @@ public class TraceRmiLauncherServicePluginTest extends AbstractGhidraHeadedDebug
 	protected LaunchConfigurator gdbFileOnly(String file) {
 		return new LaunchConfigurator() {
 			@Override
-			public Map<String, ?> configureLauncher(TraceRmiLaunchOffer offer,
-					Map<String, ?> arguments, RelPrompt relPrompt) {
-				Map<String, Object> args = new HashMap<>(arguments);
-				args.put("arg:1", file);
-				args.put("env:OPT_START_CMD", "starti");
+			public Map<String, ValStr<?>> configureLauncher(TraceRmiLaunchOffer offer,
+					Map<String, ValStr<?>> arguments, RelPrompt relPrompt) {
+				Map<String, ValStr<?>> args = new HashMap<>(arguments);
+				args.put("arg:1", new ValStr<>(new PathIsFile(Paths.get(file)), file));
+				args.put("env:OPT_START_CMD", ValStr.str("starti"));
 				return args;
 			}
 		};
@@ -91,10 +94,10 @@ public class TraceRmiLauncherServicePluginTest extends AbstractGhidraHeadedDebug
 	protected LaunchConfigurator dbgengFileOnly(String file) {
 		return new LaunchConfigurator() {
 			@Override
-			public Map<String, ?> configureLauncher(TraceRmiLaunchOffer offer,
-					Map<String, ?> arguments, RelPrompt relPrompt) {
-				Map<String, Object> args = new HashMap<>(arguments);
-				args.put("env:OPT_TARGET_IMG", file);
+			public Map<String, ValStr<?>> configureLauncher(TraceRmiLaunchOffer offer,
+					Map<String, ValStr<?>> arguments, RelPrompt relPrompt) {
+				Map<String, ValStr<?>> args = new HashMap<>(arguments);
+				args.put("env:OPT_TARGET_IMG", new ValStr<>(new PathIsFile(Paths.get(file)), file));
 				return args;
 			}
 		};

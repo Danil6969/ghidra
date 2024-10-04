@@ -1,17 +1,17 @@
 ## ###
-#  IP: GHIDRA
-# 
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#  
-#       http://www.apache.org/licenses/LICENSE-2.0
-#  
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
+# IP: GHIDRA
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ##
 from contextlib import contextmanager
 import inspect
@@ -19,9 +19,13 @@ import os.path
 import socket
 import time
 
+try:
+    import psutil
+except ImportError:
+    print(f"Unable to import 'psutil' - check that it has been installed")
+
 from ghidratrace import sch
 from ghidratrace.client import Client, Address, AddressRange, TraceObject
-import psutil
 
 import gdb
 
@@ -50,8 +54,6 @@ STACK_PATTERN = THREAD_PATTERN + '.Stack'
 FRAME_KEY_PATTERN = '[{level}]'
 FRAME_PATTERN = STACK_PATTERN + FRAME_KEY_PATTERN
 REGS_PATTERN = FRAME_PATTERN + '.Registers'
-REG_KEY_PATTERN = '[{regname}]'
-REG_PATTERN = REGS_PATTERN + REG_KEY_PATTERN
 MEMORY_PATTERN = INFERIOR_PATTERN + '.Memory'
 REGION_KEY_PATTERN = '[{start:08x}]'
 REGION_PATTERN = MEMORY_PATTERN + REGION_KEY_PATTERN
@@ -592,20 +594,15 @@ def putreg(frame, reg_descs):
     cobj = STATE.trace.create_object(space)
     cobj.insert()
     mapper = STATE.trace.register_mapper
-    keys = []
     values = []
+    # NB: This command will fail if the process is running
+    endian = arch.get_endian()
     for desc in reg_descs:
         v = frame.read_register(desc.name)
         rv = mapper.map_value(inf, desc.name, v)
         values.append(rv)
-        # TODO: Key by gdb's name or mapped name? I think gdb's.
-        rpath = REG_PATTERN.format(infnum=inf.num, tnum=gdb.selected_thread(
-        ).num, level=util.get_level(frame), regname=desc.name)
-        keys.append(REG_KEY_PATTERN.format(regname=desc.name))
-        robj = STATE.trace.create_object(rpath)
-        robj.set_value('_value', rv.value)
-        robj.insert()
-    cobj.retain_values(keys)
+        value = hex(int.from_bytes(rv.value, endian))
+        cobj.set_value(desc.name, str(value))
     # TODO: Memorize registers that failed for this arch, and omit later.
     missing = STATE.trace.put_registers(space, values)
     return {'missing': missing}
@@ -620,7 +617,7 @@ def ghidra_trace_putreg(group='all', *, is_mi, **kwargs):
     """
 
     STATE.require_tx()
-    frame = gdb.selected_frame()
+    frame = util.selected_frame()
     with STATE.client.batch() as b:
         return putreg(frame, util.get_register_descs(frame.architecture(), group))
 
@@ -635,7 +632,7 @@ def ghidra_trace_delreg(group='all', *, is_mi, **kwargs):
 
     STATE.require_tx()
     inf = gdb.selected_inferior()
-    frame = gdb.selected_frame()
+    frame = util.selected_frame()
     space = 'Inferiors[{}].Threads[{}].Stack[{}].Registers'.format(
         inf.num, gdb.selected_thread().num, util.get_level(frame)
     )
@@ -961,9 +958,10 @@ def activate(path=None):
         if t is None:
             path = INFERIOR_PATTERN.format(infnum=inf.num)
         else:
-            frame = gdb.selected_frame()
-            path = FRAME_PATTERN.format(
-                infnum=inf.num, tnum=t.num, level=util.get_level(frame))
+            frame = util.selected_frame()
+            if frame is not None:
+                path = FRAME_PATTERN.format(
+                    infnum=inf.num, tnum=t.num, level=util.get_level(frame))
     trace.proxy_object_path(path).activate()
 
 
@@ -1018,11 +1016,11 @@ def put_inferior_state(inf):
     ipath = INFERIOR_PATTERN.format(infnum=inf.num)
     infobj = STATE.trace.proxy_object_path(ipath)
     istate = compute_inf_state(inf)
-    infobj.set_value('_state', istate)
+    infobj.set_value('State', istate)
     for t in inf.threads():
         tpath = THREAD_PATTERN.format(infnum=inf.num, tnum=t.num)
         tobj = STATE.trace.proxy_object_path(tpath)
-        tobj.set_value('_state', convert_state(t))
+        tobj.set_value('State', convert_state(t))
 
 
 def put_inferiors():
@@ -1034,7 +1032,7 @@ def put_inferiors():
         keys.append(INFERIOR_KEY_PATTERN.format(infnum=inf.num))
         infobj = STATE.trace.create_object(ipath)
         istate = compute_inf_state(inf)
-        infobj.set_value('_state', istate)
+        infobj.set_value('State', istate)
         infobj.insert()
     STATE.trace.proxy_object_path(INFERIORS_PATH).retain_values(keys)
 
@@ -1060,7 +1058,7 @@ def put_available():
         ppath = AVAILABLE_PATTERN.format(pid=proc.pid)
         procobj = STATE.trace.create_object(ppath)
         keys.append(AVAILABLE_KEY_PATTERN.format(pid=proc.pid))
-        procobj.set_value('_pid', proc.pid)
+        procobj.set_value('PID', proc.pid)
         procobj.set_value('_display', '{} {}'.format(proc.pid, proc.name()))
         procobj.insert()
     STATE.trace.proxy_object_path(AVAILABLES_PATH).retain_values(keys)
@@ -1082,28 +1080,28 @@ def put_single_breakpoint(b, ibobj, inf, ikeys):
     mapper = STATE.trace.memory_mapper
     bpath = BREAKPOINT_PATTERN.format(breaknum=b.number)
     brkobj = STATE.trace.create_object(bpath)
-    brkobj.set_value('_enabled', b.enabled)
+    brkobj.set_value('Enabled', b.enabled)
     if b.type == gdb.BP_BREAKPOINT:
-        brkobj.set_value('_expression', b.location)
-        brkobj.set_value('_kinds', 'SW_EXECUTE')
+        brkobj.set_value('Expression', b.location)
+        brkobj.set_value('Kinds', 'SW_EXECUTE')
     elif b.type == gdb.BP_HARDWARE_BREAKPOINT:
-        brkobj.set_value('_expression', b.location)
-        brkobj.set_value('_kinds', 'HW_EXECUTE')
+        brkobj.set_value('Expression', b.location)
+        brkobj.set_value('Kinds', 'HW_EXECUTE')
     elif b.type == gdb.BP_WATCHPOINT:
-        brkobj.set_value('_expression', b.expression)
-        brkobj.set_value('_kinds', 'WRITE')
+        brkobj.set_value('Expression', b.expression)
+        brkobj.set_value('Kinds', 'WRITE')
     elif b.type == gdb.BP_HARDWARE_WATCHPOINT:
-        brkobj.set_value('_expression', b.expression)
-        brkobj.set_value('_kinds', 'WRITE')
+        brkobj.set_value('Expression', b.expression)
+        brkobj.set_value('Kinds', 'WRITE')
     elif b.type == gdb.BP_READ_WATCHPOINT:
-        brkobj.set_value('_expression', b.expression)
-        brkobj.set_value('_kinds', 'READ')
+        brkobj.set_value('Expression', b.expression)
+        brkobj.set_value('Kinds', 'READ')
     elif b.type == gdb.BP_ACCESS_WATCHPOINT:
-        brkobj.set_value('_expression', b.expression)
-        brkobj.set_value('_kinds', 'READ,WRITE')
+        brkobj.set_value('Expression', b.expression)
+        brkobj.set_value('Kinds', 'READ,WRITE')
     else:
-        brkobj.set_value('_expression', '(unknown)')
-        brkobj.set_value('_kinds', '')
+        brkobj.set_value('Expression', '(unknown)')
+        brkobj.set_value('Kinds', '')
     brkobj.set_value('Commands', b.commands)
     brkobj.set_value('Condition', b.condition)
     brkobj.set_value('Hit Count', b.hit_count)
@@ -1122,14 +1120,14 @@ def put_single_breakpoint(b, ibobj, inf, ikeys):
         if inf.num not in l.thread_groups:
             continue
         locobj = STATE.trace.create_object(bpath + k)
-        locobj.set_value('_enabled', l.enabled)
+        locobj.set_value('Enabled', l.enabled)
         ik = INF_BREAK_KEY_PATTERN.format(breaknum=b.number, locnum=i+1)
         ikeys.append(ik)
         if b.location is not None:  # Implies execution break
             base, addr = mapper.map(inf, l.address)
             if base != addr.space:
                 STATE.trace.create_overlay_space(base, addr.space)
-            locobj.set_value('_range', addr.extend(1))
+            locobj.set_value('Range', addr.extend(1))
         elif b.expression is not None:  # Implies watchpoint
             expr = b.expression
             if expr.startswith('-location '):
@@ -1141,7 +1139,7 @@ def put_single_breakpoint(b, ibobj, inf, ikeys):
                     STATE.trace.create_overlay_space(base, addr.space)
                 size = int(gdb.parse_and_eval(
                     'sizeof({})'.format(expr)))
-                locobj.set_value('_range', addr.extend(size))
+                locobj.set_value('Range', addr.extend(size))
             except Exception as e:
                 gdb.write("Error: Could not get range for breakpoint {}: {}\n".format(
                     ik, e), stream=gdb.STDERR)
@@ -1183,10 +1181,11 @@ def put_environment():
     inf = gdb.selected_inferior()
     epath = ENV_PATTERN.format(infnum=inf.num)
     envobj = STATE.trace.create_object(epath)
-    envobj.set_value('_debugger', 'gdb')
-    envobj.set_value('_arch', arch.get_arch())
-    envobj.set_value('_os', arch.get_osabi())
-    envobj.set_value('_endian', arch.get_endian())
+    envobj.set_value('Debugger', 'gdb')
+    envobj.set_value('Arch', arch.get_arch())
+    envobj.set_value('OS', arch.get_osabi())
+    envobj.set_value('Endian', arch.get_endian())
+    envobj.insert()
 
 
 @cmd('ghidra trace put-environment', '-ghidra-trace-put-environment',
@@ -1201,12 +1200,13 @@ def ghidra_trace_put_environment(*, is_mi, **kwargs):
         put_environment()
 
 
-def put_regions():
+def put_regions(regions=None):
     inf = gdb.selected_inferior()
-    try:
-        regions = util.REGION_INFO_READER.get_regions()
-    except Exception:
-        regions = []
+    if regions is None:
+        try:
+            regions = util.REGION_INFO_READER.get_regions()
+        except Exception:
+            regions = []
     if len(regions) == 0 and gdb.selected_thread() is not None:
         regions = [util.REGION_INFO_READER.full_mem()]
     mapper = STATE.trace.memory_mapper
@@ -1218,15 +1218,19 @@ def put_regions():
         start_base, start_addr = mapper.map(inf, r.start)
         if start_base != start_addr.space:
             STATE.trace.create_overlay_space(start_base, start_addr.space)
-        regobj.set_value('_range', start_addr.extend(r.end - r.start))
+        regobj.set_value('Range', start_addr.extend(r.end - r.start))
+        if r.perms != None:
+            regobj.set_value('Permissions', r.perms)
         regobj.set_value('_readable', r.perms == None or 'r' in r.perms)
         regobj.set_value('_writable', r.perms == None or 'w' in r.perms)
         regobj.set_value('_executable', r.perms == None or 'x' in r.perms)
-        regobj.set_value('_offset', r.offset)
-        regobj.set_value('_objfile', r.objfile)
+        regobj.set_value('Offset', hex(r.offset))
+        regobj.set_value('Object File', r.objfile)
+        regobj.set_value('_display', f'{r.objfile} (0x{r.start:x}-0x{r.end:x})')
         regobj.insert()
     STATE.trace.proxy_object_path(
         MEMORY_PATTERN.format(infnum=inf.num)).retain_values(keys)
+    return regions
 
 
 @cmd('ghidra trace put-regions', '-ghidra-trace-put-regions', gdb.COMMAND_DATA,
@@ -1251,11 +1255,11 @@ def put_modules(modules=None, sections=False):
         mpath = MODULE_PATTERN.format(infnum=inf.num, modpath=mk)
         modobj = STATE.trace.create_object(mpath)
         mod_keys.append(MODULE_KEY_PATTERN.format(modpath=mk))
-        modobj.set_value('_module_name', m.name)
+        modobj.set_value('Name', m.name)
         base_base, base_addr = mapper.map(inf, m.base)
         if base_base != base_addr.space:
             STATE.trace.create_overlay_space(base_base, base_addr.space)
-        modobj.set_value('_range', base_addr.extend(m.max - m.base))
+        modobj.set_value('Range', base_addr.extend(m.max - m.base))
         if sections:
             sec_keys = []
             for sk, s in m.sections.items():
@@ -1266,9 +1270,9 @@ def put_modules(modules=None, sections=False):
                 if start_base != start_addr.space:
                     STATE.trace.create_overlay_space(
                         start_base, start_addr.space)
-                secobj.set_value('_range', start_addr.extend(s.end - s.start))
-                secobj.set_value('_offset', s.offset)
-                secobj.set_value('_attrs', s.attrs, schema=sch.STRING_ARR)
+                secobj.set_value('Range', start_addr.extend(s.end - s.start))
+                secobj.set_value('Offset', hex(s.offset))
+                secobj.set_value('Attrs', s.attrs, schema=sch.STRING_ARR)
                 secobj.insert()
             STATE.trace.proxy_object_path(
                 mpath + SECTIONS_ADD_PATTERN).retain_values(sec_keys)
@@ -1329,7 +1333,7 @@ def convert_tid(t):
 
 @contextmanager
 def restore_frame():
-    f = gdb.selected_frame()
+    f = util.selected_frame()
     yield
     f.select()
 
@@ -1356,10 +1360,10 @@ def put_threads():
         tpath = THREAD_PATTERN.format(infnum=inf.num, tnum=t.num)
         tobj = STATE.trace.create_object(tpath)
         keys.append(THREAD_KEY_PATTERN.format(tnum=t.num))
-        tobj.set_value('_state', convert_state(t))
-        tobj.set_value('_name', t.name)
+        tobj.set_value('State', convert_state(t))
+        tobj.set_value('Name', t.name)
         tid = convert_tid(t.ptid)
-        tobj.set_value('_tid', tid)
+        tobj.set_value('TID', tid)
         tidstr = ('0x{:x}' if radix ==
                   16 else '0{:o}' if radix == 8 else '{}').format(tid)
         tobj.set_value('_short_display', '[{}.{}:{}]'.format(
@@ -1400,8 +1404,12 @@ def put_frames():
     t = gdb.selected_thread()
     if t is None:
         return
+    # NB: This command will fail if the process is running
     bt = gdb.execute('bt', to_string=True).strip().split('\n')
-    f = newest_frame(gdb.selected_frame())
+    f = util.selected_frame()
+    if f is None:
+        return
+    f = newest_frame(f)
     keys = []
     level = 0
     while f is not None:
@@ -1412,8 +1420,8 @@ def put_frames():
         base, pc = mapper.map(inf, f.pc())
         if base != pc.space:
             STATE.trace.create_overlay_space(base, pc.space)
-        fobj.set_value('_pc', pc)
-        fobj.set_value('_func', str(f.function()))
+        fobj.set_value('PC', pc)
+        fobj.set_value('Function', str(f.function()))
         fobj.set_value(
             '_display', bt[level].strip().replace('\\s+', ' '))
         f = f.older()

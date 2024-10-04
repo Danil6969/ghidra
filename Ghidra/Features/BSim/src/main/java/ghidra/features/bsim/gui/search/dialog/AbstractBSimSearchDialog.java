@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,6 +21,7 @@ import java.awt.event.ItemListener;
 import java.util.*;
 import java.util.List;
 
+import javax.accessibility.AccessibleContext;
 import javax.swing.*;
 
 import docking.DialogComponentProvider;
@@ -29,6 +30,7 @@ import docking.widgets.EmptyBorderButton;
 import docking.widgets.combobox.GComboBox;
 import docking.widgets.textfield.FloatingPointTextField;
 import generic.theme.Gui;
+import ghidra.features.bsim.gui.BSimServerManager;
 import ghidra.features.bsim.query.BSimServerInfo;
 import ghidra.features.bsim.query.description.DatabaseInformation;
 import ghidra.features.bsim.query.facade.QueryDatabaseException;
@@ -118,9 +120,14 @@ public abstract class AbstractBSimSearchDialog extends DialogComponentProvider {
 		confidenceField.setValue(0);
 		confidenceField.setMinValue(0.0);
 
-		panel.add(new JLabel("Similarity Threshold (0-1):"));
+		JLabel similarityLabel = new JLabel("Similarity Threshold (0-1):");
+		JLabel confidenceLabel = new JLabel("Confidence Threshold:");
+		similarityLabel.setLabelFor(similarityField);
+		confidenceLabel.setLabelFor(confidenceField);
+
+		panel.add(similarityLabel);
 		panel.add(similarityField);
-		panel.add(new JLabel("Confidence Threshold:"));
+		panel.add(confidenceLabel);
 		panel.add(confidenceField);
 		return panel;
 	}
@@ -222,6 +229,10 @@ public abstract class AbstractBSimSearchDialog extends DialogComponentProvider {
 		serverCombo.addItemListener(serverComboListener);
 		comboPanel.add(serverCombo, BorderLayout.CENTER);
 		panel.add(comboPanel, BorderLayout.CENTER);
+
+		AccessibleContext context = serverCombo.getAccessibleContext();
+		context.setAccessibleName("BSim Server");
+		context.setAccessibleDescription("Select a predefined Bsim Server");
 
 		JButton button = new EmptyBorderButton(Icons.CONFIGURE_FILTER_ICON);
 		button.setToolTipText("Show Server Manager Dialog");

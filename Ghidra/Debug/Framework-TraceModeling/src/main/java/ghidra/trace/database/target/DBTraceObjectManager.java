@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -119,7 +119,9 @@ public class DBTraceObjectManager implements TraceObjectManager, DBTraceManager 
 		@DBAnnotatedColumn(SCHEMA_COLUMN_NAME)
 		static DBObjectColumn SCHEMA_COLUMN;
 
-		@DBAnnotatedField(column = CONTEXT_COLUMN_NAME, codec = DBTraceObjectSchemaDBFieldCodec.class)
+		@DBAnnotatedField(
+			column = CONTEXT_COLUMN_NAME,
+			codec = DBTraceObjectSchemaDBFieldCodec.class)
 		private SchemaContext context;
 		@DBAnnotatedField(column = SCHEMA_COLUMN_NAME)
 		private String schemaName;
@@ -146,8 +148,7 @@ public class DBTraceObjectManager implements TraceObjectManager, DBTraceManager 
 	}
 
 	record ObjectsContainingKey(long snap, Address address, String key,
-			Class<? extends TraceObjectInterface> iface) {
-	}
+			Class<? extends TraceObjectInterface> iface) {}
 
 	protected final ReadWriteLock lock;
 	protected final DBTrace trace;
@@ -807,7 +808,7 @@ public class DBTraceObjectManager implements TraceObjectManager, DBTraceManager 
 		try (LockHold hold = trace.lockWrite()) {
 			checkDuplicateThread(path, lifespan);
 			TraceObjectThread thread = doAddWithInterface(path, TraceObjectThread.class);
-			thread.setName(lifespan, display);
+			thread.setName(lifespan.withMax(Lifespan.DOMAIN.lmax()), display);
 			thread.getObject().insert(lifespan, ConflictResolution.DENY);
 			return thread;
 		}

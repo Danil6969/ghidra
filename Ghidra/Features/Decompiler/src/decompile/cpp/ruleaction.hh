@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -51,6 +51,7 @@ class AddTreeState {
   int4 ptrsize;			///< Size of the pointer
   int4 size;			///< Size of data-type being pointed to (in address units) or 0 for open ended pointer
   int4 baseSlot;		///< Slot of the ADD tree base that is holding the pointer
+  uint4 biggestNonMultCoeff;	///< Biggest coefficient that is not a multiple
   uint8 ptrmask;		///< Mask for modulo calculations in ptr space
   uint8 offset;			///< Number of bytes we dig into the base data-type
   uint8 correct;		///< Number of bytes being double counted
@@ -65,12 +66,12 @@ class AddTreeState {
   bool isSubtype;		///< Is there a sub-type (using CPUI_PTRSUB)
   bool valid;			///< Set to \b true if the whole expression can be transformed
   bool isDegenerate;		///< Set to \b true if pointer to unitsize or smaller
-  uint4 findArrayHint(void) const;	///< Look for evidence of an array in a sub-component
   bool hasMatchingSubType(int8 off,uint4 arrayHint,int8 *newoff) const;
   bool checkMultTerm(Varnode *vn,PcodeOp *op,uint8 treeCoeff);	///< Accumulate details of INT_MULT term and continue traversal if appropriate
   bool checkTerm(Varnode *vn,uint8 treeCoeff);			///< Accumulate details of given term and continue tree traversal
   bool spanAddTree(PcodeOp *op,uint8 treeCoeff);		///< Walk the given sub-tree accumulating details
   void calcSubtype(void);		///< Calculate final sub-type offset
+  void assignPropagatedType(PcodeOp *op);	///< Assign a data-type propagated through the given PcodeOp
   Varnode *buildMultiples(void);	///< Build part of tree that is multiple of base size
   Varnode *buildExtra(void);		///< Build part of tree not accounted for by multiples or \e offset
   bool erasableByUndoPtradd();		///< Will it be erased by RulePtraddUndo::applyOp or not
@@ -838,6 +839,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+  static Varnode *shortenExtension(PcodeOp *extOp,int4 maxSize,Funcdata &data);
   static bool cancelExtensions(PcodeOp *longform,PcodeOp *subOp,Varnode *ext0In,Varnode *ext1In,Funcdata &data);
 };
 class RuleConcatCommute : public Rule {
@@ -1154,6 +1156,11 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RulePtrsubUndo : public Rule {
+  static const int4 DEPTH_LIMIT;	///< The maximum depth of the additive expression to check
+  static int8 getConstOffsetBack(Varnode *vn,int8 &multiplier,int4 maxLevel);
+  static int8 getExtraOffset(PcodeOp *op,int8 &multiplier);
+  static int8 removeLocalAdds(Varnode *vn,Funcdata &data);
+  static int8 removeLocalAddRecurse(PcodeOp *op,int4 slot,int4 maxLevel,Funcdata &data);
 public:
   RulePtrsubUndo(const string &g) : Rule(g, 0, "ptrsubundo") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
@@ -1625,12 +1632,35 @@ public:
 
 class RuleIgnoreNan : public Rule {
   static bool checkBackForCompare(Varnode *floatVar,Varnode *root);
+  static bool isAnotherNan(Varnode *vn);
   static Varnode *testForComparison(Varnode *floatVar,PcodeOp *op,int4 slot,OpCode matchCode,int4 &count,Funcdata &data);
 public:
   RuleIgnoreNan(const string &g) : Rule( g, 0, "ignorenan") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
     return new RuleIgnoreNan(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
+class RuleUnsigned2Float : public Rule {
+public:
+  RuleUnsigned2Float(const string &g) : Rule( g, 0, "unsigned2float") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleUnsigned2Float(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
+class RuleInt2FloatCollapse : public Rule {
+public:
+  RuleInt2FloatCollapse(const string &g) : Rule( g, 0, "int2floatcollapse") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleInt2FloatCollapse(getGroup());
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
@@ -1672,17 +1702,6 @@ public:
   static Varnode *getBooleanResult(Varnode *vn,int4 bitPos,int4 &constRes);
 };
 
-class RuleOrMultiBool : public Rule {
-public:
-  RuleOrMultiBool(const string &g) : Rule( g, 0, "ormultibool") {}	///< Constructor
-  virtual Rule *clone(const ActionGroupList &grouplist) const {
-    if (!grouplist.contains(getGroup())) return (Rule *)0;
-    return new RuleOrMultiBool(getGroup());
-  }
-  virtual void getOpList(vector<uint4> &oplist) const;
-  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
-};
-
 class RulePiecePathology : public Rule {
   static bool isPathology(Varnode *vn,Funcdata &data);
   static int4 tracePathologyForward(PcodeOp *op,Funcdata &data);
@@ -1713,6 +1732,39 @@ public:
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
     return new RuleLzcountShiftBool(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
+class RuleFloatSign : public Rule {
+public:
+  RuleFloatSign(const string &g) : Rule( g, 0, "floatsign") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleFloatSign(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
+class RuleFloatSignCleanup : public Rule {
+public:
+  RuleFloatSignCleanup(const string &g) : Rule( g, 0, "floatsigncleanup") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleFloatSignCleanup(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
+class RuleOrCompare : public Rule {
+public:
+  RuleOrCompare(const string &g) : Rule( g, 0, "orcompare") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleOrCompare(getGroup());
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);

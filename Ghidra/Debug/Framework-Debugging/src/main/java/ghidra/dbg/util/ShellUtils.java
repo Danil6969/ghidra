@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,9 +15,15 @@
  */
 package ghidra.dbg.util;
 
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * @deprecated This will be moved/refactored. In general, it will still exist, but things depending
+ *             on it are now back on shifting sand.
+ */
+@Deprecated(since = "11.2")
 public class ShellUtils {
 	enum State {
 		NORMAL, NORMAL_ESCAPE, DQUOTE, DQUOTE_ESCAPE, SQUOTE, SQUOTE_ESCAPE;
@@ -107,6 +113,19 @@ public class ShellUtils {
 
 		}
 		return argsList;
+	}
+
+	public static String removePath(String exec) {
+		return Paths.get(exec).getFileName().toString();
+	}
+
+	public static List<String> removePath(List<String> args) {
+		if (args.isEmpty()) {
+			return List.of();
+		}
+		List<String> copy = new ArrayList<>(args);
+		copy.set(0, removePath(args.get(0)));
+		return List.copyOf(copy);
 	}
 
 	public static String generateLine(List<String> args) {

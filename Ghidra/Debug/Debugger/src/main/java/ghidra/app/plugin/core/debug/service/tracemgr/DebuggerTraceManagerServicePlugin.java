@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 package ghidra.app.plugin.core.debug.service.tracemgr;
+
+import static ghidra.framework.main.DataTreeDialogType.OPEN;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
@@ -430,12 +432,7 @@ public class DebuggerTraceManagerServicePlugin extends Plugin
 			}
 		};
 
-		// TODO regarding the hack note below, I believe this issue ahs been fixed, but not sure how to test
-		return new DataTreeDialog(null, OpenTraceAction.NAME, DataTreeDialog.OPEN, filter) {
-			{ // TODO/HACK: Why the NPE if I don't do this?
-				dialogShown();
-			}
-		};
+		return new DataTreeDialog(null, OpenTraceAction.NAME, OPEN, filter);
 	}
 
 	public DomainFile askTrace(Trace trace) {
@@ -659,7 +656,9 @@ public class DebuggerTraceManagerServicePlugin extends Plugin
 
 	@Override
 	public synchronized Collection<Trace> getOpenTraces() {
-		return Set.copyOf(tracesView);
+		synchronized (listenersByTrace) {
+			return Set.copyOf(tracesView);
+		}
 	}
 
 	@Override
@@ -985,24 +984,28 @@ public class DebuggerTraceManagerServicePlugin extends Plugin
 			navigationHistoryService.clear(trace.getProgramView());
 		}
 		synchronized (listenersByTrace) {
-			trace.release(this);
 			lastCoordsByTrace.remove(trace);
 			trace.removeListener(listenersByTrace.remove(trace));
 			//Msg.debug(this, "Remaining Consumers of " + trace + ": " + trace.getConsumerList());
 		}
-		if (current.getTrace() == trace) {
-			activate(DebuggerCoordinates.NOWHERE, ActivationCause.ACTIVATE_DEFAULT);
+		try {
+			if (current.getTrace() == trace) {
+				activate(DebuggerCoordinates.NOWHERE, ActivationCause.ACTIVATE_DEFAULT);
+			}
+			else {
+				contextChanged();
+			}
 		}
-		else {
-			contextChanged();
+		finally {
+			trace.release(this);
 		}
 	}
 
 	protected void doCloseTraces(Collection<Trace> traces, Collection<Target> targets) {
 		for (Trace t : traces) {
 			if (t.getConsumerList().contains(this)) {
-				firePluginEvent(new TraceClosedPluginEvent(getName(), t));
 				doTraceClosed(t);
+				firePluginEvent(new TraceClosedPluginEvent(getName(), t));
 			}
 		}
 		TargetActionTask.executeTask(tool, new DisconnectTask(tool, targets));

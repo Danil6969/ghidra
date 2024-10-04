@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,6 +17,7 @@
 #include "condexe.hh"
 #include "double.hh"
 #include "subflow.hh"
+#include "constseq.hh"
 
 namespace ghidra {
 
@@ -739,7 +740,10 @@ bool ActionLaneDivide::processVarnode(Funcdata &data,Varnode *vn,const LanedRegi
   if (mode < 2)
     collectLaneSizes(vn,lanedRegister,checkLanes);
   else {
-    checkLanes.addLaneSize(4);		// Default lane size
+    int4 defaultSize = data.getArch()->types->getSizeOfPointer();		// Default lane size
+    if (defaultSize != 4)
+      defaultSize = 8;
+    checkLanes.addLaneSize(defaultSize);
   }
   LanedRegister::const_iterator enditer = checkLanes.end();
   for(LanedRegister::const_iterator iter=checkLanes.begin();iter!=enditer;++iter) {
@@ -758,6 +762,7 @@ bool ActionLaneDivide::processVarnode(Funcdata &data,Varnode *vn,const LanedRegi
 int4 ActionLaneDivide::apply(Funcdata &data)
 
 {
+  data.setLanedRegGenerated();
   map<VarnodeData,const LanedRegister *>::const_iterator iter;
   for(int4 mode=0;mode<3;++mode) {
     bool allStorageProcessed = true;
@@ -770,6 +775,10 @@ int4 ActionLaneDivide::apply(Funcdata &data)
       bool allVarnodesProcessed = true;
       while(viter != venditer) {
 	Varnode *vn = *viter;
+	if (vn->hasNoDescend()) {
+	  ++viter;
+	  continue;
+	}
 	if (processVarnode(data, vn, *lanedReg, mode)) {
 	  viter = data.beginLoc(sz,addr);
 	  venditer = data.endLoc(sz, addr);	// Recalculate bounds
@@ -786,7 +795,6 @@ int4 ActionLaneDivide::apply(Funcdata &data)
     if (allStorageProcessed) break;
   }
   data.clearLanedAccessMap();
-  data.setLanedRegGenerated();
   return 0;
 }
 
@@ -1687,7 +1695,6 @@ int4 ActionVarnodeProps::apply(Funcdata &data)
       }
     }
   }
-  data.setLanedRegGenerated();
   return 0;
 }
 
@@ -2534,13 +2541,13 @@ bool ActionRestructureVarnode::isDelayedConstant(Varnode *vn)
 }
 
 /// Test if the path to the given BRANCHIND originates from a constant but passes through INDIRECT operations.
-/// This indicates that the switch value is produced indirectly, so we mark these INDIRECT
-/// operations as \e not \e collapsible, to guarantee that the indirect value is not lost during analysis.
+/// This indicates that the switch value is produced indirectly, so we mark the earliest INDIRECT
+/// operation as \e not \e collapsible, to guarantee that the indirect value is not lost during analysis.
 /// \param op is the given BRANCHIND op
 void ActionRestructureVarnode::protectSwitchPathIndirects(PcodeOp *op)
 
 {
-  vector<PcodeOp *> indirects;
+  PcodeOp *lastIndirect = (PcodeOp *)0;
   Varnode *curVn = op->getIn(0);
   while(curVn->isWritten()) {
     PcodeOp *curOp = curVn->getDef();
@@ -2561,20 +2568,34 @@ void ActionRestructureVarnode::protectSwitchPathIndirects(PcodeOp *op)
     else if ((evalType & PcodeOp::unary) != 0)
       curVn = curOp->getIn(0);
     else if (curOp->code() == CPUI_INDIRECT) {
-      indirects.push_back(curOp);
+      lastIndirect = curOp;
       curVn = curOp->getIn(0);
     }
     else if (curOp->code() == CPUI_LOAD) {
       curVn = curOp->getIn(1);
+    }
+    else if (curOp->code() == CPUI_MULTIEQUAL) {
+      // Its possible there is a path from a constant that splits and rejoins.
+      // We test for INDIRECTs coming into the MULTIEQUAL.  If there is at least one, we prevent it from collapsing,
+      // otherwise we assume the MULTIEQUAL itself is unlikely to collapse.
+      for(int4 i=0;i<curOp->numInput();++i) {
+	curVn = curOp->getIn(i);
+	if (!curVn->isWritten()) continue;
+	PcodeOp *inOp = curVn->getDef();
+	if (inOp->code() == CPUI_INDIRECT) {
+	  inOp->setNoIndirectCollapse();
+	  break;
+	}
+      }
+      return;	// In any case, we don't try to backtrack further
     }
     else
       return;
   }
   if (!curVn->isConstant()) return;
   // If we reach here, there is exactly one path, from a constant to a switch
-  for(int4 i=0;i<indirects.size();++i) {
-    indirects[i]->setNoIndirectCollapse();
-  }
+  if (lastIndirect != (PcodeOp *)0)
+    lastIndirect->setNoIndirectCollapse();
 }
 
 /// Run through BRANCHIND ops, treat them as switches and protect the data-flow path to the destination variable
@@ -2614,28 +2635,17 @@ int4 ActionRestructureVarnode::apply(Funcdata &data)
   return 0;
 }
 
-int4 ActionRestructureHigh::apply(Funcdata &data)
+int4 ActionMappedLocalSync::apply(Funcdata &data)
 
 {
-  if (!data.isHighOn()) return 0;
   ScopeLocal *l1 = data.getScopeLocal();
 
-#ifdef OPACTION_DEBUG
-  if ((flags&rule_debug)!=0)
-    l1->turnOnDebug();
-#endif
-
-  l1->restructureHigh();
   if (data.syncVarnodesWithSymbols(l1,true,true))
     count += 1;
 
-#ifdef OPACTION_DEBUG
-  if ((flags&rule_debug)==0) return 0;
-  l1->turnOffDebug();
-  ostringstream s;
-  data.getScopeLocal()->printEntries(s);
-  data.getArch()->printDebug(s.str());
-#endif
+  if (l1->hasOverlapProbems())
+    data.warningHeader("Could not reconcile some variable overlaps");
+
   return 0;
 }
 
@@ -2982,7 +2992,7 @@ int4 ActionSetCasts::castInput(PcodeOp *op,int4 slot,Funcdata &data,CastStrategy
 
 {
   Datatype *ct;
-  Varnode *vn,*vnout;
+  Varnode *vn,*vnout,*vnin;
   PcodeOp *newop;
 
   ct = op->getOpcode()->getInputCast(op,slot,castStrategy); // Input type expected by this operation
@@ -2994,13 +3004,20 @@ int4 ActionSetCasts::castInput(PcodeOp *op,int4 slot,Funcdata &data,CastStrategy
     return 0;
   }
 
-  vn = op->getIn(slot);
+  vnin = vn = op->getIn(slot);
   // Check to make sure we don't have a double cast
   if (vn->isWritten() && (vn->getDef()->code() == CPUI_CAST)) {
-    if (vn->isImplied() && (vn->loneDescend() == op)) {
-      vn->updateType(ct,false,false);
-      if (vn->getType()==ct)
+    if (vn->isImplied()) {
+      if (vn->loneDescend() == op) {
+	vn->updateType(ct,false,false);
+	if (vn->getType()==ct)
+	  return 1;
+      }
+      vnin = vn->getDef()->getIn(0);	// Cast directly from input of previous cast
+      if (ct == vnin->getType()) {	// If the earlier data-type is what the input expects
+	data.opSetInput(op, vnin, slot);	// Just use the earlier Varnode
 	return 1;
+      }
     }
   }
   else if (vn->isConstant()) {
@@ -3019,14 +3036,14 @@ int4 ActionSetCasts::castInput(PcodeOp *op,int4 slot,Funcdata &data,CastStrategy
     return 1;
   }
   newop = data.newOp(1,op->getAddr());
-  vnout = data.newUniqueOut(vn->getSize(),newop);
+  vnout = data.newUniqueOut(vnin->getSize(),newop);
   vnout->updateType(ct,false,false);
   vnout->setImplied();
 #ifdef CPUI_STATISTICS
   data.getArch()->stats->countCast();
 #endif
   data.opSetOpcode(newop,CPUI_CAST);
-  data.opSetInput(newop,vn,0);
+  data.opSetInput(newop,vnin,0);
   data.opSetInput(op,vnout,slot);
   data.opInsertBefore(newop,op); // Cast comes AFTER operation
   if (ct->needsResolution()) {
@@ -3078,7 +3095,7 @@ int4 ActionSetCasts::apply(Funcdata &data)
 	if ((ct->getMetatype() != TYPE_PTR)||(ct->getPtrTo()->getAlignSize() != AddrSpace::addressToByteInt(sz, ct->getWordSize())))
 	  data.opUndoPtradd(op,true);
       }
-      if (opc == CPUI_PTRSUB) {	// Check for PTRSUB that no longer fits pointer
+      else if (opc == CPUI_PTRSUB) {	// Check for PTRSUB that no longer fits pointer
 	if (!ptrsubMatches(op,data)) {
 	  if (op->getIn(1)->getOffset() == 0) {
 	    data.opRemoveInput(op, 1);
@@ -3319,6 +3336,7 @@ void ActionNameVars::linkSymbols(Funcdata &data,vector<Varnode *> &namerec)
       linkSpacebaseSymbol(curvn, data, namerec);
   }
 
+  TypeFactory *typeFactory = data.getArch()->types;
   for(int4 i=0;i<manage->numSpaces();++i) { // Build a list of nameable highs
     spc = manage->getSpace(i);
     if (spc == (AddrSpace *)0) continue;
@@ -3343,6 +3361,8 @@ void ActionNameVars::linkSymbols(Funcdata &data,vector<Varnode *> &namerec)
 	  if (vn->getSize() == sym->getType()->getSize())
 	    sym->getScope()->overrideSizeLockType(sym,high->getType());
 	}
+	if (vn->isAddrTied() && !sym->getScope()->isGlobal())
+	  high->finalizeDatatype(typeFactory);
       }
     }
   }
@@ -3883,8 +3903,7 @@ int4 ActionMarkImplied::apply(Funcdata &data)
 {
   VarnodeLocSet::const_iterator viter;
   list<PcodeOp *>::const_iterator oiter;
-  Varnode *vn,*vncur,*defvn,*outvn;
-  PcodeOp *op;
+  Varnode *vn,*vncur,*outvn;
   vector<DescTreeElement> varstack; // Depth first varnode traversal stack
 
   for(viter=data.beginLoc();viter!=data.endLoc();++viter) {
@@ -3901,16 +3920,9 @@ int4 ActionMarkImplied::apply(Funcdata &data)
 	if (!checkImpliedCover(data,vncur)) // Can this variable be implied
 	  vncur->setExplicit();	// if not, mark explicit
 	else {
-	  vncur->setImplied();	// Mark as implied
-	  op = vncur->getDef();
+	  Merge::markImplied(vncur);
 	  // setting the implied type is now taken care of by ActionSetCasts
 	  //    vn->updatetype(op->outputtype_token(),false,false); // implied must have parsed type
-	  // Back propagate varnode's cover to inputs of defining op
-	  for(int4 i=0;i<op->numInput();++i) {
-	    defvn = op->getIn(i);
-	    if (!defvn->hasCover()) continue;
-	    data.getMerge().inflate(defvn,vncur->getHigh());
-	  }
 	}
 	varstack.pop_back();
       }
@@ -4257,6 +4269,12 @@ void ActionDeadCode::propagateConsumed(vector<Varnode *> &worklist)
   case CPUI_CALL:
   case CPUI_CALLIND:
     break;		// Call output doesn't indicate consumption of inputs
+  case CPUI_FLOAT_INT2FLOAT:
+    a = 0;
+    if (outc != 0)
+      a = coveringmask(op->getIn(0)->getNZMask());
+    pushConsumed(a,op->getIn(0), worklist);
+    break;
   default:
     a = (outc==0) ? 0 : ~((uintb)0); // all or nothing
     for(int4 i=0;i<op->numInput();++i)
@@ -4358,54 +4376,6 @@ uintb ActionDeadCode::gatherConsumedReturn(Funcdata &data)
   return consumeVal;
 }
 
-/// \brief Determine if the given Varnode may eventually collapse to a constant
-///
-/// Recursively check if the Varnode is either:
-///   - Copied from a constant
-///   - The result of adding constants
-///   - Loaded from a pointer that is a constant
-///
-/// \param vn is the given Varnode
-/// \param addCount is the number of CPUI_INT_ADD operations seen so far
-/// \param loadCount is the number of CPUI_LOAD operations seen so far
-/// \return \b true if the Varnode (might) collapse to a constant
-bool ActionDeadCode::isEventualConstant(Varnode *vn,int4 addCount,int4 loadCount)
-
-{
-  if (vn->isConstant()) return true;
-  if (!vn->isWritten()) return false;
-  PcodeOp *op = vn->getDef();
-  while(op->code() == CPUI_COPY) {
-    vn = op->getIn(0);
-    if (vn->isConstant()) return true;
-    if (!vn->isWritten()) return false;
-    op = vn->getDef();
-  }
-  switch(op->code()) {
-    case CPUI_INT_ADD:
-      if (addCount > 0) return false;
-      if (!isEventualConstant(op->getIn(0),addCount+1,loadCount))
-	return false;
-      return isEventualConstant(op->getIn(1),addCount+1,loadCount);
-    case CPUI_LOAD:
-      if (loadCount > 0) return false;
-      return isEventualConstant(op->getIn(1),0,loadCount+1);
-    case CPUI_INT_LEFT:
-    case CPUI_INT_RIGHT:
-    case CPUI_INT_SRIGHT:
-    case CPUI_INT_MULT:
-      if (!op->getIn(1)->isConstant())
-	return false;
-      return isEventualConstant(op->getIn(0),addCount,loadCount);
-    case CPUI_INT_ZEXT:
-    case CPUI_INT_SEXT:
-      return isEventualConstant(op->getIn(0),addCount,loadCount);
-    default:
-      break;
-  }
-  return false;
-}
-
 /// \brief Check if there are any unconsumed LOADs that may be from volatile addresses.
 ///
 /// It may be too early to remove certain LOAD operations even though their result isn't
@@ -4428,7 +4398,7 @@ bool ActionDeadCode::lastChanceLoad(Funcdata &data,vector<Varnode *> &worklist)
     if (op->isDead()) continue;
     Varnode *vn = op->getOut();
     if (vn->isConsumeVacuous()) continue;
-    if (isEventualConstant(op->getIn(1), 0, 0)) {
+    if (op->getIn(1)->isEventualConstant(3, 1)) {
       pushConsumed(~(uintb)0, vn, worklist);
       vn->setAutoLiveHold();
       res = true;
@@ -4941,12 +4911,8 @@ int4 ActionSwitchNorm::apply(Funcdata &data)
   for(int4 i=0;i<data.numJumpTables();++i) {
     JumpTable *jt = data.getJumpTable(i);
     if (!jt->isLabelled()) {
-      if (jt->recoverLabels(&data)) { // Recover case statement labels
-	// If this returns true, the jumptable was not fully recovered during flow analysis
-	// So we need to issue a restart
-	data.getOverride().insertMultistageJump(jt->getOpAddress());
-	data.setRestartPending(true);
-      }
+      jt->matchModel(&data);
+      jt->recoverLabels(&data);	// Recover case statement labels
       jt->foldInNormalization(&data);
       count += 1;
     }
@@ -5105,10 +5071,7 @@ int4 ActionInputPrototype::apply(Funcdata &data)
   ParamActive active(false);
   Varnode *vn;
 
-  // Clear any unlocked local variables because these are
-  // getting cleared anyway in the restructure and may be
-  // using symbol names that we want
-  data.getScopeLocal()->clearUnlockedCategory(-1);
+  data.getScopeLocal()->clearCategory(Symbol::fake_input);
   data.getFuncProto().clearUnlockedInput();
   if (!data.getFuncProto().isInputLocked()) {
     VarnodeDefSet::const_iterator iter,enditer;
@@ -5321,6 +5284,37 @@ int4 ActionPrototypeWarnings::apply(Funcdata &data)
 	s << "<indirect>";
       s << ": Return value may be inaccurate";
       data.warning(s.str(),fc->getEntryAddress());
+    }
+  }
+  return 0;
+}
+
+int4 ActionInternalStorage::apply(Funcdata &data)
+
+{
+  FuncProto &proto( data.getFuncProto() );
+  vector<VarnodeData>::const_iterator iter = proto.internalBegin();
+  vector<VarnodeData>::const_iterator enditer = proto.internalEnd();
+  while(iter != enditer) {
+    Address addr = (*iter).getAddr();
+    int4 sz = (*iter).size;
+    ++iter;
+
+    VarnodeLocSet::const_iterator viter = data.beginLoc(sz, addr);
+    VarnodeLocSet::const_iterator endviter = data.endLoc(sz, addr);
+    while(viter != endviter) {
+      Varnode *vn = *viter;
+      ++viter;
+      list<PcodeOp *>::const_iterator oiter = vn->beginDescend();
+      while(oiter != vn->endDescend()) {
+	PcodeOp *op = *oiter;
+	++oiter;
+	if (op->code() == CPUI_STORE) {
+	  if (vn->isEventualConstant(3,0)) {
+	    op->setStoreUnmapped();
+	  }
+	}
+      }
     }
   }
   return 0;
@@ -5747,6 +5741,7 @@ int4 ActionInferTypes::apply(Funcdata &data)
   if (localcount >= 7) {       // This constant arrived at empirically
     if (localcount == 7) {
       data.warningHeader("Type propagation algorithm not settling");
+      data.setTypeRecoveryExceeded();
       localcount += 1;
     }
     return 0;
@@ -5841,7 +5836,7 @@ void ActionDatabase::buildDefaultGroups(void)
 			    "deadcode", "typerecovery", "stackptrflow",
 			    "blockrecovery", "stackvars", "deadcontrolflow", "switchnorm",
 			    "cleanup", "splitcopy", "splitpointer", "merge", "dynamic", "casts", "analysis",
-			    "fixateglobals", "fixateproto",
+			    "fixateglobals", "fixateproto", "constsequence",
 			    "segment", "returnsplit", "nodejoin", "doubleload", "doubleprecis",
 			    "unreachable", "subvar", "floatprecision",
 			    "conditionalexe", "" };
@@ -5908,6 +5903,7 @@ void ActionDatabase::universalAction(Architecture *conf)
       actmainloop->addAction( new ActionHeritage("base") );
       actmainloop->addAction( new ActionParamDouble("protorecovery") );
       actmainloop->addAction( new ActionSegmentize("base"));
+      actmainloop->addAction( new ActionInternalStorage("base") );
       actmainloop->addAction( new ActionForceGoto("blockrecovery") );
       actmainloop->addAction( new ActionDirectWrite("protorecovery_a", true) );
       actmainloop->addAction( new ActionDirectWrite("protorecovery_b", false) );
@@ -6030,9 +6026,10 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop->addRule( new RulePiece2Zext("analysis") );
 	actprop->addRule( new RulePiece2Sext("analysis") );
 	actprop->addRule( new RulePopcountBoolXor("analysis") );
-	actprop->addRule( new RuleOrMultiBool("analysis") );
 	actprop->addRule( new RuleXorSwap("analysis") );
 	actprop->addRule( new RuleLzcountShiftBool("analysis") );
+	actprop->addRule( new RuleFloatSign("analysis") );
+	actprop->addRule( new RuleOrCompare("analysis") );
 	actprop->addRule( new RuleSubvarAnd("subvar") );
 	actprop->addRule( new RuleSubvarSubpiece("subvar") );
 	actprop->addRule( new RuleSplitFlow("subvar") );
@@ -6048,6 +6045,8 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop->addRule( new RuleSubfloatConvert("floatprecision") );
 	actprop->addRule( new RuleFloatCast("floatprecision") );
 	actprop->addRule( new RuleIgnoreNan("floatprecision") );
+	actprop->addRule( new RuleUnsigned2Float("analysis") );
+	actprop->addRule( new RuleInt2FloatCollapse("analysis") );
 	actprop->addRule( new RulePtraddUndo("typerecovery") );
 	actprop->addRule( new RulePtrsubUndo("typerecovery") );
 	actprop->addRule( new RuleSegment("segment") );
@@ -6056,6 +6055,7 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop->addRule( new RuleDoubleLoad("doubleload") );
 	actprop->addRule( new RuleDoubleStore("doubleprecis") );
 	actprop->addRule( new RuleDoubleIn("doubleprecis") );
+	actprop->addRule( new RuleDoubleOut("doubleprecis") );
 	for(iter=conf->extra_pool_rules.begin();iter!=conf->extra_pool_rules.end();++iter)
 	  actprop->addRule( *iter ); // Add CPU specific rules
 	conf->extra_pool_rules.clear(); // Rules are now absorbed into universal
@@ -6112,6 +6112,7 @@ void ActionDatabase::universalAction(Architecture *conf)
     actfullloop->addAction(actprop3);
   }
   act->addAction( actfullloop );
+  act->addAction( new ActionMappedLocalSync("localrecovery") );
   act->addAction( new ActionStartCleanUp("cleanup") );
   {
     actcleanup = new ActionPool(Action::rule_repeatapply,"cleanup");
@@ -6120,12 +6121,15 @@ void ActionDatabase::universalAction(Architecture *conf)
     actcleanup->addRule( new RuleAddUnsigned("cleanup") );
     actcleanup->addRule( new Rule2Comp2Sub("cleanup") );
     actcleanup->addRule( new RuleSubRight("cleanup") );
+    actcleanup->addRule( new RuleFloatSignCleanup("cleanup") );
     actcleanup->addRule( new RulePtrsubCharConstant("cleanup") );
     actcleanup->addRule( new RuleExtensionPush("cleanup") );
     actcleanup->addRule( new RulePieceStructure("cleanup") );
     actcleanup->addRule( new RuleSplitCopy("splitcopy") );
     actcleanup->addRule( new RuleSplitLoad("splitpointer") );
     actcleanup->addRule( new RuleSplitStore("splitpointer") );
+    actcleanup->addRule( new RuleStringCopy("constsequence"));
+    actcleanup->addRule( new RuleStringStore("constsequence"));
   }
   act->addAction( actcleanup );
 
@@ -6147,7 +6151,6 @@ void ActionDatabase::universalAction(Architecture *conf)
   act->addAction( new ActionCopyMarker("merge") );
   act->addAction( new ActionOutputPrototype("localrecovery") );
   act->addAction( new ActionInputPrototype("fixateproto") );
-  act->addAction( new ActionRestructureHigh("localrecovery") );
   act->addAction( new ActionMapGlobals("fixateglobals") );
   act->addAction( new ActionDynamicSymbols("dynamic") );
   act->addAction( new ActionNameVars("merge") );

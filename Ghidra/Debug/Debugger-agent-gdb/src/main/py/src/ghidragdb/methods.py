@@ -171,7 +171,9 @@ def find_thread_by_stack_obj(object):
 def find_frame_by_level(thread, level):
     # Because threads don't have any attribute to get at frames
     thread.switch()
-    f = gdb.selected_frame()
+    f = util.selected_frame()
+    if f is None:
+        return None
 
     # Navigate up or down, because I can't just get by level
     down = level - util.get_level(f)
@@ -340,7 +342,10 @@ def refresh_stack(node: sch.Schema('Stack')):
 @REGISTRY.method(action='refresh', display='Refresh Registers')
 def refresh_registers(node: sch.Schema('RegisterValueContainer')):
     """Refresh the register values for the frame."""
-    find_frame_by_regs_obj(node).select()
+    f = find_frame_by_regs_obj(node)
+    if f is None:
+        return
+    f.select()
     # TODO: Groups?
     with commands.open_tracked_tx('Refresh Registers'):
         gdb.execute('ghidra trace putreg')
@@ -425,10 +430,10 @@ def connect(inferior: sch.Schema('Inferior'), spec: str):
     gdb.execute(f'target {spec}')
 
 
-@REGISTRY.method(action='attach', display='Attach by Available')
-def attach_obj(inferior: sch.Schema('Inferior'), target: sch.Schema('Attachable')):
+@REGISTRY.method(action='attach', display='Attach')
+def attach_obj(target: sch.Schema('Attachable')):
     """Attach the inferior to the given target."""
-    switch_inferior(find_inf_by_obj(inferior))
+    #switch_inferior(find_inf_by_obj(inferior))
     pid = find_availpid_by_obj(target)
     gdb.execute(f'attach {pid}')
 
@@ -643,7 +648,7 @@ def break_access_expression(expression: str):
 
 
 @REGISTRY.method(action='break_ext', display='Catch Event')
-def break_event(spec: str):
+def break_event(inferior: sch.Schema('Inferior'), spec: str):
     """Set a catchpoint (catch)."""
     gdb.execute(f'catch {spec}')
 

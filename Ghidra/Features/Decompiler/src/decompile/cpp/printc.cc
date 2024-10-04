@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -566,14 +566,14 @@ void PrintC::opArrFunc(const PcodeOp *op)
     pushType(outType);
 }
 
-void PrintC::opConv(const PcodeOp *op)
+void PrintC::opConv(const PcodeOp *op,const Varnode *vn0)
 
 {
   Datatype *dt = op->getOut()->getHighTypeDefFacing();
   if (dt->isPointerToArray()) {
     if (checkAddressOfCast(op)) {
       pushOp(&addressof,op);
-      pushVn(op->getIn(0),op,mods);
+      pushVn(vn0,op,mods);
       return;
     }
   }
@@ -581,7 +581,13 @@ void PrintC::opConv(const PcodeOp *op)
     pushOp(&typecast,op);
     pushType(dt);
   }
-  pushVn(op->getIn(0),op,mods);
+  pushVn(vn0,op,mods);
+}
+
+void PrintC::opConv(const PcodeOp *op)
+
+{
+  opConv(op,op->getIn(0));
 }
 
 /// The syntax represents the given op using a standard c-language cast.  The data-type
@@ -967,15 +973,7 @@ void PrintC::opCallother(const PcodeOp *op)
   }
   UserPcodeOp *userop = glb->userops.getOp(op->getIn(0)->getOffset());
   uint4 display = userop->getDisplay();
-  if (display == UserPcodeOp::annotation_assignment) {
-    pushOp(&assignment,op);
-    pushVn(op->getIn(2),op,mods);
-    pushVn(op->getIn(1),op,mods);
-  }
-  else if (display == UserPcodeOp::no_operator) {
-    pushVn(op->getIn(1),op,mods);
-  }
-  else {	// Emit using functional syntax
+  if (display == 0) {	// Emit using functional syntax
     pushOp(&function_call,op);
     pushAtom(Atom(nm,optoken,EmitMarkup::funcname_color,op));
     if (op->numInput() > 1) {
@@ -988,6 +986,28 @@ void PrintC::opCallother(const PcodeOp *op)
     }
     else
       pushAtom(Atom(EMPTY_STRING,blanktoken,EmitMarkup::no_color));	// Push empty token for void
+  }
+  else if (display == UserPcodeOp::annotation_assignment) {
+    pushOp(&assignment,op);
+    pushVn(op->getIn(2),op,mods);
+    pushVn(op->getIn(1),op,mods);
+  }
+  else if (display == UserPcodeOp::no_operator) {
+    pushVn(op->getIn(1),op,mods);
+  }
+  else if (display == UserPcodeOp::display_string) {
+    const Varnode *vn = op->getOut();
+    Datatype *ct = vn->getType();
+    ostringstream str;
+    if (ct->getMetatype() == TYPE_PTR) {
+      ct = ((TypePointer *)ct)->getPtrTo();
+      if (!printCharacterConstant(str,op->getIn(1)->getAddr(),ct))
+	str << "\"badstring\"";
+    }
+    else
+      str << "\"badstring\"";
+
+    pushAtom(Atom(str.str(),vartoken,EmitMarkup::const_color,op,vn));
   }
 }
 
@@ -1122,6 +1142,14 @@ void PrintC::opFloatNeg(const PcodeOp *op)
 {
   pushOp(&hidden,op);
   opUnary(&unary_minus,op);
+}
+
+void PrintC::opFloatInt2Float(const PcodeOp *op)
+
+{
+  const PcodeOp *zextOp = TypeOpFloatInt2Float::absorbZext(op);
+  const Varnode *vn0 = (zextOp != (const PcodeOp *)0) ? zextOp->getIn(0) : op->getIn(0);
+  opConv(op,vn0);
 }
 
 void PrintC::opSubpiece(const PcodeOp *op)
@@ -1729,19 +1757,11 @@ void PrintC::push_float(uintb val,int4 sz,tagtype tag,const Varnode *vn,const Pc
 	token = "NAN";
     }
     else {
-      ostringstream t;
       if ((mods & force_scinote)!=0) {
-	t.setf( ios::scientific ); // Set to scientific notation
-	t.precision(format->getDecimalPrecision()-1);
-	t << floatval;
-	token = t.str();
+	token = format->printDecimal(floatval, true);
       }
       else {
-	// Try to print "minimal" accurate representation of the float
-	t.unsetf( ios::floatfield );	// Use "default" notation
-	t.precision(format->getDecimalPrecision());
-	t << floatval;
-	token = t.str();
+	token = format->printDecimal(floatval, false);
 	bool looksLikeFloat = false;
 	for(int4 i=0;i<token.size();++i) {
 	  char c = token[i];

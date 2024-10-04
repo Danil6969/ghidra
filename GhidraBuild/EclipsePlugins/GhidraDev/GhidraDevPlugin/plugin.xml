@@ -175,7 +175,7 @@
                      style="push">
                   <parameter
                         name="importWizardId"
-                        value="ghidradev.ghidraprojectcreator.wizards.ImportGhidraModuleWizard">
+                        value="ghidradev.ghidraprojectcreator.wizards.ImportGhidraModuleSourceWizard">
                   </parameter>
                </command>
             </menu>
@@ -365,9 +365,13 @@
    <extension
          point="org.eclipse.debug.core.launchConfigurationTypes">
       <launchConfigurationType
+            allowPrototypes="true"
             delegate="ghidradev.ghidraprojectcreator.launchers.GhidraLaunchDelegate"
             id="GhidraGuiLaunchConfigurationType"
-            name="Ghidra">
+            migrationDelegate="org.eclipse.jdt.internal.launching.JavaMigrationDelegate"
+            name="Ghidra"
+            sourceLocatorId="org.eclipse.jdt.launching.sourceLocator.JavaSourceLookupDirector"
+            sourcePathComputerId="org.eclipse.jdt.launching.sourceLookup.javaSourcePathComputer">
       </launchConfigurationType>
       <launchConfigurationType
             delegate="ghidradev.ghidraprojectcreator.launchers.GhidraLaunchDelegate"

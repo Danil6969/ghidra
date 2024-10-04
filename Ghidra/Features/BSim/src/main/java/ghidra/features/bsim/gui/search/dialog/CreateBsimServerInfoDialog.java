@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -51,8 +51,8 @@ public class CreateBsimServerInfoDialog extends DialogComponentProvider {
 
 	private JPanel cardPanel;
 
-	private PostgresPanel postgresPanel;
-	private ElasticPanel elasticPanel;
+	private DbPanel postgresPanel;
+	private DbPanel elasticPanel;
 	private FilePanel filePanel;
 
 	private ServerPanel activePanel;
@@ -65,12 +65,13 @@ public class CreateBsimServerInfoDialog extends DialogComponentProvider {
 		addOKButton();
 		addCancelButton();
 		setOkEnabled(false);
-		setHelpLocation(new HelpLocation("BSimSearchPlugin","Add_Server_Definition_Dialog" ));
+		setHelpLocation(new HelpLocation("BSimSearchPlugin", "Add_Server_Definition_Dialog"));
 	}
 
 	public BSimServerInfo getBsimServerInfo() {
 		return result;
 	}
+
 	@Override
 	public void setHelpLocation(HelpLocation helpLocation) {
 		// TODO Auto-generated method stub
@@ -90,8 +91,7 @@ public class CreateBsimServerInfoDialog extends DialogComponentProvider {
 	public boolean acceptServer(BSimServerInfo serverInfo) {
 		// FIXME: Use task to correct dialog parenting issue caused by password prompt
 		String errorMessage = null;
-		try {
-			FunctionDatabase database = BSimClientFactory.buildClient(serverInfo, true);
+		try (FunctionDatabase database = BSimClientFactory.buildClient(serverInfo, true)) {
 			if (database.initialize()) {
 				return true;
 			}
@@ -101,7 +101,8 @@ public class CreateBsimServerInfoDialog extends DialogComponentProvider {
 			errorMessage = e.getMessage();
 		}
 		int answer = OptionDialog.showYesNoDialog(null, "Connection Test Failed!",
-			"Can't connect to server: " + errorMessage + "\nDo you want create anyway?");
+			"Can't connect to server: " + errorMessage +
+				"\nDo you want to proceed with creation anyway?");
 		return answer == OptionDialog.YES_OPTION;
 	}
 
@@ -113,8 +114,8 @@ public class CreateBsimServerInfoDialog extends DialogComponentProvider {
 	}
 
 	private Component buildCardPanel() {
-		postgresPanel = new PostgresPanel();
-		elasticPanel = new ElasticPanel();
+		postgresPanel = new DbPanel(DBType.postgres);
+		elasticPanel = new DbPanel(DBType.elastic);
 		filePanel = new FilePanel();
 
 		cardPanel = new JPanel(new CardLayout());
@@ -193,23 +194,33 @@ public class CreateBsimServerInfoDialog extends DialogComponentProvider {
 		setOkEnabled(serverInfo != null);
 	}
 
-	private class PostgresPanel extends ServerPanel {
-
+	private class DbPanel extends ServerPanel {
 		private JTextField nameField;
 		private JTextField hostField;
 		private JTextField portField;
+		private DBType type;
 
-		PostgresPanel() {
+		private DbPanel(DBType type) {
 			super(new PairLayout(10, 10));
+			this.type = type;
+
 			nameField = new NotifyingTextField();
 			hostField = new NotifyingTextField();
 			portField =
 				new NotifyingTextField(Integer.toString(BSimServerInfo.DEFAULT_POSTGRES_PORT));
-			add(new JLabel("DB Name:", SwingConstants.RIGHT));
+
+			JLabel nameLabel = new JLabel("DB Name:", SwingConstants.RIGHT);
+			JLabel hostLabel = new JLabel("Host:", SwingConstants.RIGHT);
+			JLabel portLabel = new JLabel("Port:", SwingConstants.RIGHT);
+			nameLabel.setLabelFor(nameField);
+			hostLabel.setLabelFor(hostField);
+			portLabel.setLabelFor(portField);
+
+			add(nameLabel);
 			add(nameField);
-			add(new JLabel("Host:", SwingConstants.RIGHT));
+			add(hostLabel);
 			add(hostField);
-			add(new JLabel("Port:", SwingConstants.RIGHT));
+			add(portLabel);
 			add(portField);
 		}
 
@@ -221,41 +232,8 @@ public class CreateBsimServerInfoDialog extends DialogComponentProvider {
 			if (name.isBlank() || host.isBlank() || port < 0) {
 				return null;
 			}
-			return new BSimServerInfo(DBType.postgres, host, port, name);
+			return new BSimServerInfo(type, host, port, name);
 		}
-	}
-
-	private class ElasticPanel extends ServerPanel {
-
-		private JTextField nameField;
-		private JTextField hostField;
-		private JTextField portField;
-
-		ElasticPanel() {
-			super(new PairLayout(10, 10));
-			nameField = new NotifyingTextField();
-			hostField = new NotifyingTextField();
-			portField =
-				new NotifyingTextField(Integer.toString(BSimServerInfo.DEFAULT_ELASTIC_PORT));
-			add(new JLabel("DB Name:", SwingConstants.RIGHT));
-			add(nameField);
-			add(new JLabel("Host:", SwingConstants.RIGHT));
-			add(hostField);
-			add(new JLabel("Port:", SwingConstants.RIGHT));
-			add(portField);
-		}
-
-		@Override
-		BSimServerInfo getServerInfo() {
-			String name = nameField.getText().trim();
-			String host = hostField.getText().trim();
-			int port = getPort(portField.getText().trim());
-			if (name.isBlank() || host.isBlank() || port < 0) {
-				return null;
-			}
-			return new BSimServerInfo(DBType.elastic, host, port, name);
-		}
-
 	}
 
 	private class FilePanel extends ServerPanel {

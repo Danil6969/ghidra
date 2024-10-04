@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,6 +28,11 @@ import ghidra.dbg.target.schema.TargetObjectSchema.*;
 import ghidra.util.Msg;
 import ghidra.util.xml.XmlUtilities;
 
+/**
+ * @deprecated This will be moved/refactored into trace database. In general, it will still exist,
+ *             but things depending on it are now back on shifting sand.
+ */
+@Deprecated(since = "11.2")
 public class XmlSchemaContext extends DefaultSchemaContext {
 	protected static final String ELEM_CONTEXT = "context";
 	protected static final String ATTR_CANONICAL = "canonical";
@@ -212,10 +217,10 @@ public class XmlSchemaContext extends DefaultSchemaContext {
 		}
 
 		builder.setCanonicalContainer(parseBoolean(schemaElem, ATTR_CANONICAL));
-		builder.setElementResyncMode(
-			ResyncMode.valueOf(requireAttributeValue(schemaElem, ATTR_ELEMENT_RESYNC)));
-		builder.setAttributeResyncMode(
-			ResyncMode.valueOf(requireAttributeValue(schemaElem, ATTR_ATTRIBUTE_RESYNC)));
+		builder.setElementResyncMode(ResyncMode.valueOf(
+			schemaElem.getAttributeValue(ATTR_ELEMENT_RESYNC, ResyncMode.NEVER.name())));
+		builder.setAttributeResyncMode(ResyncMode.valueOf(
+			schemaElem.getAttributeValue(ATTR_ATTRIBUTE_RESYNC, ResyncMode.NEVER.name())));
 
 		for (Element elemElem : XmlUtilities.getChildren(schemaElem, ELEM_ELEMENT)) {
 			SchemaName schema = name(requireAttributeValue(elemElem, ATTR_SCHEMA));

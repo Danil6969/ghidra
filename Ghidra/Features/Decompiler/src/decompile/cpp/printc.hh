@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -201,6 +201,7 @@ protected:
   void emitForLoop(const BlockWhileDo *bl);		///< Emit block as a \e for loop
   void opFunc(const PcodeOp *op);			///< Push a \e functional expression based on the given p-code op to the RPN stack
   void opArrFunc(const PcodeOp *op);
+  void opConv(const PcodeOp *op,const Varnode *vn0);
   void opConv(const PcodeOp *op);
   void opTypeCast(const PcodeOp *op);			///< Push the given p-code op using type-cast syntax to the RPN stack
   void opHiddenFunc(const PcodeOp *op);			///< Push the given p-code op as a hidden token
@@ -333,7 +334,7 @@ public:
   virtual void opFloatNeg(const PcodeOp *op);
   virtual void opFloatAbs(const PcodeOp *op) { opFunc(op); }
   virtual void opFloatSqrt(const PcodeOp *op) { opFunc(op); }
-  virtual void opFloatInt2Float(const PcodeOp *op) { opConv(op); }
+  virtual void opFloatInt2Float(const PcodeOp *op);
   virtual void opFloatFloat2Float(const PcodeOp *op) { opConv(op); }
   virtual void opFloatTrunc(const PcodeOp *op) { opConv(op); }
   virtual void opFloatCeil(const PcodeOp *op) { opFunc(op); }

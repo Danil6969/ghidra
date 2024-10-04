@@ -16,56 +16,91 @@
 package ghidra.app.plugin.core.function.editor;
 
 import java.util.List;
+import java.util.Objects;
 
 import ghidra.program.model.data.*;
 import ghidra.program.model.listing.*;
 import ghidra.program.model.symbol.SourceType;
 import ghidra.program.model.symbol.SymbolUtilities;
-import ghidra.util.SystemUtilities;
 import ghidra.util.exception.AssertException;
 import ghidra.util.exception.InvalidInputException;
 
-public class ParamInfo {
+public class ParamInfo implements Comparable<ParamInfo> {
 
-	private Parameter original;
 	private String name;
 	private DataType formalDataType;
 	private VariableStorage storage;
+	private boolean isCustomStorage;
 	private int ordinal;
-	private FunctionEditorModel model;
 
-	ParamInfo(FunctionEditorModel model, Parameter parameter) {
-		this(model, parameter.getName(), parameter.getFormalDataType(),
-			parameter.getVariableStorage(), parameter.getOrdinal());
-		original = parameter;
+	private boolean hasStorageConflict = false;
+
+	private FunctionDataView functionData;
+	private Program program;
+
+	ParamInfo(FunctionDataView functionData, Parameter parameter) {
+		this(functionData, parameter.getName(), parameter.getFormalDataType(),
+			parameter.getVariableStorage(), functionData.canCustomizeStorage(),
+			parameter.getOrdinal());
 	}
 
-	ParamInfo(FunctionEditorModel model, ParameterDefinition paramDefinition) {
-		this(model, paramDefinition.getName(), paramDefinition.getDataType(),
-			VariableStorage.UNASSIGNED_STORAGE, paramDefinition.getOrdinal());
+	ParamInfo(FunctionDataView functionData, ParameterDefinition paramDefinition) {
+		this(functionData, paramDefinition.getName(), paramDefinition.getDataType(),
+			VariableStorage.UNASSIGNED_STORAGE, false, paramDefinition.getOrdinal());
+		this.functionData = functionData;
 	}
 
-	ParamInfo(FunctionEditorModel model, String name, DataType formalDataType,
-			VariableStorage storage,
-			int ordinal) {
-		this.model = model;
+	ParamInfo(FunctionDataView functionData, String name, DataType formalDataType,
+			VariableStorage storage, boolean isCustomStorage, int ordinal) {
+		this.functionData = functionData;
+		this.program = functionData.getProgram();
 		this.name = SymbolUtilities.isDefaultParameterName(name) ? null : name;
 		this.formalDataType = formalDataType;
 		this.storage = storage;
+		this.isCustomStorage = isCustomStorage;
 		this.ordinal = ordinal;
 	}
 
+	ParamInfo copy() {
+		return new ParamInfo(functionData, name, formalDataType, storage, isCustomStorage, ordinal);
+	}
+
+	public boolean isSame(ParamInfo otherParam) {
+		if (!Objects.equals(name, otherParam.name) ||
+			isAutoParameter() != otherParam.isAutoParameter() ||
+			!formalDataType.equals(otherParam.getFormalDataType())) {
+			return false;
+		}
+		return !isCustomStorage || storage.equals(otherParam.storage);
+	}
+
 	@Override
-	public boolean equals(Object obj) {
+	public int compareTo(ParamInfo o) {
+		int c = ordinal - o.ordinal;
+		if (c != 0) {
+			return c;
+		}
+		return getName().compareTo(o.getName());
+	}
+
+	@Override
+	public final boolean equals(Object obj) {
 		return this == obj;
 	}
 
 	@Override
-	public int hashCode() {
-		return getName().hashCode();
+	public final int hashCode() {
+		return super.hashCode();
 	}
 
-	private int getOtherAutoParamsCount() {
+	public String getName(boolean returnNullForDefault) {
+		if (returnNullForDefault) {
+			return name;
+		}
+		return getName();
+	}
+
+	private int getOtherAutoParamCount() {
 		int otherAutoParamsCount = 0;
 		List<ParamInfo> parameters = model.getParameters();
 		for (ParamInfo parameter : parameters) {
@@ -85,14 +120,13 @@ public class ParamInfo {
 		if (name != null) {
 			return name;
 		}
-		int autoParamCount = model.getAutoParamCount() + getOtherAutoParamsCount();
+		int autoParamCount = model.getAutoParamCount() + getOtherAutoParamCount();
 		return SymbolUtilities.getDefaultParamName(ordinal - autoParamCount);
 	}
 
 	DataType getDataType() {
 		DataType dt = formalDataType;
 		if (storage.isForcedIndirect()) {
-			Program program = model.getProgram();
 			DataTypeManager dtm = program.getDataTypeManager();
 			int ptrSize = storage.size();
 			if (ptrSize != dtm.getDataOrganization().getPointerSize()) {
@@ -117,6 +151,10 @@ public class ParamInfo {
 		return storage.isAutoStorage();
 	}
 
+	boolean isReturnParameter() {
+		return ordinal == Parameter.RETURN_ORIDINAL;
+	}
+
 	boolean isForcedIndirect() {
 		return storage.isForcedIndirect();
 	}
@@ -131,14 +169,11 @@ public class ParamInfo {
 	}
 
 	void setOrdinal(int i) {
-		if (original != null && original.getOrdinal() != i) {
-			original = null;
-		}
 		this.ordinal = i;
 	}
 
 	void setName(String name) {
-		if (name != null && name.length() == 0) {
+		if (name != null && (name.length() == 0 || SymbolUtilities.isDefaultParameterName(name))) {
 			name = null;
 		}
 		this.name = name;
@@ -146,48 +181,27 @@ public class ParamInfo {
 
 	void setFormalDataType(DataType formalDataType) {
 		this.formalDataType = formalDataType;
-		original = null;
 	}
 
 	void setStorage(VariableStorage storage) {
+		this.isCustomStorage = functionData.canCustomizeStorage();
 		this.storage = storage;
-		if (model.canCustomizeStorage()) {
-			original = null;
-		}
 	}
 
-	boolean isModified() {
-		return original == null;
-	}
+	Parameter getParameter(SourceType source) {
 
-	boolean isNameModified() {
-		return original != null && !SystemUtilities.isEqual(original.getName(), getName());
-	}
-
-	/**
-	 * @return unchanged original parameter or null if new or datatype was changed
-	 */
-	Parameter getOriginalParameter() {
-		return original;
-	}
-
-	Parameter getParameter(boolean isCustom) {
-		if (original != null) {
-			return original;
-		}
-
-		VariableStorage variableStorage = isCustom ? storage : VariableStorage.UNASSIGNED_STORAGE;
+		VariableStorage variableStorage =
+			isCustomStorage ? storage : VariableStorage.UNASSIGNED_STORAGE;
 		try {
 			if (ordinal == Parameter.RETURN_ORIDINAL) {
-				return new ReturnParameterImpl(formalDataType, variableStorage, true,
-					model.getProgram());
+				return new ReturnParameterImpl(formalDataType, variableStorage, true, program);
 			}
-			// preserve original source type if name unchanged
-			SourceType source = SourceType.USER_DEFINED;
-			if (original != null && original.getName().equals(name)) {
-				source = original.getSource();
+			String n = name;
+			if (n == null) {
+				source = SourceType.DEFAULT;
+				n = SymbolUtilities.getDefaultParamName(ordinal);
 			}
-			return new MyParameter(name, formalDataType, variableStorage, model.getProgram(),
+			return new ParameterImpl(n, ordinal, formalDataType, variableStorage, true, program,
 				source);
 		}
 		catch (InvalidInputException e) {
@@ -195,13 +209,11 @@ public class ParamInfo {
 		}
 	}
 
-	private static class MyParameter extends ParameterImpl {
-
-		MyParameter(String name, DataType dataType, VariableStorage storage, Program program,
-				SourceType source) throws InvalidInputException {
-			super(name, UNASSIGNED_ORDINAL, dataType, storage, true, program,
-				SourceType.USER_DEFINED);
-		}
+	boolean hasStorageConflict() {
+		return hasStorageConflict;
 	}
 
+	void setHasStorageConflict(boolean state) {
+		hasStorageConflict = state;
+	}
 }

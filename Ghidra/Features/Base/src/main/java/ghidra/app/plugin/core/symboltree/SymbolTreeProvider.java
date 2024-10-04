@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -39,8 +39,7 @@ import docking.widgets.tree.tasks.GTreeBulkTask;
 import generic.theme.GIcon;
 import ghidra.app.plugin.core.symboltree.actions.*;
 import ghidra.app.plugin.core.symboltree.nodes.*;
-import ghidra.framework.model.DomainObjectListener;
-import ghidra.framework.model.DomainObjectListenerBuilder;
+import ghidra.framework.model.*;
 import ghidra.framework.options.SaveState;
 import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
@@ -60,15 +59,14 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 	private ClipboardOwner clipboardOwner;
 	private Clipboard localClipboard;// temporary clipboard used for the "cut" operation
 
-	private DomainObjectListener domainObjectListener;
-	private Program program;
+	protected DomainObjectListener domainObjectListener;
+	protected Program program;
 
-	private final SymbolTreePlugin plugin;
-	private SymbolGTree tree;
-	private JPanel mainPanel;
-	private JComponent component;
+	protected SymbolTreePlugin plugin;
+	protected SymbolGTree tree;
+	protected JComponent component;
 
-	private GoToToggleAction goToToggleAction;
+	protected GoToToggleAction goToToggleAction;
 
 	/**
 	 * A list into which tasks to be run will accumulated until we put them into the GTree's
@@ -108,6 +106,8 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 		super(tool, NAME, plugin.getName());
 		this.plugin = plugin;
 
+		setWindowMenuGroup(NAME);
+
 		setIcon(ICON);
 		addToToolbar();
 
@@ -127,17 +127,25 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 // Setup Methods
 //==================================================================================================
 
-	private JComponent buildProvider() {
-		mainPanel = new JPanel(new BorderLayout());
+	protected JPanel createMainPanel(JComponent contentComponent) {
+		JPanel panel = new JPanel(new BorderLayout());
+		panel.add(contentComponent, BorderLayout.CENTER);
+		return panel;
+	}
 
-		tree = createTree(new SymbolTreeRootNode());
-		mainPanel.add(tree, BorderLayout.CENTER);
+	protected SymbolTreeRootNode createRootNode() {
+		return new SymbolTreeRootNode(program);
+	}
+
+	private JComponent buildProvider() {
+
+		tree = createTree(createRootNode());
 
 		// There's no reason to see the root node in this window. The name (GLOBAL) is
 		// unimportant and the tree is never collapsed at this level.
 		tree.setRootVisible(false);
 
-		return mainPanel;
+		return createMainPanel(tree);
 	}
 
 	private SymbolGTree createTree(SymbolTreeRootNode rootNode) {
@@ -219,8 +227,7 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 		SymbolNode node = (SymbolNode) object;
 		Symbol symbol = node.getSymbol();
 		SymbolType type = symbol.getSymbolType();
-		if (!type.isNamespace() ||
-			type == SymbolType.FUNCTION) {
+		if (!type.isNamespace() || type == SymbolType.FUNCTION) {
 			plugin.goTo(symbol);
 		}
 	}
@@ -247,8 +254,7 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 		deleteAction.setEnabled(false);
 
 		DockingAction referencesAction =
-			new ShowSymbolReferencesAction(plugin.getTool(),
-				plugin.getName());
+			new ShowSymbolReferencesAction(plugin.getTool(), plugin.getName());
 
 		DockingAction selectionAction = new SelectionAction(plugin);
 		selectionAction.setEnabled(false);
@@ -256,6 +262,9 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 		goToToggleAction = new GoToToggleAction(plugin);
 		DockingAction goToExternalAction = new GoToExternalLocationAction(plugin);
 		goToExternalAction.setEnabled(false);
+
+		CloneSymbolTreeAction cloneAction = new CloneSymbolTreeAction(plugin, this);
+		CreateSymbolTableAction tableAction = new CreateSymbolTableAction(plugin);
 
 		tool.addLocalAction(this, createImportAction);
 		tool.addLocalAction(this, setExternalProgramAction);
@@ -272,6 +281,8 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 		tool.addLocalAction(this, goToToggleAction);
 		tool.addLocalAction(this, selectionAction);
 		tool.addLocalAction(this, goToExternalAction);
+		tool.addLocalAction(this, cloneAction);
+		tool.addLocalAction(this, tableAction);
 	}
 
 //==================================================================================================
@@ -280,7 +291,7 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 
 	@Override
 	public JComponent getComponent() {
-		return mainPanel;
+		return component;
 	}
 
 	@Override
@@ -300,24 +311,56 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 // Class Methods
 //==================================================================================================
 
-	void programActivated(Program openedProgram) {
-		this.program = openedProgram;
-		if (tool.isVisible(this)) {
-			setProgram(openedProgram);
-		}
+	GTree getTree() {
+		return tree;
 	}
 
-	private void setProgram(Program program) {
+	public void cloneWindow() {
+
+		DisconnectedSymbolTreeProvider newProvider = plugin.createNewDisconnectedProvider(program);
+
+		Swing.runLater(() -> {
+			newProvider.setProgram(program);
+			transferSettings(newProvider);
+		});
+	}
+
+	/**
+	 * Called to have this symbol tree provider copy settings into the given provider.
+	 * @param newProvider the new provider
+	 */
+	protected void transferSettings(DisconnectedSymbolTreeProvider newProvider) {
+		//
+		// Unusual Code: We want to copy the current tree state to the new tree.  Since we are 
+		// also applying the filter state below, the tree will use the 'filter restore state'
+		// after the filter has been applied.  Thus, we need to set the filter restore state
+		// instead of using the GTree's restoreTreeState() method.
+		// 
+		GTreeState treeState = tree.getTreeState();
+		newProvider.tree.setFilterRestoreState(treeState);
+
+		GTreeFilterProvider filterProvider = tree.getFilterProvider();
+		GTreeFilterProvider newFilterProvider = filterProvider.copy(newProvider.tree);
+		newProvider.tree.setFilterProvider(newFilterProvider);
+	}
+
+	public Program getProgram() {
+		return program;
+	}
+
+	void setProgram(Program program) {
+		this.program = program;
+		if (!isVisible()) {
+			return;
+		}
+
 		if (program == null) {
 			return;
 		}
 
 		program.addListener(domainObjectListener);
 
-		mainPanel.remove(tree);
-		tree = createTree(new SymbolTreeRootNode(program));
-		mainPanel.add(tree);
-		component.validate();
+		rebuildTree();
 
 		// restore any state that may be saved
 		GTreeState treeState = treeStateMap.get(program);
@@ -335,14 +378,19 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 		GTreeState treeState = tree.getTreeState();
 		treeStateMap.put(program, treeState);
 
-		mainPanel.remove(tree);
-		tree = createTree(new SymbolTreeRootNode());
-		mainPanel.add(tree);
-		component.validate();
+		rebuildTree();
 		this.program = null;
 	}
 
+	protected void rebuildTree() {
+		component.remove(tree);
+		tree = createTree(createRootNode());
+		component.add(tree, BorderLayout.CENTER);
+		component.repaint();
+	}
+
 	void programClosed(Program closedProgram) {
+		tree.cancelWork();
 		treeStateMap.remove(closedProgram);
 	}
 
@@ -371,14 +419,11 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 				}
 				catch (DuplicateNameException e) {
 					sb.append("Parent namespace " + namespace.getName() +
-						" contains namespace named " + symbol.getName() +
-						"\n");
+						" contains namespace named " + symbol.getName() + "\n");
 				}
 				catch (InvalidInputException | CircularDependencyException e) {
-					sb.append("Could not change parent namespace for " + symbol.getName() +
-						": " +
-						e.getMessage() +
-						"\n");
+					sb.append("Could not change parent namespace for " + symbol.getName() + ": " +
+						e.getMessage() + "\n");
 				}
 			}
 		}
@@ -405,8 +450,7 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 			return true;
 		}
 		// the symbol to move does not allow dups, so make sure all existing symbols do allow dups.
-		List<Symbol> symbols = symbolTable.getSymbols(symbol.getName(),
-			destinationNamespace);
+		List<Symbol> symbols = symbolTable.getSymbols(symbol.getName(), destinationNamespace);
 		for (Symbol s : symbols) {
 			if (!s.getSymbolType().allowsDuplicates()) {
 				return false;
@@ -421,7 +465,7 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 			(symbolType == SymbolType.NAMESPACE) || (symbolType == SymbolType.CLASS);
 	}
 
-	private void rebuildTree() {
+	private void reloadTree() {
 
 		// If we do not cancel the edit here, then an open edits will instead be committed.  It
 		// seems safer to cancel an edit rather than to commit it without asking.
@@ -458,15 +502,16 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 		domainChangeUpdateManager.update();
 	}
 
-	void showComponent(Program currentProgram) {
-		if (!tool.isVisible(this)) {
-			setProgram(currentProgram);
-		}
-		tool.showComponentProvider(this, true);
-	}
-
 	public void locationChanged(ProgramLocation loc) {
 		if (!goToToggleAction.isSelected()) {
+			return;
+		}
+
+		if (program != loc.getProgram()) {
+			return;
+		}
+
+		if (!isVisible()) {
 			return;
 		}
 
@@ -532,7 +577,7 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 		treeStateMap.clear();
 		tree = null;
 
-		mainPanel.removeAll();
+		component.removeAll();
 
 		if (program != null) {
 			program.removeListener(domainObjectListener);
@@ -547,7 +592,7 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 	// @formatter:off
 		return new DomainObjectListenerBuilder(this)
 			.ignoreWhen(this::ignoreEvents)
-			.any(RESTORED).terminate(this::rebuildTree)
+			.any(RESTORED).terminate(this::reloadTree)
 			.with(ProgramChangeRecord.class)
 				.each(SYMBOL_RENAMED).call(this::processSymbolRenamed)
 				.each(SYMBOL_DATA_CHANGED, SYMBOL_SCOPE_CHANGED).call(this::processSymbolChanged)
@@ -633,11 +678,23 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 
 		@Override
 		public void run(TaskMonitor monitor) throws CancelledException {
-			monitor.setMessage("Searching for " + searchSymbol.getName());
-			SymbolNode key = SymbolNode.createNode(searchSymbol, program);
-			GTreeNode node = rootNode.findSymbolTreeNode(key, true, monitor);
-			if (node != null) {
-				tree.setSelectedNode(node);
+			try {
+				monitor.setMessage("Searching for " + searchSymbol.getName());
+				SymbolNode key = SymbolNode.createNode(searchSymbol, program);
+				GTreeNode node = rootNode.findSymbolTreeNode(key, true, monitor);
+				if (node != null) {
+					tree.setSelectedNode(node);
+				}
+			}
+			catch (DomainObjectException doe) {
+				// We have seen this happen if this task is searching for symbols and the program is
+				// closed.   The code has been updated to cancel the tree work as the program is 
+				// being closed.  We are keeping this here to guard against another unseen path into
+				// this type of exception.
+				Throwable cause = doe.getCause();
+				if (!(cause instanceof ClosedException)) {
+					throw doe;
+				}
 			}
 		}
 	}
@@ -665,8 +722,7 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 
 		@Override
 		public String toString() {
-			return getClass().getSimpleName() +
-				" " + symbol;
+			return getClass().getSimpleName() + " " + symbol;
 		}
 	}
 
@@ -721,7 +777,7 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 		@Override
 		void doRun(TaskMonitor monitor) throws CancelledException {
 			SymbolTreeRootNode root = (SymbolTreeRootNode) tree.getModelRoot();
-			root.symbolRemoved(symbol, monitor);
+			root.symbolRemoved(symbol, symbol.getName(), monitor);
 			tree.refilterLater();
 		}
 	}
@@ -743,7 +799,7 @@ public class SymbolTreeProvider extends ComponentProviderAdapter {
 		public void runBulk(TaskMonitor monitor) throws CancelledException {
 
 			if (tasks.size() > MAX_TASK_COUNT) {
-				Swing.runLater(() -> rebuildTree());
+				Swing.runLater(() -> reloadTree());
 				return;
 			}
 

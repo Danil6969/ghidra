@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -42,8 +42,8 @@ import ghidra.trace.database.DBTrace;
 import ghidra.trace.model.*;
 import ghidra.trace.model.memory.*;
 import ghidra.trace.model.modules.TraceConflictedMappingException;
-import ghidra.trace.model.target.TraceObject;
-import ghidra.trace.model.target.TraceObjectKeyPath;
+import ghidra.trace.model.target.*;
+import ghidra.trace.model.target.TraceObject.ConflictResolution;
 import ghidra.trace.model.thread.*;
 import ghidra.trace.model.time.TraceSnapshot;
 import ghidra.util.*;
@@ -70,7 +70,8 @@ public class ProgramEmulationUtils {
 			        <attribute name='Modules' schema='ModuleContainer' />
 			        <attribute name='Threads' schema='ThreadContainer' />
 			    </schema>
-			    <schema name='BreakpointContainer' elementResync='NEVER' attributeResync='NEVER'>
+			    <schema name='BreakpointContainer' canonical='yes' elementResync='NEVER'
+			            attributeResync='NEVER'>
 			        <interface name='BreakpointSpecContainer' />
 			        <interface name='BreakpointLocationContainer' />
 			        <element schema='Breakpoint' />
@@ -92,6 +93,14 @@ public class ProgramEmulationUtils {
 			    </schema>
 			    <schema name='Module' elementResync='NEVER' attributeResync='NEVER'>
 			        <interface name='Module' />
+			        <attribute name='Sections' schema='SectionContainer' />
+			    </schema>
+			    <schema name='SectionContainer' canonical='yes' elementResync='NEVER'
+			            attributeResync='NEVER'>
+			        <element schema='Section' />
+			    </schema>
+			    <schema name='Section' elementResync='NEVER' attributeResync='NEVER'>
+			        <interface name='Section' />
 			    </schema>
 			    <schema name='ThreadContainer' canonical='yes' elementResync='NEVER'
 			            attributeResync='NEVER'>
@@ -99,6 +108,7 @@ public class ProgramEmulationUtils {
 			    </schema>
 			    <schema name='Thread' elementResync='NEVER' attributeResync='NEVER'>
 			        <interface name='Thread' />
+			        <interface name='Activatable' />
 			        <interface name='Aggregate' />
 			        <attribute name='Registers' schema='RegisterContainer' />
 			    </schema>
@@ -380,8 +390,108 @@ public class ProgramEmulationUtils {
 		}
 	}
 
-	public static AddressRange allocateStackCustom(Trace trace, long snap, TraceThread thread,
-			Program program) {
+	/**
+	 * Attempt allocation of the stack using the program context and the initial PC.
+	 * 
+	 * <p>
+	 * This examines the program context for a stack pointer value at the thread's initial program
+	 * counter. If it has a value, this computes a range, based on the expected stack growth
+	 * direction, of the specified size. If the range would wrap, it is truncated toe the space's
+	 * bounds. This then attempts to create a region at the computed range to allocate the stack. If
+	 * it already exists, an error dialog is presented, but the SP is still initialized as
+	 * specified.
+	 * 
+	 * @param trace the trace containing the stack and thread
+	 * @param snap the creation snap for the new region
+	 * @param thread the thread for which the stack is being allocated
+	 * @param program the program being emulated (to check for stack allocation override)
+	 * @param size the desired size of the region
+	 * @param programPc the program counter in the program's memory map, in case SP is given by the
+	 *            program context
+	 * @return the range allocated for the stack, or null if no SP value is set
+	 */
+	public static AddressRange allocateStackCustomByContext(Trace trace, long snap,
+			TraceThread thread, Program program, long size, Address programPc) {
+		if (program == null) {
+			return null;
+		}
+		ProgramContext ctx = program.getProgramContext();
+		CompilerSpec cSpec = trace.getBaseCompilerSpec();
+		Register sp = cSpec.getStackPointer();
+		RegisterValue spVal = ctx.getRegisterValue(sp, programPc);
+		if (spVal == null || !spVal.hasValue()) {
+			return null;
+		}
+
+		Address spAddr = cSpec.getStackBaseSpace().getAddress(spVal.getUnsignedValue().longValue());
+
+		final AddressRange alloc;
+		if (cSpec.stackGrowsNegative()) {
+			Address max = spAddr.subtractWrap(1);
+			Address min = spAddr.subtractWrapSpace(size);
+			if (min.compareTo(max) > 0) {
+				alloc = new AddressRangeImpl(max.getAddressSpace().getMinAddress(), max);
+			}
+			else {
+				alloc = new AddressRangeImpl(min, max);
+			}
+		}
+		else {
+			Address min = spAddr;
+			Address max = spAddr.addWrap(size - 1);
+			if (min.compareTo(max) > 0) {
+				alloc = new AddressRangeImpl(min, min.getAddressSpace().getMaxAddress());
+			}
+			else {
+				alloc = new AddressRangeImpl(min, max);
+			}
+		}
+
+		PathPattern patRegion = computePatternRegion(trace);
+		String threadName = PathUtils.isIndex(thread.getName())
+				? PathUtils.parseIndex(thread.getName())
+				: thread.getName();
+		String path = PathUtils.toString(
+			patRegion.applyKeys(alloc.getMinAddress() + "-stack " + threadName)
+					.getSingletonPath());
+		TraceMemoryManager mm = trace.getMemoryManager();
+		try {
+			return mm.createRegion(path, snap, alloc,
+				TraceMemoryFlag.READ, TraceMemoryFlag.WRITE).getRange();
+		}
+		catch (TraceOverlappedRegionException e) {
+			Msg.showError(ProgramEmulationUtils.class, null, "Stack conflict",
+				("The stack region %s conflicts with another: %s. " +
+					"You may need to initialize the stack pointer manually.").formatted(
+						alloc, e.getConflicts().iterator().next()));
+			return alloc;
+		}
+		catch (DuplicateNameException e) {
+			Msg.showError(ProgramEmulationUtils.class, null, "Stack conflict",
+				("A region already exists with the same name: %s. " +
+					"You may need to initialize the stack pointer manually.")
+							.formatted(path));
+			return alloc;
+		}
+	}
+
+	/**
+	 * Attempt allocation of the stack using the program's STACK block.
+	 * 
+	 * <p>
+	 * This tries to find a block named STACK in the emulated program. If it finds one, it will
+	 * attempt to create a region in the trace at the mapped dynamic location. It's possible (likely
+	 * even, for a multi-threaded emulation session) that the region already exists. In that case,
+	 * an error dialog is displayed, but the stack pointer is still initialized to the block.
+	 * 
+	 * @param trace the trace containing the stack and thread
+	 * @param snap the creation snap for the new region
+	 * @param thread the thread for which the stack is being allocated
+	 * @param program the program being emulated (to check for stack allocation override)
+	 * @return the range allocated for the stack, or null if no STACK block exists
+	 */
+	public static AddressRange allocateStackCustomByBlock(Trace trace, long snap,
+			TraceThread thread, Program program) {
 		if (program == null) {
 			return null;
 		}
@@ -431,23 +541,30 @@ public class ProgramEmulationUtils {
 	 * 
 	 * <p>
 	 * If successful, this will create a dynamic memory region representing the stack. If the stack
-	 * is specified by an override (STACK block) in the program, and that block overlays the image,
-	 * then no region is created.
+	 * is specified by an override (SP register context or STACK block) in the program, and that
+	 * block overlays the image, then no region is created, but the range is still returned.
 	 * 
 	 * @param trace the trace containing the stack and thread
 	 * @param snap the creation snap for the new region
 	 * @param thread the thread for which the stack is being allocated
 	 * @param program the program being emulated (to check for stack allocation override)
 	 * @param size the desired size of the region
+	 * @param programPc the program counter in the program's memory map, in case SP is given by the
+	 *            program context
 	 * @return the range allocated for the stack
 	 * 
 	 * @throws EmulatorOutOfMemoryException if the stack cannot be allocated
 	 */
 	public static AddressRange allocateStack(Trace trace, long snap, TraceThread thread,
-			Program program, long size) {
-		AddressRange custom = allocateStackCustom(trace, snap, thread, program);
-		if (custom != null) {
-			return custom;
+			Program program, long size, Address programPc) {
+		AddressRange customByContext =
+			allocateStackCustomByContext(trace, snap, thread, program, size, programPc);
+		if (customByContext != null) {
+			return customByContext;
+		}
+		AddressRange customByBlock = allocateStackCustomByBlock(trace, snap, thread, program);
+		if (customByBlock != null) {
+			return customByBlock;
 		}
 		// Otherwise, just search for an un-allocated block of the given size.
 		AddressSpace space = trace.getBaseCompilerSpec().getStackBaseSpace();
@@ -485,6 +602,20 @@ public class ProgramEmulationUtils {
 		throw new EmulatorOutOfMemoryException();
 	}
 
+	protected static void createObjects(Trace trace) {
+		TraceObjectManager om = trace.getObjectManager();
+		om.createRootObject(EMU_SESSION_SCHEMA);
+
+		om.createObject(TraceObjectKeyPath.parse("Breakpoints"))
+				.insert(Lifespan.ALL, ConflictResolution.DENY);
+		om.createObject(TraceObjectKeyPath.parse("Memory"))
+				.insert(Lifespan.ALL, ConflictResolution.DENY);
+		om.createObject(TraceObjectKeyPath.parse("Modules"))
+				.insert(Lifespan.ALL, ConflictResolution.DENY);
+		om.createObject(TraceObjectKeyPath.parse("Threads"))
+				.insert(Lifespan.ALL, ConflictResolution.DENY);
+	}
+
 	/**
 	 * Create a new trace with a single thread, ready for emulation of the given program
 	 * 
@@ -501,7 +632,8 @@ public class ProgramEmulationUtils {
 		try {
 			trace = new DBTrace(getTraceName(program), program.getCompilerSpec(), consumer);
 			try (Transaction tx = trace.openTransaction("Emulate")) {
-				trace.getObjectManager().createRootObject(EMU_SESSION_SCHEMA);
+				createObjects(trace);
+
 				TraceSnapshot initial =
 					trace.getTimeManager().createSnapshot(EMULATION_STARTED_AT + pc);
 				long snap = initial.getKey();
@@ -540,7 +672,7 @@ public class ProgramEmulationUtils {
 		TraceThread thread = spawnThread(trace, snap);
 		AddressRange stack;
 		try {
-			stack = allocateStack(trace, snap, thread, program, 0x4000);
+			stack = allocateStack(trace, snap, thread, program, 0x4000, programPc);
 		}
 		catch (EmulatorOutOfMemoryException e) {
 			Msg.warn(ProgramEmulationUtils.class,

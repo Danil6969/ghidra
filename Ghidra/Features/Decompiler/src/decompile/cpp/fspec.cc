@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -49,6 +49,7 @@ ElementId ELEM_RESOLVEPROTOTYPE = ElementId("resolveprototype",170);
 ElementId ELEM_RETPARAM = ElementId("retparam",171);
 ElementId ELEM_RETURNSYM = ElementId("returnsym",172);
 ElementId ELEM_UNAFFECTED = ElementId("unaffected",173);
+ElementId ELEM_INTERNAL_STORAGE = ElementId("internal_storage",286);
 
 /// \brief Find a ParamEntry matching the given storage Varnode
 ///
@@ -2446,6 +2447,7 @@ ProtoModel::ProtoModel(const string &nm,const ProtoModel &op2)
 
   effectlist = op2.effectlist;
   likelytrash = op2.likelytrash;
+  internalstorage = op2.internalstorage;
 
   injectUponEntry = op2.injectUponEntry;
   injectUponReturn = op2.injectUponReturn;
@@ -2637,6 +2639,7 @@ void ProtoModel::decode(Decoder &decoder)
   injectUponEntry = -1;
   injectUponReturn = -1;
   likelytrash.clear();
+  internalstorage.clear();
   uint4 elemId = decoder.openElement(ELEM_PROTOTYPE);
   for(;;) {
     uint4 attribId = decoder.getNextAttributeId();
@@ -2734,6 +2737,14 @@ void ProtoModel::decode(Decoder &decoder)
       }
       decoder.closeElement(subId);
     }
+    else if (subId == ELEM_INTERNAL_STORAGE) {
+      decoder.openElement();
+      while(decoder.peekElement() != 0) {
+	internalstorage.emplace_back();
+	internalstorage.back().decode(decoder);
+      }
+      decoder.closeElement(subId);
+    }
     else if (subId == ELEM_PCODE) {
       int4 injectId = glb->pcodeinjectlib->decodeInject("Protomodel : "+name, name,
 							InjectPayload::CALLMECHANISM_TYPE,decoder);
@@ -2753,6 +2764,7 @@ void ProtoModel::decode(Decoder &decoder)
   }
   sort(effectlist.begin(),effectlist.end(),EffectRecord::compareByAddress);
   sort(likelytrash.begin(),likelytrash.end());
+  sort(internalstorage.begin(),internalstorage.end());
   if (!sawlocalrange)
     defaultLocalRange();
   if (!sawparamrange)
@@ -2862,19 +2874,20 @@ void ProtoModelMerged::intersectEffects(const vector<EffectRecord> &efflist)
   effectlist.swap(newlist);
 }
 
-/// The \e likely-trash locations are intersected. Anything in \b this that is not also in the
-/// given \e likely-trash list is removed.
-/// \param trashlist is the given \e likely-trash list
-void ProtoModelMerged::intersectLikelyTrash(const vector<VarnodeData> &trashlist)
+/// The intersection of two containers of register Varnodes is calculated, and the result is
+/// placed in the first container, replacing the original contents.  The containers must already be sorted.
+/// \param regList1 is the first container
+/// \param regList2 is the second container
+void ProtoModelMerged::intersectRegisters(vector<VarnodeData> &regList1,const vector<VarnodeData> &regList2)
 
 {
   vector<VarnodeData> newlist;
 
   int4 i=0;
   int4 j=0;
-  while((i<likelytrash.size())&&(j<trashlist.size())) {
-    const VarnodeData &trs1( likelytrash[i] );
-    const VarnodeData &trs2( trashlist[j] );
+  while((i<regList1.size())&&(j<regList2.size())) {
+    const VarnodeData &trs1( regList1[i] );
+    const VarnodeData &trs2( regList2[j] );
 
     if (trs1 < trs2)
       i += 1;
@@ -2886,7 +2899,7 @@ void ProtoModelMerged::intersectLikelyTrash(const vector<VarnodeData> &trashlist
       j += 1;
     }
   }
-  likelytrash = newlist;
+  regList1.swap(newlist);
 }
 
 /// \param model is the new prototype model to add to the merge
@@ -2917,7 +2930,8 @@ void ProtoModelMerged::foldIn(ProtoModel *model)
     if ((injectUponEntry != model->injectUponEntry)||(injectUponReturn != model->injectUponReturn))
       throw LowlevelError("Cannot merge prototype models with different inject ids");
     intersectEffects(model->effectlist);
-    intersectLikelyTrash(model->likelytrash);
+    intersectRegisters(likelytrash,model->likelytrash);
+    intersectRegisters(internalstorage,model->internalstorage);
     // Take the union of the localrange and paramrange
     set<Range>::const_iterator iter;
     for(iter=model->localrange.begin();iter!=model->localrange.end();++iter)
@@ -3213,6 +3227,8 @@ ProtoParameter *ProtoStoreSymbol::setInput(int4 i, const string &nm,const Parame
 
   bool isindirect = (pieces.flags & ParameterPieces::indirectstorage) != 0;
   bool ishidden = (pieces.flags & ParameterPieces::hiddenretparm) != 0;
+  bool istypelock = (pieces.flags & ParameterPieces::typelock) != 0;
+  bool isnamelock = (pieces.flags & ParameterPieces::namelock) != 0;
   if (res->sym != (Symbol *)0) {
     entry = res->sym->getFirstWholeMap();
     if ((entry->getAddr() != pieces.addr)||(entry->getSize() != pieces.type->getSize())) {
@@ -3225,12 +3241,16 @@ ProtoParameter *ProtoStoreSymbol::setInput(int4 i, const string &nm,const Parame
       usepoint = restricted_usepoint;
     res->sym = scope->addSymbol(nm,pieces.type,pieces.addr,usepoint)->getSymbol();
     scope->setCategory(res->sym,Symbol::function_parameter,i);
-    if (isindirect || ishidden) {
+    if (isindirect || ishidden || istypelock || isnamelock) {
       uint4 mirror = 0;
       if (isindirect)
 	mirror |= Varnode::indirectstorage;
       if (ishidden)
 	mirror |= Varnode::hiddenretparm;
+      if (istypelock)
+	mirror |= Varnode::typelock;
+      if (isnamelock)
+	mirror |= Varnode::namelock;
       scope->setAttribute(res->sym,mirror);
     }
     return res;
@@ -3246,6 +3266,18 @@ ProtoParameter *ProtoStoreSymbol::setInput(int4 i, const string &nm,const Parame
       scope->setAttribute(res->sym,Varnode::hiddenretparm);
     else
       scope->clearAttribute(res->sym,Varnode::hiddenretparm);
+  }
+  if (res->sym->isTypeLocked() != istypelock) {
+    if (istypelock)
+      scope->setAttribute(res->sym,Varnode::typelock);
+    else
+      scope->clearAttribute(res->sym,Varnode::typelock);
+  }
+  if (res->sym->isNameLocked() != isnamelock) {
+    if (isnamelock)
+      scope->setAttribute(res->sym,Varnode::namelock);
+    else
+      scope->clearAttribute(res->sym,Varnode::namelock);
   }
   if ((nm.size()!=0)&&(nm!=res->sym->getName()))
     scope->renameSymbol(res->sym,nm);
@@ -5102,38 +5134,37 @@ int4 FuncCallSpecs::transferLockedInputParam(ProtoParameter *param)
   return 0;
 }
 
-/// Return the p-code op whose output Varnode corresponds to the given parameter (return value)
+/// \brief Return any outputs of \b this CALL that contain or are contained by the given return value parameter
 ///
-/// The Varnode may be attached to the base CALL or CALLIND, but it also may be
-/// attached to an INDIRECT preceding the CALL. The output Varnode may not exactly match
-/// the dimensions of the given parameter. We return non-null if either:
+/// The output Varnodes may be attached to the base CALL or CALLIND, but also may be
+/// attached to an INDIRECT preceding the CALL. The output Varnodes may not exactly match
+/// the dimensions of the given parameter. We pass back a Varnode if either:
 ///    - The parameter contains the Varnode   (the easier case)  OR if
 ///    - The Varnode properly contains the parameter
 /// \param param is the given paramter (return value)
+/// \param newoutput will hold any overlapping output Varnodes
 /// \return the matching PcodeOp or NULL
-PcodeOp *FuncCallSpecs::transferLockedOutputParam(ProtoParameter *param)
+void FuncCallSpecs::transferLockedOutputParam(ProtoParameter *param,vector<Varnode *> &newoutput)
 
 {
   Varnode *vn = op->getOut();
   if (vn != (Varnode *)0) {
-    if (param->getAddress().justifiedContain(param->getSize(),vn->getAddr(),vn->getSize(),false)==0)
-      return op;
-    if (vn->getAddr().justifiedContain(vn->getSize(),param->getAddress(),param->getSize(),false)==0)
-      return op;
-    return (PcodeOp *)0;
+    if (param->getAddress().justifiedContain(param->getSize(),vn->getAddr(),vn->getSize(),false)>=0)
+      newoutput.push_back(vn);
+    else if (vn->getAddr().justifiedContain(vn->getSize(),param->getAddress(),param->getSize(),false)>=0)
+      newoutput.push_back(vn);
   }
   PcodeOp *indop = op->previousOp();
   while((indop!=(PcodeOp *)0)&&(indop->code()==CPUI_INDIRECT)) {
     if (indop->isIndirectCreation()) {
       vn = indop->getOut();
-      if (param->getAddress().justifiedContain(param->getSize(),vn->getAddr(),vn->getSize(),false)==0)
-	return indop;
-      if (vn->getAddr().justifiedContain(vn->getSize(),param->getAddress(),param->getSize(),false)==0)
-	return indop;
+      if (param->getAddress().justifiedContain(param->getSize(),vn->getAddr(),vn->getSize(),false)>=0)
+	newoutput.push_back(vn);
+      else if (vn->getAddr().justifiedContain(vn->getSize(),param->getAddress(),param->getSize(),false)>=0)
+	newoutput.push_back(vn);
     }
     indop = indop->previousOp();
   }
-  return (PcodeOp *)0;
 }
 
 /// \brief List and/or create a Varnode for each input parameter of matching a source prototype
@@ -5175,19 +5206,14 @@ bool FuncCallSpecs::transferLockedInput(vector<Varnode *> &newinput,const FuncPr
 /// \param newoutput will hold the passed back Varnode
 /// \param source is the source prototype
 /// \return \b true if the passed back value is accurate
-bool FuncCallSpecs::transferLockedOutput(Varnode *&newoutput,const FuncProto &source)
+bool FuncCallSpecs::transferLockedOutput(vector<Varnode *> &newoutput,const FuncProto &source)
 
 {
   ProtoParameter *param = source.getOutput();
   if (param->getType()->getMetatype() == TYPE_VOID) {
-    newoutput = (Varnode *)0;
     return true;
   }
-  PcodeOp *outop = transferLockedOutputParam(param);
-  if (outop == (PcodeOp *)0)
-    newoutput = (Varnode *)0;
-  else
-    newoutput = outop->getOut();
+  transferLockedOutputParam(param,newoutput);
   return true;
 }
 
@@ -5244,103 +5270,136 @@ void FuncCallSpecs::commitNewInputs(Funcdata &data,vector<Varnode *> &newinput)
 
 /// \brief Update output Varnode to \b this CALL to reflect the formal return value
 ///
-/// The current return value must be locked and is presumably out of date
-/// with the current CALL output. Unless the return value is \e void, the
-/// output Varnode must exist and must be provided.
-/// The Varnode is updated to reflect the return value,
-/// which may involve truncating or extending. Any active trials are updated,
-/// and the new Varnode is set as the CALL output.
+/// The current return value must be locked and is presumably out of date with the current CALL output.
+/// Unless the return value is \e void, the output Varnode must exist and must be provided.
+/// The Varnode is created/updated to reflect the return value and is set as the CALL output.
+/// Any other intersecting outputs are updated to be either truncations or extensions of this.
+/// Any active trials are updated,
 /// \param data is the calling function
-/// \param newout is the provided old output Varnode (or NULL)
-void FuncCallSpecs::commitNewOutputs(Funcdata &data,Varnode *newout)
+/// \param newoutput is the list of intersecting outputs
+void FuncCallSpecs::commitNewOutputs(Funcdata &data,vector<Varnode *> &newoutput)
 
 {
   if (!isOutputLocked()) return;
   activeoutput.clear();
 
-  if (newout != (Varnode *)0) {
+  if (!newoutput.empty()) {
     ProtoParameter *param = getOutput();
     // We could conceivably truncate the output to the correct size to match the parameter
     activeoutput.registerTrial(param->getAddress(),param->getSize());
-    PcodeOp *indop = newout->getDef();
-    if (newout->getSize() == 1 && param->getType()->getMetatype() == TYPE_BOOL && data.isTypeRecoveryOn())
+    if (param->getSize() == 1 && param->getType()->getMetatype() == TYPE_BOOL && data.isTypeRecoveryOn())
       data.opMarkCalculatedBool(op);
-    if (newout->getSize() == param->getSize()) {
-      if (indop != op) {
-	data.opUnsetOutput(indop);
-	data.opUnlink(indop);	// We know this is an indirect creation which is no longer used
+    Varnode *exactMatch = (Varnode *)0;
+    for(int4 i=0;i<newoutput.size();++i) {
+      if (newoutput[i]->getSize() == param->getSize()) {
+	exactMatch = newoutput[i];
+	break;
+      }
+    }
+    Varnode *realOut;
+    PcodeOp *indOp;
+    if (exactMatch != (Varnode *)0) {
+      // If we have a Varnode that exactly matches param, make sure it is the output of the CALL
+      indOp = exactMatch->getDef();
+      if (op != indOp) {
 	// If we reach here, we know -op- must have no output
-	data.opSetOutput(op,newout);
+	data.opSetOutput(op,exactMatch);
+	data.opUnlink(indOp);	// We know this is an indirect creation which is no longer used
       }
+      realOut = exactMatch;
     }
-    else if (newout->getSize() < param->getSize()) {
-      // We know newout is properly justified within param
-      if (indop != op) {
-	data.opUninsert(indop);
-	data.opSetOpcode(indop,CPUI_SUBPIECE);
-      }
-      else {
-	indop = data.newOp(2,op->getAddr());
-	data.opSetOpcode(indop,CPUI_SUBPIECE);
-	data.opSetOutput(indop,newout);	// Move -newout- from -op- to -indop-
-      }
-      Varnode *realout = data.newVarnodeOut(param->getSize(),param->getAddress(),op);
-      data.opSetInput(indop,realout,0);
-      data.opSetInput(indop,data.newConstant(4,0),1);
-      data.opInsertAfter(indop,op);
+    else {
+      // Otherwise, we create a Varnode matching param
+      data.opUnsetOutput(op);
+      realOut = data.newVarnodeOut(param->getSize(),param->getAddress(),op);
     }
-    else {			// param->getSize() < newout->getSize()
-      // We know param is justified contained in newout
-      VarnodeData vardata;
-      // Test whether the new prototype naturally extends its output
-      OpCode opc = assumedOutputExtension(param->getAddress(),param->getSize(),vardata);
-      Address hiaddr = newout->getAddr();
-      if (opc != CPUI_COPY) {
-	// If -newout- looks like a natural extension of the true output type, create the extension op
-	if (opc == CPUI_PIECE) {	// Extend based on the datatype
-	  if (param->getType()->getMetatype() == TYPE_INT)
-	    opc = CPUI_INT_SEXT;
-	  else
-	    opc = CPUI_INT_ZEXT;
-	}
-	if (indop != op) {
-	  data.opUninsert(indop);
-	  data.opRemoveInput(indop,1);
-	  data.opSetOpcode(indop,opc);
-	  Varnode *outvn = data.newVarnodeOut(param->getSize(),param->getAddress(),op);
-	  data.opSetInput(indop,outvn,0);
-	  data.opInsertAfter(indop,op);
+
+    for(int4 i=0;i<newoutput.size();++i) {
+      Varnode *oldOut = newoutput[i];
+      if (oldOut == exactMatch) continue;
+      indOp = oldOut->getDef();
+      if (indOp == op)
+	indOp = (PcodeOp *)0;
+      if (oldOut->getSize() < param->getSize()) {
+	if (indOp != (PcodeOp *)0) {
+	  data.opUninsert(indOp);
+	  data.opSetOpcode(indOp,CPUI_SUBPIECE);
 	}
 	else {
-	  PcodeOp *extop = data.newOp(1,op->getAddr());
-	  data.opSetOpcode(extop,opc);
-	  data.opSetOutput(extop,newout);	// Move newout from -op- to -extop-
-	  Varnode *outvn = data.newVarnodeOut(param->getSize(),param->getAddress(),op);
-	  data.opSetInput(extop,outvn,0);
-	  data.opInsertAfter(extop,op);
+	  indOp = data.newOp(2,op->getAddr());
+	  data.opSetOpcode(indOp,CPUI_SUBPIECE);
+	  data.opSetOutput(indOp,oldOut);	// Move oldOut from op to indOp
 	}
+	int4 overlap = oldOut->overlap(realOut->getAddr(),realOut->getSize());
+	data.opSetInput(indOp,realOut,0);
+	data.opSetInput(indOp,data.newConstant(4,(uintb)overlap),1);
+	data.opInsertAfter(indOp,op);
       }
-      else {	// If all else fails, concatenate in extra byte from something "indirectly created" by -op-
-	int4 hisz = newout->getSize() - param->getSize();
-	if (!newout->getAddr().getSpace()->isBigEndian())
-	  hiaddr = hiaddr + param->getSize();
-	PcodeOp *newindop = data.newIndirectCreation(op,hiaddr,hisz,true);
-	if (indop != op) {
-	  data.opUninsert(indop);
-	  data.opSetOpcode(indop,CPUI_PIECE);
-	  Varnode *outvn = data.newVarnodeOut(param->getSize(),param->getAddress(),op);
-	  data.opSetInput(indop,newindop->getOut(),0);
-	  data.opSetInput(indop,outvn,1);
-	  data.opInsertAfter(indop,op);
+      else if (param->getSize() < oldOut->getSize()) {
+	int4 overlap = oldOut->getAddr().justifiedContain(oldOut->getSize(), param->getAddress(), param->getSize(), false);
+	VarnodeData vardata;
+	// Test whether the new prototype naturally extends its output
+	OpCode opc = assumedOutputExtension(param->getAddress(),param->getSize(),vardata);
+	if (opc != CPUI_COPY && overlap == 0) {
+	  // If oldOut looks like a natural extension of the true output type, create the extension op
+	  if (opc == CPUI_PIECE) {	// Extend based on the data-type
+	    if (param->getType()->getMetatype() == TYPE_INT)
+	      opc = CPUI_INT_SEXT;
+	    else
+	      opc = CPUI_INT_ZEXT;
+	  }
+	  if (indOp != (PcodeOp *)0) {
+	    data.opUninsert(indOp);
+	    data.opRemoveInput(indOp,1);
+	    data.opSetOpcode(indOp,opc);
+	    data.opSetInput(indOp,realOut,0);
+	    data.opInsertAfter(indOp,op);
+	  }
+	  else {
+	    PcodeOp *extop = data.newOp(1,op->getAddr());
+	    data.opSetOpcode(extop,opc);
+	    data.opSetOutput(extop,oldOut);	// Move newout from -op- to -extop-
+	    data.opSetInput(extop,realOut,0);
+	    data.opInsertAfter(extop,op);
+	  }
 	}
-	else {
-	  PcodeOp *concatop = data.newOp(2,op->getAddr());
-	  data.opSetOpcode(concatop,CPUI_PIECE);
-	  data.opSetOutput(concatop,newout); // Move newout from -op- to -concatop-
-	  Varnode *outvn = data.newVarnodeOut(param->getSize(),param->getAddress(),op);
-	  data.opSetInput(concatop,newindop->getOut(),0);
-	  data.opSetInput(concatop,outvn,1);
-	  data.opInsertAfter(concatop,op);
+	else {	// If all else fails, concatenate in extra byte from something "indirectly created" by -op-
+	  if (indOp != (PcodeOp *)0) {
+	    data.opUnlink(indOp);
+	  }
+	  int4 mostSigSize = oldOut->getSize() - overlap - realOut->getSize();
+	  PcodeOp *lastOp = op;
+	  if (overlap != 0) {		// We need to append less significant bytes to realOut for this oldOut
+	    Address loAddr = oldOut->getAddr();
+	    if (loAddr.isBigEndian())
+	      loAddr = loAddr + (oldOut->getSize() - overlap);
+	    PcodeOp *newIndOp = data.newIndirectCreation(op,loAddr,overlap,true);
+	    PcodeOp *concatOp = data.newOp(2,op->getAddr());
+	    data.opSetOpcode(concatOp,CPUI_PIECE);
+	    data.opSetInput(concatOp,realOut,0); // Most significant part
+	    data.opSetInput(concatOp,newIndOp->getOut(),1); // Least sig
+	    data.opInsertAfter(concatOp,op);
+	    if (mostSigSize != 0) {
+	      if (loAddr.isBigEndian())
+		data.newVarnodeOut(overlap+realOut->getSize(),realOut->getAddr(),concatOp);
+	      else
+		data.newVarnodeOut(overlap+realOut->getSize(),loAddr,concatOp);
+	    }
+	    lastOp = concatOp;
+	  }
+	  if (mostSigSize != 0) {	// We need to append more significant bytes to realOut for this oldOut
+	    Address hiAddr = oldOut->getAddr();
+	    if (!hiAddr.isBigEndian())
+	      hiAddr = hiAddr + (realOut->getSize() + overlap);
+	    PcodeOp *newIndOp = data.newIndirectCreation(op,hiAddr,mostSigSize,true);
+	    PcodeOp *concatOp = data.newOp(2,op->getAddr());
+	    data.opSetOpcode(concatOp,CPUI_PIECE);
+	    data.opSetInput(concatOp,newIndOp->getOut(),0);
+	    data.opSetInput(concatOp,lastOp->getOut(),1);
+	    data.opInsertAfter(concatOp,lastOp);
+	    lastOp = concatOp;
+	  }
+	  data.opSetOutput(lastOp,oldOut);	// We have completed the redefinition of this oldOut
 	}
       }
     }
@@ -5425,7 +5484,8 @@ void FuncCallSpecs::doInputJoin(int4 slot1,bool ishislot)
 /// \param newinput will hold the new list of input Varnodes for the CALL
 /// \param newoutput will hold the new output Varnode or NULL
 /// \return \b true if \b this can be fully converted
-bool FuncCallSpecs::lateRestriction(const FuncProto &restrictedProto,vector<Varnode *> &newinput,Varnode *&newoutput)
+bool FuncCallSpecs::lateRestriction(const FuncProto &restrictedProto,vector<Varnode *> &newinput,
+				    vector<Varnode *> &newoutput)
 
 {
   if (!hasModel()) {
@@ -5475,7 +5535,7 @@ void FuncCallSpecs::deindirect(Funcdata &data,Funcdata *newfd)
   // Try our best to merge existing prototype
   // with the one we have just been handed
   vector<Varnode *> newinput;
-  Varnode *newoutput;
+  vector<Varnode *> newoutput;
   FuncProto &newproto( newfd->getFuncProto() );
   if ((!newproto.isNoReturn())&&(!newproto.isInline())) {
     if (isOverride())	// If we are overridden at the call-site
@@ -5506,7 +5566,7 @@ void FuncCallSpecs::forceSet(Funcdata &data,const FuncProto &fp)
 
 {
   vector<Varnode *> newinput;
-  Varnode *newoutput;
+  vector<Varnode *> newoutput;
 
   // Copy the recovered prototype into the override manager so that
   // future restarts don't have to rediscover it

@@ -15,6 +15,8 @@
  */
 package ghidra.app.plugin.core.datamgr.archive;
 
+import static ghidra.framework.main.DataTreeDialogType.*;
+
 import java.awt.Component;
 import java.awt.event.ActionListener;
 import java.io.*;
@@ -31,6 +33,7 @@ import ghidra.app.plugin.core.datamgr.util.DataTypeArchiveUtility;
 import ghidra.app.util.HelpTopics;
 import ghidra.framework.client.*;
 import ghidra.framework.main.DataTreeDialog;
+import ghidra.framework.main.DataTreeDialogType;
 import ghidra.framework.model.*;
 import ghidra.framework.options.SaveState;
 import ghidra.framework.plugintool.PluginTool;
@@ -637,7 +640,6 @@ public class DataTypeManagerHandler {
 
 	void dataTypeManagerChanged(FileArchive archive, DataTypeManager oldManager,
 			DataTypeManager newManager) {
-
 		oldManager.removeDataTypeManagerListener(listenerDelegate);
 		newManager.addDataTypeManagerListener(listenerDelegate);
 		dataTypeIndexer.removeDataTypeManager(oldManager);
@@ -1236,6 +1238,13 @@ public class DataTypeManagerHandler {
 				listener.programArchitectureChanged(dataTypeManager);
 			}
 		}
+
+		@Override
+		public void restored(DataTypeManager dataTypeManager) {
+			for (DataTypeManagerChangeListener listener : dataTypeManagerListeners) {
+				listener.restored(dataTypeManager);
+			}
+		}
 	}
 
 	/**
@@ -1409,8 +1418,7 @@ public class DataTypeManagerHandler {
 	}
 
 	private DataTreeDialog getSaveDialog() {
-		DataTreeDialog dialog =
-			new DataTreeDialog(null, "Save As", DataTreeDialog.SAVE, createArchiveFileFilter);
+		DataTreeDialog dialog = new DataTreeDialog(null, "Save As", SAVE, createArchiveFileFilter);
 
 		ActionListener listener = event -> {
 			DomainFolder folder = dialog.getDomainFolder();
@@ -1442,7 +1450,7 @@ public class DataTypeManagerHandler {
 	private CreateDataTypeArchiveDataTreeDialog getCreateDialog() {
 
 		CreateDataTypeArchiveDataTreeDialog dialog = new CreateDataTypeArchiveDataTreeDialog(null,
-			"Create", DataTreeDialog.CREATE, createArchiveFileFilter);
+			"Create", CREATE, createArchiveFileFilter);
 
 		ActionListener listener = event -> {
 			DomainFolder folder = dialog.getDomainFolder();
@@ -1498,7 +1506,7 @@ public class DataTypeManagerHandler {
 
 		private DataTypeArchiveDB dataTypeArchiveDB;
 
-		CreateDataTypeArchiveDataTreeDialog(Component parent, String title, int type,
+		CreateDataTypeArchiveDataTreeDialog(Component parent, String title, DataTreeDialogType type,
 				DomainFileFilter filter) {
 			super(parent, title, type, filter);
 		}

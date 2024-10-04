@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 package ghidra.app.plugin.core.debug.gui.modules;
+
+import static ghidra.framework.main.DataTreeDialogType.OPEN;
 
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -38,18 +40,18 @@ import ghidra.app.plugin.core.debug.DebuggerPluginPackage;
 import ghidra.app.plugin.core.debug.gui.DebuggerBlockChooserDialog;
 import ghidra.app.plugin.core.debug.gui.DebuggerResources;
 import ghidra.app.plugin.core.debug.gui.DebuggerResources.*;
-import ghidra.app.plugin.core.debug.gui.action.AutoMapSpec;
-import ghidra.app.plugin.core.debug.gui.action.AutoMapSpec.AutoMapSpecConfigFieldCodec;
 import ghidra.app.plugin.core.debug.gui.action.ByModuleAutoMapSpec;
-import ghidra.app.plugin.core.debug.service.model.TraceRecorderTarget;
 import ghidra.app.plugin.core.debug.service.modules.MapModulesBackgroundCommand;
 import ghidra.app.plugin.core.debug.service.modules.MapSectionsBackgroundCommand;
 import ghidra.app.services.*;
+import ghidra.debug.api.action.AutoMapSpec;
+import ghidra.debug.api.action.AutoMapSpec.AutoMapSpecConfigFieldCodec;
 import ghidra.debug.api.model.DebuggerObjectActionContext;
 import ghidra.debug.api.modules.*;
 import ghidra.debug.api.modules.ModuleMapProposal.ModuleMapEntry;
 import ghidra.debug.api.modules.SectionMapProposal.SectionMapEntry;
 import ghidra.debug.api.tracemgr.DebuggerCoordinates;
+import ghidra.framework.data.DomainObjectAdapterDB;
 import ghidra.framework.main.AppInfo;
 import ghidra.framework.main.DataTreeDialog;
 import ghidra.framework.model.*;
@@ -65,14 +67,31 @@ import ghidra.program.util.ProgramLocation;
 import ghidra.program.util.ProgramSelection;
 import ghidra.trace.model.*;
 import ghidra.trace.model.modules.*;
+import ghidra.trace.model.program.TraceProgramView;
+import ghidra.trace.model.target.TraceObjectValue;
 import ghidra.trace.util.TraceEvent;
 import ghidra.trace.util.TraceEvents;
-import ghidra.util.HelpLocation;
-import ghidra.util.Msg;
+import ghidra.util.*;
 
-public class DebuggerModulesProvider extends ComponentProviderAdapter {
+public class DebuggerModulesProvider extends ComponentProviderAdapter
+		implements DebuggerAutoMappingService {
+
 	protected static final AutoConfigState.ClassHandler<DebuggerModulesProvider> CONFIG_STATE_HANDLER =
 		AutoConfigState.wireHandler(DebuggerModulesProvider.class, MethodHandles.lookup());
+
+	protected static final String NO_MODULES_PROPOSAL_SEL = """
+			Could not formulate a proposal for any selected module. \
+			You may need to import and/or open the destination images first.\
+			""";
+
+	protected static final String FMT_NO_MODULES_PROPOSAL_RETRY = """
+			Could not formulate a proposal for program '%s' to trace '%s'. \
+			The module may not be loaded yet, or the chosen image could be wrong.\
+			""";
+
+	protected static final String FMT_NO_MODULES_PROPOSAL_CURRENT = """
+			Could not formulate a proposal from module '%s' to program '%s'.\
+			""";
 
 	protected static boolean sameCoordinates(DebuggerCoordinates a, DebuggerCoordinates b) {
 		if (!Objects.equals(a.getTrace(), b.getTrace())) {
@@ -106,7 +125,7 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	interface MapManuallyAction {
 		String NAME = DebuggerResources.NAME_MAP_MANUALLY;
 		String DESCRIPTION = DebuggerResources.DESCRIPTION_MAP_MANUALLY;
-		Icon ICON = DebuggerResources.ICON_MAPPINGS;
+		Icon ICON = DebuggerResources.ICON_MAP_MANUALLY;
 		String GROUP = DebuggerResources.GROUP_MAPPING;
 		String HELP_ANCHOR = "map_manually";
 
@@ -196,7 +215,7 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 
 	interface AutoMapAction {
 		String NAME = "Auto-Map Target Memory";
-		Icon ICON = DebuggerResources.ICON_CONFIG;
+		Icon ICON = DebuggerResources.ICON_MAP_AUTO;
 		String DESCRIPTION = "Automatically map dynamic memory to static counterparts";
 		String GROUP = DebuggerResources.GROUP_MAPPING;
 		String HELP_ANCHOR = "auto_map";
@@ -251,6 +270,57 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		}
 	}
 
+	interface MapMissingProgramRetryAction {
+		String NAME = "Retry Map Missing Program";
+		String DESCRIPTION = "Retry mapping the missing program by finding its module";
+		Icon ICON = DebuggerResources.ICON_MAP_AUTO;
+		String HELP_ANCHOR = "map_missing_program_retry";
+
+		static ActionBuilder builder(Plugin owner) {
+			String ownerName = owner.getName();
+			return new ActionBuilder(NAME, ownerName)
+					.description(DESCRIPTION)
+					.toolBarIcon(ICON)
+					.popupMenuIcon(ICON)
+					.popupMenuPath(NAME)
+					.helpLocation(new HelpLocation(ownerName, HELP_ANCHOR));
+		}
+	}
+
+	interface MapMissingProgramToCurrentAction {
+		String NAME = "Map Missing Program to Current Module";
+		String DESCRIPTION = "Map the missing program to the current module";
+		Icon ICON = DebuggerResources.ICON_MAP_MODULES;
+		String HELP_ANCHOR = "map_missing_program_current";
+
+		static ActionBuilder builder(Plugin owner) {
+			String ownerName = owner.getName();
+			return new ActionBuilder(NAME, ownerName)
+					.description(DESCRIPTION)
+					.toolBarIcon(ICON)
+					.popupMenuIcon(ICON)
+					.popupMenuPath(NAME)
+					.helpLocation(new HelpLocation(ownerName, HELP_ANCHOR));
+		}
+	}
+
+	interface MapMissingProgramIdenticallyAction {
+		String NAME = "Map Missing Program Identically";
+		String DESCRIPTION = "Map the missing program to its trace identically";
+		Icon ICON = DebuggerResources.ICON_MAP_IDENTICALLY;
+		String HELP_ANCHOR = "map_missing_program_identically";
+
+		static ActionBuilder builder(Plugin owner) {
+			String ownerName = owner.getName();
+			return new ActionBuilder(NAME, ownerName)
+					.description(DESCRIPTION)
+					.toolBarIcon(ICON)
+					.popupMenuIcon(ICON)
+					.popupMenuPath(NAME)
+					.helpLocation(new HelpLocation(ownerName, HELP_ANCHOR));
+		}
+	}
+
 	interface ShowSectionsTableAction {
 		String NAME = "Show Sections Table";
 		Icon ICON = new GIcon("icon.debugger.modules.table.sections");
@@ -269,27 +339,82 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		}
 	}
 
-	protected class ForMappingTraceListener extends TraceDomainObjectListener {
-		public ForMappingTraceListener(AutoMapSpec spec) {
+	protected static class AutoMapState extends TraceDomainObjectListener
+			implements TransactionListener {
+
+		private final PluginTool tool;
+		private final Trace trace;
+		private final AutoMapSpec spec;
+		private volatile boolean couldHaveChanged = true;
+		private volatile String infosLastTime = "";
+
+		public AutoMapState(PluginTool tool, Trace trace, AutoMapSpec spec) {
+			this.tool = tool;
+			this.trace = trace;
+			this.spec = spec;
 			for (TraceEvent<?, ?> type : spec.getChangeTypes()) {
 				listenFor(type, this::changed);
 			}
 
-			// Delete this if/when TraceRecorderTarget is removed
-			listenFor(TraceEvents.BYTES_CHANGED, this::memoryChanged);
+			listenFor(TraceEvents.VALUE_CREATED, this::valueCreated);
+			listenForUntyped(DomainObjectEvent.RESTORED, this::objectRestored);
+
+			trace.addListener(this);
+			trace.addTransactionListener(this);
+		}
+
+		public void dispose() {
+			trace.removeListener(this);
+			trace.removeTransactionListener(this);
 		}
 
 		private void changed() {
-			cueAutoMap = true;
+			couldHaveChanged = true;
 		}
 
-		private void memoryChanged(TraceAddressSnapRange range) {
-			if (range.getRange().getAddressSpace().isRegisterSpace()) {
+		private void valueCreated(TraceObjectValue value) {
+			couldHaveChanged = true;
+		}
+
+		private void objectRestored(DomainObjectChangeRecord rec) {
+			couldHaveChanged = true;
+		}
+
+		@Override
+		public void transactionStarted(DomainObjectAdapterDB domainObj, TransactionInfo tx) {
+		}
+
+		@Override
+		public void transactionEnded(DomainObjectAdapterDB domainObj) {
+			checkAutoMap();
+		}
+
+		@Override
+		public void undoStackChanged(DomainObjectAdapterDB domainObj) {
+		}
+
+		@Override
+		public void undoRedoOccurred(DomainObjectAdapterDB domainObj) {
+		}
+
+		private void checkAutoMap() {
+			if (!couldHaveChanged) {
 				return;
 			}
-			if (current.getTarget() instanceof TraceRecorderTarget) {
-				doCuedAutoMap();
+			couldHaveChanged = false;
+			String infosThisTime = spec.getInfoForObjects(trace);
+			if (Objects.equals(infosThisTime, infosLastTime)) {
+				return;
 			}
+			infosLastTime = infosThisTime;
+
+			spec.runTask(tool, trace);
+		}
+
+		public void forceMap() {
+			couldHaveChanged = true;
+			infosLastTime = "";
+			checkAutoMap();
 		}
 	}
 
@@ -402,9 +527,17 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		}
 	}
 
+	protected class ForCleanupMappingChangeListener
+			implements DebuggerStaticMappingChangeListener {
+		@Override
+		public void mappingsChanged(Set<Trace> affectedTraces, Set<Program> affectedPrograms) {
+			Swing.runIfSwingOrRunLater(() -> cleanMissingProgramMessages(null, null));
+		}
+	}
+
 	final DebuggerModulesPlugin plugin;
 
-	@AutoServiceConsumed
+	//@AutoServiceConsumed via method
 	private DebuggerStaticMappingService staticMappingService;
 	@AutoServiceConsumed
 	private DebuggerTraceManagerService traceManager;
@@ -459,11 +592,18 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	@AutoConfigStateField
 	boolean filterSectionsByModules = false;
 
-	boolean cueAutoMap;
-	private ForMappingTraceListener forMappingListener;
+	private final Map<Trace, AutoMapState> autoMapStateByTrace = new WeakHashMap<>();
+	private AutoMapState forMappingListener;
 
 	DockingAction actionImportMissingModule;
 	DockingAction actionMapMissingModule;
+
+	DockingAction actionMapMissingProgramRetry;
+	DockingAction actionMapMissingProgramToCurrent;
+	DockingAction actionMapMissingProgramIdentically;
+
+	protected final ForCleanupMappingChangeListener mappingChangeListener =
+		new ForCleanupMappingChangeListener();
 
 	SelectAddressesAction actionSelectAddresses;
 	ImportFromFileSystemAction actionImportFromFileSystem;
@@ -505,26 +645,41 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		importerService.importFile(root, file);
 	}
 
+	void addResolutionActionMaybe(DebuggerConsoleService consoleService, DockingActionIf action) {
+		if (action != null) {
+			consoleService.addResolutionAction(action);
+		}
+	}
+
+	void removeResolutionActionMaybe(DebuggerConsoleService consoleService,
+			DockingActionIf action) {
+		if (action != null) {
+			consoleService.removeResolutionAction(action);
+		}
+	}
+
 	@AutoServiceConsumed
 	private void setConsoleService(DebuggerConsoleService consoleService) {
 		if (consoleService != null) {
-			if (actionImportMissingModule != null) {
-				consoleService.addResolutionAction(actionImportMissingModule);
-			}
-			if (actionMapMissingModule != null) {
-				consoleService.addResolutionAction(actionMapMissingModule);
-			}
+			addResolutionActionMaybe(consoleService, actionImportMissingModule);
+			addResolutionActionMaybe(consoleService, actionMapMissingModule);
+			addResolutionActionMaybe(consoleService, actionMapMissingProgramRetry);
+			addResolutionActionMaybe(consoleService, actionMapMissingProgramToCurrent);
+			addResolutionActionMaybe(consoleService, actionMapMissingProgramIdentically);
 		}
 	}
 
 	protected void dispose() {
+		for (AutoMapState state : autoMapStateByTrace.values()) {
+			state.dispose();
+		}
+
 		if (consoleService != null) {
-			if (actionImportMissingModule != null) {
-				consoleService.removeResolutionAction(actionImportMissingModule);
-			}
-			if (actionMapMissingModule != null) {
-				consoleService.removeResolutionAction(actionMapMissingModule);
-			}
+			removeResolutionActionMaybe(consoleService, actionImportMissingModule);
+			removeResolutionActionMaybe(consoleService, actionMapMissingModule);
+			removeResolutionActionMaybe(consoleService, actionMapMissingProgramRetry);
+			removeResolutionActionMaybe(consoleService, actionMapMissingProgramToCurrent);
+			removeResolutionActionMaybe(consoleService, actionMapMissingProgramIdentically);
 		}
 
 		blockChooserDialog.dispose();
@@ -633,6 +788,20 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		actionMapMissingModule = MapMissingModuleAction.builder(plugin)
 				.withContext(DebuggerMissingModuleActionContext.class)
 				.onAction(this::activatedMapMissingModule)
+				.build();
+
+		actionMapMissingProgramRetry = MapMissingProgramRetryAction.builder(plugin)
+				.withContext(DebuggerMissingProgramActionContext.class)
+				.onAction(this::activatedMapMissingProgramRetry)
+				.build();
+		actionMapMissingProgramToCurrent = MapMissingProgramToCurrentAction.builder(plugin)
+				.withContext(DebuggerMissingProgramActionContext.class)
+				.enabledWhen(this::isEnabledMapMissingProgramToCurrent)
+				.onAction(this::activatedMapMissingProgramToCurrent)
+				.build();
+		actionMapMissingProgramIdentically = MapMissingProgramIdenticallyAction.builder(plugin)
+				.withContext(DebuggerMissingProgramActionContext.class)
+				.onAction(this::activatedMapMissingProgramIdentically)
 				.build();
 
 		actionSelectAddresses = new SelectAddressesAction();
@@ -778,12 +947,20 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 	}
 
 	private void doSetAutoMapSpec(AutoMapSpec autoMapSpec) {
-		if (this.autoMapSpec == autoMapSpec) {
+		this.autoMapSpec = autoMapSpec;
+
+		Trace trace = current.getTrace();
+		if (trace == null) {
 			return;
 		}
-		removeOldTraceListener();
-		this.autoMapSpec = autoMapSpec;
-		addNewTraceListener();
+		AutoMapState state = autoMapStateByTrace.remove(trace);
+		if (state != null && state.spec.equals(autoMapSpec)) {
+			autoMapStateByTrace.put(trace, state);
+		}
+		else {
+			state.dispose();
+			autoMapStateByTrace.put(trace, new AutoMapState(tool, trace, autoMapSpec));
+		}
 	}
 
 	private void activatedImportMissingModule(DebuggerMissingModuleActionContext context) {
@@ -795,6 +972,78 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 
 	private void activatedMapMissingModule(DebuggerMissingModuleActionContext context) {
 		mapModuleTo(context.getModule());
+	}
+
+	private void activatedMapMissingProgramRetry(DebuggerMissingProgramActionContext context) {
+		if (staticMappingService == null) {
+			return;
+		}
+		Program program = context.getProgram();
+		Trace trace = context.getTrace();
+		Map<TraceModule, ModuleMapProposal> map = staticMappingService.proposeModuleMaps(
+			trace.getModuleManager().getAllModules(), List.of(program));
+		Collection<ModuleMapEntry> proposal = MapProposal.flatten(map.values());
+		promptModuleProposal(proposal, FMT_NO_MODULES_PROPOSAL_RETRY.formatted(
+			trace.getDomainFile().getName(), program.getDomainFile().getName()));
+	}
+
+	private boolean isEnabledMapMissingProgramToCurrent(
+			DebuggerMissingProgramActionContext context) {
+		if (staticMappingService == null || traceManager == null || listingService == null) {
+			return false;
+		}
+		ProgramLocation loc = listingService.getCurrentLocation();
+		if (loc == null) {
+			return false;
+		}
+		if (!(loc.getProgram() instanceof TraceProgramView view)) {
+			return false;
+		}
+		Trace trace = context.getTrace();
+		if (view.getTrace() != trace) {
+			return false;
+		}
+
+		long snap = traceManager.getCurrentFor(trace).getSnap();
+		Address address = loc.getAddress();
+		return !trace.getModuleManager().getModulesAt(snap, address).isEmpty();
+	}
+
+	private void activatedMapMissingProgramToCurrent(DebuggerMissingProgramActionContext context) {
+		if (staticMappingService == null || traceManager == null || listingService == null) {
+			return;
+		}
+
+		Trace trace = context.getTrace();
+		long snap = traceManager.getCurrentFor(trace).getSnap();
+		Address address = listingService.getCurrentLocation().getAddress();
+
+		TraceModule module = trace.getModuleManager().getModulesAt(snap, address).iterator().next();
+
+		Program program = context.getProgram();
+		ModuleMapProposal proposal =
+			staticMappingService.proposeModuleMap(module, program);
+		Map<TraceModule, ModuleMapEntry> map = proposal.computeMap();
+		promptModuleProposal(map.values(), FMT_NO_MODULES_PROPOSAL_CURRENT.formatted(
+			module.getName(), program.getDomainFile().getName()));
+	}
+
+	private void activatedMapMissingProgramIdentically(
+			DebuggerMissingProgramActionContext context) {
+		if (staticMappingService == null) {
+			return;
+		}
+
+		Trace trace = context.getTrace();
+		long snap = traceManager == null ? 0 : traceManager.getCurrentFor(trace).getSnap();
+
+		try {
+			staticMappingService.addIdentityMapping(trace, context.getProgram(),
+				Lifespan.nowOn(snap), true);
+		}
+		catch (TraceConflictedMappingException e) {
+			Msg.showError(this, null, "Map Identically", e.getMessage());
+		}
 	}
 
 	private void toggledShowSectionsTable(ActionContext ignored) {
@@ -901,11 +1150,9 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		}
 	}
 
-	protected void promptModuleProposal(Collection<ModuleMapEntry> proposal) {
+	protected void promptModuleProposal(Collection<ModuleMapEntry> proposal, String emptyMsg) {
 		if (proposal.isEmpty()) {
-			Msg.showInfo(this, getComponent(), "Map Modules",
-				"Could not formulate a proposal for any selected module." +
-					" You may need to import and/or open the destination images first.");
+			Msg.showInfo(this, getComponent(), "Map Modules", emptyMsg);
 			return;
 		}
 		Collection<ModuleMapEntry> adjusted =
@@ -924,7 +1171,7 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		Map<TraceModule, ModuleMapProposal> map = staticMappingService.proposeModuleMaps(modules,
 			List.of(programManager.getAllOpenPrograms()));
 		Collection<ModuleMapEntry> proposal = MapProposal.flatten(map.values());
-		promptModuleProposal(proposal);
+		promptModuleProposal(proposal, NO_MODULES_PROPOSAL_SEL);
 	}
 
 	protected void mapModuleTo(TraceModule module) {
@@ -937,7 +1184,7 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		}
 		ModuleMapProposal proposal = staticMappingService.proposeModuleMap(module, program);
 		Map<TraceModule, ModuleMapEntry> map = proposal.computeMap();
-		promptModuleProposal(map.values());
+		promptModuleProposal(map.values(), NO_MODULES_PROPOSAL_SEL);
 	}
 
 	protected void promptSectionProposal(Collection<SectionMapEntry> proposal) {
@@ -1078,26 +1325,34 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		actionMapSectionTo.getPopupMenuData().setMenuItemName(name);
 	}
 
+	public void programOpened(Program program) {
+		AutoMapState mapState = autoMapStateByTrace.get(current.getTrace());
+		// TODO: All open traces, or just the current one?
+		if (mapState == null) {
+			// Could be, e.g., current is NOWHERE
+			return;
+		}
+		// TODO: Debounce this?
+		mapState.forceMap();
+	}
+
 	public void programClosed(Program program) {
 		if (currentProgram == program) {
 			currentProgram = null;
 		}
+		cleanMissingProgramMessages(null, program);
 	}
 
-	protected void addNewTraceListener() {
-		if (current.getTrace() != null && autoMapSpec != null) {
-			forMappingListener = new ForMappingTraceListener(autoMapSpec);
-			current.getTrace().addListener(forMappingListener);
-		}
+	public void traceOpened(Trace trace) {
+		autoMapStateByTrace.computeIfAbsent(trace, t -> new AutoMapState(tool, trace, autoMapSpec));
 	}
 
-	protected void removeOldTraceListener() {
-		if (forMappingListener != null) {
-			if (current.getTrace() != null) {
-				current.getTrace().removeListener(forMappingListener);
-			}
-			forMappingListener = null;
+	public void traceClosed(Trace trace) {
+		AutoMapState state = autoMapStateByTrace.remove(trace);
+		if (state != null) {
+			state.dispose();
 		}
+		cleanMissingProgramMessages(trace, null);
 	}
 
 	public void coordinatesActivated(DebuggerCoordinates coordinates) {
@@ -1106,17 +1361,20 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 			return;
 		}
 
-		boolean changeTrace = current.getTrace() != coordinates.getTrace();
+		Trace newTrace = coordinates.getTrace();
+		boolean changeTrace = current.getTrace() != newTrace;
 		if (changeTrace) {
 			myActionContext = null;
-			removeOldTraceListener();
 		}
 		current = coordinates;
-		if (changeTrace) {
-			addNewTraceListener();
+
+		AutoMapState amState = autoMapStateByTrace.get(newTrace);
+		if (amState != null) {
+			// Can't just set field directly. Want GUI update.
+			setAutoMapSpec(amState.spec);
 		}
 
-		if (Trace.isLegacy(coordinates.getTrace())) {
+		if (Trace.isLegacy(newTrace)) {
 			modulesPanel.coordinatesActivated(DebuggerCoordinates.NOWHERE);
 			sectionsPanel.coordinatesActivated(DebuggerCoordinates.NOWHERE);
 			legacyModulesPanel.coordinatesActivated(coordinates);
@@ -1144,22 +1402,6 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		}
 
 		contextChanged();
-
-		if (coordinates.getTarget() instanceof TraceRecorderTarget) {
-			// HACK while TraceRecorderTarget is still around
-			cueAutoMap = true;
-		}
-		doCuedAutoMap();
-	}
-
-	private void doCuedAutoMap() {
-		if (cueAutoMap) {
-			cueAutoMap = false;
-			Trace trace = current.getTrace();
-			if (autoMapSpec != null && trace != null) {
-				autoMapSpec.runTask(tool, trace);
-			}
-		}
 	}
 
 	public void setSelectedModules(Set<TraceModule> sel) {
@@ -1184,12 +1426,7 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 
 		DomainFileFilter filter = df -> Program.class.isAssignableFrom(df.getDomainObjectClass());
 
-		// TODO regarding the hack note below, I believe it's fixed, but not sure how to test
-		return new DataTreeDialog(null, "Map Module to Program", DataTreeDialog.OPEN, filter) {
-			{ // TODO/HACK: I get an NPE setting the default selection if I don't fake this.
-				dialogShown();
-			}
-		};
+		return new DataTreeDialog(null, "Map Module to Program", OPEN, filter);
 	}
 
 	public DomainFile askProgram(Program program) {
@@ -1215,8 +1452,15 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		actionAutoMap.setCurrentActionStateByUserData(spec);
 	}
 
+	@Override
 	public AutoMapSpec getAutoMapSpec() {
 		return autoMapSpec;
+	}
+
+	@Override
+	public AutoMapSpec getAutoMapSpec(Trace trace) {
+		AutoMapState state = autoMapStateByTrace.get(trace);
+		return state == null ? autoMapSpec : state.spec;
 	}
 
 	public void writeConfigState(SaveState saveState) {
@@ -1228,5 +1472,63 @@ public class DebuggerModulesProvider extends ComponentProviderAdapter {
 		actionAutoMap.setCurrentActionStateByUserData(autoMapSpec);
 		doSetFilterSectionsByModules(filterSectionsByModules);
 		doSetShowSectionsTable(showSectionsTable);
+	}
+
+	protected boolean shouldKeepMessage(DebuggerMissingProgramActionContext ctx, Trace closedTrace,
+			Program closedProgram) {
+		Trace trace = ctx.getTrace();
+		if (trace == closedTrace) {
+			return false;
+		}
+		if (!traceManager.getOpenTraces().contains(trace)) {
+			return false;
+		}
+		Program program = ctx.getProgram();
+		if (program == closedProgram) {
+			return false;
+		}
+		if (programManager != null &&
+			!Arrays.asList(programManager.getAllOpenPrograms()).contains(program)) {
+			return false;
+		}
+
+		// Only do mapping probe on mapping changed events
+		if (closedTrace != null || closedProgram != null) {
+			return true;
+		}
+
+		TraceProgramView view = traceManager.getCurrentFor(trace).getView();
+		Address probe = ctx.getMappingProbeAddress();
+		ProgramLocation dyn = staticMappingService.getDynamicLocationFromStatic(view,
+			new ProgramLocation(program, probe));
+		if (dyn != null) {
+			return false;
+		}
+		return true;
+	}
+
+	protected void cleanMissingProgramMessages(Trace closedTrace, Program closedProgram) {
+		if (traceManager == null || consoleService == null) {
+			return;
+		}
+		for (ActionContext ctx : consoleService.getActionContexts()) {
+			if (!(ctx instanceof DebuggerMissingProgramActionContext mpCtx)) {
+				continue;
+			}
+			if (!shouldKeepMessage(mpCtx, closedTrace, closedProgram)) {
+				consoleService.removeFromLog(mpCtx);
+			}
+		}
+	}
+
+	@AutoServiceConsumed
+	private void setStaticMappingService(DebuggerStaticMappingService staticMappingService) {
+		if (this.staticMappingService != null) {
+			this.staticMappingService.removeChangeListener(mappingChangeListener);
+		}
+		this.staticMappingService = staticMappingService;
+		if (this.staticMappingService != null) {
+			this.staticMappingService.addChangeListener(mappingChangeListener);
+		}
 	}
 }
