@@ -367,7 +367,7 @@ define register offset=0x1200 size=64  [
 	ZMM30	ZMM31
 ];
 
-define register offset=0x1700 size=64  [ zmmOut zmmRes zmmTmp1 zmmTmp2 ];
+define register offset=0x1a00 size=64  [ zmmOut zmmRes zmmTmp1 zmmTmp2 ];
 
 # Define context bits
 define register offset=0x2000 size=12  contextreg;
@@ -735,11 +735,6 @@ attach variables [ zmmreg_x zmmreg1_x zmmreg2_x zmm_vsib_x ]	[ ZMM8 ZMM9 ZMM10 Z
 attach variables [ bnd1 bnd2 ]       [ BND0 BND1 BND2 BND3 _ _ _ _ ];
 attach variables [ bnd1_lb bnd2_lb ] [ BND0_LB BND1_LB BND2_LB BND3_LB _ _ _ _ ];
 attach variables [ bnd1_ub bnd2_ub ] [ BND0_UB BND1_UB BND2_UB BND3_UB _ _ _ _ ];
-
-attach variables [ kreg kout kin ] [ k0 k1 k2 k3 k4 k5 k6 k7 ];
-
-attach variables [ zmmreg1 zmmreg2 ] [ ZMM0 ZMM1 ZMM2 ZMM3 ZMM4 ZMM5 ZMM6 ZMM7 ];
-attach variables [ zmmreg1_x zmmreg2_x ] [ ZMM8 ZMM9 ZMM10 ZMM11 ZMM12 ZMM13 ZMM14 ZMM15 ];
 
 define pcodeop segment;    # Define special pcodeop that calculates the RAM address
                            # given the segment selector and offset as input
