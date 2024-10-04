@@ -102,7 +102,7 @@ public class ParamInfo implements Comparable<ParamInfo> {
 
 	private int getOtherAutoParamCount() {
 		int otherAutoParamsCount = 0;
-		List<ParamInfo> parameters = model.getParameters();
+		List<ParamInfo> parameters = functionData.getParameters();
 		for (ParamInfo parameter : parameters) {
 			if (parameter.isAutoParameter()) continue;
 			String parameterName = parameter.name;
@@ -120,7 +120,7 @@ public class ParamInfo implements Comparable<ParamInfo> {
 		if (name != null) {
 			return name;
 		}
-		int autoParamCount = model.getAutoParamCount() + getOtherAutoParamCount();
+		int autoParamCount = functionData.getAutoParamCount() + getOtherAutoParamCount();
 		return SymbolUtilities.getDefaultParamName(ordinal - autoParamCount);
 	}
 
