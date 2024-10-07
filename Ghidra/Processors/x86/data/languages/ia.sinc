@@ -784,6 +784,10 @@ define pcodeop vmwrite;  # Write field to virtual-machine control structure; opc
 define pcodeop vmxoff;   # Leave VMX operation; opcode 0f 01 c4
 define pcodeop vmxon;    # Enter VMX operation; opcode f3 0f C7 /6 
 
+# definitions for indexed byte access for registers and uniques
+define pcodeop extractind;
+define pcodeop insertind;
+
 @ifdef IA64
 @define LONGMODE_ON "longMode=1"
 @define LONGMODE_OFF "longMode=0"
