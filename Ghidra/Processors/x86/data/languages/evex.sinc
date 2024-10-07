@@ -114,9 +114,6 @@ ZmmFilterQ: "{"kreg"}" is kreg {
 	kout[15,1] = vexVVVV_ZmmReg[480,32] s> ZmmReg2[480,32];
 }
 
-define pcodeop extractind;
-define pcodeop insertind;
-
 :VPCOMPRESSD ZmmReg2_m512 "{"kreg"}", ZmmReg1 is $(EVEX_NONE) & $(EVEX_L512) & $(PRE_66) & $(VEX_0F38) & $(VEX_W0) & kreg; byte=0x8B; ZmmReg1 ... & ZmmReg2_m512
 {
 	zmmTmp1 = ZmmReg2_m512;
