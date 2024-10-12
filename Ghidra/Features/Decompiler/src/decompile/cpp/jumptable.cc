@@ -545,7 +545,7 @@ uintb JumpBasic::getMaxValue(Varnode *vn)
   return maxValue;
 }
 
-bool JumpBasic::isValidRelationalOp(PcodeOp *op)
+bool JumpBasic::isValidCompareOp(PcodeOp *op)
 
 {
   if (op == (PcodeOp *)0) return false;
@@ -575,7 +575,7 @@ bool JumpBasic::isValidInputBlock(BlockBasic *bl)
   if (iter == begin) return false;
   iter--;
   PcodeOp *op = *iter;
-  if (!isValidRelationalOp(op)) return false;
+  if (!isValidCompareOp(op)) return false;
   if (iter == begin) return false;
   iter--;
   Varnode *out = (*iter)->getOut();
