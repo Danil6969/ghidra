@@ -13760,8 +13760,8 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
     objinitval = objinitval->getDef()->getIn(0);
   }
 
+  // Prepare results
   PcodeOp *curop = (PcodeOp *)0;
-  // Results preparation loop
   for (int4 i=0;i<counts;++i) {
     curop = result[i];
     if (curop == (PcodeOp *) 0) {
@@ -13777,8 +13777,8 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
     data.opInsertBefore(curop, endOp);
   }
 
+  // Link results into piece op
   AddrSpace *space = data.getArch()->getDefaultDataSpace();
-  bool isBigEndian = space->isBigEndian();
   PcodeOp *prevop = (PcodeOp *)0;
   for (int4 i = 0; i < result.size(); ++i) {
     curop = result[i];
@@ -13798,6 +13798,8 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
     prevop = newop;
   }
   if (prevop == (PcodeOp *)0) return 0;
+
+  // Commit final piece op
   curop = insertlist[0]->getOut()->loneDescend();
   data.opSetInput(curop, prevop->getOut(), 0);
   data.opSetInput(curop, prevop->getOut(), 1);
