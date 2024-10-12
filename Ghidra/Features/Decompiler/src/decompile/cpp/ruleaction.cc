@@ -13257,12 +13257,20 @@ bool RuleByteLoop::VarnodeValues::contains(Varnode *key)
   return getEntry(key) != vals.end();
 }
 
+void RuleByteLoop::VarnodeValues::removeValue(Varnode *key)
+
+{
+  while (contains(key)) {
+    vals.erase((*getEntry(key)).first);
+  }
+}
+
 void RuleByteLoop::VarnodeValues::putValue(Varnode *key,uintb value)
 
 {
   if (key->getSize() > 8) return; // large varnodes aren't supported
   if (key == (Varnode *)0) return;
-  if (contains(key)) vals.erase((*getEntry(key)).first); // must deduplicate entries
+  removeValue(key); // must deduplicate entries
   vals[key]=value;
 }
 
