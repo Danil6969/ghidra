@@ -1852,7 +1852,7 @@ class RuleByteLoop : public Rule {
     bool contains(Varnode *key);
     void removeValue(Varnode *key);
     void putValue(Varnode *key,uintb value);
-    uintb getValue(Varnode *key);
+    uintb getValue(Varnode *key,bool issigned);
     void clear(void);
   };
   class LargeVarnodeValues {
