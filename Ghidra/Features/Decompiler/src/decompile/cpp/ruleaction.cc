@@ -13420,6 +13420,12 @@ uintb RuleByteLoop::LargeVarnodeValues::getValue(Varnode *key,uintb off,int4 sz)
   return val;
 }
 
+void RuleByteLoop::LargeVarnodeValues::clear(void)
+
+{
+  vals.clear();
+}
+
 /// \brief compute and save value to the vals map
 vector<uint1> RuleByteLoop::LargeVarnodeValues::fetchValue(Varnode *key)
 
@@ -13727,6 +13733,7 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
 
   // Initialize objects
   values.clear();
+  largevalues.clear();
   extractlist = vector<PcodeOp *>();
   insertlist = vector<PcodeOp *>();
   multiplier = 0;
