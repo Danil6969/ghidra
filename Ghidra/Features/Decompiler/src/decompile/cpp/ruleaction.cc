@@ -13852,6 +13852,7 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   data.opSetInput(curop,prevop->getOut(),0);
   data.opSetInput(curop,prevop->getOut(),1);
   data.opDestroy(insertlist[0]);
+  return 1;
 }
 
 } // End namespace ghidra
