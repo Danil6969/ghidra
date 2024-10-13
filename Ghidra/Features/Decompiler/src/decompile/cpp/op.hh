@@ -146,6 +146,7 @@ private:
   void setParent(BlockBasic *p) { parent = p; }	///< Set the parent basic block of this op
   void setBasicIter(list<PcodeOp *>::iterator iter) { basiciter = iter; } ///< Store the iterator into this op's basic block
   bool isSubpieceNonCollapsible(void) const; ///< Return \b true if this is subpiece and it shouldn't be collapsed
+  bool isMultNonCollapsible(void) const; ///< Return \b true if this is multiplication and it shouldn't be collapsed
   bool isFirstAllocaDefinition(Funcdata &data) const;
 
 public:
@@ -215,6 +216,7 @@ public:
   bool isCalculatedBool(void) const { return ((flags&(PcodeOp::calculated_bool|PcodeOp::booloutput))!=0); }
   /// \brief Return \b true if we have already examined this cpool
   bool isCpoolTransformed(void) const { return ((addlflags&PcodeOp::is_cpool_transformed)!=0); }
+  bool isCompare(void) const; ///< Return \b true if this is compare op
   bool isCollapsible(void) const; ///< Return \b true if this can be collapsed to a COPY of a constant
   bool isReturnAddressConstant(Funcdata &data) const;
   bool isReturnAddressConstant(void) const;
