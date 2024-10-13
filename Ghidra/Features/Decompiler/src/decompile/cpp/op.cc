@@ -123,32 +123,54 @@ bool PcodeOp::isPureCall(void) const
   return userop != (PureOp *)0;
 }
 
-bool PcodeOp::isSubpieceNonCollapsible() const
+bool PcodeOp::isCompare(void) const
+
+{
+  OpCode opc = code();
+  if (opc == CPUI_INT_EQUAL) return true;
+  if (opc == CPUI_INT_NOTEQUAL) return true;
+  if (opc == CPUI_INT_SLESS) return true;
+  if (opc == CPUI_INT_SLESSEQUAL) return true;
+  if (opc == CPUI_INT_LESS) return true;
+  if (opc == CPUI_INT_LESSEQUAL) return true;
+  return false;
+}
+
+bool PcodeOp::isSubpieceNonCollapsible(void) const
+
 {
   if (code() != CPUI_SUBPIECE) return false;
   const Varnode *vn = getIn(0);
   Datatype *dt = vn->getType();
   // Check if this is subtraction of two pointers
-  if (dt != (Datatype *)0) {
-    if (dt->getMetatype() == TYPE_PTR) {
-      const Varnode *out1 = getOut();
-      list<PcodeOp *>::const_iterator iter1;
-      for(iter1=out1->beginDescend();iter1!=out1->endDescend();++iter1) {
-	PcodeOp *op1 = *iter1;
-	if (op1 == (PcodeOp *)0) continue;
-	if (op1->code() != CPUI_INT_MULT) continue;
-	const Varnode *out2 = op1->getOut();
-	list<PcodeOp *>::const_iterator iter2;
-	for(iter2=out2->beginDescend();iter2!=out2->endDescend();++iter2) {
-	  PcodeOp *op2 = *iter2;
-	  if (op2 == (PcodeOp *)0) continue;
-	  if (op2->code() != CPUI_INT_ADD) continue;
-	  return true;
-	}
-      }
+  if (dt == (Datatype *)0) return false;
+  if (dt->getMetatype() != TYPE_PTR) return false;
+  const Varnode *out1 = getOut();
+  list<PcodeOp *>::const_iterator iter1;
+  for(iter1=out1->beginDescend();iter1!=out1->endDescend();++iter1) {
+    PcodeOp *op1 = *iter1;
+    if (op1 == (PcodeOp *)0) continue;
+    if (op1->code() != CPUI_INT_MULT) continue;
+    const Varnode *out2 = op1->getOut();
+    list<PcodeOp *>::const_iterator iter2;
+    for(iter2=out2->beginDescend();iter2!=out2->endDescend();++iter2) {
+      PcodeOp *op2 = *iter2;
+      if (op2 == (PcodeOp *)0) continue;
+      if (op2->code() != CPUI_INT_ADD) continue;
+      return true;
     }
   }
   return false;
+}
+
+bool PcodeOp::isMultNonCollapsible(void) const
+
+{
+  if (code() != CPUI_INT_MULT) return false;
+  Funcdata &fd = *(Funcdata *) getParent()->getFuncdata();
+  const Varnode *invn0 = getIn(0);
+  if (!invn0->isPtrdiffSubtrahend(fd)) return false;
+  return true;
 }
 
 /// Can this be collapsed to a copy op, i.e. are all inputs constants
@@ -161,11 +183,7 @@ bool PcodeOp::isCollapsible(void) const
   if (inrefs.size()==0) return false;
   // Check specific opcode dependent requirements
   if (isSubpieceNonCollapsible()) return false;
-  if (code() == CPUI_INT_MULT) {
-    Funcdata &fd = *(Funcdata *) getParent()->getFuncdata();
-    const Varnode *invn0 = getIn(0);
-    if (invn0->isPtrdiffSubtrahend(fd)) return false;
-  }
+  if (isMultNonCollapsible()) return false;
   for(int4 i=0;i<inrefs.size();++i)
     if (!getIn(i)->isConstant()) return false;
   if (getOut()->getSize() > sizeof(uintb)) return false;
