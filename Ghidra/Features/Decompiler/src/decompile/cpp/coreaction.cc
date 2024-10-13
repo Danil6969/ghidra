@@ -43,6 +43,7 @@ class StackSolver {
   void propagate(int4 varnum,int4 val);	///< Propagate solution for one variable to other variables
 public:
   void solve(void);		///< Solve the system of equations
+  bool resolveExtraPop(PcodeOp *op,int4 &change,const Funcdata &data);
   int4 extraLoopCounts(PcodeOp *op);
   bool loopStackChange(Varnode *vn,int4 &change);
   bool buildMultiequalLoop(PcodeOp *op,Varnode *&othervn,int4 &rhsoffset);
@@ -148,6 +149,27 @@ void StackSolver::solve(void)
   } while(count > 0);
 }
 
+bool StackSolver::resolveExtraPop(PcodeOp *op,int4 &change,const Funcdata &data)
+
+{
+  Varnode *iopvn = op->getIn(1);
+  if (iopvn->getSpace()->getType()==IPTR_IOP) { // If INDIRECT is due call
+    PcodeOp *iop = PcodeOp::getOpFromConst(iopvn->getAddr());
+    FuncCallSpecs *fc = data.getCallSpecs(iop); // Look up function proto
+    if (fc != (FuncCallSpecs *)0) {
+      if (fc->getExtraPop() != ProtoModel::extrapop_unknown) { // Double check that extrapop is unknown
+	change = fc->getExtraPop(); // As the deindirect process may have filled it in
+	return true;
+      }
+    }
+    // Assume we only have return pointer left and no params
+    int4 change = op->getAddr().getSpace()->getAddrSize();
+    return false;
+  }
+  change = 4; // Otherwise make a guess
+  return false;
+}
+
 /// Determine counts of loop except first iteration
 /// \param op is the last op which changes stack pointer and is inside loop
 /// \return amount of loop iterations or 0 if not a loop
@@ -173,10 +195,10 @@ int4 StackSolver::extraLoopCounts(PcodeOp *op)
   PcodeOp *multiop = (PcodeOp *)0;
   PcodeOp *copyop = (PcodeOp *)0;
 
+  intb counts = 0;
   intb endval;
   intb startval;
   intb incval;
-  intb counts;
   int4 addslot;
 
   switch (conditionop->code()) {
@@ -237,15 +259,14 @@ int4 StackSolver::extraLoopCounts(PcodeOp *op)
       if (((endval-startval)%incval)!=0) return 0;
 
       // Calculate repeat counts
-      counts = 0;
       for (intb i=startval;i!=endval;i+=incval) {
 	counts++;
       }
-      return counts - 1;
+      return counts;
     default:
-      return 0;
+      return counts;
   }
-  return 0;
+  return counts;
 }
 
 /// Determine stack change inside loop during each iteration
@@ -285,7 +306,8 @@ bool StackSolver::loopStackChange(Varnode *vn,int4 &change)
 bool StackSolver::buildMultiequalLoop(PcodeOp *op,Varnode *&vn,int4 &offset)
 
 {
-  for(int4 j=0;j<op->numInput();++j) {
+  if (op->numInput() != 2) return false;
+  for(int4 j=0;j<2;++j) {
     Varnode *othervn = op->getIn(j);
     if (othervn->getAddr() != spacebase) { missedvariables += 1; continue; }
     PcodeOp *otherop = othervn->getDef();
@@ -295,8 +317,7 @@ bool StackSolver::buildMultiequalLoop(PcodeOp *op,Varnode *&vn,int4 &offset)
     int4 change = 0;
     if (!loopStackChange(othervn,change)) continue;
 
-    //if (j != 1) return false;
-    vn = othervn;
+    vn = op->getIn(1-j);
     offset = change * extracounts;
     return true;
   }
@@ -367,21 +388,15 @@ void StackSolver::build(const Funcdata &data,AddrSpace *id,int4 spcbase)
       eqn.var1 = i;
       eqn.var2 = iter-vnlist.begin();
       companion[i] = eqn.var2;
-      Varnode *iopvn = op->getIn(1);
-      if (iopvn->getSpace()->getType()==IPTR_IOP) { // If INDIRECT is due call
-	PcodeOp *iop = PcodeOp::getOpFromConst(iopvn->getAddr());
-	FuncCallSpecs *fc = data.getCallSpecs(iop); // Look up function proto
-	if (fc != (FuncCallSpecs *)0) {
-	  if (fc->getExtraPop() != ProtoModel::extrapop_unknown) { // Double check that extrapop is unknown
-	    eqn.rhs = fc->getExtraPop(); // As the deindirect process may have filled it in
-	    eqs.push_back(eqn);
-	    continue;
-	  }
-	}
+      int4 popValue = 0;
+      if (resolveExtraPop(op,popValue,data)) {
+	eqn.rhs = popValue;
+	eqs.push_back(eqn);
       }
-
-      eqn.rhs = 4;		// Otherwise make a guess
-      guess.push_back(eqn);
+      else {
+	eqn.rhs = popValue;
+	guess.push_back(eqn);
+      }
     }
     else if (op->code() == CPUI_MULTIEQUAL) {
       int4 rhsoffset = 0;
