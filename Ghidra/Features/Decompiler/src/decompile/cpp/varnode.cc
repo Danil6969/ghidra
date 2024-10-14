@@ -1347,33 +1347,33 @@ bool Varnode::isPtrdiffSubtrahend(Funcdata &data) const
 
 {
   bool typesrecovered = data.hasTypeRecoveryStarted();
-  PcodeOp *descend = loneDescend();
-  if (descend == (PcodeOp *)0) return false;
+  PcodeOp *lone = loneDescend();
+  if (lone == (PcodeOp *)0) return false;
   Datatype *ct = (Datatype *)0;
   if (typesrecovered) {
-    Varnode *outvn = descend->getOut();
+    Varnode *outvn = lone->getOut();
     Datatype *ct = outvn->getTypeDefFacing();
     if (ct->getMetatype() == TYPE_PTR) return false;
     if (ct->getMetatype() == TYPE_PTRREL) return false;
     ct = (Datatype *) 0;
   }
 
-  if (descend->code() == CPUI_INT_MULT) {
-    PcodeOp *multop = descend;
+  if (lone->code() == CPUI_INT_MULT) {
+    PcodeOp *multop = lone;
     if (multop->getIn(0) != this) return false;
 
-    descend = multop->getOut()->loneDescend();
-    if (descend == (PcodeOp *)0) return false;
-    if (descend->numInput() != 2) return false;
-    if (descend->getOut() == (Varnode *)0) return false;
-    if (descend->getOut()->isStackPointerLocated(data)) return false;
+    PcodeOp *ptrdiffop = multop->getOut()->loneDescend();
+    if (ptrdiffop == (PcodeOp *)0) return false;
+    if (ptrdiffop->numInput() != 2) return false;
+    if (ptrdiffop->getOut() == (Varnode *)0) return false;
+    if (ptrdiffop->getOut()->isStackPointerLocated(data)) return false;
 
     Varnode *cvn = multop->getIn(1);
     if (!cvn->isConstant()) return false;
     if (cvn->getOffset() != calc_mask(cvn->getSize())) return false;
 
     Varnode *minuendvn = multop->getIn(0);
-    Varnode *subtrahendvn = descend->getIn(1);
+    Varnode *subtrahendvn = ptrdiffop->getIn(1);
 
     if (subtrahendvn->isStackVariableAddress(data,false)) return false;
 
@@ -1384,7 +1384,7 @@ bool Varnode::isPtrdiffSubtrahend(Funcdata &data) const
 	ct = (Datatype *) 0;
       }
       if (!subtrahendvn->isConstant()) {
-	ct = subtrahendvn->getTypeReadFacing(descend);
+	ct = subtrahendvn->getTypeReadFacing(ptrdiffop);
 	if (ct->getMetatype() != TYPE_PTR && ct->getMetatype() != TYPE_PTRREL) return false;
 	ct = (Datatype *) 0;
       }
