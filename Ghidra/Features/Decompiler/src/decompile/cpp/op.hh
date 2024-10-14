@@ -145,8 +145,8 @@ private:
   void setOrder(uintm ord) { start.setOrder(ord); } ///< Order this op within the ops for a single instruction
   void setParent(BlockBasic *p) { parent = p; }	///< Set the parent basic block of this op
   void setBasicIter(list<PcodeOp *>::iterator iter) { basiciter = iter; } ///< Store the iterator into this op's basic block
-  bool isSubpieceNonCollapsible(void) const; ///< Return \b true if this is subpiece and it shouldn't be collapsed
-  bool isMultNonCollapsible(void) const; ///< Return \b true if this is multiplication and it shouldn't be collapsed
+  bool isSubpieceNonCollapsible(void) const; ///< Return \b true if this subpiece shouldn't be collapsed
+  bool isMultNonCollapsible(void) const; ///< Return \b true if this multiplication shouldn't be collapsed
   bool isFirstAllocaDefinition(Funcdata &data) const;
 
 public:
@@ -217,7 +217,6 @@ public:
   /// \brief Return \b true if we have already examined this cpool
   bool isCpoolTransformed(void) const { return ((addlflags&PcodeOp::is_cpool_transformed)!=0); }
   bool isCompare(void) const; ///< Return \b true if this is compare op
-  bool isLoopedMultiequal(void) const; ///< Return \b true if this is multiequal and eventually loops to itself
   bool isLoopedIncrement(void) const; ///< Return \b true if this is eventually constant increment (or decrement) of looped multiequal op
   bool isCollapsible(void) const; ///< Return \b true if this can be collapsed to a COPY of a constant
   bool isReturnAddressConstant(Funcdata &data) const;
