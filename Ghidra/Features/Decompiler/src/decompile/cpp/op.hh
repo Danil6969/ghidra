@@ -217,7 +217,8 @@ public:
   /// \brief Return \b true if we have already examined this cpool
   bool isCpoolTransformed(void) const { return ((addlflags&PcodeOp::is_cpool_transformed)!=0); }
   bool isCompare(void) const; ///< Return \b true if this is compare op
-  bool isLoopIncrement(void) const; ///< Return \b true if this is loop increment (or decrement) op
+  bool isLoopedMultiequal(void) const; ///< Return \b true if this is multiequal and it loops to itself
+  bool isLoopedIncrement(void) const; ///< Return \b true if this is increment (or decrement) of some varnode which loops into itself
   bool isCollapsible(void) const; ///< Return \b true if this can be collapsed to a COPY of a constant
   bool isReturnAddressConstant(Funcdata &data) const;
   bool isReturnAddressConstant(void) const;
