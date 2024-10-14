@@ -136,9 +136,33 @@ bool PcodeOp::isCompare(void) const
   return false;
 }
 
-bool PcodeOp::isLoopIncrement(void) const
+bool PcodeOp::isLoopedIncrement(void) const
 
 {
+  if (code() != CPUI_INT_ADD) return false;
+  const Varnode *incrementVn = (Varnode *)0;
+  const Varnode *counterVn = (Varnode *)0;
+  // Determine the increment varnode
+  if (getIn(0)->isEventualConstant(-1,0)) {
+    incrementVn = getIn(0);
+    counterVn = getIn(1);
+  }
+  else if (getIn(1)->isEventualConstant(-1,0)) {
+    counterVn = getIn(0);
+    incrementVn = getIn(1);
+  }
+  else {
+    return false;
+  }
+
+  // Another input will be multiequal op
+  const PcodeOp *multiop = counterVn->getDef();
+  if (multiop == (PcodeOp *)0) return false;
+  if (multiop->code() != CPUI_MULTIEQUAL) return false;
+  // Exactly 2 inputs
+  if (multiop->numInput() != 2) return false;
+  // The second input is output of this op, so it loops
+  if (multiop->getIn(1) != getOut()) return false;
   return true;
 }
 
@@ -178,7 +202,7 @@ bool PcodeOp::isMultNonCollapsible(void) const
   if (lone == (PcodeOp *)0) return true;
 
   // Always collapse loop counters
-  if (lone->isLoopIncrement()) return false;
+  if (lone->isLoopedIncrement()) return false;
 
   // Check if it is ptrdiff subtrahend
   const Varnode *invn0 = getIn(0);
