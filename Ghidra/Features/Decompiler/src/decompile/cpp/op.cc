@@ -136,6 +136,12 @@ bool PcodeOp::isCompare(void) const
   return false;
 }
 
+bool PcodeOp::isLoopIncrement(void) const
+
+{
+  return true;
+}
+
 bool PcodeOp::isSubpieceNonCollapsible(void) const
 
 {
@@ -168,6 +174,13 @@ bool PcodeOp::isMultNonCollapsible(void) const
 {
   if (code() != CPUI_INT_MULT) return false;
   Funcdata &fd = *(Funcdata *) getParent()->getFuncdata();
+  PcodeOp *lone = getOut()->loneDescend();
+  if (lone == (PcodeOp *)0) return true;
+
+  // Always collapse loop counters
+  if (lone->isLoopIncrement()) return false;
+
+  // Check if it is ptrdiff subtrahend
   const Varnode *invn0 = getIn(0);
   if (!invn0->isPtrdiffSubtrahend(fd)) return false;
   return true;
