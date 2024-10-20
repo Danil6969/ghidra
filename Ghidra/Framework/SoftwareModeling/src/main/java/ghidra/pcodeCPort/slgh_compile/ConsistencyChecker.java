@@ -1087,6 +1087,10 @@ class ConsistencyChecker {
 				if (currec.writeop >= currec.readop) {
 					throw new SleighError("Read of temporary before write", ct.location);
 				}
+				// Check if we have pass by pointer of rvalue, so it never gets optimized
+				if (op.getOpcode() == OpCode.CPUI_CALLOTHER) {
+					return null;
+				}
 				if (op.getOpcode() == OpCode.CPUI_COPY) {
 					boolean saverecord = true;
 					currec.opttype = 0;
