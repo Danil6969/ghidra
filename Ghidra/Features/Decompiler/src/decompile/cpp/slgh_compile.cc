@@ -1357,6 +1357,9 @@ const ConsistencyChecker::OptimizeRecord *ConsistencyChecker::findValidRule(Cons
       const OpTpl *op = ops[ currec.readop ];
       if (currec.writeop >= currec.readop) // Read must come after write
 	throw SleighError("Read of temporary before write");
+      // Check if we have pass by pointer of rvalue, so it never gets optimized
+      if (op->getOpcode() == CPUI_CALLOTHER)
+	return (const OptimizeRecord *)0;
       if (op->getOpcode() == CPUI_COPY) {
 	bool saverecord = true;
 	currec.opttype = 0;	// Read op is a COPY
