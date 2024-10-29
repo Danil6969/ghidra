@@ -294,7 +294,8 @@ class Heritage {
   bool tryOutputStackGuard(FuncCallSpecs *fc,const Address &addr,const Address &transAddr,int4 size,
 			   int4 outputCharacter,vector<Varnode *> &write);
   void guardOutputOverlapStack(PcodeOp *callOp,const Address &addr,int4 size,const Address &retAddr,int4 retSize,vector<Varnode *> &write);
-  void guardCalls(uint4 fl,const Address &addr,int4 size,vector<Varnode *> &write);
+  bool isCallNonGuarded(PcodeOp *guardop,vector<Varnode *> &read,vector<Varnode *> &write);
+  void guardCalls(uint4 fl,const Address &addr,int4 size,vector<Varnode *> &read,vector<Varnode *> &write);
   void guardStores(const Address &addr,int4 size,vector<Varnode *> &write);
   void guardLoads(uint4 fl,const Address &addr,int4 size,vector<Varnode *> &write);
   void guardReturnsOverlapping(const Address &addr,int4 size);
