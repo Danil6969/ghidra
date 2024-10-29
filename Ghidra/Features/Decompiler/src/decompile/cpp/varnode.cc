@@ -1210,6 +1210,35 @@ bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) cons
   return false;
 }
 
+bool Varnode::isInternalFunctionParameter(void) const
+
+{
+  const Varnode *vn = this;
+  PcodeOp *lone = (PcodeOp *)0;
+  while (true) {
+    lone = vn->loneDescend();
+    if (lone == (PcodeOp *)0) return false;
+    if (lone->code() == CPUI_COPY) {
+      vn = lone->getOut();
+    }
+    else break;
+  }
+  if (lone->code() != CPUI_CALL) return false;
+
+  BlockBasic *parent = lone->getParent();
+  if (parent == (BlockBasic *)0) return false;
+  Funcdata *fd = parent->getFuncdata();
+  if (fd == (Funcdata *)0) return false;
+  FuncCallSpecs *spec = fd->getCallSpecs(lone);
+
+  string nm = spec->getName();
+  if (nm == "___RTDynamicCast") {
+    int4 slot = lone->getSlot(vn);
+    return slot > 1;
+  }
+  return false;
+}
+
 bool Varnode::hasPointerUsages(void) const
 
 {
