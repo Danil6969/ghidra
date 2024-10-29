@@ -1437,30 +1437,55 @@ bool Heritage::tryOutputStackGuard(FuncCallSpecs *fc,const Address &addr,const A
 /// \param write is the list of written Varnodes in the range
 bool Heritage::isCallNonGuarded(PcodeOp *guardop,vector<ghidra::Varnode *> &read, vector<ghidra::Varnode *> &write) {
   vector<Varnode *>::iterator iter;
+  PcodeOp *readop = (PcodeOp *)0;
+  PcodeOp *writeop = (PcodeOp *)0;
 
-  PcodeOp *copyop = (PcodeOp *)0;
   for (iter=write.begin();iter!=write.end();++iter) {
     Varnode *vn = *iter;
     PcodeOp *op = vn->getDef();
     if (op == (PcodeOp *)0) continue;
-    // Must come strictly before the guard op
+    // Must come before the guard op
     if (guardop->getSeqNum() < op->getSeqNum()) continue;
-    if (copyop == (PcodeOp *)0) {
+
+    if (writeop == (PcodeOp *)0) {
       // Replace with current copy op, if existing one is null
-      copyop = op;
+      writeop = op;
       continue;
     }
-    if (copyop->getSeqNum() < op->getSeqNum()) {
+    if (writeop->getSeqNum() < op->getSeqNum()) {
       // Replace with current copy op, if existing one is earlier
-      copyop = op;
+      writeop = op;
       continue;
     }
   }
-  if (copyop == (PcodeOp *)0) return false;
-  if (copyop->code() != CPUI_COPY) return false;
-  if (!copyop->getIn(0)->isConstant()) return false;
-  if (read.size() < 1) return false;
-  if (!read[0]->isInternalFunctionParameter()) return false;
+
+  if (writeop == (PcodeOp *)0) return false;
+  if (writeop->code() != CPUI_COPY) return false;
+  if (!writeop->getIn(0)->isConstant()) return false;
+
+  for (iter=read.begin();iter!=read.end();++iter) {
+    Varnode *vn = *iter;
+    PcodeOp *op = vn->loneDescend();
+    if (op == (PcodeOp *)0) continue;
+    // Must come after the guard op
+    if (op->getSeqNum() < guardop->getSeqNum()) continue;
+
+    if (readop == (PcodeOp *)0) {
+      // Replace with current copy op, if existing one is null
+      readop = op;
+      continue;
+    }
+    if (op->getSeqNum() < readop->getSeqNum()) {
+      // Replace with current copy op, if existing one is later
+      readop = op;
+      continue;
+    }
+  }
+
+  if (readop == (PcodeOp *)0) return false;
+  Varnode *readvn = readop->getOut();
+  if (readvn == (Varnode *)0) return false;
+  if (!readvn->isInternalFunctionParameter()) return false;
   return true;
 }
 
