@@ -348,6 +348,7 @@ public:
   void encode(Encoder &encoder) const; ///< Encode a description of \b this to a stream
   static bool comparePointers(const Varnode *a,const Varnode *b) { return (*a < *b); }	///< Compare Varnodes as pointers
   static void printRaw(ostream &s,const Varnode *vn);	///< Print raw info about a Varnode to stream
+  bool isInternalFunctionParameter(void) const;
   bool hasPointerUsages(void) const;
   const PcodeOp *getAllocaShiftOp(Funcdata &data) const;
   bool isAllocaAddress(Funcdata &data) const { return getAllocaShiftOp(data) != (PcodeOp *)0; }	///< Does \b this varnode have corresponding alloca shift op
