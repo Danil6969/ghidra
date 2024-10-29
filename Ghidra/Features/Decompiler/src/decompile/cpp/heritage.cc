@@ -1189,7 +1189,7 @@ void Heritage::guard(const Address &addr,int4 size,bool addIndirects,
     fl = 0;
     // Query for generic properties of address (use empty usepoint)
     fd->getScopeLocal()->queryProperties(addr,size,Address(),fl);
-    guardCalls(fl,addr,size,write);
+    guardCalls(fl,addr,size,read,write);
     guardReturns(fl,addr,size,write);
     if (fd->getArch()->highPtrPossible(addr,size)) {
       guardStores(addr,size,write);
@@ -1430,6 +1430,40 @@ bool Heritage::tryOutputStackGuard(FuncCallSpecs *fc,const Address &addr,const A
   return true;
 }
 
+/// \brief Test whether this is not guarded at all
+///
+/// If this is constant for internal function then it is not guarded
+/// \param read is the list of Varnode values reading from the range
+/// \param write is the list of written Varnodes in the range
+bool Heritage::isCallNonGuarded(PcodeOp *guardop,vector<ghidra::Varnode *> &read, vector<ghidra::Varnode *> &write) {
+  vector<Varnode *>::iterator iter;
+
+  PcodeOp *copyop = (PcodeOp *)0;
+  for (iter=write.begin();iter!=write.end();++iter) {
+    Varnode *vn = *iter;
+    PcodeOp *op = vn->getDef();
+    if (op == (PcodeOp *)0) continue;
+    // Must come strictly before the guard op
+    if (guardop->getSeqNum() < op->getSeqNum()) continue;
+    if (copyop == (PcodeOp *)0) {
+      // Replace with current copy op, if existing one is null
+      copyop = op;
+      continue;
+    }
+    if (copyop->getSeqNum() < op->getSeqNum()) {
+      // Replace with current copy op, if existing one is earlier
+      copyop = op;
+      continue;
+    }
+  }
+  if (copyop == (PcodeOp *)0) return false;
+  if (copyop->code() != CPUI_COPY) return false;
+  if (!copyop->getIn(0)->isConstant()) return false;
+  if (read.size() < 1) return false;
+  if (!read[0]->isInternalFunctionParameter()) return false;
+  return true;
+}
+
 /// \brief Guard CALL/CALLIND ops in preparation for renaming algorithm
 ///
 /// For the given address range, we decide what the data-flow effect is
@@ -1439,8 +1473,9 @@ bool Heritage::tryOutputStackGuard(FuncCallSpecs *fc,const Address &addr,const A
 /// \param fl are any boolean properties associated with the address range
 /// \param addr is the first address of given range
 /// \param size is the number of bytes in the range
+/// \param read is the list of Varnode values reading from the range
 /// \param write is the list of written Varnodes in the range (may be updated)
-void Heritage::guardCalls(uint4 fl,const Address &addr,int4 size,vector<Varnode *> &write)
+void Heritage::guardCalls(uint4 fl,const Address &addr,int4 size,vector<Varnode *> &read,vector<Varnode *> &write)
 
 {
   FuncCallSpecs *fc;
@@ -1450,8 +1485,10 @@ void Heritage::guardCalls(uint4 fl,const Address &addr,int4 size,vector<Varnode 
   bool holdind = ((fl&Varnode::addrtied)!=0);
   for(int4 i=0;i<fd->numCalls();++i) {
     fc = fd->getCallSpecs(i);
-    if (fc->getOp()->isAssignment()) {
-      Varnode *vn = fc->getOp()->getOut();
+    PcodeOp *op = fc->getOp();
+    if (isCallNonGuarded(op,read,write)) continue;
+    if (op->isAssignment()) {
+      Varnode *vn = op->getOut();
       if ((vn->getAddr()==addr)&&(vn->getSize()==size)) continue;
     }
     AddrSpace *spc = addr.getSpace();
@@ -1497,7 +1534,6 @@ void Heritage::guardCalls(uint4 fl,const Address &addr,int4 size,vector<Varnode 
       if (inputCharacter == ParamEntry::contains_justified) {	// Call could be using this range as an input parameter
 	ParamActive *active = fc->getActiveInput();
 	if (active->whichTrial(transAddr,size)<0) { // If not already a trial
-	  PcodeOp *op = fc->getOp();
 	  active->registerTrial(transAddr,size);
 	  Varnode *vn = fd->newVarnode(size,addr);
 	  vn->setActiveHeritage();
@@ -1509,7 +1545,7 @@ void Heritage::guardCalls(uint4 fl,const Address &addr,int4 size,vector<Varnode 
     }
     // We do not guard the call if the effect is "unaffected" or "reload"
     if ((effecttype == EffectRecord::unknown_effect)||(effecttype == EffectRecord::return_address)) {
-      indop = fd->newIndirectOp(fc->getOp(),addr,size,0);
+      indop = fd->newIndirectOp(op,addr,size,0);
       indop->getIn(0)->setActiveHeritage();
       indop->getOut()->setActiveHeritage();
       write.push_back(indop->getOut());
@@ -1519,7 +1555,7 @@ void Heritage::guardCalls(uint4 fl,const Address &addr,int4 size,vector<Varnode 
 	indop->getOut()->setReturnAddress();
     }
     else if (effecttype == EffectRecord::killedbycall) {
-      indop = fd->newIndirectCreation(fc->getOp(),addr,size,possibleoutput);
+      indop = fd->newIndirectCreation(op,addr,size,possibleoutput);
       indop->getOut()->setActiveHeritage();
       write.push_back(indop->getOut());
     }
