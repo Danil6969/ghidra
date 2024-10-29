@@ -1222,9 +1222,6 @@ bool Varnode::isInternalFunctionParameter(void) const
     if (opc == CPUI_COPY) {
       vn = lone->getOut();
     }
-    else if (opc == CPUI_SUBPIECE) {
-      vn = lone->getOut();
-    }
     else break;
   }
   if (lone->code() != CPUI_CALL) return false;
