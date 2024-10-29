@@ -1218,7 +1218,11 @@ bool Varnode::isInternalFunctionParameter(void) const
   while (true) {
     lone = vn->loneDescend();
     if (lone == (PcodeOp *)0) return false;
-    if (lone->code() == CPUI_COPY) {
+    OpCode opc = lone->code();
+    if (opc == CPUI_COPY) {
+      vn = lone->getOut();
+    }
+    else if (opc == CPUI_SUBPIECE) {
       vn = lone->getOut();
     }
     else break;
