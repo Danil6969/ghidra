@@ -276,7 +276,7 @@ public:
   virtual Datatype* findResolve(const PcodeOp *op,int4 slot);	///< Find a previously resolved sub-type
   virtual int4 findCompatibleResolve(Datatype *ct) const;	///< Find a resolution compatible with the given data-type
   virtual const TypeField *resolveTruncation(int8 offset,PcodeOp *op,int4 slot,int8 &newoff);
-  int4 typeOrder(const Datatype &op) const { if (this==&op) return 0; return compare(op,10); }	///< Order this with -op- datatype
+  int4 typeOrder(const Datatype &op) const;	///< Order this with -op- datatype
   int4 typeOrderBool(const Datatype &op) const;	///< Order \b this with -op-, treating \e bool data-type as special
   void encodeRef(Encoder &encoder) const;	///< Encode a reference of \b this to a stream
   bool isPieceStructured(void) const;		///< Does \b this data-type consist of separate pieces?
@@ -841,6 +841,13 @@ inline uint8 Datatype::getUnsizedId(void) const
     return hashSize(id, size);
   }
   return id;
+}
+
+inline int4 Datatype::typeOrder(const Datatype &op) const
+
+{
+  if (this==&op) return 0;
+  return compare(op,10);
 }
 
 /// Order data-types, with special handling of the \e bool data-type. Data-types are compared
