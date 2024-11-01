@@ -123,6 +123,13 @@ bool PcodeOp::isPureCall(void) const
   return userop != (PureOp *)0;
 }
 
+Funcdata *PcodeOp::getFuncdata(void) const
+
+{
+  if (parent == (BlockBasic *)0) return (Funcdata *)0;
+  return parent->getFuncdata();
+}
+
 bool PcodeOp::isCompare(void) const
 
 {
