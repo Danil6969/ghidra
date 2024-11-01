@@ -634,7 +634,7 @@ JumpTable *FlowBlock::getJumptable(void) const
   if (!isSwitchOut()) return jt;
   PcodeOp *indop = lastOp();
   if (indop != (PcodeOp *)0)
-    jt = indop->getParent()->getFuncdata()->findJumpTable(indop);
+    jt = indop->getFuncdata()->findJumpTable(indop);
   return jt;
 }
 
