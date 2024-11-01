@@ -437,18 +437,19 @@ Datatype *TypeOpLoad::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn,
 {
   if ((inslot==0)||(outslot==0)) return (Datatype *)0; // Don't propagate along this edge
   if (invn->isSpacebase()) return (Datatype *)0;
-  Datatype *newtype;
+  Datatype *newtype = (Datatype *)0; // Don't propagate anything by default
   if (inslot == -1) {	 // Propagating output to input (value to ptr)
     AddrSpace *spc = op->getIn(0)->getSpaceFromConst();
     newtype = tlst->getTypePointerNoDepth(outvn->getSize(),alttype,spc->getWordSize());
+    return newtype;
   }
-  else if (alttype->getMetatype()==TYPE_PTR) {
+  if (alttype->getMetatype()==TYPE_PTR) {
     newtype = ((TypePointer *)alttype)->getPtrTo();
-    if (newtype->getSize() != outvn->getSize() || newtype->isVariableLength()) // Size must be appropriate
-	newtype = (Datatype *)0;
+    // Size must be appropriate
+    if (newtype->getSize() != outvn->getSize()) return (Datatype *)0;
+    if (newtype->isVariableLength()) return (Datatype *)0;
+    return newtype;
   }
-  else
-    newtype = (Datatype *)0; // Don't propagate anything
   return newtype;
 }
 
