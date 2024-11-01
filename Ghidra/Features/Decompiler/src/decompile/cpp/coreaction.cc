@@ -1501,7 +1501,7 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,se
   if (visitedOps.find(op) != visitedOps.end()) return (Datatype *)0;
   visitedOps.insert(op);
 
-  Funcdata *fd = op->getParent()->getFuncdata();
+  Funcdata *fd = op->getFuncdata();
   TypeFactory *types = fd->getArch()->types;
   Varnode *vn = op->getIn(slot);
   PcodeOp *def = vn->getDef();
@@ -3450,7 +3450,7 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
 
   PcodeOp *def = vn->getDef();
   if (def == (PcodeOp *)0) return -1;
-  Funcdata &data = *def->getParent()->getFuncdata();
+  Funcdata &data = *def->getFuncdata();
   if (vn->isAllocaAddress(data)) return -1;
   if (def->isMarker()) return -1;
   if (def->isCall()) {
