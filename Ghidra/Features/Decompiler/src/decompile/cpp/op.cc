@@ -117,7 +117,7 @@ bool PcodeOp::isPureCall(void) const
   if (nm == Funcdata::addrof) return true;
   if (nm == Funcdata::extractind) return true;
   if (nm == Funcdata::insertind) return true;
-  Architecture *glb = parent->getFuncdata()->getArch();
+  Architecture *glb = getFuncdata()->getArch();
   int4 index = getIn(0)->getOffset();
   PureOp *userop = dynamic_cast<PureOp *>(glb->userops.getOp(index));
   return userop != (PureOp *)0;
@@ -306,8 +306,7 @@ bool PcodeOp::isReturnAddressConstant(Funcdata &data) const
 bool PcodeOp::isReturnAddressConstant(void) const
 
 {
-  if (parent == (BlockBasic *)0) return false;
-  Funcdata *fd = parent->getFuncdata();
+  Funcdata *fd = getFuncdata();
   if (fd == (Funcdata *)0) return false;
   return isReturnAddressConstant(*fd);
 }
@@ -397,8 +396,7 @@ bool PcodeOp::isAllocaShift(Funcdata &data) const
 bool PcodeOp::isAllocaShift(void) const
 
 {
-  if (parent == (BlockBasic *)0) return false;
-  Funcdata *fd = parent->getFuncdata();
+  Funcdata *fd = getFuncdata();
   if (fd == (Funcdata *)0) return false;
   return isAllocaShift(*fd);
 }
