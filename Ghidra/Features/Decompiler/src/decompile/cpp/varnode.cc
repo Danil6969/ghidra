@@ -1210,20 +1210,19 @@ bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) cons
   return false;
 }
 
-bool Varnode::isInternalConstant(void) const
+SymbolEntry *Varnode::getSymbolInFlow(PcodeOp *op) const
 
 {
-  PcodeOp *lone = loneDescend();
-  if (lone == (PcodeOp *)0) return false;
-  Funcdata *fd = lone->getFuncdata();
-  if (fd == (Funcdata *)0) return false;
+  if (op == (PcodeOp *)0) return (SymbolEntry *)0;
+  Funcdata *fd = op->getFuncdata();
+  if (fd == (Funcdata *)0) return (SymbolEntry *)0;
   Architecture *glb = fd->getArch();
   uintb fullEncoding;
-  AddrSpace *spc = ActionConstantPtr::selectInferSpace((Varnode *)this,lone,glb->inferPtrSpaces);
-  Address rampoint = glb->resolveConstant(spc,getOffset(),getSize(),lone->getAddr(),fullEncoding);
-  if (rampoint.isInvalid()) return false;
+  AddrSpace *spc = ActionConstantPtr::selectInferSpace((Varnode *)this,op,glb->inferPtrSpaces);
+  Address rampoint = glb->resolveConstant(spc,getOffset(),getSize(),op->getAddr(),fullEncoding);
+  if (rampoint.isInvalid()) return (SymbolEntry *)0;
   SymbolEntry *entry = fd->getScopeLocal()->getParent()->queryContainer(rampoint,1,Address());
-  return true;
+  return entry;
 }
 
 bool Varnode::isInternalFunctionParameter(void) const
