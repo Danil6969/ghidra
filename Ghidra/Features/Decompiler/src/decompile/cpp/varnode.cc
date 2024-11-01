@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include "varnode.hh"
-#include "funcdata.hh"
+#include "coreaction.hh"
 
 namespace ghidra {
 
@@ -1213,10 +1213,17 @@ bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) cons
 bool Varnode::isInternalConstant(void) const
 
 {
-  if (hasNoDescend()) return false;
-  PcodeOp *op = *beginDescend();
-  Funcdata *fd = op->getFuncdata();
-  return false;
+  PcodeOp *lone = loneDescend();
+  if (lone == (PcodeOp *)0) return false;
+  Funcdata *fd = lone->getFuncdata();
+  if (fd == (Funcdata *)0) return false;
+  Architecture *glb = fd->getArch();
+  uintb fullEncoding;
+  AddrSpace *spc = ActionConstantPtr::selectInferSpace((Varnode *)this,lone,glb->inferPtrSpaces);
+  Address rampoint = glb->resolveConstant(spc,getOffset(),getSize(),lone->getAddr(),fullEncoding);
+  if (rampoint.isInvalid()) return false;
+  SymbolEntry *entry = fd->getScopeLocal()->getParent()->queryContainer(rampoint,1,Address());
+  return true;
 }
 
 bool Varnode::isInternalFunctionParameter(void) const
