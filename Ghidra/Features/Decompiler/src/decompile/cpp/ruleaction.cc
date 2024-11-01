@@ -4466,6 +4466,13 @@ int4 RuleLoadVarnode::applyOp(PcodeOp *op,Funcdata &data)
 
   size = op->getOut()->getSize();
   offoff = AddrSpace::addressToByte(offoff,baseoff->getWordSize());
+  // In normal address space (and not in the register one)
+  if (baseoff->getType() == IPTR_PROCESSOR && baseoff->getName() != "register") {
+    SymbolEntry *entry = op->getIn(1)->getSymbolInFlow(op);
+    // Must have symbol defined there
+    if (entry == (SymbolEntry *)0) return 0;
+  }
+
   newvn = data.newVarnode(size,baseoff,offoff);
   data.opSetInput(op,newvn,0);
   data.opRemoveInput(op,1);
