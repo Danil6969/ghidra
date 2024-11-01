@@ -659,6 +659,12 @@ Datatype *Varnode::getHighTypeReadFacing(const PcodeOp *op) const
   return ct->findResolve(op, op->getSlot(this));
 }
 
+void Varnode::setTempType(Datatype *t) const
+
+{
+  temp.dataType = t;
+}
+
 /// This is a convenience method for quickly finding the unique PcodeOp that reads this Varnode
 /// \return only descendant (if there is 1 and ONLY 1) or \b null otherwise
 PcodeOp *Varnode::loneDescend(void) const
