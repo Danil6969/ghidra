@@ -216,6 +216,7 @@ public:
   bool isCalculatedBool(void) const { return ((flags&(PcodeOp::calculated_bool|PcodeOp::booloutput))!=0); }
   /// \brief Return \b true if we have already examined this cpool
   bool isCpoolTransformed(void) const { return ((addlflags&PcodeOp::is_cpool_transformed)!=0); }
+  Funcdata *getFuncdata(void) const;
   bool isCompare(void) const; ///< Return \b true if this is compare op
   bool isLoopedIncrement(void) const; ///< Return \b true if this is eventually constant increment (or decrement) of looped multiequal op
   bool isCollapsible(void) const; ///< Return \b true if this can be collapsed to a COPY of a constant
