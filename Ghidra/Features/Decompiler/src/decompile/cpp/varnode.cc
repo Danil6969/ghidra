@@ -1210,6 +1210,15 @@ bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) cons
   return false;
 }
 
+bool Varnode::isInternalConstant(void) const
+
+{
+  if (hasNoDescend()) return false;
+  PcodeOp *op = *beginDescend();
+  Funcdata *fd = op->getFuncdata();
+  return false;
+}
+
 bool Varnode::isInternalFunctionParameter(void) const
 
 {
@@ -1226,9 +1235,7 @@ bool Varnode::isInternalFunctionParameter(void) const
   }
   if (lone->code() != CPUI_CALL) return false;
 
-  BlockBasic *parent = lone->getParent();
-  if (parent == (BlockBasic *)0) return false;
-  Funcdata *fd = parent->getFuncdata();
+  Funcdata *fd = lone->getFuncdata();
   if (fd == (Funcdata *)0) return false;
   FuncCallSpecs *spec = fd->getCallSpecs(lone);
 
