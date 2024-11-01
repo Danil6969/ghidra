@@ -194,7 +194,7 @@ public:
   Datatype *getTypeReadFacing(const PcodeOp *op) const;	///< Get the data-type of \b this when it is read by the given PcodeOp
   Datatype *getHighTypeDefFacing(void) const;	///< Return the data-type of the HighVariable when \b this is written to
   Datatype *getHighTypeReadFacing(const PcodeOp *op) const;	///< Return data-type of the HighVariable when read by the given PcodeOp
-  void setTempType(Datatype *t) const { temp.dataType = t; }	///< Set the temporary Datatype
+  void setTempType(Datatype *t) const;	///< Set the temporary Datatype
   Datatype *getTempType(void) const { return temp.dataType; } ///< Get the temporary Datatype (used during type propagation)
   void setValueSet(ValueSet *v) const { temp.valueSet = v; }	///< Set the temporary ValueSet record
   ValueSet *getValueSet(void) const { return temp.valueSet; }	///< Get the temporary ValueSet record
