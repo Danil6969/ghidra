@@ -385,6 +385,17 @@ TypeOpLoad::TypeOpLoad(TypeFactory *t) : TypeOp(t,CPUI_LOAD,"load")
   behave = new OpBehavior(CPUI_LOAD,false,true); // Dummy behavior
 }
 
+Datatype *TypeOpLoad::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  if (slot == 1) {
+    Datatype *ct = op->getIn(1)->recoverConstantDatatype();
+    if (ct != (Datatype *)0)
+      return ct;
+  }
+  return TypeOp::getInputLocal(op,slot);
+}
+
 Datatype *TypeOpLoad::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
 
 {
@@ -1672,7 +1683,7 @@ Datatype *TypeOpIntAnd::propagateType(Datatype *alttype,PcodeOp *op,Varnode *inv
 }
 
 TypeOpIntOr::TypeOpIntOr(TypeFactory *t)
-  : TypeOpBinary(t,CPUI_INT_OR,"|",TYPE_UINT,TYPE_UINT)
+  : TypeOpBinary(t,CPUI_INT_OR,"|",TYPE_INT,TYPE_INT)
 {
   opflags = PcodeOp::binary | PcodeOp::commutative;
   addlflags = logical_op | inherits_sign;
@@ -2603,6 +2614,11 @@ Datatype *TypeOpPtrsub::getOutputLocal(const PcodeOp *op) const
 Datatype *TypeOpPtrsub::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
+  if (slot == 0) {
+    Datatype *ct = op->getIn(0)->recoverConstantDatatype();
+    if (ct != (Datatype *)0)
+      return ct;
+  }
   return tlst->getBase(op->getIn(slot)->getSize(),TYPE_INT);
 }
 
