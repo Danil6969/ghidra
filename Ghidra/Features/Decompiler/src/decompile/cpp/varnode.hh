@@ -348,6 +348,7 @@ public:
   void encode(Encoder &encoder) const; ///< Encode a description of \b this to a stream
   static bool comparePointers(const Varnode *a,const Varnode *b) { return (*a < *b); }	///< Compare Varnodes as pointers
   static void printRaw(ostream &s,const Varnode *vn);	///< Print raw info about a Varnode to stream
+  Datatype *recoverConstantDatatype(void) const;
   SymbolEntry *getSymbolInFlow(PcodeOp *op) const;
   bool isInternalFunctionParameter(void) const;
   bool hasPointerUsages(void) const;
