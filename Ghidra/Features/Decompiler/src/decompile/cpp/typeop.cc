@@ -1679,6 +1679,18 @@ TypeOpIntOr::TypeOpIntOr(TypeFactory *t)
   behave = new OpBehaviorIntOr();
 }
 
+Datatype *TypeOpIntOr::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  return tlst->getBase(op->getIn(slot)->getSize(),TYPE_INT);
+}
+
+Datatype *TypeOpIntOr::getOutputLocal(const PcodeOp *op) const
+
+{
+  return tlst->getBase(op->getOut()->getSize(),TYPE_INT);
+}
+
 Datatype *TypeOpIntOr::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
 
 {
