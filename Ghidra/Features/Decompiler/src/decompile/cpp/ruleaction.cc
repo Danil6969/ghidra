@@ -7701,19 +7701,16 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
     }
   }
   if (baseType->getMetatype() == TYPE_STRUCT) {
-    if (baseType->getSize() < movesize)
-      return 0;				// Moving something bigger than entire structure
-    Datatype *subType = baseType->getSubType(offset,&offset); // Get field at pointer's offset
-    if (subType==(Datatype *)0) return 0;
-    if (subType->getSize() < movesize) return 0;	// Subtype is too small to handle LOAD/STORE
-    if (isRepeated(op,baseType,subType)) return 0;
-    // Does not contain anything within
-    // In fact this will lead to repeated datatypes between both input0 and output of newly created PTRSUB
-    //if (subType->getMetatype() == TYPE_PTR) return 0;
-//    if (baseType->getSize() == movesize) {
-      // If we reach here, move is same size as the structure, which is the same size as
-      // the first element.
-//    }
+    if (baseType->getSize() < movesize) return 0;		// Moving something bigger than entire structure
+    if (offset == 0) {						// Only check if offset is 0.
+								// Otherwise there will be always an extra ptrsub
+      Datatype *subType = baseType->getSubType(offset,&offset); // Get field at pointer's offset
+      if (subType==(Datatype *)0) return 0;
+      if (subType->getSize() < movesize) return 0;		// Subtype is too small to handle LOAD/STORE
+      if (isRepeated(op,baseType,subType)) return 0;		// Does not contain anything within
+      								// In fact this will lead to repeated datatypes
+								// between both input0 and output of newly created PTRSUB
+    }
   }
   else if (baseType->getMetatype() == TYPE_ARRAY) {
     if (baseType->getSize() < movesize)
