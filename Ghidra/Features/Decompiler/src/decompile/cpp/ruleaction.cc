@@ -8147,7 +8147,8 @@ int4 RulePtrsubUndo::applyOp(PcodeOp *op,Funcdata &data)
   int8 val = cvn->getOffset();
   int8 multiplier;
   int8 extra = getExtraOffset(op,multiplier);
-  if (basevn->getTypeReadFacing(op)->isPtrsubMatching(val,extra,multiplier))
+  Datatype *basetype = basevn->getTypeReadFacing(op);
+  if (basetype->isPtrsubMatching(val,extra,multiplier))
     return 0;
   PcodeOp *ptrOp = basevn->getDef();
   if (ptrOp != (PcodeOp *)0 && ptrOp->code() == CPUI_PTRSUB) {
