@@ -1216,6 +1216,35 @@ bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) cons
   return false;
 }
 
+Datatype *Varnode::recoverConstantDatatype(void) const
+
+{
+  if (!isConstant()) return (Datatype *)0;
+  PcodeOp *lone = loneDescend();
+  if (lone == (PcodeOp *)0) return (Datatype *)0;
+  uintb off = getOffset();
+  const BlockBasic *parent = lone->getParent();
+  if (parent->sizeIn() == 1) {
+    const FlowBlock *bl = parent->getIn(0);
+    PcodeOp *cbranchop = bl->lastOp();
+    if (cbranchop->code() != CPUI_CBRANCH) return (Datatype *)0;
+    PcodeOp *conditionop = cbranchop->getIn(1)->getDef();
+    if (conditionop == (PcodeOp *)0) return (Datatype *)0;
+    OpCode conditionopc = conditionop->code();
+    if (conditionopc != CPUI_INT_NOTEQUAL) {
+      if (conditionopc != CPUI_INT_EQUAL) return (Datatype *)0;
+    }
+    Varnode *constvn = conditionop->getIn(1);
+    if (!constvn->isConstant()) return (Datatype *)0;
+    if (constvn->getOffset() != off) return (Datatype *)0;
+    Varnode *ptrvn = conditionop->getIn(0);
+    Datatype *ct = ptrvn->getTypeReadFacing(conditionop);
+    if (ct->getMetatype() != TYPE_PTR) return (Datatype *)0;
+    return ct;
+  }
+  return (Datatype *)0;
+}
+
 SymbolEntry *Varnode::getSymbolInFlow(PcodeOp *op) const
 
 {
