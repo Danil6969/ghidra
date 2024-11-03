@@ -658,7 +658,7 @@ Datatype *TypeOpCall::getInputLocal(const PcodeOp *op,int4 slot) const
     if (param->isTypeLocked()) {
       ct = param->getType();
       string functionName = fc->getName();
-      string typeName = "";
+      string typeName = ct->getName();
       if (ct->getMetatype() == TYPE_PTR) {
 	typeName = ((TypePointer *)ct)->getPtrTo()->getName();
       }
