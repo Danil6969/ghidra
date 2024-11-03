@@ -1620,7 +1620,7 @@ void PrintC::push_integer(uintb val,int4 sz,bool sign,tagtype tag,
     force_unsigned_token = vn->isUnsignedPrint();
     force_sized_token = vn->isLongPrint();
     if (displayFormat == 0)	// The symbol's formatting overrides any formatting on the data-type
-      displayFormat = high->getType()->getDisplayFormat();
+      displayFormat = high->getType()->getDisplayFormat(val);
   }
   if (sign && displayFormat != Symbol::force_char) { // Print the constant as signed
     uintb mask = calc_mask(sz);
