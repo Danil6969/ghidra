@@ -1204,50 +1204,6 @@ void PrintC::opPtradd(const PcodeOp *op)
   pushVn(op->getIn(0),op,m);
 }
 
-static bool isValueFlexible(const Varnode *vn);
-
-static bool isPtrRelFlexible(const PcodeOp *op)
-
-{
-  const Varnode *in0 = op->getIn(0);
-  uintb in1const = op->getIn(1)->getOffset();
-  TypePointer *ptype = (TypePointer *)in0->getHighTypeReadFacing(op);
-  if (ptype->getMetatype() != TYPE_PTR) return true;
-  if (!ptype->isFormalPointerRel()) return true;
-  TypePointerRel *ptrel = (TypePointerRel *)ptype;
-  if (!ptrel->evaluateThruParent(in1const)) return true;
-  Datatype *ct = ptrel->getParent();
-  if (ct->getMetatype() != TYPE_STRUCT && ct->getMetatype() != TYPE_UNION) return true;
-  int8 suboff = (int4)in1const;
-  suboff += ptrel->getPointerOffset();
-  suboff &= calc_mask(ptype->getSize());
-  if (suboff != 0) return true;
-  if (isValueFlexible(in0)) return true;
-  return false;
-}
-
-static bool isValueFlexible(const Varnode *vn)
-
-{
-  if ((vn->isImplied())&&(vn->isWritten())) {
-    const PcodeOp *def = vn->getDef();
-    OpCode opc = def->code();
-    if (opc == CPUI_COPY) {
-      const Varnode *invn = def->getIn(0);
-      if (!invn->isImplied()) return false;
-      if (!invn->isWritten()) return false;
-      def = invn->getDef();
-      opc = def->code();
-    }
-    if (opc == CPUI_PTRSUB) {
-      if (!isPtrRelFlexible(def)) return false;
-      return true;
-    }
-    if (opc == CPUI_PTRADD) return true;
-  }
-  return false;
-}
-
 /// We need to distinguish between the following cases:
 ///  - ptr->        struct spacebase or array
 ///  - valueoption  on/off   (from below)
@@ -1983,6 +1939,48 @@ bool PrintC::isStringLocation(uintb val,const PcodeOp *op,const TypePointer *ct)
     return false;		// Can we get a nice ASCII string
 
   return true;
+}
+
+bool isValueFlexible(const Varnode *vn)
+
+{
+  if ((vn->isImplied())&&(vn->isWritten())) {
+    const PcodeOp *def = vn->getDef();
+    OpCode opc = def->code();
+    if (opc == CPUI_COPY) {
+      const Varnode *invn = def->getIn(0);
+      if (!invn->isImplied()) return false;
+      if (!invn->isWritten()) return false;
+      def = invn->getDef();
+      opc = def->code();
+    }
+    if (opc == CPUI_PTRSUB) {
+      if (!isPtrRelFlexible(def)) return false;
+      return true;
+    }
+    if (opc == CPUI_PTRADD) return true;
+  }
+  return false;
+}
+
+bool isPtrRelFlexible(const PcodeOp *op)
+
+{
+  const Varnode *in0 = op->getIn(0);
+  uintb in1const = op->getIn(1)->getOffset();
+  TypePointer *ptype = (TypePointer *)in0->getHighTypeReadFacing(op);
+  if (ptype->getMetatype() != TYPE_PTR) return true;
+  if (!ptype->isFormalPointerRel()) return true;
+  TypePointerRel *ptrel = (TypePointerRel *)ptype;
+  if (!ptrel->evaluateThruParent(in1const)) return true;
+  Datatype *ct = ptrel->getParent();
+  if (ct->getMetatype() != TYPE_STRUCT && ct->getMetatype() != TYPE_UNION) return true;
+  int8 suboff = (int4)in1const;
+  suboff += ptrel->getPointerOffset();
+  suboff &= calc_mask(ptype->getSize());
+  if (suboff != 0) return true;
+  if (isValueFlexible(in0)) return true;
+  return false;
 }
 
 /// \brief Push a single character constant to the RPN stack
