@@ -657,8 +657,17 @@ Datatype *TypeOpCall::getInputLocal(const PcodeOp *op,int4 slot) const
   if (param != (ProtoParameter*) 0) {
     if (param->isTypeLocked()) {
       ct = param->getType();
-      if ((ct->getMetatype() != TYPE_VOID) && (ct->getSize() <= op->getIn(slot)->getSize())) // parameter may not match varnode
-	return ct;
+      string functionName = fc->getName();
+      string typeName = "";
+      if (ct->getMetatype() == TYPE_PTR) {
+	typeName = ((TypePointer *)ct)->getPtrTo()->getName();
+      }
+      // parameter may not match varnode
+      if (ct->getMetatype() != TYPE_VOID)
+	if ((ct->getSize() <= op->getIn(slot)->getSize()))
+	  // must not look like a constructor
+	  if (functionName != typeName)
+	    return ct;
     }
     else if (param->isThisPointer()) {
       // Known "this" pointer is effectively typelocked even if the prototype as a whole isn't
