@@ -155,6 +155,25 @@ bool Datatype::isStructuredType(void) const
   return false;
 }
 
+/// A non-zero result indicates the type of formatting that is forced on the constant.
+/// One of the following values is returned.
+///   - 1 for hexadecimal
+///   - 2 for decimal
+///   - 3 for octal
+///   - 4 for binary
+///   - 5 for char
+///
+/// \param val is value of constant
+/// \return the forced encoding type or zero
+uint4 Datatype::getDisplayFormat(uintb val) const
+
+{
+  if (val == 0) {
+    return Symbol::force_dec;
+  }
+  return getDisplayFormat();
+}
+
 /// Print a raw description of the type to stream. Intended for debugging.
 /// Not intended to produce parsable C.
 /// \param s is the output stream
