@@ -228,6 +228,7 @@ public:
   bool needsResolution(void) const { return (flags & needs_resolution)!=0; }	///< Is \b this a union or a pointer to union
   uint4 getInheritable(void) const { return (flags & coretype); }	///< Get properties pointers inherit
   uint4 getDisplayFormat(void) const;				///< Get the display format for constants with \b this data-type
+  uint4 getDisplayFormat(uintb val) const;			///< Get the display format for constants with \b this data-type
   type_metatype getMetatype(void) const { return metatype; }	///< Get the type \b meta-type
   sub_metatype getSubMeta(void) const { return submeta; }	///< Get the \b sub-metatype
   uint8 getId(void) const { return id; }			///< Get the type id
