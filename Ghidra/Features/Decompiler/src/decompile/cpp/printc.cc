@@ -1941,7 +1941,7 @@ bool PrintC::isStringLocation(uintb val,const PcodeOp *op,const TypePointer *ct)
   return true;
 }
 
-bool isValueFlexible(const Varnode *vn)
+bool PrintC::isValueFlexible(const Varnode *vn)
 
 {
   if ((vn->isImplied())&&(vn->isWritten())) {
@@ -1963,7 +1963,7 @@ bool isValueFlexible(const Varnode *vn)
   return false;
 }
 
-bool isPtrRelFlexible(const PcodeOp *op)
+bool PrintC::isPtrRelFlexible(const PcodeOp *op)
 
 {
   const Varnode *in0 = op->getIn(0);
