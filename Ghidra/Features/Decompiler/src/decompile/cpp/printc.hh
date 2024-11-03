@@ -212,6 +212,8 @@ protected:
   int4 getHiddenThisSlot(const PcodeOp *op,FuncProto *fc);	///< Get position of "this" pointer needing to be hidden
   void resetDefaultsPrintC(void);			///< Set default values for options specific to PrintC
   bool isStringLocation(uintb val,const PcodeOp *op,const TypePointer *ct);
+  bool isValueFlexible(const Varnode *vn);
+  bool isPtrRelFlexible(const PcodeOp *op);
   virtual void pushConstant(uintb val,const Datatype *ct,tagtype tag,
 			    const Varnode *vn,const PcodeOp *op);
   virtual bool pushEquate(uintb val,int4 sz,const EquateSymbol *sym,
