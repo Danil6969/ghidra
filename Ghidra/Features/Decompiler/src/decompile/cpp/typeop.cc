@@ -695,7 +695,10 @@ Datatype *TypeOpCall::getInputCast(const PcodeOp *op,int4 slot,const CastStrateg
 
 {
   if (isConstructorThisParameter(op,slot)) {
-    return TypeOp::getInputCast(op,slot,castStrategy);
+    const Varnode *vn = op->getIn(0);
+    FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(vn->getAddr());
+    ProtoParameter *param = fc->getParam(slot - 1);
+    return param->getType();
   }
   return TypeOp::getInputCast(op,slot,castStrategy);
 }
