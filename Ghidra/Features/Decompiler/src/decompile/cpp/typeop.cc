@@ -610,6 +610,23 @@ void TypeOpBranchind::printRaw(ostream &s,const PcodeOp *op)
   Varnode::printRaw(s,op->getIn(0));
 }
 
+bool TypeOpCall::isConstructorThisParameter(const PcodeOp *op,int4 slot) const
+
+{
+  if (slot != 1) return false;
+  const Varnode *vn = op->getIn(0);
+  const FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(vn->getAddr());
+  ProtoParameter *param = fc->getParam(slot - 1);
+  if (param == (ProtoParameter*) 0) return false;
+  Datatype *ct = param->getType();
+  if (ct->getMetatype() != TYPE_PTR) return false;
+  TypePointer *tp = (TypePointer *)ct;
+  Datatype *pt = tp->getPtrTo();
+  string functionName = fc->getName();
+  string typeName = pt->getName();
+  return functionName == typeName;
+}
+
 TypeOpCall::TypeOpCall(TypeFactory *t) : TypeOp(t,CPUI_CALL,"call")
 
 {
@@ -657,16 +674,11 @@ Datatype *TypeOpCall::getInputLocal(const PcodeOp *op,int4 slot) const
   if (param != (ProtoParameter*) 0) {
     if (param->isTypeLocked()) {
       ct = param->getType();
-      string functionName = fc->getName();
-      string typeName = ct->getName();
-      if (ct->getMetatype() == TYPE_PTR) {
-	typeName = ((TypePointer *)ct)->getPtrTo()->getName();
-      }
       // parameter may not match varnode
       if (ct->getMetatype() != TYPE_VOID)
 	if ((ct->getSize() <= op->getIn(slot)->getSize()))
-	  // must not look like a constructor
-	  if (functionName != typeName)
+	  // must not look like a constructor first parameter
+	  if (!isConstructorThisParameter(op,slot))
 	    return ct;
     }
     else if (param->isThisPointer()) {
@@ -677,6 +689,15 @@ Datatype *TypeOpCall::getInputLocal(const PcodeOp *op,int4 slot) const
     }
   }
   return TypeOp::getInputLocal(op,slot);
+}
+
+Datatype *TypeOpCall::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
+
+{
+  if (isConstructorThisParameter(op,slot)) {
+    return TypeOp::getInputCast(op,slot,castStrategy);
+  }
+  return TypeOp::getInputCast(op,slot,castStrategy);
 }
 
 Datatype *TypeOpCall::getOutputLocal(const PcodeOp *op) const
