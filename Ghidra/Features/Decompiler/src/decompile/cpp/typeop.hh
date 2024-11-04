@@ -304,11 +304,13 @@ public:
 
 /// \brief Information about the CALL op-code
 class TypeOpCall : public TypeOp {
+  virtual bool isConstructorThisParameter(const PcodeOp *op,int4 slot) const;
 public:
   TypeOpCall(TypeFactory *t);			///< Constructor
   virtual void push(PrintLanguage *lng,const PcodeOp *op,const PcodeOp *readOp) const { lng->opCall(op); }
   virtual void printRaw(ostream &s,const PcodeOp *op);
   virtual Datatype *getInputLocal(const PcodeOp *op,int4 slot) const;
+  virtual Datatype *getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const;
   virtual Datatype *getOutputLocal(const PcodeOp *op) const;
 };
 
