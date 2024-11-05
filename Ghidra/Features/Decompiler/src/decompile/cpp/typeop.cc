@@ -610,21 +610,57 @@ void TypeOpBranchind::printRaw(ostream &s,const PcodeOp *op)
   Varnode::printRaw(s,op->getIn(0));
 }
 
-bool TypeOpCall::isConstructorThisParameter(const PcodeOp *op,int4 slot) const
+bool TypeOpCall::isConstructorThisParameter(const PcodeOp *op,int4 slot,FuncCallSpecs *fc)
 
 {
   if (slot != 1) return false;
-  const Varnode *vn = op->getIn(0);
-  const FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(vn->getAddr());
-  ProtoParameter *param = fc->getParam(slot - 1);
-  if (param == (ProtoParameter*) 0) return false;
-  Datatype *ct = param->getType();
-  if (ct->getMetatype() != TYPE_PTR) return false;
-  TypePointer *tp = (TypePointer *)ct;
+  ProtoParameter *param = fc->getParam(slot-1);
+  if (param == (ProtoParameter*)0) return false;
+  Datatype *dt = param->getType();
+  if (dt->getMetatype() != TYPE_PTR) return false;
+  TypePointer *tp = (TypePointer *)dt;
   Datatype *pt = tp->getPtrTo();
-  string functionName = fc->getName();
-  string typeName = pt->getName();
-  return functionName == typeName;
+
+  return pt->getName() == fc->getName();
+}
+
+bool TypeOpCall::conflictsDefinitionDatatype(const PcodeOp *op,int4 slot,FuncCallSpecs *fc)
+
+{
+  if (slot == 0) return false;
+  ProtoParameter *param = fc->getParam(slot-1);
+  if (param == (ProtoParameter*)0) return false;
+  Datatype *dt = param->getType();
+  if (dt->getMetatype() != TYPE_PTR) return false;
+  TypePointer *tp = (TypePointer *)dt;
+  Datatype *pt = tp->getPtrTo();
+
+  const Varnode *vn = op->getIn(slot);
+  const PcodeOp *def = vn->getDef();
+  if (def == (PcodeOp *)0) return false;
+  OpCode opc = def->code();
+  if (opc == CPUI_CALL) {
+    FuncCallSpecs *defspec = FuncCallSpecs::getFspecFromConst(def->getIn(0)->getAddr());
+    ProtoParameter *outparam = defspec->getOutput();
+    if (outparam == (ProtoParameter*)0) return false;
+    Datatype *outdt = outparam->getType();
+    if (outdt->getMetatype() != TYPE_PTR) return false;
+    TypePointer *outtp = (TypePointer *)outdt;
+    Datatype *outpt = outtp->getPtrTo();
+
+    return pt->getName() != outpt->getName();
+  }
+  return false;
+}
+
+bool TypeOpCall::datatypePropagates(const PcodeOp *op,int4 slot)
+
+{
+  FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(op->getIn(0)->getAddr());
+  // must not look like a first parameter for some constructor
+  if (isConstructorThisParameter(op,slot,fc)) return false;
+  if (conflictsDefinitionDatatype(op,slot,fc)) return false;
+  return true;
 }
 
 TypeOpCall::TypeOpCall(TypeFactory *t) : TypeOp(t,CPUI_CALL,"call")
@@ -677,8 +713,7 @@ Datatype *TypeOpCall::getInputLocal(const PcodeOp *op,int4 slot) const
       // parameter may not match varnode
       if (ct->getMetatype() != TYPE_VOID)
 	if ((ct->getSize() <= op->getIn(slot)->getSize()))
-	  // must not look like a constructor first parameter
-	  if (!isConstructorThisParameter(op,slot))
+	  if (datatypePropagates(op,slot))
 	    return ct;
     }
     else if (param->isThisPointer()) {
@@ -694,11 +729,13 @@ Datatype *TypeOpCall::getInputLocal(const PcodeOp *op,int4 slot) const
 Datatype *TypeOpCall::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
 
 {
-  if (isConstructorThisParameter(op,slot)) {
+  if (!datatypePropagates(op,slot)) {
     const Varnode *vn = op->getIn(0);
     FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(vn->getAddr());
     ProtoParameter *param = fc->getParam(slot - 1);
-    return param->getType();
+    if (param != (ProtoParameter *)0) {
+      return param->getType();
+    }
   }
   return TypeOp::getInputCast(op,slot,castStrategy);
 }
