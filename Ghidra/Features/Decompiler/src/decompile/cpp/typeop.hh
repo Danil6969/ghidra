@@ -28,6 +28,7 @@ namespace ghidra {
 
 class PcodeOp;
 class Translate;
+class FuncCallSpecs;
 
 /// \brief Associate data-type and behavior information with a specific p-code op-code.
 ///
@@ -304,7 +305,9 @@ public:
 
 /// \brief Information about the CALL op-code
 class TypeOpCall : public TypeOp {
-  virtual bool isConstructorThisParameter(const PcodeOp *op,int4 slot) const;
+  static bool isConstructorThisParameter(const PcodeOp *op,int4 slot,FuncCallSpecs *fc);
+  static bool conflictsDefinitionDatatype(const PcodeOp *op,int4 slot,FuncCallSpecs *fc);
+  static bool datatypePropagates(const PcodeOp *op,int4 slot);
 public:
   TypeOpCall(TypeFactory *t);			///< Constructor
   virtual void push(PrintLanguage *lng,const PcodeOp *op,const PcodeOp *readOp) const { lng->opCall(op); }
