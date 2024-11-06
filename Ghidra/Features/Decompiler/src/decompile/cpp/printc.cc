@@ -1382,7 +1382,7 @@ void PrintC::opPtrsub(const PcodeOp *op)
       if (off == 0) {
 	if (isStringLocation(in1const,op,(const TypePointer *)ct)) {
 	  if (!pushPtrCharConstant(in1const,ptype,(Varnode *)0,op))
-	    throw LowlevelError("Passed isStringLocation but didn't pass pushPtrCharConstant, shouldn't reach this");
+	    throw LowlevelError("Failed to print char pointer constant as string");
 	}
 	else {
 	  pushSymbol(symbol,(Varnode *)0,op);
@@ -1912,10 +1912,6 @@ void PrintC::resetDefaultsPrintC(void)
 bool PrintC::isStringLocation(uintb val,const PcodeOp *op,const TypePointer *ct)
 
 {
-  const Varnode *outvn = op->getOut();
-  if (outvn != (const Varnode *)0) {
-    if (outvn->isPtrdiffOperand(*op->getFuncdata())) return false;
-  }
   if (val==0) return false;
   AddrSpace *spc = glb->getDefaultDataSpace();
   uintb fullEncoding;
@@ -2110,12 +2106,18 @@ bool PrintC::pushPtrCharConstant(uintb val,const TypePointer *ct,const Varnode *
   if (ptrType->getMetatype() != TYPE_ARRAY) return false;
   Datatype *baseType = ((TypeArray *)ptrType)->getBase();
   if (!baseType->isCharPrint()) return false;
+  Address startaddr = entry->getAddr();
 
   ostringstream str;
   Datatype *subct = ct->getPtrTo();
+  intb offset = stringaddr.getOffset() - startaddr.getOffset();
+
+  if (offset > 0) {
+    ;
+  }
+
   if (!printCharacterConstant(str,stringaddr,baseType))
     return false;		// Can we get a nice ASCII string
-
   pushAtom(Atom(str.str(),vartoken,EmitMarkup::const_color,op,vn));
   return true;
 }
@@ -2194,7 +2196,7 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
 	pushType(ct);
       }
       if (!pushPtrCharConstant(val,(const TypePointer *)ct,vn,op))
-	throw LowlevelError("Passed isStringLocation but didn't pass pushPtrCharConstant, shouldn't reach this");
+	throw LowlevelError("Failed to print char pointer constant as string");
       return;
     }
     else if (subtype->getMetatype()==TYPE_CODE) {
