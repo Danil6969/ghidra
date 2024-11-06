@@ -1216,6 +1216,7 @@ bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) cons
   return false;
 }
 
+// TODO finish all cases
 Datatype *Varnode::recoverConstantDatatype(void) const
 
 {
