@@ -55,6 +55,9 @@ public class MicrosoftDemanglerUtil {
 	 */
 	static DemangledObject convertToDemangledObject(MDParsableItem item, String mangled)
 			throws DemangledException {
+		if (item == null) {
+			return null;
+		}
 		return processItem(item, mangled, item.toString());
 	}
 
