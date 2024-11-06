@@ -1431,6 +1431,7 @@ bool Varnode::isPtrdiffSubtrahend(Funcdata &data) const
   Datatype *ct = (Datatype *)0;
   if (typesrecovered) {
     Varnode *outvn = lone->getOut();
+    if (outvn == (Varnode *)0) return false;
     Datatype *ct = outvn->getTypeDefFacing();
     if (ct->getMetatype() == TYPE_PTR) return false;
     if (ct->getMetatype() == TYPE_PTRREL) return false;
