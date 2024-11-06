@@ -2111,9 +2111,22 @@ bool PrintC::pushPtrCharConstant(uintb val,const TypePointer *ct,const Varnode *
   ostringstream str;
   Datatype *subct = ct->getPtrTo();
   intb offset = stringaddr.getOffset() - startaddr.getOffset();
+  int4 charSize = baseType->getSize();
 
-  if (offset > 0) {
-    ;
+  if ((offset > 0)) {
+    if (offset % charSize == 0) {
+      // Pushing partial string
+      if (!printCharacterConstant(str,startaddr,baseType))
+	return false;		// Can we get a nice ASCII string
+      intb addend = offset / charSize;
+      // Push as pointer addition,
+      // so it will point to middle of the same string anyway
+      // but not some other unique string
+      pushOp(&binary_plus,(const PcodeOp *)0);
+      pushAtom(Atom(str.str(),vartoken,EmitMarkup::const_color,op,vn));
+      push_integer(addend,startaddr.getAddrSize(),false,syntax,(const Varnode *)0,(const PcodeOp *)0);
+      return true;
+    }
   }
 
   if (!printCharacterConstant(str,stringaddr,baseType))
