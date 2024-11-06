@@ -357,7 +357,7 @@ public:
   bool isAllocaLength(Funcdata &data) const;
   bool isStackPointerLocated(Funcdata &data) const;
   bool isStackVariableAddress(Funcdata &data,bool allocaAllowed=true) const;
-  bool isPtrdiffSubtrahend(Funcdata &data) const;
+  bool isPtrdiffOperand(Funcdata &data) const;
 };
 
 /// \brief A container for Varnode objects from a specific function

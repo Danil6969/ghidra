@@ -1346,7 +1346,7 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
       break;
     case CPUI_INT_MULT:
     {
-      if (!vn->isPtrdiffSubtrahend(data)) return (SymbolEntry *)0;
+      if (!vn->isPtrdiffOperand(data)) return (SymbolEntry *)0;
       break;
     }
     case CPUI_STORE:

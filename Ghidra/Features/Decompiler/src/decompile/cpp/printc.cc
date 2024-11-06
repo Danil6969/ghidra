@@ -1912,6 +1912,10 @@ void PrintC::resetDefaultsPrintC(void)
 bool PrintC::isStringLocation(uintb val,const PcodeOp *op,const TypePointer *ct)
 
 {
+  const Varnode *outvn = op->getOut();
+  if (outvn != (const Varnode *)0) {
+    if (outvn->isPtrdiffOperand(*op->getFuncdata())) return false;
+  }
   if (val==0) return false;
   AddrSpace *spc = glb->getDefaultDataSpace();
   uintb fullEncoding;

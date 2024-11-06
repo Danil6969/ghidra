@@ -204,7 +204,6 @@ bool PcodeOp::isMultNonCollapsible(void) const
 
 {
   if (code() != CPUI_INT_MULT) return false;
-  Funcdata &fd = *(Funcdata *) getParent()->getFuncdata();
   PcodeOp *lone = getOut()->loneDescend();
   if (lone == (PcodeOp *)0) return true;
 
@@ -213,7 +212,7 @@ bool PcodeOp::isMultNonCollapsible(void) const
 
   // Check if it is ptrdiff subtrahend
   const Varnode *invn0 = getIn(0);
-  if (!invn0->isPtrdiffSubtrahend(fd)) return false;
+  if (!invn0->isPtrdiffOperand(*getFuncdata())) return false;
   return true;
 }
 

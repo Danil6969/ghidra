@@ -1422,57 +1422,82 @@ bool Varnode::isStackVariableAddress(Funcdata &data,bool allocaAllowed) const
   return true;
 }
 
-bool Varnode::isPtrdiffSubtrahend(Funcdata &data) const
+bool Varnode::isPtrdiffOperand(Funcdata &data) const
 
 {
   bool typesrecovered = data.hasTypeRecoveryStarted();
-  PcodeOp *lone = loneDescend();
-  if (lone == (PcodeOp *)0) return false;
-  Datatype *ct = (Datatype *)0;
+  const Varnode *vn = this;
+  PcodeOp *lone = (PcodeOp *)0;
+  while (true) {
+    lone = vn->loneDescend();
+    if (lone == (PcodeOp *)0) return false;
+    OpCode opc = lone->code();
+    if (opc != CPUI_CAST) break;
+    vn = lone->getOut();
+  }
   if (typesrecovered) {
     Varnode *outvn = lone->getOut();
     if (outvn == (Varnode *)0) return false;
-    Datatype *ct = outvn->getTypeDefFacing();
-    if (ct->getMetatype() == TYPE_PTR) return false;
-    if (ct->getMetatype() == TYPE_PTRREL) return false;
-    ct = (Datatype *) 0;
+    // Result of subtraction
+    Datatype *resdt = outvn->getTypeDefFacing();
+    if (resdt->getMetatype() == TYPE_PTR) return false;
   }
+
+  Varnode *minuendvn = (Varnode *)0;
+  Varnode *subtrahendvn = (Varnode *)0;
+  Datatype *minuenddt = (Datatype *)0;
+  Datatype *subtrahenddt = (Datatype *)0;
 
   if (lone->code() == CPUI_INT_MULT) {
-    PcodeOp *multop = lone;
-    if (multop->getIn(0) != this) return false;
+    if (lone->getIn(0) == vn) {
+      PcodeOp *ptrdiffop = lone->getOut()->loneDescend();
+      if (ptrdiffop == (PcodeOp *)0) return false;
+      if (ptrdiffop->numInput() != 2) return false;
+      if (ptrdiffop->getOut() == (Varnode *)0) return false;
+      if (ptrdiffop->getOut()->isStackPointerLocated(data)) return false;
 
-    PcodeOp *ptrdiffop = multop->getOut()->loneDescend();
-    if (ptrdiffop == (PcodeOp *)0) return false;
-    if (ptrdiffop->numInput() != 2) return false;
-    if (ptrdiffop->getOut() == (Varnode *)0) return false;
-    if (ptrdiffop->getOut()->isStackPointerLocated(data)) return false;
+      Varnode *cvn = lone->getIn(1);
+      if (!cvn->isConstant()) return false;
+      if (cvn->getOffset() != calc_mask(cvn->getSize())) return false;
 
-    Varnode *cvn = multop->getIn(1);
-    if (!cvn->isConstant()) return false;
-    if (cvn->getOffset() != calc_mask(cvn->getSize())) return false;
+      minuendvn = lone->getIn(0);
+      subtrahendvn = ptrdiffop->getIn(1);
 
-    Varnode *minuendvn = multop->getIn(0);
-    Varnode *subtrahendvn = ptrdiffop->getIn(1);
-
-    if (subtrahendvn->isStackVariableAddress(data,false)) return false;
-
-    if (typesrecovered) {
-      if (!minuendvn->isConstant()) {
-	ct = minuendvn->getTypeReadFacing(multop);
-	if (ct->getMetatype() != TYPE_PTR && ct->getMetatype() != TYPE_PTRREL) return false;
-	ct = (Datatype *) 0;
-      }
-      if (!subtrahendvn->isConstant()) {
-	ct = subtrahendvn->getTypeReadFacing(ptrdiffop);
-	if (ct->getMetatype() != TYPE_PTR && ct->getMetatype() != TYPE_PTRREL) return false;
-	ct = (Datatype *) 0;
-      }
+      minuenddt = minuendvn->getTypeReadFacing(lone);
+      subtrahenddt = subtrahendvn->getTypeReadFacing(ptrdiffop);
     }
-    return true;
+    else {
+      return false;
+    }
   }
 
-  return false;
+  if (lone->code() == CPUI_INT_SUB) {
+    if (lone->getIn(1) == vn) {
+      minuendvn = lone->getIn(0);
+      subtrahendvn = lone->getIn(1);
+
+      minuenddt = minuendvn->getTypeReadFacing(lone);
+      subtrahenddt = subtrahendvn->getTypeReadFacing(lone);
+    }
+    else {
+      return false;
+    }
+  }
+
+  if (minuendvn == (Varnode *)0) return false;
+  if (subtrahendvn == (Varnode *)0) return false;
+
+  if (subtrahendvn->isStackVariableAddress(data,false)) return false;
+
+  if (typesrecovered) {
+    if (!minuendvn->isConstant()) {
+      if (minuenddt->getMetatype() != TYPE_PTR) return false;
+    }
+    if (!subtrahendvn->isConstant()) {
+      if (subtrahenddt->getMetatype() != TYPE_PTR) return false;
+    }
+  }
+  return true;
 }
 
 /// \param m is the underlying address space manager
