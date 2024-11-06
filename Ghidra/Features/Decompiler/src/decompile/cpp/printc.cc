@@ -2008,7 +2008,7 @@ void PrintC::pushCharConstant(uintb val,const Datatype *ct,tagtype tag,const Var
       displayFormat = sym->getDisplayFormat();
     }
     if (displayFormat == 0)
-      displayFormat = high->getType()->getDisplayFormat();
+      displayFormat = high->getType()->getDisplayFormat(val);
   }
   if (displayFormat != 0 && displayFormat != Symbol::force_char) {
     if (!castStrategy->caresAboutCharRepresentation(vn, op)) {
