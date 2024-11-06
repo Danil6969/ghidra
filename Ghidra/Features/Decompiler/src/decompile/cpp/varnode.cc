@@ -1445,8 +1445,8 @@ bool Varnode::isPtrdiffOperand(Funcdata &data) const
 
   Varnode *minuendvn = (Varnode *)0;
   Varnode *subtrahendvn = (Varnode *)0;
-  Datatype *minuenddt = (Datatype *)0;
-  Datatype *subtrahenddt = (Datatype *)0;
+  PcodeOp *minuendop = (PcodeOp *)0;
+  PcodeOp *subtrahendop = (PcodeOp *)0;
 
   if (lone->code() == CPUI_INT_MULT) {
     if (lone->getIn(0) == vn) {
@@ -1460,11 +1460,10 @@ bool Varnode::isPtrdiffOperand(Funcdata &data) const
       if (!cvn->isConstant()) return false;
       if (cvn->getOffset() != calc_mask(cvn->getSize())) return false;
 
-      minuendvn = lone->getIn(0);
-      subtrahendvn = ptrdiffop->getIn(1);
-
-      minuenddt = minuendvn->getTypeReadFacing(lone);
-      subtrahenddt = subtrahendvn->getTypeReadFacing(ptrdiffop);
+      minuendop = lone;
+      subtrahendop = ptrdiffop;
+      minuendvn = minuendop->getIn(0);
+      subtrahendvn = subtrahendop->getIn(1);
     }
     else {
       return false;
@@ -1473,11 +1472,10 @@ bool Varnode::isPtrdiffOperand(Funcdata &data) const
 
   if (lone->code() == CPUI_INT_SUB) {
     if (lone->getIn(1) == vn) {
-      minuendvn = lone->getIn(0);
-      subtrahendvn = lone->getIn(1);
-
-      minuenddt = minuendvn->getTypeReadFacing(lone);
-      subtrahenddt = subtrahendvn->getTypeReadFacing(lone);
+      minuendop = lone;
+      subtrahendop = lone;
+      minuendvn = minuendop->getIn(0);
+      subtrahendvn = subtrahendop->getIn(1);
     }
     else {
       return false;
@@ -1487,9 +1485,33 @@ bool Varnode::isPtrdiffOperand(Funcdata &data) const
   if (minuendvn == (Varnode *)0) return false;
   if (subtrahendvn == (Varnode *)0) return false;
 
+  while (true) {
+    PcodeOp *op = minuendvn->getDef();
+    if (op == (PcodeOp *)0) break;
+    OpCode opc = op->code();
+    if (opc != CPUI_CAST) break;
+    minuendop = op;
+    minuendvn = minuendop->getIn(0);
+  }
+
+  while (true) {
+    PcodeOp *op = subtrahendvn->getDef();
+    if (op == (PcodeOp *)0) break;
+    OpCode opc = op->code();
+    if (opc != CPUI_CAST) break;
+    subtrahendop = op;
+    subtrahendvn = minuendop->getIn(0);
+  }
+
+  if (minuendop == (PcodeOp *)0) return false;
+  if (subtrahendop == (PcodeOp *)0) return false;
+
   if (subtrahendvn->isStackVariableAddress(data,false)) return false;
 
   if (typesrecovered) {
+    Datatype *minuenddt = minuendvn->getTypeReadFacing(minuendop);
+    Datatype *subtrahenddt = subtrahendvn->getTypeReadFacing(subtrahendop);
+
     if (!minuendvn->isConstant()) {
       if (minuenddt->getMetatype() != TYPE_PTR) return false;
     }
