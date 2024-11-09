@@ -7001,7 +7001,7 @@ bool AddTreeState::spanAddTree(PcodeOp *op,uint8 treeCoeff)
   return false;		// At least one of the sides contains multiples
 }
 
-/// Make final calcultions to determine if a pointer to a sub data-type of the base
+/// Make final calculations to determine if a pointer to a sub data-type of the base
 /// data-type is being calculated, which will result in a CPUI_PTRSUB being generated.
 void AddTreeState::calcSubtype(void)
 
@@ -7071,6 +7071,10 @@ void AddTreeState::calcSubtype(void)
 	valid = false;				// Use basic (alternate) form
 	return;
       }
+    }
+    if (RulePtrsubUndo::canProcessOp(baseOp,baseOp->getSlot(ptr),data)) {
+      valid = false;
+      return;
     }
     isSubtype = true;
   }
@@ -8165,8 +8169,7 @@ bool RulePtrsubUndo::canProcessOp(PcodeOp *op,int4 slot,Funcdata &data)
 
   Varnode *basevn = op->getIn(slot);
   Varnode *cvn = op->getIn(1-slot);
-  if (!cvn->isConstant())
-    return true;
+  if (!cvn->isConstant()) return true;
   int8 val = cvn->getOffset();
   int8 multiplier;
   int8 extra = getExtraOffset(op,multiplier);
