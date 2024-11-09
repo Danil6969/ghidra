@@ -31,10 +31,7 @@ public class DecompilerFunctionAnalyzer extends AbstractAnalyzer {
 	private static final String DESCRIPTION =
 		"Creates parameter and local variables for a Function using Decompiler." + "\n" +
 			"WARNING: This can take a SIGNIFICANT Amount of Time!\n" +
-			"         Turned off by default for large programs" + "\n" +
 			"You can run this later using \"Analysis->Decompiler Parameter ID\"";
-
-	private static final long MEDIUM_SIZE_PROGRAM = (2 * 1024 * 1024);
 
 	private static final String ENABLED_PROPERTY = "DecompilerParameterAnalyzer.enabled";
 	private static final String OPTION_NAME_CLEAR_LEVEL = "Analysis Clear Level";
@@ -89,11 +86,8 @@ public class DecompilerFunctionAnalyzer extends AbstractAnalyzer {
 			return false;
 		}
 
-		long numAddr = program.getMemory().getNumAddresses();
-
 		// only do for windows by default, windows has good type info
-		return (numAddr < MEDIUM_SIZE_PROGRAM) &&
-			PeLoader.PE_NAME.equals(program.getExecutableFormat());
+		return PeLoader.PE_NAME.equals(program.getExecutableFormat());
 	}
 
 	private boolean isDisabledFromProperty() {
