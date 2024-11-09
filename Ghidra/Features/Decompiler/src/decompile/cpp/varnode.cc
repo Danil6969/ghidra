@@ -1337,9 +1337,8 @@ bool Varnode::isAllocaLength(Funcdata &data) const
     while (true) {
       if (op == (PcodeOp *)0) return false;
       opc = op->code();
-      if (opc != CPUI_COPY)
-	if (opc != CPUI_CAST)
-	  break;
+      if (opc != CPUI_COPY && opc != CPUI_CAST)
+	break;
       const Varnode *invn = op->getIn(0);
       op = invn->getDef();
     }
