@@ -1203,8 +1203,6 @@ bool TypePointer::isPtrsubMatching(int8 off,int8 extra,int8 multiplier) const
   else if (meta == TYPE_STRUCT) {
     int4 typesize = ptrto->getSize();
     multiplier = AddrSpace::addressToByteInt(multiplier,wordsize);
-    if (multiplier >= ptrto->getAlignSize())
-      return false;
     int8 newoff = AddrSpace::addressToByteInt(off,wordsize);
     extra = AddrSpace::addressToByteInt(extra, wordsize);
     Datatype *subType = ptrto->getSubType(newoff,&newoff);
