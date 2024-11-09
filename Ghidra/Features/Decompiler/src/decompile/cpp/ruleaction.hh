@@ -74,7 +74,6 @@ class AddTreeState {
   void assignPropagatedType(PcodeOp *op);	///< Assign a data-type propagated through the given PcodeOp
   Varnode *buildMultiples(void);	///< Build part of tree that is multiple of base size
   Varnode *buildExtra(void);		///< Build part of tree not accounted for by multiples or \e offset
-  bool erasableByUndoPtradd();		///< Will it be erased by RulePtraddUndo::applyOp or not
   bool buildDegenerate(void);		///< Transform ADD into degenerate PTRADD
   void buildTree(void);			///< Build the transformed ADD tree
   void clear(void);			///< Reset for a new ADD tree traversal
@@ -1168,7 +1167,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
-  static bool canProcessOp(PcodeOp *op,int4 slot,Funcdata &data);
+  static bool canProcessOp(PcodeOp *op,Funcdata &data);
 };
 
 // Cleanup rules
