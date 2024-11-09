@@ -7198,10 +7198,10 @@ bool AddTreeState::buildDegenerate(void)
     return false;	// Don't transform at all
   if (baseOp->getOut()->getTypeDefFacing()->getMetatype() != TYPE_PTR)	// Make sure pointer propagates thru INT_ADD
     return false;
-  if (erasableByUndoPtradd())
+  int4 slot = baseOp->getSlot(ptr);
+  if (RulePtraddUndo::canProcessOp(baseOp,1,slot,data))
     return false;
   vector<Varnode *> newparams;
-  int4 slot = baseOp->getSlot(ptr);
   newparams.push_back( ptr );
   newparams.push_back( baseOp->getIn(1-slot) );
   newparams.push_back( data.newConstant(ct->getSize(),1));
@@ -8135,22 +8135,12 @@ int8 RulePtrsubUndo::removeLocalAdds(Varnode *vn,Funcdata &data)
 int4 RulePtrsubUndo::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  if (!data.hasTypeRecoveryStarted()) return 0;
+  if (!canProcessOp(op,0,data)) return 0;
 
-  Varnode *basevn = op->getIn(0);
   Varnode *cvn = op->getIn(1);
   int8 val = cvn->getOffset();
   int8 multiplier;
   int8 extra = getExtraOffset(op,multiplier);
-  Datatype *basetype = basevn->getTypeReadFacing(op);
-  if (basetype->isPtrsubMatching(val,extra,multiplier))
-    return 0;
-  PcodeOp *ptrOp = basevn->getDef();
-  if (ptrOp != (PcodeOp *)0 && ptrOp->code() == CPUI_PTRSUB) {
-    Varnode *invn = ptrOp->getIn(0);
-    Datatype *intype = invn->getTypeReadFacing(ptrOp);
-    return 0;
-  }
 
   data.opSetOpcode(op,CPUI_INT_ADD);
   op->clearStopTypePropagation();
@@ -8165,14 +8155,29 @@ int4 RulePtrsubUndo::applyOp(PcodeOp *op,Funcdata &data)
 /// \brief Check if there are problems with ptrsub
 ///
 /// \param op is add or ptrsub op
-/// \param size is size of the pointed-to datatype
 /// \param slot is slot of the pointer
 /// \param data is the function being analyzed
 /// \return true if given ptradd is invalid
-bool RulePtrsubUndo::canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data)
+bool RulePtrsubUndo::canProcessOp(PcodeOp *op,int4 slot,Funcdata &data)
 
 {
-  return false;
+  if (!data.hasTypeRecoveryStarted()) return false;
+
+  Varnode *basevn = op->getIn(slot);
+  Varnode *cvn = op->getIn(1-slot);
+  if (!cvn->isConstant())
+    return true;
+  int8 val = cvn->getOffset();
+  int8 multiplier;
+  int8 extra = getExtraOffset(op,multiplier);
+  Datatype *basetype = basevn->getTypeReadFacing(op);
+  if (basetype->isPtrsubMatching(val,extra,multiplier))
+    return false;
+  PcodeOp *ptrOp = basevn->getDef();
+  if (ptrOp != (PcodeOp *)0 && ptrOp->code() == CPUI_PTRSUB)
+    return false;
+
+  return true;
 }
 
 // Clean up rules

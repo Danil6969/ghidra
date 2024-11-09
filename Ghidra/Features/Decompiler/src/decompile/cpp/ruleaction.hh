@@ -1168,7 +1168,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
-  static bool canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data);
+  static bool canProcessOp(PcodeOp *op,int4 slot,Funcdata &data);
 };
 
 // Cleanup rules
