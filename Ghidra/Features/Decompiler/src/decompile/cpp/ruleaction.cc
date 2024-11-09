@@ -7072,16 +7072,6 @@ void AddTreeState::calcSubtype(void)
 	return;
       }
     }
-    Varnode *cvn = baseOp->getIn(1);
-    if (baseSlot == 0 && cvn->isConstant()) {
-      intb off = sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
-      if (off > 0 && off < size) {
-	if (RulePtrsubUndo::canProcessOp(baseOp,data)) {
-	  valid = false;
-	  return;
-	}
-      }
-    }
     isSubtype = true;
   }
   else if (baseType->getMetatype() == TYPE_ARRAY) {
@@ -8157,7 +8147,7 @@ int4 RulePtrsubUndo::applyOp(PcodeOp *op,Funcdata &data)
 /// \param op is add or ptrsub op
 /// \param slot is slot of the pointer
 /// \param data is the function being analyzed
-/// \return true if given ptradd is invalid
+/// \return true if given ptrsub is invalid
 bool RulePtrsubUndo::canProcessOp(PcodeOp *op,Funcdata &data)
 
 {
