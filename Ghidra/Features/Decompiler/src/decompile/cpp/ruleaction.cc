@@ -7072,9 +7072,15 @@ void AddTreeState::calcSubtype(void)
 	return;
       }
     }
-    if (RulePtrsubUndo::canProcessOp(baseOp,baseOp->getSlot(ptr),data)) {
-      valid = false;
-      return;
+    Varnode *cvn = baseOp->getIn(1);
+    if (baseSlot == 0 && cvn->isConstant()) {
+      intb off = sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
+      if (off > 0 && off < size) {
+	if (RulePtrsubUndo::canProcessOp(baseOp,data)) {
+	  valid = false;
+	  return;
+	}
+      }
     }
     isSubtype = true;
   }
@@ -7179,17 +7185,6 @@ Varnode *AddTreeState::buildExtra(void)
   return resNode;
 }
 
-// This just repeats undoptradd checks to ensure caller doesn't get infinitely repeated
-bool AddTreeState::erasableByUndoPtradd(void)
-
-{
-  Varnode *basevn;
-  TypePointer *tp;
-
-  int4 slot = baseOp->getSlot(ptr);
-  return RulePtraddUndo::canProcessOp(baseOp,1,slot,data);
-}
-
 /// The base data-type being pointed to is unit sized (or smaller).  Everything is a multiple, so an ADD
 /// is always converted into a PTRADD.
 /// \return \b true if the degenerate transform was applied
@@ -7202,10 +7197,11 @@ bool AddTreeState::buildDegenerate(void)
     return false;	// Don't transform at all
   if (baseOp->getOut()->getTypeDefFacing()->getMetatype() != TYPE_PTR)	// Make sure pointer propagates thru INT_ADD
     return false;
-  int4 slot = baseOp->getSlot(ptr);
-  if (RulePtraddUndo::canProcessOp(baseOp,1,slot,data))
-    return false;
+  if (RulePtraddUndo::canProcessOp(baseOp,1,baseSlot,data))
+    // If it will be erased later on
+    return false;	// Don't transform at all
   vector<Varnode *> newparams;
+  int4 slot = baseOp->getSlot(ptr);
   newparams.push_back( ptr );
   newparams.push_back( baseOp->getIn(1-slot) );
   newparams.push_back( data.newConstant(ct->getSize(),1));
@@ -8139,7 +8135,7 @@ int8 RulePtrsubUndo::removeLocalAdds(Varnode *vn,Funcdata &data)
 int4 RulePtrsubUndo::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  if (!canProcessOp(op,0,data)) return 0;
+  if (!canProcessOp(op,data)) return 0;
 
   Varnode *cvn = op->getIn(1);
   int8 val = cvn->getOffset();
@@ -8162,14 +8158,13 @@ int4 RulePtrsubUndo::applyOp(PcodeOp *op,Funcdata &data)
 /// \param slot is slot of the pointer
 /// \param data is the function being analyzed
 /// \return true if given ptradd is invalid
-bool RulePtrsubUndo::canProcessOp(PcodeOp *op,int4 slot,Funcdata &data)
+bool RulePtrsubUndo::canProcessOp(PcodeOp *op,Funcdata &data)
 
 {
   if (!data.hasTypeRecoveryStarted()) return false;
 
-  Varnode *basevn = op->getIn(slot);
-  Varnode *cvn = op->getIn(1-slot);
-  if (!cvn->isConstant()) return true;
+  Varnode *basevn = op->getIn(0);
+  Varnode *cvn = op->getIn(1);
   int8 val = cvn->getOffset();
   int8 multiplier;
   int8 extra = getExtraOffset(op,multiplier);
