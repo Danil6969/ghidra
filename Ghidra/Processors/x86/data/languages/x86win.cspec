@@ -38,6 +38,9 @@
   <default_proto>
     <prototype name="__stdcall" extrapop="4" stackshift="4">
       <input>
+        <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+          <register name="ST0"/>
+        </pentry>
         <pentry minsize="1" maxsize="500" align="4">
           <addr offset="4" space="stack"/>
         </pentry>
@@ -77,6 +80,9 @@
   </default_proto>
   <prototype name="__stdcall_lto_1" extrapop="4" stackshift="4">
     <input>
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="EDI"/>
       </pentry>
@@ -118,6 +124,9 @@
   </prototype>
   <prototype name="__stdcall_lto_2" extrapop="4" stackshift="4">
     <input>
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="EDI"/>
       </pentry>
@@ -162,6 +171,9 @@
   </prototype>
   <prototype name="__stdcall_lto_3" extrapop="4" stackshift="4">
     <input>
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="EDI"/>
       </pentry>
@@ -209,6 +221,9 @@
   </prototype>
   <prototype name="__stdcall_lto_4" extrapop="4" stackshift="4">
     <input>
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="EDI"/>
       </pentry>
@@ -259,6 +274,9 @@
   </prototype>
   <prototype name="__cdecl" extrapop="4" stackshift="4">
     <input>
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
       <pentry minsize="1" maxsize="500" align="4">
         <addr offset="4" space="stack"/>
       </pentry>
@@ -297,6 +315,9 @@
   </prototype>
   <prototype name="__fastcall" extrapop="unknown" stackshift="4">
     <input>
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
       </pentry>
@@ -341,6 +362,9 @@
   </prototype>
   <prototype name="__thiscall" extrapop="unknown" stackshift="4">
     <input thisbeforeretpointer="true">
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
       </pentry>
@@ -381,7 +405,10 @@
     </likelytrash>
   </prototype>
   <prototype name="__thiscall_lto_1" extrapop="unknown" stackshift="4">
-    <input>
+    <input thisbeforeretpointer="true">
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
       </pentry>
@@ -425,7 +452,10 @@
     </likelytrash>
   </prototype>
   <prototype name="__thiscall_lto_2" extrapop="unknown" stackshift="4">
-    <input>
+    <input thisbeforeretpointer="true">
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
       </pentry>
@@ -472,7 +502,10 @@
     </likelytrash>
   </prototype>
   <prototype name="__thiscall_lto_3" extrapop="unknown" stackshift="4">
-    <input>
+    <input thisbeforeretpointer="true">
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
       </pentry>
@@ -522,7 +555,10 @@
     </likelytrash>
   </prototype>
   <prototype name="__thiscall_lto_4" extrapop="unknown" stackshift="4">
-    <input>
+    <input thisbeforeretpointer="true">
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST0"/>
+      </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
       </pentry>
