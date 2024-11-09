@@ -7877,48 +7877,6 @@ int4 RulePushPtr::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
-bool RulePtraddUndo::hasTypeMismatch(PcodeOp *op,int4 size,int4 slot,Funcdata &data)
-
-{
-  Varnode *basevn;
-  TypePointer *tp;
-
-  basevn = op->getIn(slot);
-  tp = (TypePointer *)basevn->getTypeReadFacing(op);
-  // Make sure we are still a pointer
-  if (tp->getMetatype() != TYPE_PTR) return true;
-  Datatype *pt = tp->getPtrTo();
-  if (tp->isFormalPointerRel()) {
-    // Must use parent datatype
-    pt = ((TypePointerRel *)tp)->getParent();
-  }
-  // of the correct size
-  if (pt->getAlignSize()!=AddrSpace::addressToByteInt(size,tp->getWordSize())) return true;
-  Varnode *indVn = op->getIn(1-slot);
-  // and that index isn't zero
-  if (indVn->isConstant()) {
-    if (indVn->getOffset() == 0)
-      return true;
-  }
-  return false;
-}
-
-/// \brief Check if there are problems with ptradd
-///
-/// \param op is add or ptradd op
-/// \param size is size of the pointed-to datatype
-/// \param slot is slot of the pointer
-/// \param data is the function being analyzed
-/// \return true if given ptradd is invalid
-bool RulePtraddUndo::canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data)
-
-{
-  if (!data.hasTypeRecoveryStarted()) return false;
-
-  if (hasTypeMismatch(op,size,slot,data)) return true;
-  return false;
-}
-
 /// \class RulePtraddUndo
 /// \brief Remove PTRADD operations with mismatched data-type information
 ///
@@ -7941,6 +7899,43 @@ int4 RulePtraddUndo::applyOp(PcodeOp *op,Funcdata &data)
   if (!canProcessOp(op,size,0,data)) return 0;
   data.opUndoPtradd(op,false);
   return 1;
+}
+
+/// \brief Check if there are problems with ptradd
+///
+/// \param op is add or ptradd op
+/// \param size is size of the pointed-to datatype
+/// \param slot is slot of the pointer
+/// \param data is the function being analyzed
+/// \return true if given ptradd is invalid
+bool RulePtraddUndo::canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data)
+
+{
+  if (!data.hasTypeRecoveryStarted()) return false;
+
+  Varnode *basevn;
+  TypePointer *tp;
+
+  OpCode opc = op->code();
+  if (opc != CPUI_INT_ADD && opc != CPUI_PTRADD) return false;
+  basevn = op->getIn(slot);
+  tp = (TypePointer *)basevn->getTypeReadFacing(op);
+  // Make sure we are still a pointer
+  if (tp->getMetatype() != TYPE_PTR) return true;
+  Datatype *pt = tp->getPtrTo();
+  if (tp->isFormalPointerRel()) {
+    // Must use parent datatype
+    pt = ((TypePointerRel *)tp)->getParent();
+  }
+  // of the correct size
+  if (pt->getAlignSize()!=AddrSpace::addressToByteInt(size,tp->getWordSize())) return true;
+  Varnode *indVn = op->getIn(1-slot);
+  // and that index isn't zero
+  if (indVn->isConstant()) {
+    if (indVn->getOffset() == 0)
+      return true;
+  }
+  return false;
 }
 
 const int4 RulePtrsubUndo::DEPTH_LIMIT = 8;
@@ -8166,7 +8161,20 @@ int4 RulePtrsubUndo::applyOp(PcodeOp *op,Funcdata &data)
   }
   return 1;
 }
-  
+
+/// \brief Check if there are problems with ptrsub
+///
+/// \param op is add or ptrsub op
+/// \param size is size of the pointed-to datatype
+/// \param slot is slot of the pointer
+/// \param data is the function being analyzed
+/// \return true if given ptradd is invalid
+bool RulePtrsubUndo::canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data)
+
+{
+  return false;
+}
+
 // Clean up rules
 
 /// \class RuleMultNegOne

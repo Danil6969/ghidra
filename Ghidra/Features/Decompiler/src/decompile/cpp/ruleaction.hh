@@ -1145,8 +1145,6 @@ public:
 };
 class RulePtraddUndo : public Rule {
 public:
-  static bool hasTypeMismatch(PcodeOp *op,int4 size,int4 slot,Funcdata &data);
-  static bool canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data);
   RulePtraddUndo(const string &g) : Rule(g, 0, "ptraddundo") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
@@ -1154,6 +1152,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+  static bool canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data);
 };
 class RulePtrsubUndo : public Rule {
   static const int4 DEPTH_LIMIT;	///< The maximum depth of the additive expression to check
@@ -1169,6 +1168,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+  static bool canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data);
 };
 
 // Cleanup rules
