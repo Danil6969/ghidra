@@ -12301,6 +12301,17 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,set<Varnode *> visited
       addop = descend;
       if (!addop->containsInput(out)) return false;
       addslot = addop->getSlot(out);
+
+      // Check if any of the other add inputs are defined as the result of some pointer operation
+      for (int4 i=0;i<addop->numInput();++i) {
+	if (i == addslot) continue;
+	Varnode *invn = addop->getIn(i);
+	PcodeOp *inop = invn->getDef();
+	if (inop == (PcodeOp *)0) continue;
+	if (inop->code() == CPUI_PTRSUB) return true;
+	if (inop->code() == CPUI_PTRADD) return true;
+      }
+
       out = addop->getOut();
       descend = out->loneDescend();
       if (descend == (PcodeOp *)0) break;
