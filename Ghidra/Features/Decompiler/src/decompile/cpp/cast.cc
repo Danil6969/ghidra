@@ -27,6 +27,8 @@ void CastStrategy::setTypeFactory(TypeFactory *t)
   promoteSize = tlst->getSizeOfInt();
 }
 
+/// Gets the TypeFactory used to produce data-types for the arithmeticOutputStandard() method
+/// \return the TypeFactory
 TypeFactory *CastStrategy::getTypeFactory(void)
 
 {
