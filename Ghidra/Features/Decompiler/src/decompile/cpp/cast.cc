@@ -27,6 +27,12 @@ void CastStrategy::setTypeFactory(TypeFactory *t)
   promoteSize = tlst->getSizeOfInt();
 }
 
+TypeFactory *CastStrategy::getTypeFactory(void)
+
+{
+  return tlst;
+}
+
 /// Many languages can mark an integer constant as explicitly \e unsigned. When
 /// the decompiler is deciding on \e cast operations, this is one of the checks
 /// it performs.  This method checks if the indicated input is an
