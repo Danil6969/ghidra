@@ -58,6 +58,7 @@ protected:
 public:
   CastStrategy(void) {}			///< Constructor
   void setTypeFactory(TypeFactory *t);	///< Establish the data-type factory
+  TypeFactory *getTypeFactory(void);	///< Retrieve the data-type factory
   virtual ~CastStrategy(void) {}	///< Destructor
 
   /// \brief Decide on integer promotion by examining just local properties of the given Varnode
