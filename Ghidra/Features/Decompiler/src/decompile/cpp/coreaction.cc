@@ -2740,8 +2740,12 @@ void ActionSetCasts::checkPointerIssues(PcodeOp *op,Varnode *vn,Funcdata &data)
 bool ActionSetCasts::testStructOffset0(Datatype *reqtype,Datatype *curtype,CastStrategy *castStrategy)
 
 {
+  if (reqtype->getMetatype() != TYPE_PTR) return false;
   if (curtype->getMetatype() != TYPE_PTR) return false;
-  Datatype *highPtrTo = ((TypePointer *)curtype)->getPtrTo();
+  TypePointer *tp = (TypePointer *)curtype;
+  int4 sz = tp->getSize();
+  uint4 ws = tp->getWordSize();
+  Datatype *highPtrTo = tp->getPtrTo();
   if (highPtrTo->getMetatype() == TYPE_STRUCT) {
     TypeStruct *highStruct = (TypeStruct *)highPtrTo;
     if (highStruct->numDepend() == 0) return false;
@@ -2764,6 +2768,14 @@ bool ActionSetCasts::testStructOffset0(Datatype *reqtype,Datatype *curtype,CastS
   }
   if (reqtype->getMetatype() == TYPE_VOID) {
     return false;		// Don't induce PTRSUB for "void *"
+  }
+  if (curtype->getMetatype() == TYPE_STRUCT) {
+    TypeFactory *tlst = castStrategy->getTypeFactory();
+    TypePointer *reqtp = tlst->getTypePointer(sz, reqtype, ws);
+    TypePointer *curtp = tlst->getTypePointer(sz, curtype, ws);
+    if (testStructOffset0(reqtp, curtp, castStrategy)) {
+      return true;
+    }
   }
   return (castStrategy->castStandard(reqtype, curtype, true, true) == (Datatype *)0);
 }
@@ -2934,7 +2946,7 @@ int4 ActionSetCasts::castOutput(PcodeOp *op,Funcdata &data,CastStrategy *castStr
   OpCode opc = CPUI_CAST;
   if (!force) {
     outct = outHighResolve;	// Type of result
-    if (outct->getMetatype() == TYPE_PTR && testStructOffset0(outct, tokenct, castStrategy)) {
+    if (testStructOffset0(outct, tokenct, castStrategy)) {
       opc = CPUI_PTRSUB;
     }
     else {
@@ -3040,7 +3052,7 @@ int4 ActionSetCasts::castInput(PcodeOp *op,int4 slot,Funcdata &data,CastStrategy
     if (vn->getType() == ct)
       return 1;
   }
-  else if (ct->getMetatype() == TYPE_PTR && testStructOffset0(ct, vn->getHighTypeReadFacing(op), castStrategy)) {
+  else if (testStructOffset0(ct, vn->getHighTypeReadFacing(op), castStrategy)) {
     // Insert a PTRSUB(vn,#0) instead of a CAST
     newop = insertPtrsubZero(op, slot, ct, data);
     if (vn->getHigh()->getType()->needsResolution())
