@@ -12308,8 +12308,8 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,set<Varnode *> visited
 	Varnode *invn = addop->getIn(i);
 	PcodeOp *inop = invn->getDef();
 	if (inop == (PcodeOp *)0) continue;
-	if (inop->code() == CPUI_PTRSUB) return true;
 	if (inop->code() == CPUI_PTRADD) return true;
+	if (inop->code() == CPUI_PTRSUB) return true;
       }
 
       out = addop->getOut();
