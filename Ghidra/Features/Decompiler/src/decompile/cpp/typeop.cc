@@ -929,6 +929,7 @@ bool TypeOpCallother::isSpecialFunc(const PcodeOp *op)
   if (nm == "try") return true;
   if (nm == "catch") return true;
   if (nm == "except") return true;
+  if (nm == "on") return true;
   if (nm == "finally") return true;
   return false;
 }
