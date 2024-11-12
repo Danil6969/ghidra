@@ -2154,21 +2154,19 @@ Suffix3D: imm8        is imm8 [ suffix3D=imm8; ] { }
 :^instruction is instrPhase=0 & (byte=0x0f; byte=0x0f; XmmReg1 ... & m64; Suffix3D) ... & instruction ... [ instrPhase=1; ] { }
 :^instruction is instrPhase=0 & (byte=0x0f; byte=0x0f; mmxmod=3; Suffix3D) ... & instruction ...         [ instrPhase=1; ] { }
 
-exceptRel: reloc is exceptOffset [ reloc = inst_next + exceptOffset; ] { export *[ram]:$(SIZE) reloc; }
 
-@define FLAG_CLEARED	"exceptFlag=0"
-@define FLAG_TRY		"exceptFlag=1"
-@define FLAG_CATCH		"exceptFlag=2"
-@define FLAG_EXCEPT		"exceptFlag=3"
-@define FLAG_ON			"exceptFlag=4"
-@define FLAG_FINALLY	"exceptFlag=5"
-
-define pcodeop getException;
+# Exception object pointer setup routine and macros
 define pcodeop getExceptionRecord;
-define pcodeop catch;
-define pcodeop except;
 
-macro setupExceptionInformation() {
+macro setupCatchPointers() {
+@ifdef IA64
+	getExceptionRecord();
+@else
+	getExceptionRecord();
+@endif
+}
+
+macro setupOnPointers() {
 @ifdef IA64
 	RAX = getExceptionRecord();
 @else
@@ -2176,7 +2174,44 @@ macro setupExceptionInformation() {
 @endif
 }
 
+exceptRel: reloc is exceptOffset [ reloc = inst_next + exceptOffset; ] { export *[ram]:$(SIZE) reloc; }
+
+@define FLAG_CLEARED		"exceptFlag=0"
+@define FLAG_TRY			"exceptFlag=1"
+@define FLAG_CATCH			"exceptFlag=2"
+@define FLAG_EXCEPT			"exceptFlag=3"
+@define FLAG_ON				"exceptFlag=4"
+@define FLAG_FINALLY		"exceptFlag=5"
+
+define pcodeop try;
+define pcodeop catch;
+define pcodeop except;
+define pcodeop on;
+
 # These clauses can have 2 opposite variants: direct and inverse
+
+# try clauses
+# try clause variant 0
+:^instruction is $(FLAG_TRY) & exceptVariant=0 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+{
+    e:1 = try();
+    if (!e) goto <lab_skip>;
+	goto exceptRel;
+	<lab_skip>
+	build instruction;
+}
+
+# try clause variant 1
+:^instruction is $(FLAG_TRY) & exceptVariant=1 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+{
+    e:1 = try();
+    if (e) goto <lab_catch>;
+	build instruction;
+	goto <lab_skip>;
+	<lab_catch>
+	goto exceptRel;
+	<lab_skip>
+}
 
 # catch clauses
 # catch clause variant 0
@@ -2184,7 +2219,7 @@ macro setupExceptionInformation() {
 {
     e:1 = catch();
     if (!e) goto <lab_skip>;
-	getException();
+	getExceptionRecord();
 	goto exceptRel;
 	<lab_skip>
 	build instruction;
@@ -2198,7 +2233,7 @@ macro setupExceptionInformation() {
 	build instruction;
 	goto <lab_skip>;
 	<lab_catch>
-	getException();
+	getExceptionRecord();
 	goto exceptRel;
 	<lab_skip>
 }
@@ -2209,7 +2244,6 @@ macro setupExceptionInformation() {
 {
     e:1 = except();
     if (!e) goto <lab_skip>;
-	setupExceptionInformation();
 	goto exceptRel;
 	<lab_skip>
 	build instruction;
@@ -2223,7 +2257,31 @@ macro setupExceptionInformation() {
 	build instruction;
 	goto <lab_skip>;
 	<lab_catch>
-	setupExceptionInformation();
+	goto exceptRel;
+	<lab_skip>
+}
+
+# on clauses
+# on clause variant 0
+:^instruction is $(FLAG_ON) & exceptVariant=0 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+{
+    e:1 = on();
+    if (e) goto <lab_skip>;
+	setupOnPointers();
+	goto exceptRel;
+	<lab_skip>
+	build instruction;
+}
+
+# on clause variant 1
+:^instruction is $(FLAG_ON) & exceptVariant=1 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+{
+    e:1 = on();
+    if (!e) goto <lab_catch>;
+	build instruction;
+	goto <lab_skip>;
+	<lab_catch>
+	setupOnPointers();
 	goto exceptRel;
 	<lab_skip>
 }
