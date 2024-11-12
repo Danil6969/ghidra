@@ -750,6 +750,19 @@ Datatype *TypeOpCall::getInputLocal(const PcodeOp *op,int4 slot) const
 Datatype *TypeOpCall::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
 
 {
+  if (slot == 0) return TypeOp::getInputCast(op,slot,castStrategy);
+  FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(op->getIn(0)->getAddr());
+  ProtoParameter *param = fc->getParam(slot-1);
+  if (param != (ProtoParameter*)0)
+  {
+    Datatype *reqtype = param->getType();
+    const Varnode *vn = op->getIn(slot);
+    Datatype *curtype = vn->getHighTypeReadFacing(op);
+    Datatype *casttype = castStrategy->castStandard(reqtype,curtype,true,true);
+    if (casttype == (Datatype *)0) {
+      return TypeOp::getInputCast(op,slot,castStrategy);
+    }
+  }
   if (!datatypePropagates(op,slot)) {
     const Varnode *vn = op->getIn(0);
     FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(vn->getAddr());
