@@ -928,6 +928,7 @@ bool TypeOpCallother::isSpecialFunc(const PcodeOp *op)
   string nm = op->getOpcode()->getOperatorName(op);
   if (nm == "try") return true;
   if (nm == "catch") return true;
+  if (nm == "unwind") return true;
   if (nm == "except") return true;
   if (nm == "on") return true;
   if (nm == "finally") return true;
