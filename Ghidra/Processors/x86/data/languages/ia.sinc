@@ -2160,9 +2160,9 @@ define pcodeop getExceptionRecord;
 
 macro setupCatchPointers() {
 @ifdef IA64
-	getExceptionRecord();
+	RDX = RBP - 0x80;
 @else
-	getExceptionRecord();
+	*:4 (EBP - 0x18) = getExceptionRecord();
 @endif
 }
 
@@ -2224,7 +2224,7 @@ define pcodeop on;
 {
     e:1 = catch();
     if (!e) goto <lab_skip>;
-	getExceptionRecord();
+	setupCatchPointers();
 	goto exceptRel;
 	<lab_skip>
 	build instruction;
@@ -2238,7 +2238,7 @@ define pcodeop on;
 	build instruction;
 	goto <lab_skip>;
 	<lab_catch>
-	getExceptionRecord();
+	setupCatchPointers();
 	goto exceptRel;
 	<lab_skip>
 }
