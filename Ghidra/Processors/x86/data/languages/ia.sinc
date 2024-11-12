@@ -2176,12 +2176,16 @@ macro setupOnPointers() {
 
 exceptRel: reloc is exceptionOffset [ reloc = inst_next + exceptionOffset; ] { export *[ram]:$(SIZE) reloc; }
 
+# Common
 @define FLAG_CLEARED		"exceptionFlag=0"
 @define FLAG_TRY			"exceptionFlag=1"
+# C++
 @define FLAG_CATCH			"exceptionFlag=2"
-@define FLAG_EXCEPT			"exceptionFlag=3"
-@define FLAG_ON				"exceptionFlag=4"
-@define FLAG_FINALLY		"exceptionFlag=5"
+@define FLAG_UNWIND			"exceptionFlag=3"
+# Delphi
+@define FLAG_EXCEPT			"exceptionFlag=4"
+@define FLAG_ON				"exceptionFlag=5"
+@define FLAG_FINALLY		"exceptionFlag=6"
 
 define pcodeop try;
 define pcodeop catch;
@@ -2267,9 +2271,9 @@ define pcodeop on;
 {
     e:1 = on();
     if (e) goto <lab_skip>;
-	setupOnPointers();
 	goto exceptRel;
 	<lab_skip>
+	setupOnPointers();
 	build instruction;
 }
 
@@ -2278,10 +2282,10 @@ define pcodeop on;
 {
     e:1 = on();
     if (!e) goto <lab_catch>;
+	setupOnPointers();
 	build instruction;
 	goto <lab_skip>;
 	<lab_catch>
-	setupOnPointers();
 	goto exceptRel;
 	<lab_skip>
 }
