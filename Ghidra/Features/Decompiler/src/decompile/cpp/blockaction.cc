@@ -1811,6 +1811,16 @@ int4 CollapseStructure::collapseInternal(FlowBlock *targetbl)
 	  isolated_count += 1;
 	  continue;		// This does not constitute a chanage
 	}
+
+	// For exception clauses
+	if (hasSpecialFunc(bl)) {
+	  // Always try ifnoexit first
+	  if (ruleBlockIfNoExit(bl)) {
+	    change = true;
+	    break;
+	  }
+	}
+
 	// Try each rule on the block
 	if (ruleBlockGoto(bl)) {
 	  change = true;
