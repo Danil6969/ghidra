@@ -473,9 +473,9 @@ define context contextreg
   #evexkreg=(44,46)
   #kreg=(44,46)
 
-  exceptFlag=(60,62)   noflow
-  exceptVariant=(63,63)   noflow
-  exceptOffset=(64,95) noflow
+  exceptionFlag=(60,62)   noflow
+  exceptionVariant=(63,63)   noflow
+  exceptionOffset=(64,95) noflow
 
 ;
 
@@ -2174,14 +2174,14 @@ macro setupOnPointers() {
 @endif
 }
 
-exceptRel: reloc is exceptOffset [ reloc = inst_next + exceptOffset; ] { export *[ram]:$(SIZE) reloc; }
+exceptRel: reloc is exceptionOffset [ reloc = inst_next + exceptionOffset; ] { export *[ram]:$(SIZE) reloc; }
 
-@define FLAG_CLEARED		"exceptFlag=0"
-@define FLAG_TRY			"exceptFlag=1"
-@define FLAG_CATCH			"exceptFlag=2"
-@define FLAG_EXCEPT			"exceptFlag=3"
-@define FLAG_ON				"exceptFlag=4"
-@define FLAG_FINALLY		"exceptFlag=5"
+@define FLAG_CLEARED		"exceptionFlag=0"
+@define FLAG_TRY			"exceptionFlag=1"
+@define FLAG_CATCH			"exceptionFlag=2"
+@define FLAG_EXCEPT			"exceptionFlag=3"
+@define FLAG_ON				"exceptionFlag=4"
+@define FLAG_FINALLY		"exceptionFlag=5"
 
 define pcodeop try;
 define pcodeop catch;
@@ -2192,7 +2192,7 @@ define pcodeop on;
 
 # try clauses
 # try clause variant 0
-:^instruction is $(FLAG_TRY) & exceptVariant=0 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+:^instruction is $(FLAG_TRY) & exceptionVariant=0 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
 {
     e:1 = try();
     if (!e) goto <lab_skip>;
@@ -2202,7 +2202,7 @@ define pcodeop on;
 }
 
 # try clause variant 1
-:^instruction is $(FLAG_TRY) & exceptVariant=1 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+:^instruction is $(FLAG_TRY) & exceptionVariant=1 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
 {
     e:1 = try();
     if (e) goto <lab_catch>;
@@ -2215,7 +2215,7 @@ define pcodeop on;
 
 # catch clauses
 # catch clause variant 0
-:^instruction is $(FLAG_CATCH) & exceptVariant=0 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+:^instruction is $(FLAG_CATCH) & exceptionVariant=0 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
 {
     e:1 = catch();
     if (!e) goto <lab_skip>;
@@ -2226,7 +2226,7 @@ define pcodeop on;
 }
 
 # catch clause variant 1
-:^instruction is $(FLAG_CATCH) & exceptVariant=1 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+:^instruction is $(FLAG_CATCH) & exceptionVariant=1 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
 {
     e:1 = catch();
     if (e) goto <lab_catch>;
@@ -2240,7 +2240,7 @@ define pcodeop on;
 
 # except clauses
 # except clause variant 0
-:^instruction is $(FLAG_EXCEPT) & exceptVariant=0 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+:^instruction is $(FLAG_EXCEPT) & exceptionVariant=0 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
 {
     e:1 = except();
     if (!e) goto <lab_skip>;
@@ -2250,7 +2250,7 @@ define pcodeop on;
 }
 
 # except clause variant 1
-:^instruction is $(FLAG_EXCEPT) & exceptVariant=1 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+:^instruction is $(FLAG_EXCEPT) & exceptionVariant=1 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
 {
     e:1 = except();
     if (e) goto <lab_catch>;
@@ -2263,7 +2263,7 @@ define pcodeop on;
 
 # on clauses
 # on clause variant 0
-:^instruction is $(FLAG_ON) & exceptVariant=0 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+:^instruction is $(FLAG_ON) & exceptionVariant=0 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
 {
     e:1 = on();
     if (e) goto <lab_skip>;
@@ -2274,7 +2274,7 @@ define pcodeop on;
 }
 
 # on clause variant 1
-:^instruction is $(FLAG_ON) & exceptVariant=1 & exceptOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+:^instruction is $(FLAG_ON) & exceptionVariant=1 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
 {
     e:1 = on();
     if (!e) goto <lab_catch>;
