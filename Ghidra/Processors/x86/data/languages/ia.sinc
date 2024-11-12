@@ -2160,9 +2160,10 @@ define pcodeop getExceptionRecord;
 
 macro setupCatchPointers() {
 @ifdef IA64
+	# local_10
 	RDX = RBP - 0x80;
 @else
-	*:4 (EBP - 0x18) = getExceptionRecord();
+	# local_18
 @endif
 }
 
