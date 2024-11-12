@@ -639,7 +639,7 @@ Datatype *Varnode::getTypeReadFacing(const PcodeOp *op) const
 Datatype *Varnode::getHighTypeDefFacing(void) const
 
 {
-  Datatype *ct = high->getType();
+  Datatype *ct = getHigh()->getType();
   if (!ct->needsResolution())
     return ct;
   return ct->findResolve(def,-1);
@@ -653,7 +653,7 @@ Datatype *Varnode::getHighTypeDefFacing(void) const
 Datatype *Varnode::getHighTypeReadFacing(const PcodeOp *op) const
 
 {
-  Datatype *ct = high->getType();
+  Datatype *ct = getHigh()->getType();
   if (!ct->needsResolution())
     return ct;
   return ct->findResolve(op, op->getSlot(this));
