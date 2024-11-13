@@ -304,6 +304,7 @@ public:
   bool restrictedByConditional(const FlowBlock *cond) const;
   int4 sizeOut(void) const { return outofthis.size(); }	///< Get the number of out edges
   int4 sizeIn(void) const { return intothis.size(); }	///< Get the number of in edges
+  bool hasSpecialFunction(void) const;			///< Is there a call to any special function
   bool hasLoopIn(void) const;				///< Is there a looping edge coming into \b this block
   bool hasLoopOut(void) const;				///< Is there a looping edge going out of \b this block
   bool isLoopIn(int4 i) const { return ((intothis[i].label & f_loop_edge)!=0); }	///< Is the i-th incoming edge a \e loop edge
