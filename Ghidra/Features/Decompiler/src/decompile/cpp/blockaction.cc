@@ -1043,21 +1043,6 @@ void LoopBody::clearMarks(vector<FlowBlock *> &body)
     body[i]->clearMark();
 }
 
-bool CollapseStructure::hasSpecialFunc(FlowBlock *bl)
-
-{
-  BlockCopy *blcopy = dynamic_cast<BlockCopy *>(bl);
-  if (blcopy == (BlockCopy *)0) return false;
-  BlockBasic *blbasic = dynamic_cast<BlockBasic *>(blcopy->subBlock(0));
-  if (blbasic == (BlockBasic *)0) return false;
-  list<PcodeOp *>::const_iterator iter;
-  for(iter=blbasic->beginOp();iter!=blbasic->endOp();++iter) {
-    PcodeOp *op = *iter;
-    if (TypeOpCallother::isSpecialFunc(op)) return true;
-  }
-  return false;
-}
-
 /// \brief Mark FlowBlocks \b only reachable from a given root
 ///
 /// For a given root FlowBlock, find all the FlowBlocks that can only be reached from it,
