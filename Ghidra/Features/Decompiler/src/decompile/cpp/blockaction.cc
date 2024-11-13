@@ -1343,6 +1343,7 @@ bool CollapseStructure::ruleBlockOr(FlowBlock *bl)
   if (bl->isGotoOut(0)) return false;
   if (bl->isGotoOut(1)) return false;
   if (bl->isSwitchOut()) return false;
+  if (hasSpecialFunc(bl)) return false;
   for(i=0;i<2;++i) {
     if (hasSpecialFunc(bl->getOut(i))) return false;
   }
