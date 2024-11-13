@@ -424,6 +424,21 @@ bool FlowBlock::restrictedByConditional(const FlowBlock *cond) const
   return true;
 }
 
+/// \return \b true if \b this has special function like exception low-level implementation
+bool FlowBlock::hasSpecialFunction(void) const
+
+{
+  PcodeOp *first = firstOp();
+  PcodeOp *last = lastOp();
+  if (first == (PcodeOp *)0) return false;
+  if (last == (PcodeOp *)0) return false;
+  for(PcodeOp *op=first;op!=last;op=op->nextOp()) {
+    if (op == (PcodeOp *)0) return false;
+    if (TypeOpCallother::isSpecialFunc(op)) return true;
+  }
+  return false;
+}
+
 /// \return \b true if \b this is the top of a loop
 bool FlowBlock::hasLoopIn(void) const
 
