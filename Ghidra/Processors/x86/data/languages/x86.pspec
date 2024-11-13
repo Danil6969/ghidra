@@ -213,4 +213,5 @@
   <pureop name="getsig"/>
   <pureop name="extractind"/>
   <pureop name="insertind"/>
+  <pureop name="getExceptObject"/>
 </processor_spec>
