@@ -199,7 +199,6 @@ class CollapseStructure {
   BlockGraph &graph;				///< The control-flow graph
   int4 dataflow_changecount;			///< Number of data-flow changes made during structuring
   bool checkSwitchSkips(FlowBlock *switchbl,FlowBlock *exitblock);
-  bool hasSpecialFunc(FlowBlock *bl);
   void onlyReachableFromRoot(FlowBlock *root,vector<FlowBlock *> &body);
   int4 markExitsAsGotos(vector<FlowBlock *> &body);	///< Mark edges exiting the body as \e unstructured gotos
   bool clipExtraRoots(void);			///< Mark edges between root components as \e unstructured gotos
