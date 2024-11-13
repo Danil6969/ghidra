@@ -2156,7 +2156,7 @@ Suffix3D: imm8        is imm8 [ suffix3D=imm8; ] { }
 
 
 # Exception object pointer setup routine and macros
-define pcodeop getExceptionRecord;
+define pcodeop getExceptObject;
 
 macro setupCatchPointers() {
 @ifdef IA64
@@ -2169,9 +2169,9 @@ macro setupCatchPointers() {
 
 macro setupOnPointers() {
 @ifdef IA64
-	RAX = getExceptionRecord();
+	RAX = getExceptObject();
 @else
-	EAX = getExceptionRecord();
+	EAX = getExceptObject();
 @endif
 }
 
