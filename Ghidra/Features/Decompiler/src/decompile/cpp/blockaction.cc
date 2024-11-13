@@ -1343,9 +1343,9 @@ bool CollapseStructure::ruleBlockOr(FlowBlock *bl)
   if (bl->isGotoOut(0)) return false;
   if (bl->isGotoOut(1)) return false;
   if (bl->isSwitchOut()) return false;
-  if (hasSpecialFunc(bl)) return false;
+  if (bl->hasSpecialFunction()) return false;
   for(i=0;i<2;++i) {
-    if (hasSpecialFunc(bl->getOut(i))) return false;
+    if (bl->getOut(i)->hasSpecialFunction()) return false;
   }
   // NOTE: complex behavior can happen in the first block because we (may) only
   // print the branch
@@ -1810,11 +1810,11 @@ int4 CollapseStructure::collapseInternal(FlowBlock *targetbl)
 	}
 	if ((bl->sizeIn()==0)&&(bl->sizeOut()==0)) { // A completely collapsed block
 	  isolated_count += 1;
-	  continue;		// This does not constitute a chanage
+	  continue;		// This does not constitute a change
 	}
 
 	// For exception clauses
-	if (hasSpecialFunc(bl)) {
+	if (bl->hasSpecialFunction()) {
 	  // Always try ifnoexit first
 	  if (ruleBlockIfNoExit(bl)) {
 	    change = true;
