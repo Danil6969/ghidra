@@ -42,7 +42,7 @@ public class SearchSettings {
 	private final Charset charset;
 
 	public SearchSettings() {
-		this(SearchFormat.HEX, false, false, false, true, true, true, false, 4, 1, new HashSet<>(),
+		this(SearchFormat.HEX, false, false, true, true, true, true, false, 4, 1, new HashSet<>(),
 			StandardCharsets.US_ASCII);
 	}
 
