@@ -218,6 +218,7 @@ public:
   /// \brief Return \b true if we have already examined this cpool
   bool isCpoolTransformed(void) const { return ((addlflags&PcodeOp::is_cpool_transformed)!=0); }
   Funcdata *getFuncdata(void) const;
+  bool isEventualFormalPointerRel(void) const; ///< Return \b true if this has pointer input whose datatype originates from non-ephemeral TypePointerRel
   bool isCompare(void) const; ///< Return \b true if this is compare op
   bool isLoopedIncrement(void) const; ///< Return \b true if this is eventually constant increment (or decrement) of looped multiequal op
   bool isCollapsible(void) const; ///< Return \b true if this can be collapsed to a COPY of a constant
