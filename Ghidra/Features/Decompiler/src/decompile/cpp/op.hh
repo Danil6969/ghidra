@@ -177,7 +177,7 @@ public:
   bool isDead(void) const { return ((flags&PcodeOp::dead)!=0); } ///< Return \b true if this op is dead
   bool isAssignment(void) const { return (output!=(Varnode *)0); } ///< Return \b true is this op has an output
   bool isCall(void) const { return ((flags&PcodeOp::call)!=0); } ///< Return \b true if this op indicates call semantics
-  bool isPureCall(void) const;
+  bool isPureCall(void) const; ///< Return \b true if this op is a call with no side effects
   /// \brief Return \b true if this op acts as call but does not have a full specification
   bool isCallWithoutSpec(void) const { return ((flags&(PcodeOp::call|PcodeOp::has_callspec))==PcodeOp::call); }
   bool isMarker(void) const { return ((flags&PcodeOp::marker)!=0); } ///< Return \b true is a special SSA form op
