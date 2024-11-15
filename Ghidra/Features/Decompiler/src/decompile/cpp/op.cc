@@ -141,6 +141,23 @@ Funcdata *PcodeOp::getFuncdata(void) const
   return parent->getFuncdata();
 }
 
+bool PcodeOp::isEventualFormalPointerRel(void) const
+
+{
+  int4 slot = getPointerSlot();
+  if (slot < 0) return false;
+  const Varnode *ptrVn = getIn(slot);
+  Datatype *ct = ptrVn->getTypeReadFacing(this);
+  if (ct->getSubMeta() != SUB_PTRREL) return false;
+  TypePointerRel *ptRel = (TypePointerRel *)ct;
+  if (ptRel->isFormalPointerRel() && ptRel->evaluateThruParent(0)) return true;
+  const PcodeOp *def = ptrVn->getDef();
+  if (def == (PcodeOp *)0) return false;
+  OpCode opc = def->code();
+  if (def->isEventualFormalPointerRel()) return true;
+  return false;
+}
+
 bool PcodeOp::isCompare(void) const
 
 {
