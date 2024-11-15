@@ -7610,7 +7610,7 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
 /// \param baseType is type retrieved from main op by input 1
 /// \param subType is type at zeroth offset of baseType fetched from database
 /// \return true if repeats to itself or similar
-bool RuleStructOffset0::isRepeated(PcodeOp *op, Datatype *baseType, Datatype *subType)
+bool RuleStructOffset0::isRepeated(PcodeOp *op,Datatype *baseType,Datatype *subType)
 
 {
   // Checks that this is another PTRSUB
@@ -7630,6 +7630,7 @@ bool RuleStructOffset0::isRepeated(PcodeOp *op, Datatype *baseType, Datatype *su
   if (in0Type == outType) {
     return true;
   }
+  if (subType == (Datatype *)0) return false;
   type_metatype subMeta = subType->getMetatype();
   if (subMeta == TYPE_PTR) {
     Datatype *subBase = ((TypePointer *) subType)->getPtrTo();
@@ -7661,6 +7662,8 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
 
 {
   int4 movesize;			// Number of bytes being moved by load or store
+  Datatype *baseType = (Datatype *)0;
+  int8 offset = 0;
 
   if (!data.hasTypeRecoveryStarted()) return 0;
   if (op->code()==CPUI_LOAD) {
@@ -7675,21 +7678,20 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
   Varnode *ptrVn = op->getIn(1);
   Datatype *ct = ptrVn->getTypeReadFacing(op);
   if (ct->getMetatype() != TYPE_PTR) return 0;
-  Datatype *baseType = ((TypePointer *)ct)->getPtrTo();
-  int8 offset = 0;
-  if (ct->getSubMeta() == SUB_PTRREL) {
+
+  if (op->isEventualFormalPointerRel()) {
     TypePointerRel *ptRel = (TypePointerRel *)ct;
-    if (ptRel->isFormalPointerRel() && ptRel->evaluateThruParent(0)) {
-      baseType = ptRel->getParent();
-      if (baseType->getMetatype() != TYPE_STRUCT)
-	return 0;
-      int8 iOff = ptRel->getPointerOffset();
-      iOff = AddrSpace::addressToByteInt(iOff, ptRel->getWordSize());
-      if (iOff >= baseType->getSize())
-	return 0;
-      offset = iOff;
-    }
+    baseType = ptRel->getParent();
+    if (baseType->getMetatype() != TYPE_STRUCT) return 0;
+    int8 iOff = ptRel->getPointerOffset();
+    iOff = AddrSpace::addressToByteInt(iOff, ptRel->getWordSize());
+    if (iOff >= baseType->getSize()) return 0;
+    offset = iOff;
   }
+  else {
+    baseType = ((TypePointer *)ct)->getPtrTo();
+  }
+
   if (baseType->getMetatype() == TYPE_STRUCT) {
     if (baseType->getSize() < movesize) return 0;		// Moving something bigger than entire structure
     if (offset == 0) {						// Only check if offset is 0.
@@ -7700,6 +7702,9 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
       if (isRepeated(op,baseType,subType)) return 0;		// Does not contain anything within
       								// In fact this will lead to repeated datatypes
 								// between both input0 and output of newly created PTRSUB
+    }
+    else {
+      if (isRepeated(op,baseType,(Datatype *)0)) return 0;
     }
   }
   else if (baseType->getMetatype() == TYPE_ARRAY) {
