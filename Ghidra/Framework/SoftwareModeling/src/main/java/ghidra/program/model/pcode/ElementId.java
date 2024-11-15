@@ -393,34 +393,37 @@ public record ElementId(String name, int id) {
 	public static final int COMMAND_GETDATATYPE = 247;
 	public static final ElementId ELEM_COMMAND_GETDATATYPE =
 		new ElementId("command_getdatatype", COMMAND_GETDATATYPE);
-	public static final int COMMAND_GETEXTERNALREF = 248;
+	public static final int COMMAND_GETALLDATATYPES = 248;
+	public static final ElementId ELEM_COMMAND_GETALLDATATYPES =
+			new ElementId("command_getdatatype", COMMAND_GETALLDATATYPES);
+	public static final int COMMAND_GETEXTERNALREF = 249;
 	public static final ElementId ELEM_COMMAND_GETEXTERNALREF =
 		new ElementId("command_getexternalref", COMMAND_GETEXTERNALREF);
-	public static final int COMMAND_GETMAPPEDSYMBOLS = 249;
+	public static final int COMMAND_GETMAPPEDSYMBOLS = 250;
 	public static final ElementId ELEM_COMMAND_GETMAPPEDSYMBOLS =
 		new ElementId("command_getmappedsymbols", COMMAND_GETMAPPEDSYMBOLS);
-	public static final int COMMAND_GETNAMESPACEPATH = 250;
+	public static final int COMMAND_GETNAMESPACEPATH = 251;
 	public static final ElementId ELEM_COMMAND_GETNAMESPACEPATH =
 		new ElementId("command_getnamespacepath", COMMAND_GETNAMESPACEPATH);
-	public static final int COMMAND_GETPCODE = 251;
+	public static final int COMMAND_GETPCODE = 252;
 	public static final ElementId ELEM_COMMAND_GETPCODE =
 		new ElementId("command_getpcode", COMMAND_GETPCODE);
-	public static final int COMMAND_GETPCODEEXECUTABLE = 252;
+	public static final int COMMAND_GETPCODEEXECUTABLE = 253;
 	public static final ElementId ELEM_COMMAND_GETPCODEEXECUTABLE =
 		new ElementId("command_getpcodeexecutable", COMMAND_GETPCODEEXECUTABLE);
-	public static final int COMMAND_GETREGISTER = 253;
+	public static final int COMMAND_GETREGISTER = 254;
 	public static final ElementId ELEM_COMMAND_GETREGISTER =
 		new ElementId("command_getregister", COMMAND_GETREGISTER);
-	public static final int COMMAND_GETREGISTERNAME = 254;
+	public static final int COMMAND_GETREGISTERNAME = 255;
 	public static final ElementId ELEM_COMMAND_GETREGISTERNAME =
 		new ElementId("command_getregistername", COMMAND_GETREGISTERNAME);
-	public static final int COMMAND_GETSTRINGDATA = 255;
+	public static final int COMMAND_GETSTRINGDATA = 256;
 	public static final ElementId ELEM_COMMAND_GETSTRINGDATA =
 		new ElementId("command_getstring", COMMAND_GETSTRINGDATA);
-	public static final int COMMAND_GETTRACKEDREGISTERS = 256;
+	public static final int COMMAND_GETTRACKEDREGISTERS = 257;
 	public static final ElementId ELEM_COMMAND_GETTRACKEDREGISTERS =
 		new ElementId("command_gettrackedregisters", COMMAND_GETTRACKEDREGISTERS);
-	public static final int COMMAND_GETUSEROPNAME = 257;
+	public static final int COMMAND_GETUSEROPNAME = 258;
 	public static final ElementId ELEM_COMMAND_GETUSEROPNAME =
 		new ElementId("command_getuseropname", COMMAND_GETUSEROPNAME);
 
