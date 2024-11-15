@@ -168,6 +168,7 @@ public:
   bool containsInput(const Varnode *vn) const { int4 i,n; n=inrefs.size(); for(i=0;i<n;++i) if (inrefs[i]==vn) return true; return false; }
   /// \brief Get the slot number of the indicated input varnode
   int4 getSlot(const Varnode *vn) const { int4 i,n; n=inrefs.size(); for(i=0;i<n;++i) if (inrefs[i]==vn) break; return i; }
+  int4 getPointerSlot(void) const;
   int4 getRepeatSlot(const Varnode *vn,int4 firstSlot,list<PcodeOp *>::const_iterator iter) const;
   /// \brief Get the evaluation type of this op
   uint4 getEvalType(void) const { return (flags&(PcodeOp::unary|PcodeOp::binary|PcodeOp::special|PcodeOp::ternary)); }
