@@ -81,6 +81,17 @@ PcodeOp::PcodeOp(int4 s,const SeqNum &sq) : start(sq),inrefs(s)
     inrefs[i] = (Varnode *)0;
 }
 
+int4 PcodeOp::getPointerSlot(void) const
+
+{
+  OpCode opc = code();
+  if (opc == CPUI_LOAD) return 1;
+  if (opc == CPUI_STORE) return 1;
+  if (opc == CPUI_PTRADD) return 0;
+  if (opc == CPUI_PTRSUB) return 0;
+  return -1;
+}
+
 /// \brief Find the slot for a given Varnode, which may be take up multiple input slots
 ///
 /// In the rare case that \b this PcodeOp takes the same Varnode as input multiple times,
