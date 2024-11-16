@@ -3086,7 +3086,10 @@ bool ActionSetCasts::ptrsubMatches(PcodeOp *op,Funcdata &data)
 
 {
   uintb offset = op->getIn(1)->getOffset();
-  Datatype *dt = op->getIn(0)->getHighTypeReadFacing(op);
+  Datatype *dt = op->getIn(0)->getTypeReadFacing(op);
+  if (dt->getSubMeta() != SUB_PTRREL) {
+    dt = op->getIn(0)->getHighTypeReadFacing(op);
+  }
   if (dt->needsResolution()) {
     dt->resolveInFlow(op,0);
     const ResolvedUnion *resUnion = data.getUnionField(dt,op,0);
@@ -3124,6 +3127,7 @@ int4 ActionSetCasts::apply(Funcdata &data)
       }
       else if (opc == CPUI_PTRSUB) {	// Check for PTRSUB that no longer fits pointer
 	if (!ptrsubMatches(op,data)) {
+	  ptrsubMatches(op,data);
 	  if (op->getIn(1)->getOffset() == 0) {
 	    data.opRemoveInput(op, 1);
 	    data.opSetOpcode(op, CPUI_COPY);
@@ -5487,6 +5491,8 @@ bool ActionInferTypes::propagateTypeEdge(TypeFactory *typegrp,PcodeOp *op,int4 i
     propagationDebug(typegrp->getArch(),outvn,newtype,op,inslot,(Varnode *)0);
 #endif
     outvn->setTempType(newtype);
+    newtype->typeOrder(*outvn->getTempType());
+    op->getOpcode()->propagateType(alttype, op, invn, outvn, inslot, outslot);
     return !outvn->isMark();
   }
   return false;
