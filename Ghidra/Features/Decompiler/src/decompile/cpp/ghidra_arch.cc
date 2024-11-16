@@ -698,6 +698,22 @@ bool ArchitectureGhidra::getDataType(const string &name,uint8 id,Decoder &decode
   return readAll(sin,decoder);
 }
 
+bool ArchitectureGhidra::getAllDataTypes(const string &name,Decoder &decoder)
+
+{
+  sout.write("\000\000\001\004",4);
+  sout.write("\000\000\001\016",4); // Beginning of string header
+  PackedEncode encoder(sout);
+  encoder.openElement(ELEM_COMMAND_GETALLDATATYPES);
+  encoder.writeString(ATTRIB_NAME, name);
+  encoder.closeElement(ELEM_COMMAND_GETALLDATATYPES);
+  sout.write("\000\000\001\017",4);
+  sout.write("\000\000\001\005",4);
+  sout.flush();
+
+  return readAll(sin,decoder);
+}
+
 /// Ask Ghidra client for all comments associated with one function.
 /// The caller must provide the sub-set of properties (Comment::comment_type) for
 /// the query to match.  A \<commentdb> element with  \<comment> element child for each comment found
