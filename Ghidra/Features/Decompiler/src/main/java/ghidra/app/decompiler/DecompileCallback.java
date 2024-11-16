@@ -21,6 +21,7 @@ import static ghidra.program.model.pcode.ElementId.*;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 
 import ghidra.app.cmd.function.CallDepthChangeInfo;
 import ghidra.docking.settings.SettingsImpl;
@@ -744,6 +745,23 @@ public class DecompileCallback {
 		dtmanage.encodeType(resultEncoder, type, 0);
 		if (debug != null) {
 			debug.getType(type);
+		}
+	}
+
+	public void getAllDataTypes(String name, Encoder resultEncoder) throws IOException {
+		ProgramBasedDataTypeManager datatypeManager = program.getDataTypeManager();
+		ArrayList<DataType> list = new ArrayList<DataType>();
+		datatypeManager.findDataTypes(name,list);
+		int size = list.size();
+		resultEncoder.openElement(ELEM_INTEGER_SIZE);
+		resultEncoder.writeSignedInteger(ATTRIB_SIZE,size);
+		resultEncoder.closeElement(ELEM_INTEGER_SIZE);
+		for (int i = 0; i < size; i++) {
+			DataType type = list.get(i);
+			dtmanage.encodeType(resultEncoder, type, 0);
+			if (debug != null) {
+				debug.getType(type);
+			}
 		}
 	}
 
