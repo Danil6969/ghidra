@@ -122,6 +122,7 @@ public:
   bool isNameUsed(const string &nm,uint8 startId,uint8 stopId);	///< Is given name used along namespace path
   string getCodeLabel(const Address &addr);			///< Retrieve a label at the given address
   bool getDataType(const string &name,uint8 id,Decoder &decoder);	///< Retrieve a data-type description for the given name and id
+  bool getAllDataTypes(const string &name,Decoder &decoder);
   bool getComments(const Address &fad,uint4 flags,Decoder &decoder);	///< Retrieve comments for a particular function
   void getBytes(uint1 *buf,int4 size,const Address &inaddr);	///< Retrieve bytes in the LoadImage at the given address
   bool getPcodeInject(const string &name,int4 type,const InjectContext &con,Decoder &decoder);
