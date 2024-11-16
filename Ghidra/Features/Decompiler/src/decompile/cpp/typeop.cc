@@ -1436,6 +1436,10 @@ Datatype *TypeOpIntAdd::propagateAddIn2Out(Datatype *alttype,TypeFactory *typegr
 
 {
   TypePointer *pointer = (TypePointer *)alttype;
+  Datatype *altparent = (Datatype *)0;
+  if (alttype->getSubMeta() == SUB_PTRREL) {
+    altparent = ((TypePointerRel *)alttype)->getParent();
+  }
   uintb offset;
   int4 command = propagateAddPointer(offset,op,inslot,pointer->getPtrTo()->getAlignSize());
   if (command == 2) return (Datatype *)0; // Doesn't look like a good pointer add
@@ -1454,11 +1458,16 @@ Datatype *TypeOpIntAdd::propagateAddIn2Out(Datatype *alttype,TypeFactory *typegr
     // If the innermost containing object is a TYPE_STRUCT or TYPE_ARRAY
     // preserve info about this container
     Datatype *pt;
-    if (pointer == (TypePointer *)0)
+    if (pointer == (TypePointer *)0) {
       pt = typegrp->getBase(1,TYPE_UNKNOWN); // Offset does not point at a proper sub-type
-    else
-      pt = pointer->getPtrTo();	// The sub-type being directly pointed at
-    pointer = typegrp->getTypePointerRel(parent, pt, parentOff);
+      pointer = typegrp->getTypePointerRel(parent,pt,parentOff);
+    }
+    else {
+      if (parent->getPtrTo() != altparent) {
+	pt = pointer->getPtrTo();	// The sub-type being directly pointed at
+	pointer = typegrp->getTypePointerRel(parent,pt,parentOff);
+      }
+    }
   }
   if (pointer == (TypePointer *)0) {
     if (command == 0)
@@ -2714,20 +2723,6 @@ TypeOpPtrsub::TypeOpPtrsub(TypeFactory *t) : TypeOp(t,CPUI_PTRSUB,"->")
 Datatype *TypeOpPtrsub::getOutputLocal(const PcodeOp *op) const
 
 {				// Output is ptr to type of subfield
-  TypePointer *ptype = (TypePointer *)op->getIn(0)->getTypeReadFacing(op);
-  if (ptype->getMetatype() == TYPE_PTR) {
-    int8 offset = AddrSpace::addressToByte((int8)op->getIn(1)->getOffset(),ptype->getWordSize());
-    int8 unusedOffset;
-    TypePointer *parent;
-    Datatype *rettype = ptype->downChain(offset,parent,unusedOffset,false,*tlst);
-    if (rettype != (Datatype *)0) {
-      if (offset==0) return rettype;
-      if (rettype->getMetatype() == TYPE_PTR) {
-	TypePointerRel *tp = tlst->getTypePointerRel(parent,((TypePointer *)rettype)->getPtrTo(),offset);
-	return tp;
-      }
-    }
-  }
   return tlst->getBase(op->getOut()->getSize(),TYPE_INT);
 }
 
@@ -2765,8 +2760,13 @@ Datatype *TypeOpPtrsub::getOutputToken(const PcodeOp *op,CastStrategy *castStrat
     int8 unusedOffset;
     TypePointer *unusedParent;
     Datatype *rettype = ptype->downChain(offset,unusedParent,unusedOffset,false,*tlst);
-    if ((offset==0)&&(rettype != (Datatype *)0))
-      return rettype;
+    if (rettype != (Datatype *)0) {
+      if (offset==0) return rettype;
+      if (rettype->getMetatype() == TYPE_PTR) {
+	TypePointerRel *tp = tlst->getTypePointerRel((TypePointer *)rettype,ptype->getPtrTo(),offset);
+	return tp;
+      }
+    }
     rettype = tlst->getBase(1, TYPE_UNKNOWN);
     return tlst->getTypePointer(op->getOut()->getSize(), rettype, ptype->getWordSize());
   }
