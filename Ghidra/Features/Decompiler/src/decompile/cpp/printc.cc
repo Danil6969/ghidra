@@ -1233,7 +1233,10 @@ void PrintC::opPtrsub(const PcodeOp *op)
 
   in0 = op->getIn(0);
   in1const = op->getIn(1)->getOffset();
-  ptype = (TypePointer *)in0->getHighTypeReadFacing(op);
+  ptype = (TypePointer *)in0->getTypeReadFacing(op);
+  if (ptype->getSubMeta() != SUB_PTRREL) {
+    ptype = (TypePointer *)in0->getHighTypeReadFacing(op);
+  }
   if (ptype->getMetatype() != TYPE_PTR) {
     clear();
     throw LowlevelError("PTRSUB off of non-pointer type");
@@ -1243,8 +1246,14 @@ void PrintC::opPtrsub(const PcodeOp *op)
     ct = ptrel->getParent();
   }
   else {
-    ptrel = (TypePointerRel *)0;
-    ct = ptype->getPtrTo();
+    if (op->isEventualFormalPointerRel()) {
+      ptrel = (TypePointerRel *)0;
+      ct = ((TypePointerRel *)ptype)->getParent();
+    }
+    else {
+      ptrel = (TypePointerRel *)0;
+      ct = ptype->getPtrTo();
+    }
   }
   m = mods & ~(print_load_value|print_store_value); // Current state of mods
   valueon = (mods & (print_load_value|print_store_value)) != 0;
@@ -1252,9 +1261,11 @@ void PrintC::opPtrsub(const PcodeOp *op)
 
   if (ct->getMetatype() == TYPE_STRUCT || ct->getMetatype() == TYPE_UNION) {
     int8 suboff = (int4)in1const;	// How far into container
-    if (ptrel != (TypePointerRel *)0) {
-      suboff += ptrel->getPointerOffset();
+    if (ptrel != (TypePointerRel *)0 || op->isEventualFormalPointerRel()) {
+      suboff += ((TypePointerRel *)ptype)->getPointerOffset();
       suboff &= calc_mask(ptype->getSize());
+    }
+    if (ptrel != (TypePointerRel *)0) {
       if (suboff == 0) {
 	// Special case where we do not print a field
 	if (flex)
