@@ -359,14 +359,14 @@ Varnode *Funcdata::setInputVarnode(Varnode *vn)
 	msg << "Overlapping input varnodes";
 	msg << "\nfirst varnode's address is ";
 	msg << vn->getAddr().getSpace()->getName();
-	msg << ":";
-	msg << vn->getAddr().getOffset();
+	msg << ":0x";
+	msg << hex << vn->getAddr().getOffset();
 	msg << ", size is ";
 	msg << vn->getSize();
 	msg << "\nsecond varnode's address is ";
 	msg << invn->getAddr().getSpace()->getName();
-	msg << ":";
-	msg << invn->getAddr().getOffset();
+	msg << ":0x";
+	msg << hex << invn->getAddr().getOffset();
 	msg << ", size is ";
 	msg << invn->getSize();
 	throw LowlevelError(msg.str());
