@@ -35,4 +35,19 @@ Datatype *TypeFactoryGhidra::findById(const string &n,uint8 id,int4 sz)
   return ct;
 }
 
+vector<Datatype *> TypeFactoryGhidra::findAll(const string &n)
+{
+  vector<Datatype *> datatypes;
+  ArchitectureGhidra *ghidra = (ArchitectureGhidra *)glb;
+  PackedDecode decoder(ghidra);
+  try {
+    if (!ghidra->getAllDataTypes(n,decoder)) // See if ghidra knows about type
+      return datatypes;
+  }
+  catch(DecoderError &err) {
+    throw LowlevelError("Decoder error: "+err.explain);
+  }
+  return datatypes;
+}
+
 } // End namespace ghidra
