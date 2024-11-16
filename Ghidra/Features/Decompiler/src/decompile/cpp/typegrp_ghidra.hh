@@ -32,6 +32,7 @@ namespace ghidra {
 class TypeFactoryGhidra : public TypeFactory {
 protected:
   virtual Datatype *findById(const string &n,uint8 id,int4 sz);
+  virtual vector<Datatype *> findAll(const string &n);
 public:
   TypeFactoryGhidra(ArchitectureGhidra *g) : TypeFactory(g) {}	///< Constructor
   virtual ~TypeFactoryGhidra(void) {}
