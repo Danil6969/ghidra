@@ -1458,16 +1458,11 @@ Datatype *TypeOpIntAdd::propagateAddIn2Out(Datatype *alttype,TypeFactory *typegr
     // If the innermost containing object is a TYPE_STRUCT or TYPE_ARRAY
     // preserve info about this container
     Datatype *pt;
-    if (pointer == (TypePointer *)0) {
+    if (pointer == (TypePointer *)0)
       pt = typegrp->getBase(1,TYPE_UNKNOWN); // Offset does not point at a proper sub-type
-      pointer = typegrp->getTypePointerRel(parent,pt,parentOff);
-    }
-    else {
-      if (parent->getPtrTo() != altparent) {
-	pt = pointer->getPtrTo();	// The sub-type being directly pointed at
-	pointer = typegrp->getTypePointerRel(parent,pt,parentOff);
-      }
-    }
+    else
+      pt = pointer->getPtrTo();	// The sub-type being directly pointed at
+    pointer = typegrp->getTypePointerRel(parent,pt,parentOff);
   }
   if (pointer == (TypePointer *)0) {
     if (command == 0)
