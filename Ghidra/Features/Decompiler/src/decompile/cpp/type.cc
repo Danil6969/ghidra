@@ -2699,8 +2699,11 @@ TypePointer *TypePointerRel::downChain(int8 &off,TypePointer *&par,int8 &parOff,
 bool TypePointerRel::isPtrsubMatching(int8 off,int8 extra,int8 multiplier) const
 
 {
-  if (stripped != (TypePointer *)0)
-    return TypePointer::isPtrsubMatching(off,extra,multiplier);
+  if (stripped != (TypePointer *)0) {
+    // Check if we don't lose structural information
+    if (stripped->getPtrTo()->isStructuredType() || !parent->isStructuredType())
+      return TypePointer::isPtrsubMatching(off,extra,multiplier);
+  }
   int4 iOff = AddrSpace::addressToByteInt(off,wordsize);
   extra = AddrSpace::addressToByteInt(extra, wordsize);
   iOff += offset + extra;
