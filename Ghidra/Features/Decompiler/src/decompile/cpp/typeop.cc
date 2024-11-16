@@ -1458,7 +1458,7 @@ Datatype *TypeOpIntAdd::propagateAddIn2Out(Datatype *alttype,TypeFactory *typegr
       pt = typegrp->getBase(1,TYPE_UNKNOWN); // Offset does not point at a proper sub-type
     else
       pt = pointer->getPtrTo();	// The sub-type being directly pointed at
-    pointer = typegrp->getTypePointerRel(parent,pt,parentOff);
+    pointer = typegrp->getTypePointerRel(parent, pt, parentOff);
   }
   if (pointer == (TypePointer *)0) {
     if (command == 0)
