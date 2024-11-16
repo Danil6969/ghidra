@@ -43,6 +43,13 @@ vector<Datatype *> TypeFactoryGhidra::findAll(const string &n)
   try {
     if (!ghidra->getAllDataTypes(n,decoder)) // See if ghidra knows about type
       return datatypes;
+    uint4 elemId = decoder.openElement(ELEM_INTEGER_SIZE);
+    intb size = decoder.readSignedInteger();
+    decoder.closeElement(elemId);
+    for (int4 i=0;i<size;++i) {
+      Datatype *ct = decodeType(decoder); // Parse ghidra's type
+      datatypes.push_back(ct);
+    }
   }
   catch(DecoderError &err) {
     throw LowlevelError("Decoder error: "+err.explain);
