@@ -1436,10 +1436,6 @@ Datatype *TypeOpIntAdd::propagateAddIn2Out(Datatype *alttype,TypeFactory *typegr
 
 {
   TypePointer *pointer = (TypePointer *)alttype;
-  Datatype *altparent = (Datatype *)0;
-  if (alttype->getSubMeta() == SUB_PTRREL) {
-    altparent = ((TypePointerRel *)alttype)->getParent();
-  }
   uintb offset;
   int4 command = propagateAddPointer(offset,op,inslot,pointer->getPtrTo()->getAlignSize());
   if (command == 2) return (Datatype *)0; // Doesn't look like a good pointer add
