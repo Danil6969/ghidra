@@ -31,7 +31,8 @@ extern ElementId ELEM_COMMAND_GETCALLOTHERFIXUP;	///< Marshaling element \<comma
 extern ElementId ELEM_COMMAND_GETCODELABEL;		///< Marshaling element \<command_getcodelabel>
 extern ElementId ELEM_COMMAND_GETCOMMENTS;		///< Marshaling element \<command_getcomments>
 extern ElementId ELEM_COMMAND_GETCPOOLREF;		///< Marshaling element \<command_getcpoolref>
-extern ElementId ELEM_COMMAND_GETDATATYPE;		///< Marshaling element \<command_datatype>
+extern ElementId ELEM_COMMAND_GETDATATYPE;		///< Marshaling element \<command_getdatatype>
+extern ElementId ELEM_COMMAND_GETALLDATATYPES;		///< Marshaling element \<command_getalldatatypes>
 extern ElementId ELEM_COMMAND_GETEXTERNALREF;		///< Marshaling element \<command_getexternalref>
 extern ElementId ELEM_COMMAND_GETMAPPEDSYMBOLS;		///< Marshaling element \<command_getmappedsymbols>
 extern ElementId ELEM_COMMAND_GETNAMESPACEPATH;		///< Marshaling element \<command_getnamespacepath>
