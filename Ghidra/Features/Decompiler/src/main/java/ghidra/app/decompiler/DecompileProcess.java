@@ -369,6 +369,9 @@ public class DecompileProcess {
 							case COMMAND_GETDATATYPE:
 								getDataType();
 								break;
+							case COMMAND_GETALLDATATYPES:
+								getAllDataTypes();
+								break;
 							case COMMAND_GETTRACKEDREGISTERS:
 								getTrackedRegisters();
 								break;
@@ -857,6 +860,17 @@ public class DecompileProcess {
 		String name = paramDecoder.readString(ATTRIB_NAME);
 		long id = paramDecoder.readSignedInteger(ATTRIB_ID);
 		callback.getDataType(name, id, resultEncoder);
+		write(query_response_start);
+		if (!resultEncoder.isEmpty()) {
+			writeString(resultEncoder);
+		}
+		write(query_response_end);
+	}
+
+	private void getAllDataTypes() throws IOException, DecoderException {
+		resultEncoder.clear();
+		String name = paramDecoder.readString(ATTRIB_NAME);
+		callback.getAllDataTypes(name, resultEncoder);
 		write(query_response_start);
 		if (!resultEncoder.isEmpty()) {
 			writeString(resultEncoder);
