@@ -605,8 +605,8 @@ void PrintC::opTypeCast(const PcodeOp *op)
   type_metatype inMeta = inType->getMetatype();
   bool outArr = outMeta == TYPE_ARRAY;
   bool inArr = inMeta == TYPE_ARRAY;
-  string outTypeName = outType->getName();
-  string inTypeName = inType->getName();
+  string outTypeName = printedTypeName(outType);
+  string inTypeName = printedTypeName(inType);
   bool nameEquals = !outTypeName.empty() && outTypeName == inTypeName; // Types may be inequal if name is empty
   if (!option_nocasts && !nameEquals) {
     if (isSimpleCast(inType,outType)) {
@@ -3969,6 +3969,38 @@ string PrintC::genericTypeName(const Datatype *ct)
     return s.str();
   }
   s << dec << ct->getSize();
+  return s.str();
+}
+
+string PrintC::printedTypeName(const ghidra::Datatype *ct)
+
+{
+  vector<const Datatype *> typestack;
+  buildTypeStack(ct,typestack);
+
+  ct = typestack.back();
+
+  ostringstream s;
+  if (ct->getName().size()==0) {
+    s << genericTypeName(ct);
+  }
+  else {
+    s << ct->getDisplayName();
+  }
+  for(int4 i=typestack.size()-2;i>=0;--i) {
+    ct = typestack[i];
+    if (ct->getMetatype() == TYPE_PTR)
+      s << " *";
+    else if (ct->getMetatype() == TYPE_ARRAY) {
+      s << " [";
+      s << ((TypeArray *)ct)->numElements();
+      s << "]";
+    }
+    else if (ct->getMetatype() == TYPE_CODE)
+      return ""; //nm = nm + "()";
+    else
+      return "";
+  }
   return s.str();
 }
 
