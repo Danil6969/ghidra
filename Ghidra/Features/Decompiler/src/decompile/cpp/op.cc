@@ -85,8 +85,10 @@ int4 PcodeOp::getPointerSlot(void) const
 
 {
   OpCode opc = code();
+  if (opc == CPUI_COPY) return 0;
   if (opc == CPUI_LOAD) return 1;
   if (opc == CPUI_STORE) return 1;
+  if (opc == CPUI_CAST) return 0;
   if (opc == CPUI_PTRADD) return 0;
   if (opc == CPUI_PTRSUB) return 0;
   return -1;
