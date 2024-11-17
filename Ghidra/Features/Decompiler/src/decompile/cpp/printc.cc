@@ -3975,28 +3975,49 @@ string PrintC::genericTypeName(const Datatype *ct)
 string PrintC::printedTypeName(const ghidra::Datatype *ct)
 
 {
-  vector<const Datatype *> typestack;
-  buildTypeStack(ct,typestack);
-
-  ct = typestack.back();
-
   ostringstream s;
-  if (ct->getName().size()==0) {
-    s << genericTypeName(ct);
+  vector<const Datatype *> typestack;
+  const Datatype *dt = ct;
+
+  // build type stack
+  for(;;) {
+    typestack.push_back(dt);
+    if (dt->getName().size() != 0)
+      break;
+    if (dt->getMetatype()==TYPE_PTR) {
+      dt = ((TypePointer *)dt)->getPtrTo();
+    }
+    else if (dt->getMetatype()==TYPE_ARRAY)
+      dt = ((TypeArray *)dt)->getBase();
+    else if (dt->getMetatype()==TYPE_CODE) {
+      const FuncProto *proto = ((TypeCode *)dt)->getPrototype();
+      if (proto != (const FuncProto *)0)
+	dt = proto->getOutputType();
+      else
+	dt = glb->types->getTypeVoid();
+    }
+    else
+      break;
+  }
+
+  dt = typestack.back();
+
+  if (dt->getName().size()==0) {
+    s << genericTypeName(dt);
   }
   else {
-    s << ct->getDisplayName();
+    s << dt->getDisplayName();
   }
   for(int4 i=typestack.size()-2;i>=0;--i) {
-    ct = typestack[i];
-    if (ct->getMetatype() == TYPE_PTR)
+    dt = typestack[i];
+    if (dt->getMetatype() == TYPE_PTR)
       s << " *";
-    else if (ct->getMetatype() == TYPE_ARRAY) {
+    else if (dt->getMetatype() == TYPE_ARRAY) {
       s << " [";
-      s << ((TypeArray *)ct)->numElements();
+      s << ((TypeArray *)dt)->numElements();
       s << "]";
     }
-    else if (ct->getMetatype() == TYPE_CODE)
+    else if (dt->getMetatype() == TYPE_CODE)
       return ""; //nm = nm + "()";
     else
       return "";
