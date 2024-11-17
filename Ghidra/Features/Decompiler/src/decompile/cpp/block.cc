@@ -428,11 +428,12 @@ bool FlowBlock::restrictedByConditional(const FlowBlock *cond) const
 bool FlowBlock::hasSpecialFunction(void) const
 
 {
+  const PcodeOp *op = (PcodeOp *)0;
   PcodeOp *first = firstOp();
-  PcodeOp *last = lastOp();
+  PcodeOp *last = first->getParent()->lastOp();
   if (first == (PcodeOp *)0) return false;
   if (last == (PcodeOp *)0) return false;
-  for(PcodeOp *op=first;op!=last;op=op->nextOp()) {
+  for(op=first;op!=last;op=op->nextOp()) {
     if (op == (PcodeOp *)0) return false;
     if (TypeOpCallother::isSpecialFunc(op)) return true;
   }
