@@ -430,8 +430,8 @@ bool FlowBlock::hasSpecialFunction(void) const
 {
   const PcodeOp *op = (PcodeOp *)0;
   PcodeOp *first = firstOp();
-  PcodeOp *last = first->getParent()->lastOp();
   if (first == (PcodeOp *)0) return false;
+  PcodeOp *last = first->getParent()->lastOp();
   if (last == (PcodeOp *)0) return false;
   for(op=first;op!=last;op=op->nextOp()) {
     if (op == (PcodeOp *)0) return false;
