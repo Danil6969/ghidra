@@ -1241,12 +1241,26 @@ void PrintC::opPtrsub(const PcodeOp *op)
     clear();
     throw LowlevelError("PTRSUB off of non-pointer type");
   }
+  bool isEphemeral = false;
   if (ptype->isFormalPointerRel()) {
     ptrel = (TypePointerRel *)ptype;
     ct = ptrel->getParent();
   }
   else {
     if (op->isEventualFormalPointerRel()) {
+      isEphemeral = true;
+    }
+    else {
+      if (ptype->getSubMeta() == SUB_PTRREL) {
+	if (!ct->isStructuredType()) {
+	  if (((TypePointerRel *)ptype)->getParent()->isStructuredType()) {
+	    isEphemeral = true;
+	  }
+	}
+      }
+    }
+
+    if (isEphemeral) {
       ptrel = (TypePointerRel *)0;
       ct = ((TypePointerRel *)ptype)->getParent();
     }
@@ -1261,7 +1275,7 @@ void PrintC::opPtrsub(const PcodeOp *op)
 
   if (ct->getMetatype() == TYPE_STRUCT || ct->getMetatype() == TYPE_UNION) {
     int8 suboff = (int4)in1const;	// How far into container
-    if (ptrel != (TypePointerRel *)0 || op->isEventualFormalPointerRel()) {
+    if (ptrel != (TypePointerRel *)0 || isEphemeral) {
       suboff += ((TypePointerRel *)ptype)->getPointerOffset();
       suboff &= calc_mask(ptype->getSize());
     }
