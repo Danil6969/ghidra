@@ -600,7 +600,10 @@ void PrintC::opTypeCast(const PcodeOp *op)
   const Varnode *outVn = op->getOut();
   const Varnode *inVn = op->getIn(0);
   Datatype *outType = outVn->getHighTypeDefFacing();
-  Datatype *inType = inVn->getHighTypeReadFacing(op);
+  Datatype *inType = inVn->getTypeReadFacing(op);
+  if (inType->getSubMeta() != SUB_PTRREL || !inVn->isExplicit()) {
+    inType = inVn->getHighTypeReadFacing(op);
+  }
   type_metatype outMeta = outType->getMetatype();
   type_metatype inMeta = inType->getMetatype();
   bool outArr = outMeta == TYPE_ARRAY;
