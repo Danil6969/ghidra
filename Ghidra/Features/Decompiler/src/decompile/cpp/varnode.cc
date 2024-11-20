@@ -897,8 +897,14 @@ Datatype *Varnode::getLocalType(bool &blockup) const
   Datatype *ct;
   Datatype *newct;
 
-  //if (isTypeLock())			// Our type is locked, don't change
-    //return type;		// Not a partial lock, return the locked type
+  if (isTypeLock()) {			// Our type is locked, don't change
+    if (def == (PcodeOp *)0)
+      return type;
+    OpCode opc = def->code();
+    if (opc != CPUI_MULTIEQUAL)
+      if (opc != CPUI_INDIRECT)
+	return type;		// Not a partial lock, return the locked type
+  }
 
   ct = (Datatype *)0;
   if (def != (PcodeOp *)0) {
