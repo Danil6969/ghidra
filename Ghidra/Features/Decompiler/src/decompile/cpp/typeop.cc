@@ -2610,9 +2610,7 @@ Datatype *TypeOpPtradd::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
   if (slot == 1) {
-    const Varnode *in0vn = op->getIn(0);
-    const Varnode *in1vn = op->getIn(1);
-    if (in0vn->getSize() == in1vn->getSize()) {
+    if (op->getIn(0)->getSize() == op->getIn(1)->getSize()) {
       // Better use flexible datatype when close to integer limits for pointers
       return tlst->getMemsizeType(true);
     }
