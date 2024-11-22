@@ -7926,10 +7926,7 @@ bool RulePtraddUndo::canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data
   if (pt->getAlignSize()!=AddrSpace::addressToByteInt(size,tp->getWordSize())) return true;
   Varnode *indVn = op->getIn(1-slot);
   // and that index isn't zero
-  if (indVn->isConstant()) {
-    if (indVn->getOffset() == 0)
-      return true;
-  }
+  if (indVn->isConstant() && indVn->getOffset() == 0) return true;
   return false;
 }
 
