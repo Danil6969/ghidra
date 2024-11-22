@@ -1255,6 +1255,19 @@ Datatype *Varnode::recoverConstantDatatype(void) const
   return (Datatype *)0;
 }
 
+Datatype *Varnode::recoverGlobalDatatype(void) const
+
+{
+  AddrSpace *spc = getAddr().getSpace();
+  if (spc->getType() != IPTR_PROCESSOR) return (Datatype *)0;
+  if (spc->getName() == "register") return (Datatype *)0;
+  SymbolEntry *entry = getSymbolEntry();
+  if (entry == (SymbolEntry *)0) return (Datatype *)0;
+  Symbol *symbol = entry->getSymbol();
+  if (symbol == (Symbol *)0) return (Datatype *)0;
+  return symbol->getType();
+}
+
 SymbolEntry *Varnode::getSymbolInFlow(PcodeOp *op) const
 
 {
