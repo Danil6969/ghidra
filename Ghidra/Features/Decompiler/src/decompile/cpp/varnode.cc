@@ -897,7 +897,10 @@ Datatype *Varnode::getLocalType(bool &blockup) const
   Datatype *ct;
   Datatype *newct;
 
-  if (isTypeLock()) {			// Our type is locked, don't change
+  if (isTypeLock()) {		// Our type is locked, don't change
+    AddrSpace *spc = getAddr().getSpace();
+    if (spc->getType() == IPTR_PROCESSOR && spc->getName() != "register")
+	return type;		// Globals always have the same type
     if (def == (PcodeOp *)0)
       return type;
     OpCode opc = def->code();
