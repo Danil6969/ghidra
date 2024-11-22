@@ -410,7 +410,11 @@ Datatype *TypeOpLoad::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
   if (slot == 1) {
-    Datatype *ct = op->getIn(1)->recoverConstantDatatype();
+    const Varnode *invn = op->getIn(1);
+    Datatype *ct = invn->recoverConstantDatatype();
+    if (ct != (Datatype *)0)
+      return ct;
+    ct = invn->recoverGlobalDatatype();
     if (ct != (Datatype *)0)
       return ct;
   }
