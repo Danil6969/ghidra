@@ -2045,10 +2045,14 @@ void ConditionalJoin::setupMultiequals(void)
     Varnode *vn2 = (*iter).first.side2;
     PcodeOp *multi = data.newOp(2,cbranch1->getAddr());
     data.opSetOpcode(multi,CPUI_MULTIEQUAL);
-    Varnode *outvn = data.newUniqueOut(vn1->getSize(),multi);
+    // Try to preserve the storage location if the input varnodes share it
+    if (vn1->getAddr() == vn2->getAddr())
+      data.newVarnodeOut(vn1->getSize(),vn1->getAddr(),multi);
+    else
+      data.newUniqueOut(vn1->getSize(),multi);
     data.opSetInput(multi,vn1,0);
     data.opSetInput(multi,vn2,1);
-    (*iter).second = outvn;
+    (*iter).second = multi->getOut();
     data.opInsertEnd(multi,joinblock);
   }
 }
