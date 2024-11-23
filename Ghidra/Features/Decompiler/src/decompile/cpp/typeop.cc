@@ -414,9 +414,6 @@ Datatype *TypeOpLoad::getInputLocal(const PcodeOp *op,int4 slot) const
     Datatype *ct = invn->recoverConstantDatatype();
     if (ct != (Datatype *)0)
       return ct;
-    ct = invn->recoverGlobalDatatype();
-    if (ct != (Datatype *)0)
-      return ct;
   }
   return TypeOp::getInputLocal(op,slot);
 }
