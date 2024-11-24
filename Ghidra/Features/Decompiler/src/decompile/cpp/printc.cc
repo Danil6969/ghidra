@@ -1227,8 +1227,6 @@ void PrintC::opPtrsub(const PcodeOp *op)
 
 {
   TypePointer *ptype;
-  TypePointerRel *ptrel;
-  Datatype *ct;
   const Varnode *in0;
   uintb in1const;
   bool valueon,flex,arrayvalue;
@@ -1237,39 +1235,43 @@ void PrintC::opPtrsub(const PcodeOp *op)
   in0 = op->getIn(0);
   in1const = op->getIn(1)->getOffset();
   ptype = (TypePointer *)in0->getTypeReadFacing(op);
-  if (ptype->getSubMeta() != SUB_PTRREL) {
-    ptype = (TypePointer *)in0->getHighTypeReadFacing(op);
+  if (ptype->getSubMeta() != SUB_PTRREL) {	// If there is no ptrrel information
+    ptype = (TypePointer *)in0->getHighTypeReadFacing(op);	// Then we can omit such extended information
   }
   if (ptype->getMetatype() != TYPE_PTR) {
     clear();
     throw LowlevelError("PTRSUB off of non-pointer type");
   }
-  bool isEphemeral = false;
+  Datatype *ct = ptype->getPtrTo();	// By default, view as it would be an ordinary pointer
+
+  bool isEphemeralRequired = false;	// Is ephemeral ptrrel required to be used there?
+  TypePointerRel *ptrel = (TypePointerRel *)0;	// Non-ephemeral ptrrel
+  TypePointerRel *anyptrrel = (TypePointerRel *)0;	// Either ephemeral or non-ephemeral ptrrel
+  if (ptype->getSubMeta() == SUB_PTRREL) {
+    anyptrrel = (TypePointerRel *)ptype;
+  }
+
   if (ptype->isFormalPointerRel()) {
-    ptrel = (TypePointerRel *)ptype;
+    ptrel = anyptrrel;
     ct = ptrel->getParent();
   }
   else {
     if (op->isEventualFormalPointerRel()) {
-      isEphemeral = true;
+      isEphemeralRequired = true;
     }
     else {
-      if (ptype->getSubMeta() == SUB_PTRREL) {
-	if (!ct->isStructuredType()) {
-	  if (((TypePointerRel *)ptype)->getParent()->isStructuredType()) {
-	    isEphemeral = true;
+      if (anyptrrel != (TypePointerRel *)0) {
+	if (!ct->isStructuredType()) {	// Can't print this anyway
+	  if (anyptrrel->getParent()->isStructuredType()) {	// But there can be other structural information if viewed as ptrrel
+	    isEphemeralRequired = true;	// In such cases we just have to use it instead
 	  }
 	}
       }
     }
 
-    if (isEphemeral) {
-      ptrel = (TypePointerRel *)0;
-      ct = ((TypePointerRel *)ptype)->getParent();
-    }
-    else {
-      ptrel = (TypePointerRel *)0;
-      ct = ptype->getPtrTo();
+    // If we decided to treat it as ptrrel we also update pointed-to type and offset accordingly
+    if (isEphemeralRequired) {
+      ct = anyptrrel->getParent();	// Also update pointed-to type
     }
   }
   m = mods & ~(print_load_value|print_store_value); // Current state of mods
@@ -1278,8 +1280,9 @@ void PrintC::opPtrsub(const PcodeOp *op)
 
   if (ct->getMetatype() == TYPE_STRUCT || ct->getMetatype() == TYPE_UNION) {
     int8 suboff = (int4)in1const;	// How far into container
-    if (ptrel != (TypePointerRel *)0 || isEphemeral) {
-      suboff += ((TypePointerRel *)ptype)->getPointerOffset();
+    if (ptrel != (TypePointerRel *)0 || isEphemeralRequired) { // Either formal or ephemeral ptrrel
+      // Must take ptrrel offset into account
+      suboff += anyptrrel->getPointerOffset();
       suboff &= calc_mask(ptype->getSize());
     }
     if (ptrel != (TypePointerRel *)0) {
