@@ -894,13 +894,13 @@ bool Varnode::isEventualConstant(int4 maxBinary,int4 maxLoad) const
 Datatype *Varnode::getLocalType(bool &blockup) const
 
 {
-  Datatype *ct;
   Datatype *newct;
 
+  Datatype *ct = recoverGlobalDatatype();
+  if (ct != (Datatype *)0)
+    return ct;
+
   if (isTypeLock()) {			// Our type is locked, don't change
-    AddrSpace *spc = getAddr().getSpace();
-    if (spc->getType() == IPTR_PROCESSOR && spc->getName() != "register")
-	return type;		// Globals always have the same type
     if (def == (PcodeOp *)0)
       return type;
     OpCode opc = def->code();
@@ -1453,8 +1453,12 @@ bool Varnode::isPtrdiffOperand(Funcdata &data) const
     lone = vn->loneDescend();
     if (lone == (PcodeOp *)0) return false;
     OpCode opc = lone->code();
-    if (opc != CPUI_CAST) break;
-    vn = lone->getOut();
+    if (opc == CPUI_COPY)
+      vn = lone->getOut();
+    else if (opc == CPUI_CAST)
+      vn = lone->getOut();
+    else
+      break;
   }
   if (typesrecovered) {
     Varnode *outvn = lone->getOut();
