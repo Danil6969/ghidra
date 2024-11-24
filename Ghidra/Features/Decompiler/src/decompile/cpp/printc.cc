@@ -1226,15 +1226,14 @@ void PrintC::opPtradd(const PcodeOp *op)
 void PrintC::opPtrsub(const PcodeOp *op)
 
 {
-  TypePointer *ptype;
-  const Varnode *in0;
-  uintb in1const;
-  bool valueon,flex,arrayvalue;
-  uint4 m;
+  bool valueon = false;
+  bool flex = false;
+  bool arrayvalue = false;
+  uint4 m = 0;
 
-  in0 = op->getIn(0);
-  in1const = op->getIn(1)->getOffset();
-  ptype = (TypePointer *)in0->getTypeReadFacing(op);
+  const Varnode *in0 = op->getIn(0);
+  uintb in1const = op->getIn(1)->getOffset();
+  TypePointer *ptype = (TypePointer *)in0->getTypeReadFacing(op);
   if (ptype->getSubMeta() != SUB_PTRREL) {	// If there is no ptrrel information
     ptype = (TypePointer *)in0->getHighTypeReadFacing(op);	// Then we can omit such extended information
   }
