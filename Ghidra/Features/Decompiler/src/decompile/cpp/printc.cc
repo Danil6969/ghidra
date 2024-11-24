@@ -2138,30 +2138,38 @@ bool PrintC::pushPtrCharConstant(uintb val,const TypePointer *ct,const Varnode *
   if (!baseType->isCharPrint()) return false;
   Address startaddr = entry->getAddr();
 
-  ostringstream str;
   Datatype *subct = ct->getPtrTo();
   intb offset = stringaddr.getOffset() - startaddr.getOffset();
   int4 charSize = baseType->getSize();
 
-  if ((offset > 0)) {
+  bool printpartial = false;
+  if (offset > 0) {
     if (offset % charSize == 0) {
-      // Pushing partial string
-      if (!printCharacterConstant(str,startaddr,baseType))
-	return false;		// Can we get a nice ASCII string
-      intb addend = offset / charSize;
-      // Push as pointer addition,
-      // so it will point to middle of the same string anyway
-      // but not some other unique string
-      pushOp(&binary_plus,(const PcodeOp *)0);
-      pushAtom(Atom(str.str(),vartoken,EmitMarkup::const_color,op,vn));
-      push_integer(addend,startaddr.getAddrSize(),false,syntax,(const Varnode *)0,(const PcodeOp *)0);
-      return true;
+      if (vn->isPtrdiffOperand(*op->getFuncdata())) {
+	printpartial = true;
+      }
     }
   }
 
-  if (!printCharacterConstant(str,stringaddr,baseType))
-    return false;		// Can we get a nice ASCII string
-  pushAtom(Atom(str.str(),vartoken,EmitMarkup::const_color,op,vn));
+  if (printpartial) {
+    ostringstream partialstring;
+    // Pushing partial string
+    if (!printCharacterConstant(partialstring,startaddr,baseType))
+      return false;		// Can we get a nice partial ASCII string
+    intb addend = offset / charSize;
+    // Push as pointer addition,
+    // so it will point to middle of the same string anyway
+    // but not some other unique string
+    pushOp(&binary_plus,(const PcodeOp *)0);
+    pushAtom(Atom(partialstring.str(),vartoken,EmitMarkup::const_color,op,vn));
+    push_integer(addend,startaddr.getAddrSize(),false,syntax,(const Varnode *)0,(const PcodeOp *)0);
+    return true;
+  }
+
+  ostringstream fullstring;
+  if (!printCharacterConstant(fullstring,stringaddr,baseType))
+    return false;		// Can we get a nice full ASCII string
+  pushAtom(Atom(fullstring.str(),vartoken,EmitMarkup::const_color,op,vn));
   return true;
 }
 
