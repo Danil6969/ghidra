@@ -1268,15 +1268,16 @@ Datatype *Varnode::recoverGlobalDatatype(void) const
   return symbol->getType();
 }
 
-SymbolEntry *Varnode::getSymbolInFlow(PcodeOp *op) const
+SymbolEntry *Varnode::getSymbolInFlow(const PcodeOp *op) const
 
 {
   if (op == (PcodeOp *)0) return (SymbolEntry *)0;
+  if (!isConstant()) return (SymbolEntry *)0;
   Funcdata *fd = op->getFuncdata();
   if (fd == (Funcdata *)0) return (SymbolEntry *)0;
   Architecture *glb = fd->getArch();
   uintb fullEncoding;
-  AddrSpace *spc = ActionConstantPtr::selectInferSpace((Varnode *)this,op,glb->inferPtrSpaces);
+  AddrSpace *spc = ActionConstantPtr::selectInferSpace((Varnode *)this,(PcodeOp *)op,glb->inferPtrSpaces);
   Address rampoint = glb->resolveConstant(spc,getOffset(),getSize(),op->getAddr(),fullEncoding);
   if (rampoint.isInvalid()) return (SymbolEntry *)0;
   SymbolEntry *entry = fd->getScopeLocal()->getParent()->queryContainer(rampoint,1,Address());
