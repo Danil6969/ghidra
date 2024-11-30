@@ -350,7 +350,7 @@ public:
   static void printRaw(ostream &s,const Varnode *vn);	///< Print raw info about a Varnode to stream
   Datatype *recoverConstantDatatype(void) const;	///< Recover datatype of a constant based on flow
   Datatype *recoverGlobalDatatype(void) const;		///< Recover datatype of a global
-  SymbolEntry *getSymbolInFlow(PcodeOp *op) const;
+  SymbolEntry *getSymbolInFlow(const PcodeOp *op) const;
   bool isInternalFunctionParameter(void) const;
   bool hasPointerUsages(void) const;
   const PcodeOp *getAllocaShiftOp(Funcdata &data) const;
