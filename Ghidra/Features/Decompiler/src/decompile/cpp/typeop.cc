@@ -678,9 +678,15 @@ bool TypeOpCall::conflictsDefinitionDatatype(const PcodeOp *op,int4 slot,FuncCal
 bool TypeOpCall::datatypePropagates(const PcodeOp *op,int4 slot)
 
 {
+  const Varnode *vn = op->getIn(slot);
   FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(op->getIn(0)->getAddr());
   // must not look like a first parameter for some constructor
-  if (isConstructorThisParameter(op,slot,fc)) return false;
+  if (isConstructorThisParameter(op,slot,fc)) {
+    SymbolEntry *sym = vn->getSymbolInFlow(op);
+    if (sym != (SymbolEntry *)0)
+      return true;
+    return false;
+  }
   if (conflictsDefinitionDatatype(op,slot,fc)) return false;
   return true;
 }
