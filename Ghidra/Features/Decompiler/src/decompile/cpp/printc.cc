@@ -2200,7 +2200,8 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
 			    const Varnode *vn,
 			    const PcodeOp *op)
 {
-  Datatype *subtype;
+  Datatype *subtype = (Datatype *)0;
+  SymbolEntry *entry = (SymbolEntry *)0;
   switch(ct->getMetatype()) {
   case TYPE_UINT:
     if (ct->isCharPrint())
@@ -2253,6 +2254,15 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
     else if (subtype->getMetatype()==TYPE_CODE) {
       if (pushPtrCodeConstant(val,(const TypePointer *)ct,vn,op))
 	return;
+    }
+    entry = vn->getSymbolInFlow(op);
+    if (entry != (SymbolEntry *)0) {
+      Symbol *symbol = entry->getSymbol();
+      if (symbol != (Symbol *)0) {
+	pushOp(&addressof,op);
+	pushSymbol(symbol,vn,op);
+	return;
+      }
     }
     break;
   case TYPE_FLOAT:
