@@ -15,12 +15,17 @@
  */
 package ghidra.app.decompiler;
 
+import ghidra.program.database.symbol.CodeSymbol;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressFactory;
 import ghidra.program.model.data.AbstractIntegerDataType;
 import ghidra.program.model.data.DataType;
+import ghidra.program.model.listing.Data;
+import ghidra.program.model.listing.Function;
 import ghidra.program.model.pcode.*;
 import ghidra.program.model.scalar.Scalar;
+import ghidra.program.model.symbol.Symbol;
+import ghidra.program.model.symbol.SymbolIterator;
 
 /**
  * 
@@ -140,7 +145,33 @@ public class ClangVariableToken extends ClangToken {
 		if (storageAddress == null) {
 			return null;
 		}
-		return findHighSymbol(storageAddress, highFunction);	// Find symbol via the reference
+		HighSymbol symbol = findHighSymbol(storageAddress, highFunction);    // Find symbol via the reference
+		if (symbol != null) {
+			return symbol;
+		}
+
+		Function function = highFunction.getFunction();
+		SymbolIterator iter = function.getProgram().getSymbolTable().getSymbols(getText());
+		if (!iter.hasNext()) {
+			return null;
+		}
+		Symbol sym = iter.next();
+		if (iter.hasNext()) {
+			return null;
+		}
+
+		if (!(sym instanceof CodeSymbol)) {
+			return null;
+		}
+		Object dataObj = sym.getObject();
+		if (!(dataObj instanceof Data)) {
+			return null;
+		}
+
+		DataType dataType = ((Data) dataObj).getDataType();
+		int sz = dataType.getLength();
+		symbol = new HighCodeSymbol((CodeSymbol) sym, dataType, sz, highFunction);
+		return symbol;
 	}
 
 	@Override
