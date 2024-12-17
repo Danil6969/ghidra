@@ -546,8 +546,14 @@ Datatype *TypeOpStore::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn
 {
   if ((inslot==0)||(outslot==0)) return (Datatype *)0; // Don't propagate along this edge
   if (invn->isSpacebase()) return (Datatype *)0;
-  Datatype *newtype;
+  Datatype *newtype = (Datatype *)0;
   if (inslot==2) {		// Propagating value to ptr
+    if (alttype->getMetatype()==TYPE_ARRAY) {
+      newtype = ((TypeArray *)alttype)->getBase();
+      if (newtype->getMetatype() == TYPE_UNKNOWN)
+	if (newtype->getName()=="undefined") // This is probably not a user specified type
+	  return (Datatype *)0; // Do not propagate it
+    }
     AddrSpace *spc = op->getIn(0)->getSpaceFromConst();
     newtype = propagateToPointer(tlst,alttype,outvn->getSize(),spc->getWordSize());
   }
