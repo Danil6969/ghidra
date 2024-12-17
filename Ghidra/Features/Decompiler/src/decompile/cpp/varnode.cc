@@ -1272,6 +1272,12 @@ SymbolEntry *Varnode::getSymbolInFlow(const PcodeOp *op) const
 
 {
   if (op == (PcodeOp *)0) return (SymbolEntry *)0;
+  if (def != (PcodeOp *)0) {
+    if (def->code() != CPUI_PTRSUB) return (SymbolEntry *)0;
+    if (!def->getIn(0)->isConstant()) return (SymbolEntry *)0;
+    if (def->getIn(0)->getOffset() != 0) return (SymbolEntry *)0;
+    return def->getIn(1)->getSymbolInFlow(def);
+  }
   if (!isConstant()) return (SymbolEntry *)0;
   Funcdata *fd = op->getFuncdata();
   if (fd == (Funcdata *)0) return (SymbolEntry *)0;
