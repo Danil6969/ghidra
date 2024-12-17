@@ -827,7 +827,7 @@ public:
   void parseEnumConfig(Decoder &decoder);		///< Parse the \<enum> tag
   void setCoreType(const string &name,int4 size,type_metatype meta,bool chartp);	///< Create a core data-type
   void cacheCoreTypes(void);				///< Cache common types
-  vector<Datatype *> findAll(const string &n);
+  virtual vector<Datatype *> findAll(const string &n);
   list<DatatypeWarning>::const_iterator beginWarnings(void) const { return warnings.begin(); }	///< Start of data-type warnings
   list<DatatypeWarning>::const_iterator endWarnings(void) const { return warnings.end(); }	///< End of data-type warnings
 #ifdef TYPEPROP_DEBUG
