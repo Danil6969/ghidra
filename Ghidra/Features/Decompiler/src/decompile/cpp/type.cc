@@ -3275,6 +3275,14 @@ void TypeFactory::cacheCoreTypes(void)
   }
 }
 
+vector<Datatype *> TypeFactory::findAll(const string &n)
+
+{
+  vector<Datatype *> datatypes;
+  // Adding datatypes here is unsupported so just leave it empty
+  return datatypes;
+}
+
 /// Remove all Datatype objects owned by this TypeFactory
 void TypeFactory::clear(void)
 
