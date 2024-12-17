@@ -1284,6 +1284,7 @@ SymbolEntry *Varnode::getSymbolInFlow(const PcodeOp *op) const
   Architecture *glb = fd->getArch();
   uintb fullEncoding;
   AddrSpace *spc = ActionConstantPtr::selectInferSpace((Varnode *)this,(PcodeOp *)op,glb->inferPtrSpaces);
+  if (spc == (AddrSpace *)0) return (SymbolEntry *)0;
   Address rampoint = glb->resolveConstant(spc,getOffset(),getSize(),op->getAddr(),fullEncoding);
   if (rampoint.isInvalid()) return (SymbolEntry *)0;
   SymbolEntry *entry = fd->getScopeLocal()->getParent()->queryContainer(rampoint,1,Address());
