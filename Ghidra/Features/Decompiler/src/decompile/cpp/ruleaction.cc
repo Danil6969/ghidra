@@ -4491,10 +4491,9 @@ int4 RuleLoadVarnode::applyOp(PcodeOp *op,Funcdata &data)
 }
 
 //Get ops which use pointer to the same address as given
-void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *storeop,vector<PcodeOp *> &res)
+void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *storeop,Funcdata &data,vector<PcodeOp *> &res)
 
 {
-  list<PcodeOp *>::const_iterator iter,enditer;
   PcodeOp *otherop,*useop;
 
   Varnode *addrvn = storeop->getIn(1);
@@ -4507,9 +4506,10 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *storeop,vector<PcodeOp *> 
   if (!offvn->isConstant()) return;
   intb off = sign_extend(offvn->getOffset(),8*offvn->getSize()-1);
 
-  enditer = basevn->endDescend();
-  for (iter=basevn->beginDescend();iter!=enditer;++iter) {
-    otherop = *iter;
+  // Check aliasing int_add and ptrsub
+  list<PcodeOp *>::const_iterator oiter;
+  for (oiter=basevn->beginDescend();oiter!=basevn->endDescend();++oiter) {
+    otherop = *oiter;
     if (otherop->code() == CPUI_INT_ADD) {
       if (otherop->getIn(0) != basevn) continue;
       intb otheroff = sign_extend(otherop->getIn(1)->getOffset(),8*otherop->getIn(1)->getSize()-1);
@@ -4518,9 +4518,8 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *storeop,vector<PcodeOp *> 
       if (useop == (PcodeOp *)0) continue;
       if (useop == storeop) continue;
       res.push_back(useop);
-      continue;
     }
-    if (otherop->code() == CPUI_PTRSUB) {
+    else if (otherop->code() == CPUI_PTRSUB) {
       if (otherop->getIn(0) != basevn) continue;
       intb otheroff = sign_extend(otherop->getIn(1)->getOffset(),8*otherop->getIn(1)->getSize()-1);
       if (otheroff != off) continue;
@@ -4528,9 +4527,21 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *storeop,vector<PcodeOp *> 
       if (useop == (PcodeOp *)0) continue;
       if (useop == storeop) continue;
       res.push_back(useop);
-      continue;
     }
-    continue;
+  }
+
+  // Also check location aliases
+  uintb offoff;
+  AddrSpace *baseoff = RuleLoadVarnode::checkSpacebase(data.getArch(),storeop,offoff);
+  offoff = AddrSpace::addressToByte(offoff,baseoff->getWordSize());
+  Address addr(baseoff,offoff);
+
+  VarnodeLocSet::const_iterator viter;
+  for (viter=data.beginLoc(addr);viter!=data.endLoc(addr);++viter) {
+    Varnode *vn = *viter;
+    useop = vn->loneDescend();
+    if (useop == (PcodeOp *)0) continue;
+    res.push_back(useop);
   }
 }
 
@@ -4556,19 +4567,27 @@ int4 RuleStoreVarnode::applyOp(PcodeOp *op,Funcdata &data)
   baseoff = RuleLoadVarnode::checkSpacebase(data.getArch(),op,offoff);
   if (baseoff == (AddrSpace *)0) return 0;
   vector<PcodeOp *> useops;
-  gatherPointerUsageOps(op,useops);
-  if (!useops.empty()) {
-    vector<PcodeOp *>::const_iterator iter,enditer;
-    enditer = useops.end();
-    for (iter = useops.begin();iter!=enditer;++iter) {
-      PcodeOp *useop = *iter;
-      if (useop->code() == CPUI_COPY) {
-	if (useop->getOut()->hasNoDescend()) return 0;
+  gatherPointerUsageOps(op,data,useops);
+
+  vector<PcodeOp *>::const_iterator iter;
+  for (iter=useops.begin();iter!=useops.end();++iter) {
+    PcodeOp *useop = *iter;
+    if (useop->code() == CPUI_COPY) {
+      // Expand whole copy chain
+      while (true) {
+	PcodeOp *lone = useop->getOut()->loneDescend();
+	if (lone == (PcodeOp *)0) break; // No ops left
+	if (lone->code() != CPUI_COPY) break; // This is not a copy anymore
+	useop = lone;
       }
-      if (useop->code() == CPUI_INDIRECT) {
-	PcodeOp *guardop = (PcodeOp *)useop->getIn(1)->getOffset();
-	if (guardop->code() == CPUI_STORE) return 0;
-      }
+      if (useop->getOut()->hasNoDescend()) return 0;
+    }
+    if (useop->code() == CPUI_LOAD) {
+      if (!useop->getOut()->hasNoDescend()) return 0;
+    }
+    if (useop->code() == CPUI_INDIRECT) {
+      PcodeOp *guardop = (PcodeOp *)useop->getIn(1)->getOffset();
+      if (guardop->code() == CPUI_STORE) return 0;
     }
   }
 
