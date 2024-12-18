@@ -847,16 +847,29 @@ bool Merge::snipOutputInterference(PcodeOp *indop)
 void Merge::mergeIndirect(PcodeOp *indop)
 
 {
+  Varnode *invn0 = indop->getIn(0);
   Varnode *outvn = indop->getOut();
+  AddrSpace *in0spc = invn0->getAddr().getSpace();
+  AddrSpace *outspc = outvn->getAddr().getSpace();
+  bool isCompatible = true;
+  if (in0spc->getName() == "register") {
+    if (outspc->getName() == "stack") {
+      if (invn0->getDef() != (PcodeOp *)0) {
+	isCompatible = false;
+      }
+    }
+  }
+
   if (!outvn->isAddrForce()) {	// If the output is NOT address forced
     mergeOp(indop);		// We can merge in the same way as a MULTIEQUAL
     return;
   }
 
-  Varnode *invn0 = indop->getIn(0);
-  if (mergeTestRequired(outvn->getHigh(),invn0->getHigh())) {
-    if (merge(invn0->getHigh(),outvn->getHigh(),false))
-      return;
+  if (isCompatible) {
+    if (mergeTestRequired(outvn->getHigh(),invn0->getHigh())) {
+      if (merge(invn0->getHigh(),outvn->getHigh(),false))
+	return;
+    }
   }
   // If we cannot merge, the only thing that can go wrong with an input trim, is if the output of
   // indop is involved in the input to the op causing the indirect effect. So test for this.
@@ -876,11 +889,14 @@ void Merge::mergeIndirect(PcodeOp *indop)
   }
   data.opSetInput(indop,newop->getOut(),0);
   data.opInsertBefore(newop,indop);
-  if (!mergeTestRequired(outvn->getHigh(),indop->getIn(0)->getHigh()) ||
-      (!merge(indop->getIn(0)->getHigh(),outvn->getHigh(),false))) // Try merge again
-    //  if (!merge(indop->Input(0)->High(),outvn->High()))
-    data.warningHeader("Assertion failed: Unable to merge address forced indirect");
-    mergeOp(indop); // Have to merge anyway
+  if (isCompatible) {
+    if (!mergeTestRequired(outvn->getHigh(),indop->getIn(0)->getHigh()) ||
+	(!merge(indop->getIn(0)->getHigh(),outvn->getHigh(),false))) { // Try merge again
+      //  if (!merge(indop->Input(0)->High(),outvn->High()))
+      data.warningHeader("Assertion failed: Unable to merge address forced indirect");
+      mergeOp(indop); // Have to merge anyway
+    }
+  }
 }
 
 /// \brief Force the merge of input and output Varnodes to MULTIEQUAL and INDIRECT ops
