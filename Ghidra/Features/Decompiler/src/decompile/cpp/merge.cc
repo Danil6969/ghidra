@@ -860,12 +860,12 @@ void Merge::mergeIndirect(PcodeOp *indop)
     }
   }
 
-  if (!outvn->isAddrForce()) {	// If the output is NOT address forced
-    mergeOp(indop);		// We can merge in the same way as a MULTIEQUAL
-    return;
-  }
-
   if (isCompatible) {
+    if (!outvn->isAddrForce()) {	// If the output is NOT address forced
+      mergeOp(indop);			// We can merge in the same way as a MULTIEQUAL
+      return;
+    }
+
     if (mergeTestRequired(outvn->getHigh(),invn0->getHigh())) {
       if (merge(invn0->getHigh(),outvn->getHigh(),false))
 	return;
