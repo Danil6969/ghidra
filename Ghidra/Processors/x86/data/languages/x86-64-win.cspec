@@ -202,6 +202,70 @@
       <range space="stack" first="8" last="39"/>
     </localrange>
   </prototype>
+  <prototype name="__internal" extrapop="8" stackshift="8">
+    <input pointermax="8">
+    <group>
+      <pentry minsize="1" maxsize="8">
+        <register name="RCX"/>
+      </pentry>
+    </group>
+    <group>
+      <pentry minsize="1" maxsize="8">
+        <register name="RDX"/>
+      </pentry>
+    </group>
+    <group>
+      <pentry minsize="1" maxsize="8">
+        <register name="R8"/>
+      </pentry>
+    </group>
+    <group>
+      <pentry minsize="1" maxsize="8">
+        <register name="R9"/>
+      </pentry>
+    </group>
+    <pentry minsize="1" maxsize="500" align="8">
+      <addr offset="40" space="stack"/>
+    </pentry>  
+  </input> 
+    <output>
+    </output>
+    <unaffected>
+      <varnode space="ram" offset="0" size="8"/>
+      <register name="RAX"/>
+      <register name="RBX"/>
+      <register name="RBP"/>
+      <register name="RDI"/>
+      <register name="RSI"/>
+      <register name="RSP"/>
+      <register name="R12"/>
+      <register name="R13"/>
+      <register name="R14"/>
+      <register name="R15"/>
+      <register name="DF"/>
+      <register name="GS_OFFSET"/>
+      <register name="XMM0"/>
+      <register name="XMM1"/>
+      <register name="XMM2"/>
+      <register name="XMM3"/>
+      <register name="XMM4"/>
+      <register name="XMM5"/>
+      <register name="XMM6"/>
+      <register name="XMM7"/>
+      <register name="XMM8"/>
+      <register name="XMM9"/>
+      <register name="XMM10"/>
+      <register name="XMM11"/>
+      <register name="XMM12"/>
+      <register name="XMM13"/>
+      <register name="XMM14"/>
+      <register name="XMM15"/>
+    </unaffected>
+    <localrange>
+      <range space="stack" first="0xfffffffffff0bdc1" last="0xffffffffffffffff"/>
+      <range space="stack" first="8" last="39"/>
+    </localrange>
+  </prototype>
   <modelalias name="__cdecl" parent="__fastcall"/>
   <modelalias name="__stdcall" parent="__fastcall"/>
   <callfixup name="alloca_probe">
