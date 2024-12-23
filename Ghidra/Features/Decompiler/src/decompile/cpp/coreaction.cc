@@ -5925,7 +5925,7 @@ void ActionDatabase::universalAction(Architecture *conf)
   act->addAction( new ActionConstbase("base"));
   act->addAction( new ActionNormalizeSetup("normalanalysis"));
   act->addAction( new ActionDefaultParams("base"));
-  //  act->addAction( new ActionParamShiftStart("paramshift") );
+  //	act->addAction( new ActionParamShiftStart("paramshift") );
   act->addAction( new ActionExtraPopSetup("base",stackspace) );
   act->addAction( new ActionPrototypeTypes("protorecovery"));
   act->addAction( new ActionFuncLink("protorecovery") );
@@ -5945,7 +5945,7 @@ void ActionDatabase::universalAction(Architecture *conf)
       actmainloop->addAction( new ActionDirectWrite("protorecovery_b", false) );
       actmainloop->addAction( new ActionActiveParam("protorecovery") );
       actmainloop->addAction( new ActionReturnRecovery("protorecovery") );
-      //      actmainloop->addAction( new ActionParamShiftStop("paramshift") );
+      //	actmainloop->addAction( new ActionParamShiftStop("paramshift") );
       actmainloop->addAction( new ActionRestrictLocal("localrecovery") ); // Do before dead code removed
       actmainloop->addAction( new ActionDeadCode("deadcode") );
       actmainloop->addAction( new ActionDynamicMapping("dynamic") ); // Must come before restructurevarnode and infertypes
@@ -5979,7 +5979,7 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop->addRule( new RuleShiftBitops("analysis") );
 	actprop->addRule( new RuleRightShiftAnd("analysis") );
 	actprop->addRule( new RuleNotDistribute("analysis") );
-	//actprop->addRule( new RuleHighOrderAnd("analysis") );
+	//	actprop->addRule( new RuleHighOrderAnd("analysis") );
 	actprop->addRule( new RuleAndDistribute("analysis") );
 	actprop->addRule( new RuleAndCommute("analysis") );
 	actprop->addRule( new RuleAndPiece("analysis") );
@@ -6020,11 +6020,11 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop->addRule( new RuleLogic2Bool("analysis") );
 	actprop->addRule( new RuleSubExtComm("analysis") );
 	actprop->addRule( new RuleSubCommute("analysis") );
-	// These two don't actually simplify anything, they just move things around
-	// and the first one hurts endianness portability for vector concatenations.
-	// Also both may complicate code when many vector operations are used.
-	//actprop->addRule( new RuleConcatCommute("analysis") );
-	//actprop->addRule( new RuleConcatZext("analysis") );
+	//	These two don't actually simplify anything, they just move things around
+	//	and the first one hurts endianness portability for vector concatenations.
+	//	Also both may complicate code when many vector operations are used.
+	//	actprop->addRule( new RuleConcatCommute("analysis") );
+	//	actprop->addRule( new RuleConcatZext("analysis") );
 	actprop->addRule( new RuleZextCommute("analysis") );
 	actprop->addRule( new RuleZextShiftZext("analysis") );
 	actprop->addRule( new RuleShiftAnd("analysis") );
@@ -6097,7 +6097,7 @@ void ActionDatabase::universalAction(Architecture *conf)
 	conf->extra_pool_rules.clear(); // Rules are now absorbed into universal
       }
       actstackstall->addAction( actprop );
-      // actstackstall->addAction( new ActionLaneDivide("base") );
+      //	actstackstall->addAction( new ActionLaneDivide("base") );
       actstackstall->addAction( new ActionMultiCse("analysis") );
       actstackstall->addAction( new ActionShadowVar("analysis") );
       actstackstall->addAction( new ActionDeindirect("deindirect") );
@@ -6161,8 +6161,8 @@ void ActionDatabase::universalAction(Architecture *conf)
     actcleanup->addRule( new RulePtrsubCharConstant("cleanup") );
     actcleanup->addRule( new RuleExtensionPush("cleanup") );
     actcleanup->addRule( new RulePieceStructure("cleanup") );
-    // TODO: figure out valid and invalid cases
-    //actcleanup->addRule( new RuleSplitCopy("splitcopy") );
+    //	TODO: figure out valid and invalid cases
+    //	actcleanup->addRule( new RuleSplitCopy("splitcopy") );
     actcleanup->addRule( new RuleSplitLoad("splitpointer") );
     actcleanup->addRule( new RuleSplitStore("splitpointer") );
     actcleanup->addRule( new RuleStringCopy("constsequence"));
