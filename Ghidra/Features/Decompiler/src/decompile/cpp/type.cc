@@ -3326,6 +3326,17 @@ TypeFactory::~TypeFactory(void)
   clear();
 }
 
+bool TypeFactory::isPresent(uint4 size) const
+
+{
+  if (size >= presenceMap.size()) {
+    if (presenceMap.empty())
+      throw LowlevelError("TypeFactory presence map not initialized");
+    return presenceMap[presenceMap.size()-1];
+  }
+  return presenceMap[size];
+}
+
 /// Return the alignment associated with a primitive data-type of the given size
 /// \param size is the aligned size in bytes of the primitive
 /// \return the expected alignment in bytes
