@@ -735,6 +735,7 @@ class TypeFactory {
   int4 enumsize;		///< Size of an enumerated type
   type_metatype enumtype;	///< Default enumeration meta-type (when parsing C)
   vector<int4> alignMap;	///< Alignment of primitive data-types based on their size
+  vector<bool> presenceMap;	///< Presence of primitive data-types in spec file
   DatatypeSet tree;		///< Datatypes within this factory (sorted by function)
   DatatypeNameSet nametree;	///< Cross-reference by name
   Datatype *typecache[9][8];	///< Matrix of the most common atomic data-types
