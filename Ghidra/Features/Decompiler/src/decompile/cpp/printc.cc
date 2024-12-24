@@ -2524,14 +2524,21 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       }
     }
     if (!succeeded) {		// Subtype was not good
-      casttype = vn->getHigh()->getType();
+      const Varnode *outVn = op->getOut();
+      if (outVn == (Varnode *)0)
+	casttype = vn->getHigh()->getType();
+      else
+	casttype = outVn->getHigh()->getType();
       int4 size = vn->getSize();
       if (casttype == (Datatype *)0 && op->getOpcode()->getOpcode() == CPUI_COPY) {
 	casttype = op->getIn(0)->getType();
 	size = op->getIn(0)->getSize();
       }
-      if (casttype != (Datatype *)0)
+
+      if (casttype != (Datatype *)0) {
 	outArr = casttype->getMetatype() == TYPE_ARRAY;
+	size = casttype->getSize();
+      }
       if (!outArr) {
 	pushOp(&function_call,op);
 	ostringstream s;
