@@ -3329,11 +3329,8 @@ TypeFactory::~TypeFactory(void)
 bool TypeFactory::isPresent(uint4 size) const
 
 {
-  if (size >= presenceMap.size()) {
-    if (presenceMap.empty())
-      throw LowlevelError("TypeFactory presence map not initialized");
-    return presenceMap[presenceMap.size()-1];
-  }
+  if (size >= presenceMap.size())
+    return false;
   return presenceMap[size];
 }
 
