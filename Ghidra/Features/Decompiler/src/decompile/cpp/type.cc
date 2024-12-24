@@ -4650,14 +4650,18 @@ void TypeFactory::decodeAlignmentMap(Decoder &decoder)
 
 {
   alignMap.clear();
+  presenceMap.clear();
   for(;;) {
     uint4 mapId = decoder.openElement();
     if (mapId != ELEM_ENTRY) break;
     int4 sz = decoder.readSignedInteger(ATTRIB_SIZE);
     int4 val = decoder.readSignedInteger(ATTRIB_ALIGNMENT);
-    while(alignMap.size() <= sz)
+    while(alignMap.size() <= sz) {
       alignMap.push_back(-1);
+      presenceMap.push_back(false);
+    }
     alignMap[sz] = val;
+    presenceMap[sz] = true;
     decoder.closeElement(mapId);
   }
   int4 curAlign = 1;
@@ -4683,6 +4687,11 @@ void TypeFactory::setDefaultAlignmentMap(void)
   alignMap[6] = 4;
   alignMap[7] = 4;
   alignMap[8] = 8;
+  presenceMap.resize(9,false);
+  presenceMap[1] = true;
+  presenceMap[2] = true;
+  presenceMap[4] = true;
+  presenceMap[8] = true;
 }
 
 /// Recover default enumeration properties (size and meta-type) from
