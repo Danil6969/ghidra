@@ -5403,6 +5403,8 @@ int4 RuleSubCancel::applyOp(PcodeOp *op,Funcdata &data)
   offset = op->getIn(1)->getOffset();
   outsize = op->getOut()->getSize();
 
+  if (!data.getArch()->types->isPresent(outsize)) return 0; // Do not introduce non-specified datatype
+
   if (opc == CPUI_INT_AND) {
     Varnode *cvn = extop->getIn(1);
     if (offset == 0 && cvn->isConstant() && cvn->getOffset() == calc_mask(outsize)) {
