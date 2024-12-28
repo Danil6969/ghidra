@@ -5491,8 +5491,6 @@ bool ActionInferTypes::propagateTypeEdge(TypeFactory *typegrp,PcodeOp *op,int4 i
     propagationDebug(typegrp->getArch(),outvn,newtype,op,inslot,(Varnode *)0);
 #endif
     outvn->setTempType(newtype);
-    newtype->typeOrder(*outvn->getTempType());
-    op->getOpcode()->propagateType(alttype, op, invn, outvn, inslot, outslot);
     return !outvn->isMark();
   }
   return false;
