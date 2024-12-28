@@ -430,6 +430,26 @@ bool PcodeOp::isAllocaShift(void) const
   return isAllocaShift(*fd);
 }
 
+Datatype * PcodeOp::recoverVftableDatatype(TypeFactory *types) const
+
+{
+  if (code() != CPUI_STORE) return (Datatype *)0;
+  SymbolEntry *entry = getIn(2)->getSymbolInFlow(this);
+  if (entry == (SymbolEntry *)0) return (Datatype *)0;
+  Symbol *symbol = entry->getSymbol();
+  if (symbol == (Symbol *)0) return (Datatype *)0;
+  string symbolName = symbol->getName();
+  if (symbolName != "vftable") return (Datatype *)0;
+  Scope *scope = symbol->getScope();
+  string scopeName = scope->getName();
+  if (scopeName == "") return (Datatype *)0;
+  vector<Datatype *> found = types->findAll(scopeName);
+  if (found.size() != 1) return (Datatype *)0;
+  AddrSpace *spc = getIn(0)->getSpaceFromConst();
+  const Varnode *pointerVn = getIn(1);
+  return types->getTypePointer(pointerVn->getSize(),found[0],spc->getWordSize());
+}
+
 /// Produce a hash of the following attributes: output size, the opcode, and the identity
 /// of each input varnode.  This is suitable for determining if two PcodeOps calculate identical values
 /// \return the calculated hash or 0 if the op is not cse hashable
