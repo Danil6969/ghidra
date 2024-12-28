@@ -433,8 +433,13 @@ bool PcodeOp::isAllocaShift(void) const
 Datatype * PcodeOp::recoverVftableDatatype(TypeFactory *types) const
 
 {
-  if (code() != CPUI_STORE) return (Datatype *)0;
-  SymbolEntry *entry = getIn(2)->getSymbolInFlow(this);
+  const PcodeOp *op = this;
+  if (op->code() == CPUI_PTRSUB) {
+    op = op->getOut()->loneDescend();
+    if (op == (PcodeOp *)0) return (Datatype *)0;
+  }
+  if (op->code() != CPUI_STORE) return (Datatype *)0;
+  SymbolEntry *entry = op->getIn(2)->getSymbolInFlow(this);
   if (entry == (SymbolEntry *)0) return (Datatype *)0;
   Symbol *symbol = entry->getSymbol();
   if (symbol == (Symbol *)0) return (Datatype *)0;
@@ -445,8 +450,8 @@ Datatype * PcodeOp::recoverVftableDatatype(TypeFactory *types) const
   if (scopeName == "") return (Datatype *)0;
   vector<Datatype *> found = types->findAll(scopeName);
   if (found.size() != 1) return (Datatype *)0;
-  AddrSpace *spc = getIn(0)->getSpaceFromConst();
-  const Varnode *pointerVn = getIn(1);
+  AddrSpace *spc = op->getIn(0)->getSpaceFromConst();
+  const Varnode *pointerVn = op->getIn(1);
   return types->getTypePointer(pointerVn->getSize(),found[0],spc->getWordSize());
 }
 
