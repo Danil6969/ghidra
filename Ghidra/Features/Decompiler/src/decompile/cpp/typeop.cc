@@ -508,20 +508,9 @@ Datatype *TypeOpStore::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
   if (slot == 1) {
-    SymbolEntry *entry = op->getIn(2)->getSymbolInFlow(op);
-    if (entry != (SymbolEntry *)0) {
-      Symbol *symbol = entry->getSymbol();
-      if (symbol != (Symbol *)0) {
-	Scope *scope = symbol->getScope();
-	string scopeName = scope->getName();
-	vector<Datatype *> found = tlst->findAll(scopeName);
-	if (found.size() == 1) {
-	  AddrSpace *spc = op->getIn(0)->getSpaceFromConst();
-	  const Varnode *pointerVn = op->getIn(1);
-	  return tlst->getTypePointer(pointerVn->getSize(),found[0],spc->getWordSize());
-	}
-      }
-    }
+    Datatype *ct = op->recoverVftableDatatype(tlst);
+    if (ct != (Datatype *)0)
+      return ct;
   }
   return TypeOp::getInputLocal(op,slot);
 }
