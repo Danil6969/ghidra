@@ -147,6 +147,7 @@ private:
   void setBasicIter(list<PcodeOp *>::iterator iter) { basiciter = iter; } ///< Store the iterator into this op's basic block
   bool isMultNonCollapsible(void) const; ///< Return \b true if this multiplication shouldn't be collapsed
   bool isSubpieceNonCollapsible(void) const; ///< Return \b true if this subpiece shouldn't be collapsed
+  bool isPieceNonCollapsible(void) const; ///< Return \b true if this piece shouldn't be collapsed
   bool isFirstAllocaDefinition(Funcdata &data) const;
 
 public:
