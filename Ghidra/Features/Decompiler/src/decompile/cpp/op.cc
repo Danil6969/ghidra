@@ -246,6 +246,18 @@ bool PcodeOp::isSubpieceNonCollapsible(void) const
   return false;
 }
 
+bool PcodeOp::isPieceNonCollapsible(void) const
+
+{
+  if (code() != CPUI_PIECE) return false;
+  Funcdata *data = getFuncdata();
+  if (data == (Funcdata *)0) return true;
+  TypeFactory *types = data->getArch()->types;
+  int4 sz = getOut()->getSize();
+  if (!types->isPresent(sz)) return true;
+  return false;
+}
+
 /// Can this be collapsed to a copy op, i.e. are all inputs constants
 /// \return \b true if this op can be callapsed
 bool PcodeOp::isCollapsible(void) const
@@ -256,6 +268,7 @@ bool PcodeOp::isCollapsible(void) const
   if (inrefs.size()==0) return false;
   // Check specific opcode dependent requirements
   if (isSubpieceNonCollapsible()) return false;
+  if (isPieceNonCollapsible()) return false;
   if (isMultNonCollapsible()) return false;
   for(int4 i=0;i<inrefs.size();++i)
     if (!getIn(i)->isConstant()) return false;
