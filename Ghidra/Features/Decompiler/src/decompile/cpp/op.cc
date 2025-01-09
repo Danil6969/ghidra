@@ -203,6 +203,22 @@ bool PcodeOp::isLoopedIncrement(void) const
   return true;
 }
 
+bool PcodeOp::isMultNonCollapsible(void) const
+
+{
+  if (code() != CPUI_INT_MULT) return false;
+  PcodeOp *lone = getOut()->loneDescend();
+  if (lone == (PcodeOp *)0) return true;
+
+  // Always collapse loop counters
+  if (lone->isLoopedIncrement()) return false;
+
+  // Check if it is ptrdiff subtrahend
+  const Varnode *invn0 = getIn(0);
+  if (!invn0->isPtrdiffOperand(*getFuncdata())) return false;
+  return true;
+}
+
 bool PcodeOp::isSubpieceNonCollapsible(void) const
 
 {
@@ -228,22 +244,6 @@ bool PcodeOp::isSubpieceNonCollapsible(void) const
     }
   }
   return false;
-}
-
-bool PcodeOp::isMultNonCollapsible(void) const
-
-{
-  if (code() != CPUI_INT_MULT) return false;
-  PcodeOp *lone = getOut()->loneDescend();
-  if (lone == (PcodeOp *)0) return true;
-
-  // Always collapse loop counters
-  if (lone->isLoopedIncrement()) return false;
-
-  // Check if it is ptrdiff subtrahend
-  const Varnode *invn0 = getIn(0);
-  if (!invn0->isPtrdiffOperand(*getFuncdata())) return false;
-  return true;
 }
 
 /// Can this be collapsed to a copy op, i.e. are all inputs constants
