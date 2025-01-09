@@ -145,8 +145,8 @@ private:
   void setOrder(uintm ord) { start.setOrder(ord); } ///< Order this op within the ops for a single instruction
   void setParent(BlockBasic *p) { parent = p; }	///< Set the parent basic block of this op
   void setBasicIter(list<PcodeOp *>::iterator iter) { basiciter = iter; } ///< Store the iterator into this op's basic block
-  bool isSubpieceNonCollapsible(void) const; ///< Return \b true if this subpiece shouldn't be collapsed
   bool isMultNonCollapsible(void) const; ///< Return \b true if this multiplication shouldn't be collapsed
+  bool isSubpieceNonCollapsible(void) const; ///< Return \b true if this subpiece shouldn't be collapsed
   bool isFirstAllocaDefinition(Funcdata &data) const;
 
 public:
