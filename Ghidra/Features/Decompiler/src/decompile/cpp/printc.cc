@@ -448,6 +448,9 @@ bool PrintC::checkAddressOfCast(const PcodeOp *op) const
   return true;
 }
 
+/// What is considered as simple cast:
+///  - to bool
+///  - pointer to pointer which has either non-struct pointed-to (input or output)
 bool PrintC::isSimpleCast(Datatype *inType,Datatype *outType) const
 
 {
@@ -2955,10 +2958,10 @@ void PrintC::pushToArrVarnode(const PcodeOp *op,const Varnode *vn,uint4 m)
   pushOp(&function_call,op);
   s << "TOARR" << sz;
   pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
-  pushOp(&comma,op);
-  pushVn(vn,op,m);
-  // TOARR prints input type
+  // TOARR prints input type as cast
+  pushOp(&typecast,op);
   pushType(ct);
+  pushVn(vn,op,m);
 }
 
 void PrintC::pushToArrInteger(const PcodeOp *op,const Varnode *vn,uintb val,const Datatype *ct,tagtype tag)
@@ -2969,10 +2972,10 @@ void PrintC::pushToArrInteger(const PcodeOp *op,const Varnode *vn,uintb val,cons
   pushOp(&function_call,op);
   s << "TOARR" << sz;
   pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
-  pushOp(&comma,op);
-  push_integer(val,sz,false,tag,vn,op);
-  // TOARR prints input type
+  // TOARR prints input type as cast
+  pushOp(&typecast,op);
   pushType(ct);
+  push_integer(val,sz,false,tag,vn,op);
 }
 
 void PrintC::docTypeDefinitions(const TypeFactory *typegrp)
