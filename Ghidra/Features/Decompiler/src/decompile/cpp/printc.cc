@@ -1090,14 +1090,22 @@ void PrintC::opReturn(const PcodeOp *op)
 void PrintC::opIntZext(const PcodeOp *op,const PcodeOp *readOp)
 
 {
-  if (castStrategy->isZextCast(op->getOut()->getHighTypeDefFacing(),op->getIn(0)->getHighTypeReadFacing(op))) {
-    if (option_hide_exts && castStrategy->isExtensionCastImplied(op,readOp))
-      opHiddenFunc(op);
-    else
-      opConv(op);
-  }
-  else
+  if (!castStrategy->isZextCast(op->getOut()->getHighTypeDefFacing(),op->getIn(0)->getHighTypeReadFacing(op))) {
     opArrFunc(op);
+    return;
+  }
+
+  int4 sz = op->getOut()->getSize();
+  TypeFactory *types = op->getFuncdata()->getArch()->types;
+  if (!types->isPresent(sz)) {
+    opArrFunc(op);
+    return;
+  }
+
+  if (option_hide_exts && castStrategy->isExtensionCastImplied(op,readOp))
+    opHiddenFunc(op);
+  else
+    opConv(op);
 }
 
 void PrintC::opIntSext(const PcodeOp *op,const PcodeOp *readOp)
