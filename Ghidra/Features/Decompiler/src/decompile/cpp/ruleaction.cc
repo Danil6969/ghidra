@@ -244,6 +244,7 @@ int4 RulePiece2Zext::applyOp(PcodeOp *op,Funcdata &data)
   constvn = op->getIn(0);	// Constant must be most significant bits
   if (!constvn->isConstant()) return 0;	// Must append with constant
   if (constvn->getOffset() != 0) return 0; // of value 0
+  //if (op->getOut()->getSize() > sizeof(uintb)) return 0;
   data.opRemoveInput(op,0);	// Remove the constant
   data.opSetOpcode(op,CPUI_INT_ZEXT);
   return 1;
@@ -8567,13 +8568,36 @@ bool RulePieceStructure::convertZextToPiece(PcodeOp *zext,Datatype *ct,int4 offs
   Varnode *invn = zext->getIn(0);
   if (invn->isConstant()) return false;
   int4 sz = outvn->getSize() - invn->getSize();
-  if (sz > sizeof(uintb)) return false;
+  TypeFactory *types = data.getArch()->types;
   offset += outvn->getSpace()->isBigEndian() ? 0 : invn->getSize();
   int8 newOff = offset;
   while(ct != (Datatype *)0 && ct->getSize() > sz) {
     ct = ct->getSubType(newOff, &newOff);
   }
-  Varnode *zerovn = data.newConstant(sz, 0);
+  Varnode *zerovn = (Varnode *)0;
+  if (types->isPresent(sz))
+    if (sz<=sizeof(uintb))
+      zerovn = data.newConstant(sz,0);
+  if (zerovn == (Varnode *)0) {
+    int4 insz = 1;
+    while (true) {
+      if (insz >= sz) {
+	invn = data.newConstant(1,0); // Fallback to 1 byte type even if not supported
+	break;
+      }
+      if (types->isPresent(insz)) {
+	invn = data.newConstant(insz,0);
+	break;
+      }
+      insz++;
+    }
+    PcodeOp *zextop = data.newOp(1,zext->getAddr());
+    zerovn = data.newUniqueOut(sz, zextop);
+    data.opSetOpcode(zextop,CPUI_INT_ZEXT);
+    data.opSetOutput(zextop,zerovn);
+    data.opSetInput(zextop,invn,0);
+    data.opInsertBefore(zextop,zext);
+  }
   if (ct != (Datatype *)0 && ct->getSize() == sz)
     zerovn->updateType(ct, false, false);
   data.opSetOpcode(zext, CPUI_PIECE);
