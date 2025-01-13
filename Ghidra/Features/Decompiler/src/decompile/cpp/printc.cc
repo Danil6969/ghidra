@@ -2532,6 +2532,8 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
 	casttype = vn->getHigh()->getType();
       else
 	casttype = outVn->getHigh()->getType();
+      if (casttype->needsResolution())
+	casttype = casttype->findResolve(op, inslot);
       int4 size = vn->getSize();
       if (casttype == (Datatype *)0 && op->getOpcode()->getOpcode() == CPUI_COPY) {
 	casttype = op->getIn(0)->getType();
