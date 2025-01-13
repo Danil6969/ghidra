@@ -2458,9 +2458,9 @@ Datatype *TypeOpPiece::getOutputLocal(const PcodeOp *op) const
 
 {
   int4 sz = op->getOut()->getSize();
-  if (sz == 1 || sz == 2 || sz == 4 || sz == 8)
+  if (tlst->isPresent(sz))
     return TypeOpFunc::getOutputLocal(op);
-  Datatype *ct = tlst->getBaseNoChar(1,TYPE_UINT);
+  Datatype *ct = tlst->getBase(1,TYPE_UNKNOWN);
   return tlst->getTypeArray(sz,ct);
 }
 
