@@ -604,9 +604,9 @@ void PrintC::opTypeCast(const PcodeOp *op)
   const Varnode *inVn = op->getIn(0);
   Datatype *outType = outVn->getHighTypeDefFacing();
   Datatype *inType = inVn->getTypeReadFacing(op);
-  if (inType->getSubMeta() != SUB_PTRREL || !inVn->isExplicit()) {
+  if (inType->getSubMeta() != SUB_PTRREL || !inVn->isExplicit())
     inType = inVn->getHighTypeReadFacing(op);
-  }
+
   type_metatype outMeta = outType->getMetatype();
   type_metatype inMeta = inType->getMetatype();
   bool outArr = outMeta == TYPE_ARRAY;
@@ -614,54 +614,55 @@ void PrintC::opTypeCast(const PcodeOp *op)
   string outTypeName = printedTypeName(outType);
   string inTypeName = printedTypeName(inType);
   bool nameEquals = !outTypeName.empty() && outTypeName == inTypeName; // Types may be inequal if name is empty
-  if (!option_nocasts && !nameEquals) {
-    if (isSimpleCast(inType,outType)) {
-      pushOp(&typecast,op);
-      pushType(outType);
-      pushVn(inVn,op,mods);
+  if (option_nocasts) {
+    pushVn(inVn,op,mods);
+    return;
+  }
+  if (nameEquals) {
+    pushVn(inVn,op,mods);
+    return;
+  }
+  if (isSimpleCast(inType,outType)) {
+    pushOp(&typecast,op);
+    pushType(outType);
+    pushVn(inVn,op,mods);
+    return;
+  }
+
+  bool hasFunc = !outArr || inArr || needsToArr(inVn);
+  bool castArr = inArr && !outArr;
+  if (!inArr && outArr && needsToArr(inVn)) {
+    // TOARR printing
+    if (inVn->getSize() != outVn->getSize()) {
+      throw LowlevelError("Output and input sizes don't match");
     }
-    else {
-      bool hasFunc = !outArr || inArr || needsToArr(inVn);
-      bool castArr = inArr && !outArr;
-      if (!inArr && outArr && needsToArr(inVn)) {
-	// TOARR printing
-	if (inVn->getSize() != outVn->getSize()) {
-	  throw LowlevelError("Output and input sizes don't match");
-	}
-	pushToArrVarnode(op,inVn,mods);
-      }
-      else {
-	if (hasFunc) {
-	  pushOp(&function_call, op);
-	}
-	if (castArr) {
-	  ostringstream s;
-	  s << "CASTARR" << outVn->getSize();
-	  // cast with dereference
-	  pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
-	}
-	else {
-	  if (!inArr && outArr) {
-	    pushOp(&addressof, op);
-	  }
-	  else {
-	    // just reinterpret with the same bytes in memory but replaced type
-	    pushAtom(Atom("CAST", optoken, EmitMarkup::no_color, op));
-	  }
-	}
-	if (hasFunc) {
-	  pushOp(&comma, op);
-	}
-	pushVn(inVn, op, mods);
-	if (hasFunc) {
-	  pushType(outType); // anything else prints output type except address
-	}
-      }
-    }
+    pushToArrVarnode(op,inVn,mods);
+    return;
+  }
+
+  // Any other printing
+  if (hasFunc)
+    pushOp(&function_call, op);
+
+  if (castArr) {
+    ostringstream s;
+    s << "CASTARR" << outVn->getSize();
+    // cast with dereference
+    pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
   }
   else {
-    pushVn(inVn,op,mods);
+    if (!inArr && outArr)
+      pushOp(&addressof, op);
+    else
+      // just reinterpret with the same bytes in memory but replaced type
+      pushAtom(Atom("CAST", optoken, EmitMarkup::no_color, op));
   }
+
+  if (hasFunc)
+    pushOp(&comma, op);
+  pushVn(inVn, op, mods);
+  if (hasFunc)
+    pushType(outType); // anything else prints output type except address
 }
 
 /// The syntax represents the given op using a function with one input,
