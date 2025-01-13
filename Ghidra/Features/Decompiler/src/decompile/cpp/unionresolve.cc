@@ -15,6 +15,7 @@
  */
 #include "unionresolve.hh"
 #include "funcdata.hh"
+#include "coreaction.hh"
 
 namespace ghidra {
 
@@ -79,6 +80,26 @@ ResolveEdge::ResolveEdge(const Datatype *parent,const PcodeOp *op,int4 slot)
 const int4 ScoreUnionFields::threshold = 256;
 const int4 ScoreUnionFields::maxPasses = 6;
 const int4 ScoreUnionFields::maxTrials = 1024;
+
+/// If the \b op looks like pointer constant, return \b true.
+/// \param vn is the given Varnode
+/// \return \b true if \b vn will be treated as pointer constant by ActionConstantPtr
+bool ScoreUnionFields::testPointerConstant(Varnode *vn)
+
+{
+  PcodeOp *op = vn->loneDescend();
+  if (op == (PcodeOp *)0) return false;
+  Funcdata *data = op->getFuncdata();
+  Architecture *glb = data->getArch();
+  AddrSpace *rspc = ActionConstantPtr::selectInferSpace(vn,op,glb->inferPtrSpaces);
+  if (rspc == (AddrSpace *)0) return false;
+
+  int4 slot = op->getSlot(vn);
+  Address rampoint;
+  uintb fullEncoding;
+  SymbolEntry *entry = ActionConstantPtr::isPointer(rspc,vn,op,slot,rampoint,fullEncoding,*data);
+  return entry != (SymbolEntry *)0;
+}
 
 /// If the \b op is adding a constant size or a multiple of a constant size to the given input slot, where the
 /// size is at least as large as the union, return \b true.
@@ -938,12 +959,7 @@ void ScoreUnionFields::scoreConstantFit(const Trial &trial)
     }
     else {
       AddrSpace *spc = typegrp.getArch()->getDefaultDataSpace();
-      bool looksLikePointer = false;
-      if (val >= spc->getPointerLowerBound() && val <= spc->getPointerUpperBound()) {
-	if (bit_transitions(val,size) >= 3) {
-	  looksLikePointer = true;
-	}
-      }
+      bool looksLikePointer = testPointerConstant(trial.vn);
       if (meta == TYPE_PTR) {
 	score = looksLikePointer ? 2 : -2;
       }
