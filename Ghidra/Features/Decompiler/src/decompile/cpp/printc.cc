@@ -2529,7 +2529,7 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
     }
     if (!succeeded) {		// Subtype was not good
       const Varnode *outVn = op->getOut();
-      if (outVn == (Varnode *)0)
+      if ((outVn == (Varnode *)0) || (op->code() == CPUI_CAST))
 	casttype = vn->getHigh()->getType();
       else
 	casttype = outVn->getHigh()->getType();
