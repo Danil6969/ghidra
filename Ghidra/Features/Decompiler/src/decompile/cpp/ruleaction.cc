@@ -5403,7 +5403,7 @@ int4 RuleSubCancel::applyOp(PcodeOp *op,Funcdata &data)
     return 0;
   offset = op->getIn(1)->getOffset();
   outsize = op->getOut()->getSize();
-  if (!data.getArch()->types->isPresent(outsize)) return 0; // Do not introduce non-specified datatype
+  TypeFactory *types = data.getArch()->types;
 
   if (opc == CPUI_INT_AND) {
     Varnode *cvn = extop->getIn(1);
@@ -5420,6 +5420,7 @@ int4 RuleSubCancel::applyOp(PcodeOp *op,Funcdata &data)
   farinsize = extop->getIn(0)->getSize();
 				
   if (offset == 0) {		// If SUBPIECE is of least sig part
+    if (!types->isPresent(outsize)) return 0; // Do not introduce non-specified datatype
     thruvn = extop->getIn(0);	// Something still comes through
     if (thruvn->isFree()) {
       if (thruvn->isConstant() && (insize > sizeof(uintb)) && (outsize == farinsize)) {
@@ -5436,9 +5437,14 @@ int4 RuleSubCancel::applyOp(PcodeOp *op,Funcdata &data)
       opc = CPUI_SUBPIECE;
   }
   else {
-    if ((opc==CPUI_INT_ZEXT)&&(farinsize<=offset)) { // output contains nothing of original input
-      opc = CPUI_COPY;		// Nothing but zero coming through
-      thruvn = data.newConstant(outsize,0);
+    if (opc==CPUI_INT_ZEXT) { // output contains nothing of original input
+      Varnode *cvn = extop->getIn(0);
+      if ((farinsize<=offset)||(cvn->isConstant()&&cvn->getOffset()==0)) {
+	opc = CPUI_COPY;		// Nothing but zero coming through
+	thruvn = data.newConstant(outsize,0);
+      }
+      else
+	return 0;
     }
     else			// Missing one case here
       return 0;
@@ -8575,22 +8581,13 @@ bool RulePieceStructure::convertZextToPiece(PcodeOp *zext,Datatype *ct,int4 offs
     ct = ct->getSubType(newOff, &newOff);
   }
   Varnode *zerovn = (Varnode *)0;
-  if (types->isPresent(sz))
-    if (sz<=sizeof(uintb))
-      zerovn = data.newConstant(sz,0);
-  if (zerovn == (Varnode *)0) {
-    Varnode *cvn = (Varnode *)0;
-    int4 insz = sz - 1; // Use the greatest possible type
-    while (true) {
-      if (insz < 1) break; // No types left
-      if (types->isPresent(insz)) {
-	cvn = data.newConstant(insz,0);
-	break;
-      }
-      insz--;
-    }
-    if (cvn == (Varnode *)0)
-      cvn = data.newConstant(1,0); // Fallback to 1 byte type even if not supported
+  if ((types->isPresent(sz))&&(sz<=sizeof(uintb)))
+    zerovn = data.newConstant(sz,0);
+  else {
+    int4 insz = types->getPresentUntil(sz-1);	// Use the greatest possible type
+    if (insz<1)
+      insz = 1;		// Fallback to 1 byte type even if not supported
+    Varnode *cvn = data.newConstant(insz,0);
     PcodeOp *zextop = data.newOp(1,zext->getAddr());
     zerovn = data.newUniqueOut(sz, zextop);
     data.opSetOpcode(zextop,CPUI_INT_ZEXT);
