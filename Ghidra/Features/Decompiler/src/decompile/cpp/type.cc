@@ -3334,6 +3334,30 @@ bool TypeFactory::isPresent(uint4 size) const
   return presenceMap[size];
 }
 
+uint4 TypeFactory::getPresentSince(uint4 size) const
+
+{
+  uint4 sz = size;
+  while (sz < presenceMap.size()) {
+    if (presenceMap[sz]) return sz;
+    sz++;
+  }
+  return -1;
+}
+
+uint4 TypeFactory::getPresentUntil(uint4 size) const
+
+{
+  uint4 sz = size;
+  if (sz >= presenceMap.size())
+    sz = presenceMap.size() - 1;
+  while (sz >= 0) {
+    if (presenceMap[sz]) return sz;
+    sz--;
+  }
+  return -1;
+}
+
 /// Return the alignment associated with a primitive data-type of the given size
 /// \param size is the aligned size in bytes of the primitive
 /// \return the expected alignment in bytes
