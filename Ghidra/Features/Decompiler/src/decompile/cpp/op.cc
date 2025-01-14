@@ -266,13 +266,13 @@ bool PcodeOp::isCollapsible(void) const
   if ((flags & PcodeOp::nocollapse)!=0) return false;
   if (!isAssignment()) return false;
   if (inrefs.size()==0) return false;
+  if (getOut()->getSize() > sizeof(uintb)) return false;
   // Check specific opcode dependent requirements
   if (isSubpieceNonCollapsible()) return false;
   if (isPieceNonCollapsible()) return false;
   if (isMultNonCollapsible()) return false;
   for(int4 i=0;i<inrefs.size();++i)
     if (!getIn(i)->isConstant()) return false;
-  if (getOut()->getSize() > sizeof(uintb)) return false;
   return true;
 }
 
