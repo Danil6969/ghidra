@@ -23,7 +23,7 @@ import ghidra.util.StringFormat;
 import ghidra.util.classfinder.*;
 
 /**
- * Provides an implementation of a byte that has not been defined yet as a
+ * Provides an implementation of a 1-byte dataType that has not been defined yet as a
  * particular type of data in the program.
  */
 public class Undefined1DataType extends Undefined {

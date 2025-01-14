@@ -23,7 +23,7 @@ import ghidra.util.StringFormat;
 import ghidra.util.classfinder.*;
 
 /**
- * Provides an implementation of a byte that has not been defined yet as a
+ * Provides an implementation of a 5-byte that has not been defined yet as a
  * particular type of data in the program.
  */
 public class Undefined5DataType extends Undefined {
@@ -38,7 +38,7 @@ public class Undefined5DataType extends Undefined {
 	public final static Undefined5DataType dataType = new Undefined5DataType();
 
 	/**
-	 * Constructs a new Undefined1 dataType
+	 * Constructs a new Undefined5 dataType
 	 *
 	 */
 	public Undefined5DataType() {

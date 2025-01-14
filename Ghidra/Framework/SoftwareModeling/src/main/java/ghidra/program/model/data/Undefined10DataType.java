@@ -24,7 +24,7 @@ import ghidra.util.StringFormat;
 import ghidra.util.classfinder.*;
 
 /**
- * Provides an implementation of a byte that has not been defined yet as a
+ * Provides an implementation of a 10-byte that has not been defined yet as a
  * particular type of data in the program.
  */
 public class Undefined10DataType extends Undefined {
@@ -40,7 +40,7 @@ public class Undefined10DataType extends Undefined {
 	public final static Undefined10DataType dataType = new Undefined10DataType();
 
 	/**
-	 * Constructs a new Undefined1 dataType
+	 * Constructs a new Undefined10 dataType
 	 *
 	 */
 	public Undefined10DataType() {

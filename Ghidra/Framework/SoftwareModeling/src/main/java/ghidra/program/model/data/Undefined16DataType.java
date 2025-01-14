@@ -24,7 +24,7 @@ import ghidra.util.StringFormat;
 import ghidra.util.classfinder.*;
 
 /**
- * Provides an implementation of a byte that has not been defined yet as a
+ * Provides an implementation of a 16-byte that has not been defined yet as a
  * particular type of data in the program.
  */
 public class Undefined16DataType extends Undefined {
@@ -40,7 +40,7 @@ public class Undefined16DataType extends Undefined {
 	public final static Undefined16DataType dataType = new Undefined16DataType();
 
 	/**
-	 * Constructs a new Undefined1 dataType
+	 * Constructs a new Undefined16 dataType
 	 *
 	 */
 	public Undefined16DataType() {

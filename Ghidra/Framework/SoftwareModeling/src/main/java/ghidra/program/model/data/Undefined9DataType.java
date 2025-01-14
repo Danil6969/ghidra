@@ -15,38 +15,40 @@
  */
 package ghidra.program.model.data;
 
+import java.math.BigInteger;
+
 import ghidra.docking.settings.Settings;
 import ghidra.program.model.mem.MemBuffer;
-import ghidra.program.model.mem.MemoryAccessException;
-import ghidra.program.model.scalar.Scalar;
+import ghidra.util.DataConverter;
 import ghidra.util.StringFormat;
 import ghidra.util.classfinder.*;
 
 /**
- * Provides an implementation of a 7-byte that has not been defined yet as a
+ * Provides an implementation of a 9-byte that has not been defined yet as a
  * particular type of data in the program.
  */
-public class Undefined7DataType extends Undefined {
+public class Undefined9DataType extends Undefined {
 	static {
-		ClassTranslator.put("ghidra.program.model.data.Undefined7",
-			Undefined7DataType.class.getName());
+		ClassTranslator.put("ghidra.program.model.data.Undefined10",
+			Undefined9DataType.class.getName());
 	}
 
 	private final static long serialVersionUID = 1;
+	private static final EndianSettingsDefinition ENDIAN = EndianSettingsDefinition.DEF;
 
 	/** A statically defined DefaultDataType used when an Undefined byte is needed.*/
-	public final static Undefined7DataType dataType = new Undefined7DataType();
+	public final static Undefined9DataType dataType = new Undefined9DataType();
 
 	/**
-	 * Constructs a new Undefined7 dataType
+	 * Constructs a new Undefined9 dataType
 	 *
 	 */
-	public Undefined7DataType() {
+	public Undefined9DataType() {
 		this(null);
 	}
 
-	public Undefined7DataType(DataTypeManager dtm) {
-		super("undefined7", dtm);
+	public Undefined9DataType(DataTypeManager dtm) {
+		super("undefined9", dtm);
 	}
 
 	/**
@@ -54,7 +56,7 @@ public class Undefined7DataType extends Undefined {
 	 * @see ghidra.program.model.data.DataType#getLength()
 	 */
 	public int getLength() {
-		return 7;
+		return 9;
 	}
 
 	/**
@@ -62,7 +64,7 @@ public class Undefined7DataType extends Undefined {
 	 * @see ghidra.program.model.data.DataType#getDescription()
 	 */
 	public String getDescription() {
-		return "Undefined 7-Byte";
+		return "Undefined 9-Byte";
 	}
 
 	/**
@@ -73,12 +75,6 @@ public class Undefined7DataType extends Undefined {
 		return name;
 	}
 
-	private long getValue(MemBuffer buf) throws MemoryAccessException {
-		long val =
-			(buf.getInt(0) << 24) + ((buf.getShort(4) & 0xffffl) << 8) + (buf.getByte(6) & 0xffl);
-		return val & 0xffffffffffffl;
-	}
-
 	/**
 	 * 
 	 * @see ghidra.program.model.data.DataType#getRepresentation(MemBuffer, Settings, int)
@@ -86,14 +82,14 @@ public class Undefined7DataType extends Undefined {
 	public String getRepresentation(MemBuffer buf, Settings settings, int length) {
 		String val = "??";
 
-		try {
-			long b = getValue(buf);
-			val = Long.toHexString(b).toUpperCase();
-			val = StringFormat.padIt(val, 14, '\0', true);
-			val = "0x" + val;
+		Object b = getValue(buf, settings, length);
+		if (!(b instanceof BigInteger)) {
+			return val;
 		}
-		catch (MemoryAccessException e) {
-		}
+		BigInteger bi = (BigInteger)b;
+		val = bi.toString(16).toUpperCase();
+		val = StringFormat.padIt(val, 18, '\0', true);
+		val = "0x" + val;
 
 		return val;
 	}
@@ -103,18 +99,20 @@ public class Undefined7DataType extends Undefined {
 	 * @see ghidra.program.model.data.DataType#getValue(ghidra.program.model.mem.MemBuffer, ghidra.docking.settings.Settings, int)
 	 */
 	public Object getValue(MemBuffer buf, Settings settings, int length) {
-		try {
-			return new Scalar(56, getValue(buf));
-		}
-		catch (MemoryAccessException e) {
+		byte[] bytes = new byte[9];
+		if (buf.getBytes(bytes, 0) != 9) {
 			return null;
 		}
+
+		DataConverter dc = DataConverter.getInstance(ENDIAN.isBigEndian(settings, buf));
+
+		return dc.getBigInteger(bytes, 9, false);
 	}
 
 	public DataType clone(DataTypeManager dtm) {
 		if (dtm == getDataTypeManager()) {
 			return this;
 		}
-		return new Undefined7DataType(dtm);
+		return new Undefined9DataType(dtm);
 	}
 }

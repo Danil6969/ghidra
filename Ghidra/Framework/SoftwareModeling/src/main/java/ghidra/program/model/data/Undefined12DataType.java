@@ -24,7 +24,7 @@ import ghidra.util.StringFormat;
 import ghidra.util.classfinder.*;
 
 /**
- * Provides an implementation of a byte that has not been defined yet as a
+ * Provides an implementation of a 12-byte that has not been defined yet as a
  * particular type of data in the program.
  */
 public class Undefined12DataType extends Undefined {
@@ -40,7 +40,7 @@ public class Undefined12DataType extends Undefined {
 	public final static Undefined12DataType dataType = new Undefined12DataType();
 
 	/**
-	 * Constructs a new Undefined1 dataType
+	 * Constructs a new Undefined12 dataType
 	 *
 	 */
 	public Undefined12DataType() {
@@ -88,7 +88,7 @@ public class Undefined12DataType extends Undefined {
 		}
 		BigInteger bi = (BigInteger)b;
 		val = bi.toString(16).toUpperCase();
-		val = StringFormat.padIt(val, 22, '\0', true);
+		val = StringFormat.padIt(val, 24, '\0', true);
 		val = "0x" + val;
 
 		return val;
