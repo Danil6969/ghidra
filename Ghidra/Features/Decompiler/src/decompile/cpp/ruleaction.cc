@@ -8579,23 +8579,23 @@ bool RulePieceStructure::convertZextToPiece(PcodeOp *zext,Datatype *ct,int4 offs
     if (sz<=sizeof(uintb))
       zerovn = data.newConstant(sz,0);
   if (zerovn == (Varnode *)0) {
-    int4 insz = 1;
+    Varnode *cvn = (Varnode *)0;
+    int4 insz = sz - 1; // Use the greatest possible type
     while (true) {
-      if (insz >= sz) {
-	invn = data.newConstant(1,0); // Fallback to 1 byte type even if not supported
-	break;
-      }
+      if (insz < 1) break; // No types left
       if (types->isPresent(insz)) {
-	invn = data.newConstant(insz,0);
+	cvn = data.newConstant(insz,0);
 	break;
       }
-      insz++;
+      insz--;
     }
+    if (cvn == (Varnode *)0)
+      cvn = data.newConstant(1,0); // Fallback to 1 byte type even if not supported
     PcodeOp *zextop = data.newOp(1,zext->getAddr());
     zerovn = data.newUniqueOut(sz, zextop);
     data.opSetOpcode(zextop,CPUI_INT_ZEXT);
     data.opSetOutput(zextop,zerovn);
-    data.opSetInput(zextop,invn,0);
+    data.opSetInput(zextop,cvn,0);
     data.opInsertBefore(zextop,zext);
   }
   if (ct != (Datatype *)0 && ct->getSize() == sz)
