@@ -776,6 +776,8 @@ public:
   void clearNoncore(void);	///< Clear out non-core types
   virtual ~TypeFactory(void);	///< Destructor
   bool isPresent(uint4 size) const;	///< Get data-type presence in align map (as in spec)
+  uint4 getPresentSince(uint4 size) const;	///< Get data-type which is present (forward, inclusive)
+  uint4 getPresentUntil(uint4 size) const;	///< Get data-type which is present (backward, inclusive)
   int4 getAlignment(uint4 size) const;	///< Get data-type alignment based on size
   int4 getPrimitiveAlignSize(Datatype *ct) const;	///< Get the aligned size of a primitive data-type
   int4 getSizeOfInt(void) const { return sizeOfInt; }	///< Get the size of the default "int"
