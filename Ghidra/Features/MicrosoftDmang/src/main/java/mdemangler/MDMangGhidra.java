@@ -56,6 +56,9 @@ public class MDMangGhidra extends MDMang {
 	@Override
 	public MDParsableItem demangle() throws MDException {
 		if (demangleOnlyKnownPatterns) {
+			if (mangled.isEmpty()) {
+				return null;
+			}
 			if (!(mangled.startsWith("?") || mangled.startsWith(".") || mangled.startsWith("_") ||
 				(mangled.charAt(0) < 'a') ||
 				(mangled.charAt(0) >= 'a') && (mangled.charAt(0) <= 'z') ||
