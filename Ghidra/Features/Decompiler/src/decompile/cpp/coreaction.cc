@@ -3466,8 +3466,8 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
 
   PcodeOp *def = vn->getDef();
   if (def == (PcodeOp *)0) return -1;
-  Funcdata &data = *def->getFuncdata();
-  if (vn->isAllocaAddress(data)) return -1;
+  Funcdata *data = def->getFuncdata();
+  if (vn->isAllocaAddress(*data)) return -1;
   if (def->isMarker()) return -1;
   if (def->isCall()) {
     if ((def->code() == CPUI_NEW)&&(def->numInput() == 1))
