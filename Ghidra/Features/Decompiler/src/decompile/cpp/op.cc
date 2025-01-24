@@ -383,11 +383,11 @@ int4 PcodeOp::getAllocaAttachSlot(Funcdata &data) const
 
   // Usually alloca requires some stack variable
   // so there should be always something it can be attached to
-  if (invn0->isStackVariableAddress(data)) {
-    if (!invn1->isStackVariableAddress(data)) return 0;
+  if (invn0->isStackVariableAddress(data,true)) {
+    if (!invn1->isStackVariableAddress(data,true)) return 0;
   }
-  if (invn1->isStackVariableAddress(data)) {
-    if (!invn0->isStackVariableAddress(data)) return 1;
+  if (invn1->isStackVariableAddress(data,true)) {
+    if (!invn0->isStackVariableAddress(data,true)) return 1;
   }
   return -1;
 }
