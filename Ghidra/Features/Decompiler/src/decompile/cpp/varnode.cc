@@ -1430,6 +1430,7 @@ bool Varnode::isStackPointerLocated(Funcdata &data) const
 /// 3) ptrsub(spacebase,constant)
 /// 4) spacebase + constant
 /// 5) constant + spacebase
+/// spacebase must be stack pointer register itself or stack variable address by recursion (only if recursive is true)
 bool Varnode::isStackVariableAddress(Funcdata &data,bool allocaAllowed,bool recursive) const
 
 {
