@@ -1425,30 +1425,55 @@ bool Varnode::isStackPointerLocated(Funcdata &data) const
 }
 
 /// Is this stack variable address in one of these forms:
-/// 1) ptrsub(spacebase,const_varnode)
-/// 2) spacebase + varnode
-/// 3) alloca_address
-bool Varnode::isStackVariableAddress(Funcdata &data,bool allocaAllowed) const
+/// 1) stack pointer register itself
+/// 2) alloca_address (only if allocaAllowed is true)
+/// 3) ptrsub(spacebase,constant)
+/// 4) spacebase + constant
+/// 5) constant + spacebase
+bool Varnode::isStackVariableAddress(Funcdata &data,bool allocaAllowed,bool recursive) const
 
 {
   const PcodeOp *op = getDef();
+  const Varnode *stackvn = (Varnode *)0;
   const Varnode *invn0 = (Varnode *)0;
+  const Varnode *invn1 = (Varnode *)0;
+
   if (op == (PcodeOp *)0) {
-    invn0 = this;
+    stackvn = this;
+    if (stackvn->isStackPointerLocated(data)) return true;
+    return false;
   }
-  else {
-    if (allocaAllowed) {
-      if (op->isAllocaShift(data)) return true;
-    }
-    OpCode opc = op->code();
-    if (opc == CPUI_PTRSUB || opc == CPUI_INT_ADD) {
-      if (!op->getIn(1)->isConstant()) return false;
-      invn0 = op->getIn(0);
+
+  if (allocaAllowed) {
+    if (op->isAllocaShift(data)) return true;
+  }
+
+  OpCode opc = op->code();
+  if (opc == CPUI_PTRSUB) {
+    invn0 = op->getIn(0);
+    invn1 = op->getIn(1);
+    if (invn1->isConstant()) {
+      stackvn = invn0;
     }
   }
-  if (invn0 == (Varnode *)0) return false;
-  if (!invn0->isStackPointerLocated(data)) return false;
-  return true;
+  if (opc == CPUI_INT_ADD) {
+    invn0 = op->getIn(0);
+    invn1 = op->getIn(1);
+    if (invn1->isEventualConstant(-1,0)) {
+      stackvn = invn0;
+    }
+    if (invn0->isEventualConstant(-1,0)) {
+      stackvn = invn1;
+    }
+  }
+
+  // Check if selected varnode is stack located
+  if (stackvn == (Varnode *)0) return false;
+  if (stackvn->isStackPointerLocated(data)) return true;
+  if (recursive) {
+    if (stackvn->isStackVariableAddress(data,allocaAllowed,recursive)) return true;
+  }
+  return false;
 }
 
 bool Varnode::isPtrdiffOperand(Funcdata &data) const
@@ -1539,7 +1564,7 @@ bool Varnode::isPtrdiffOperand(Funcdata &data) const
   if (minuendop == (PcodeOp *)0) return false;
   if (subtrahendop == (PcodeOp *)0) return false;
 
-  if (subtrahendvn->isStackVariableAddress(data,false)) return false;
+  if (subtrahendvn->isStackVariableAddress(data,false,true)) return false;
 
   if (typesrecovered) {
     Datatype *minuenddt = minuendvn->getTypeReadFacing(minuendop);
