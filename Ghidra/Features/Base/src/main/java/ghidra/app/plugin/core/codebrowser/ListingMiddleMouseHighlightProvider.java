@@ -521,7 +521,10 @@ public class ListingMiddleMouseHighlightProvider
 
 		// if firstUseAddr specified, only include addresses at or below firstUseAddr
 		if (firstUseAddr != null) {
-			subSet = subSet.intersectRange(firstUseAddr, subSet.getMaxAddress());
+			Address max = subSet.getMaxAddress();
+			if (firstUseAddr.compareTo(max) <= 0) {
+				subSet = subSet.intersectRange(firstUseAddr, max);
+			}
 		}
 
 	}
