@@ -54,6 +54,9 @@ public class FindReferencesToAddressAction extends AbstractFindReferencesToAddre
 		}
 
 		DecompilerActionContext decompilerContext = (DecompilerActionContext) context;
+		if (decompilerContext.getAddress() == null) {
+			return false;
+		}
 		return decompilerContext.checkActionEnablement(() -> {
 			updateMenuName(decompilerContext.getAddress());
 			return super.isEnabledForContext(context);
