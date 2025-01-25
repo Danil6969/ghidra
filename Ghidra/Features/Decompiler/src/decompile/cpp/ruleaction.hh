@@ -799,7 +799,8 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RuleStoreVarnode : public Rule {
-  static void gatherPointerUsageOps(PcodeOp *storeop,Funcdata &data,vector<PcodeOp *> &res);
+  static void gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<PcodeOp *> &res);
+  static bool isPreservedStore(PcodeOp *op,Funcdata &data);
 public:
   RuleStoreVarnode(const string &g) : Rule(g, 0, "storevarnode") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
