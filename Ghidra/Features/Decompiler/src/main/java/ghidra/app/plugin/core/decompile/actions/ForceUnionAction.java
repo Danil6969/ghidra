@@ -64,6 +64,9 @@ public class ForceUnionAction extends AbstractDecompilerAction {
 		}
 
 		ClangToken tokenAtCursor = context.getTokenAtCursor();
+		if (tokenAtCursor == null) {
+			return false;
+		}
 		if (tokenAtCursor.getPcodeOp() == null) {
 			return false;
 		}
