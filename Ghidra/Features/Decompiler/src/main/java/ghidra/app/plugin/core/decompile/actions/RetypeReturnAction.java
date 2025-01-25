@@ -57,11 +57,17 @@ public class RetypeReturnAction extends AbstractDecompilerAction {
 	@Override
 	protected boolean isEnabledForDecompilerContext(DecompilerActionContext context) {
 		Function function = context.getFunction();
-		if (function == null || function instanceof UndefinedFunction) {
+		if (function == null) {
+			return false;
+		}
+		if (function instanceof UndefinedFunction) {
 			return false;
 		}
 
 		ClangToken tokenAtCursor = context.getTokenAtCursor();
+		if (tokenAtCursor == null) {
+			return false;
+		}
 		return (tokenAtCursor.Parent() instanceof ClangReturnType);
 	}
 
