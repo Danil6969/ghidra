@@ -4492,12 +4492,12 @@ int4 RuleLoadVarnode::applyOp(PcodeOp *op,Funcdata &data)
 }
 
 //Get ops which use pointer to the same address as given
-void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *storeop,Funcdata &data,vector<PcodeOp *> &res)
+void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<PcodeOp *> &res)
 
 {
   PcodeOp *otherop,*useop;
 
-  Varnode *addrvn = storeop->getIn(1);
+  Varnode *addrvn = op->getIn(1);
   PcodeOp *addrop = addrvn->getDef();
   if (addrop == (PcodeOp *)0) return;
   if (addrop->code() != CPUI_INT_ADD) return;
@@ -4517,7 +4517,7 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *storeop,Funcdata &data,vec
       if (otheroff != off) continue;
       useop = otherop->getOut()->loneDescend();
       if (useop == (PcodeOp *)0) continue;
-      if (useop == storeop) continue;
+      if (useop == op) continue;
       res.push_back(useop);
     }
     else if (otherop->code() == CPUI_PTRSUB) {
@@ -4526,14 +4526,14 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *storeop,Funcdata &data,vec
       if (otheroff != off) continue;
       useop = otherop->getOut()->loneDescend();
       if (useop == (PcodeOp *)0) continue;
-      if (useop == storeop) continue;
+      if (useop == op) continue;
       res.push_back(useop);
     }
   }
 
   // Also check location aliases
   uintb offoff;
-  AddrSpace *baseoff = RuleLoadVarnode::checkSpacebase(data.getArch(),storeop,offoff);
+  AddrSpace *baseoff = RuleLoadVarnode::checkSpacebase(data.getArch(),op,offoff);
   offoff = AddrSpace::addressToByte(offoff,baseoff->getWordSize());
   Address addr(baseoff,offoff);
 
@@ -4544,6 +4544,36 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *storeop,Funcdata &data,vec
     if (useop == (PcodeOp *)0) continue;
     res.push_back(useop);
   }
+}
+
+bool RuleStoreVarnode::isPreservedStore(PcodeOp *op,Funcdata &data)
+
+{
+  vector<PcodeOp *> useops;
+  gatherPointerUsageOps(op,data,useops);
+
+  vector<PcodeOp *>::const_iterator iter;
+  for (iter=useops.begin();iter!=useops.end();++iter) {
+    PcodeOp *useop = *iter;
+    if (useop->code() == CPUI_COPY) {
+      // Expand whole copy chain
+      while (true) {
+	PcodeOp *lone = useop->getOut()->loneDescend();
+	if (lone == (PcodeOp *)0) break; // No ops left
+	if (lone->code() != CPUI_COPY) break; // This is not a copy anymore
+	useop = lone;
+      }
+      if (useop->getOut()->hasNoDescend()) return true;
+    }
+    if (useop->code() == CPUI_LOAD) {
+      if (!useop->getOut()->hasNoDescend()) return true;
+    }
+    if (useop->code() == CPUI_INDIRECT) {
+      PcodeOp *guardop = (PcodeOp *)useop->getIn(1)->getOffset();
+      if (guardop->code() == CPUI_STORE) return true;
+    }
+  }
+  return false;
 }
 
 /// \class RuleStoreVarnode
@@ -4567,30 +4597,7 @@ int4 RuleStoreVarnode::applyOp(PcodeOp *op,Funcdata &data)
 
   baseoff = RuleLoadVarnode::checkSpacebase(data.getArch(),op,offoff);
   if (baseoff == (AddrSpace *)0) return 0;
-  vector<PcodeOp *> useops;
-  gatherPointerUsageOps(op,data,useops);
-
-  vector<PcodeOp *>::const_iterator iter;
-  for (iter=useops.begin();iter!=useops.end();++iter) {
-    PcodeOp *useop = *iter;
-    if (useop->code() == CPUI_COPY) {
-      // Expand whole copy chain
-      while (true) {
-	PcodeOp *lone = useop->getOut()->loneDescend();
-	if (lone == (PcodeOp *)0) break; // No ops left
-	if (lone->code() != CPUI_COPY) break; // This is not a copy anymore
-	useop = lone;
-      }
-      if (useop->getOut()->hasNoDescend()) return 0;
-    }
-    if (useop->code() == CPUI_LOAD) {
-      if (!useop->getOut()->hasNoDescend()) return 0;
-    }
-    if (useop->code() == CPUI_INDIRECT) {
-      PcodeOp *guardop = (PcodeOp *)useop->getIn(1)->getOffset();
-      if (guardop->code() == CPUI_STORE) return 0;
-    }
-  }
+  if (isPreservedStore(op,data)) return 0;
 
   size = op->getIn(2)->getSize();
   offoff = AddrSpace::addressToByte(offoff,baseoff->getWordSize());
@@ -5440,6 +5447,19 @@ int4 RuleSubCancel::applyOp(PcodeOp *op,Funcdata &data)
     if (opc==CPUI_INT_ZEXT) { // output contains nothing of original input
       Varnode *cvn = extop->getIn(0);
       if ((farinsize<=offset)||(cvn->isConstant()&&cvn->getOffset()==0)) {
+	/*if (!types->isPresent(outsize)) {
+	  uint4 insz = types->getPresentUntil(outsize);
+	  if (insz<1)
+	    insz = 1;	// Fallback to 1 byte type even if not supported
+	  Varnode *cvn = data.newConstant(insz,0);
+	  PcodeOp *zextop = data.newOp(1,extop->getAddr());
+	  opc = CPUI_COPY;
+	  thruvn = data.newUniqueOut(outsize,zextop);
+	  data.opSetOpcode(zextop,CPUI_INT_ZEXT);
+	  data.opSetOutput(zextop,thruvn);
+	  data.opSetInput(zextop,cvn,0);
+	  data.opInsertBefore(zextop,extop);
+	}*/
 	opc = CPUI_COPY;		// Nothing but zero coming through
 	thruvn = data.newConstant(outsize,0);
       }
