@@ -4552,10 +4552,11 @@ bool RuleStoreVarnode::isPreservedStore(PcodeOp *op,Funcdata &data)
   vector<PcodeOp *> useops;
   gatherPointerUsageOps(op,data,useops);
 
-  vector<PcodeOp *>::const_iterator iter;
-  for (iter=useops.begin();iter!=useops.end();++iter) {
-    PcodeOp *useop = *iter;
-    if (useop->code() == CPUI_COPY) {
+  vector<PcodeOp *>::const_iterator iter1;
+  for (iter1=useops.begin();iter1!=useops.end();++iter1) {
+    PcodeOp *useop = *iter1;
+    OpCode useopc = useop->code();
+    if (useopc == CPUI_COPY) {
       // Expand whole copy chain
       while (true) {
 	PcodeOp *lone = useop->getOut()->loneDescend();
@@ -4563,14 +4564,45 @@ bool RuleStoreVarnode::isPreservedStore(PcodeOp *op,Funcdata &data)
 	if (lone->code() != CPUI_COPY) break; // This is not a copy anymore
 	useop = lone;
       }
-      if (useop->getOut()->hasNoDescend()) return true;
+      // If still thinking there are no usages
+      if (useop->getOut()->hasNoDescend()) {
+	vector<PcodeOp *>::const_iterator iter2;
+	for (iter2=useops.begin();iter2!=useops.end();++iter2) {
+	  PcodeOp *otheruse = *iter2;
+	  if (otheruse == *iter1) continue;
+	  OpCode otheropc = otheruse->code();
+	  if (otheropc == CPUI_COPY) continue;
+	  if (otheropc == CPUI_STORE) {
+	    PcodeOp *ptrop1 = op->getIn(1)->getDef();
+	    PcodeOp *ptrop2 = otheruse->getIn(1)->getDef();
+
+	    if (ptrop1 == (PcodeOp *)0) return true;
+	    if (ptrop2 == (PcodeOp *)0) return true;
+	    if (ptrop1->code() != CPUI_INT_ADD) return true;
+	    if (ptrop2->code() != CPUI_INT_ADD) return true;
+
+	    Varnode *cvn1 = ptrop1->getIn(1);
+	    Varnode *cvn2 = ptrop2->getIn(1);
+	    if (!cvn1->isConstant()) return true;
+	    if (!cvn2->isConstant()) return true;
+	    if (cvn1->getOffset() != cvn2->getOffset()) return true;
+	    if (ptrop1->getIn(0) != ptrop2->getIn(0)) return true;
+	    continue; // Addresses match, this doesn't count as usage
+	  }
+	  return true;
+	}
+      }
     }
-    if (useop->code() == CPUI_LOAD) {
-      if (!useop->getOut()->hasNoDescend()) return true;
-    }
-    if (useop->code() == CPUI_INDIRECT) {
+    if (useopc == CPUI_LOAD)
+      if (!useop->getOut()->hasNoDescend())
+	return true;
+    if (useopc == CPUI_CALL)
+      return true; // Call parameter always counts as usage
+    if (useopc == CPUI_INDIRECT) {
       PcodeOp *guardop = (PcodeOp *)useop->getIn(1)->getOffset();
-      if (guardop->code() == CPUI_STORE) return true;
+      OpCode guardopc = guardop->code();
+      if (guardopc == CPUI_STORE)
+	return true;
     }
   }
   return false;
