@@ -4502,10 +4502,12 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<P
   if (addrop == (PcodeOp *)0) return;
   if (addrop->code() != CPUI_INT_ADD) return;
 
+  uintb locoff;
+  AddrSpace *baseoff = RuleLoadVarnode::checkSpacebase(data.getArch(),op,locoff);
+  locoff = AddrSpace::addressToByte(locoff,baseoff->getWordSize());
+  Address addr(baseoff,locoff);
+  intb off = sign_extend(locoff,8*baseoff->getAddrSize()-1);
   Varnode *basevn = addrop->getIn(0);
-  Varnode *offvn = addrop->getIn(1);
-  if (!offvn->isConstant()) return;
-  intb off = sign_extend(offvn->getOffset(),8*offvn->getSize()-1);
 
   // Check aliasing int_add and ptrsub
   list<PcodeOp *>::const_iterator oiter;
@@ -4532,11 +4534,6 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<P
   }
 
   // Also check location aliases
-  uintb offoff;
-  AddrSpace *baseoff = RuleLoadVarnode::checkSpacebase(data.getArch(),op,offoff);
-  offoff = AddrSpace::addressToByte(offoff,baseoff->getWordSize());
-  Address addr(baseoff,offoff);
-
   VarnodeLocSet::const_iterator viter;
   for (viter=data.beginLoc(addr);viter!=data.endLoc(addr);++viter) {
     Varnode *vn = *viter;
@@ -4555,17 +4552,18 @@ bool RuleStoreVarnode::isPreservedStore(PcodeOp *op,Funcdata &data)
   vector<PcodeOp *>::const_iterator iter1;
   for (iter1=useops.begin();iter1!=useops.end();++iter1) {
     PcodeOp *useop = *iter1;
-    OpCode useopc = useop->code();
-    if (useopc == CPUI_COPY) {
-      // Expand whole copy chain
-      while (true) {
-	PcodeOp *lone = useop->getOut()->loneDescend();
-	if (lone == (PcodeOp *)0) break; // No ops left
-	if (lone->code() != CPUI_COPY) break; // This is not a copy anymore
-	useop = lone;
-      }
-      // If still thinking there are no usages
-      if (useop->getOut()->hasNoDescend()) {
+    switch (useop->code()) {
+      case CPUI_COPY:
+      {
+	// Expand whole copy chain
+	while (true) {
+	  PcodeOp *lone = useop->getOut()->loneDescend();
+	  if (lone == (PcodeOp *)0) break; // No ops left
+	  if (lone->code() != CPUI_COPY) break; // This is not a copy anymore
+	  useop = lone;
+	}
+	if (!useop->getOut()->hasNoDescend()) break;
+	// If still thinking there are no usages
 	vector<PcodeOp *>::const_iterator iter2;
 	for (iter2=useops.begin();iter2!=useops.end();++iter2) {
 	  PcodeOp *otheruse = *iter2;
@@ -4591,18 +4589,24 @@ bool RuleStoreVarnode::isPreservedStore(PcodeOp *op,Funcdata &data)
 	  }
 	  return true;
 	}
+	break;
       }
-    }
-    if (useopc == CPUI_LOAD)
-      if (!useop->getOut()->hasNoDescend())
-	return true;
-    if (useopc == CPUI_CALL)
-      return true; // Call parameter always counts as usage
-    if (useopc == CPUI_INDIRECT) {
-      PcodeOp *guardop = (PcodeOp *)useop->getIn(1)->getOffset();
-      OpCode guardopc = guardop->code();
-      if (guardopc == CPUI_STORE)
-	return true;
+      case CPUI_LOAD:
+	if (!useop->getOut()->hasNoDescend())
+	  return true;
+	break;
+      case CPUI_CALL:
+	return true; // Call parameter always counts as usage
+      case CPUI_INDIRECT:
+      {
+	PcodeOp *guardop = (PcodeOp *)useop->getIn(1)->getOffset();
+	OpCode guardopc = guardop->code();
+	if (guardopc == CPUI_STORE)
+	  return true;
+	break;
+      }
+      default:
+	break;
     }
   }
   return false;
