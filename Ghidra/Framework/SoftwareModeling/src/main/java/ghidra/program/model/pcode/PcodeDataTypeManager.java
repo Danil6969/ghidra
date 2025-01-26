@@ -100,7 +100,7 @@ public class PcodeDataTypeManager {
 
 	private Program program;
 	private DataTypeManager progDataTypes;		// DataTypes from a particular program
-	private DataTypeManager builtInDataTypes = BuiltInDataTypeManager.getDataTypeManager();
+	private DataTypeManager builtInDataTypes;
 	private DataOrganization dataOrganization;
 	private NameTransformer nameTransformer;
 	private DecompilerLanguage displayLanguage;
@@ -125,6 +125,7 @@ public class PcodeDataTypeManager {
 		program = prog;
 		progDataTypes = prog.getDataTypeManager();
 		dataOrganization = progDataTypes.getDataOrganization();
+		builtInDataTypes = BuiltInDataTypeManager.getDataTypeManager(dataOrganization);
 		nameTransformer = simplifier;
 		voidInputIsVarargs = true;				// By default, do not lock-in void parameter lists
 		displayLanguage = prog.getCompilerSpec().getDecompilerOutputLanguage();
