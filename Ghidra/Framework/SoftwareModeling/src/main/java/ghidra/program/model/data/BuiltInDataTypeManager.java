@@ -64,8 +64,32 @@ public final class BuiltInDataTypeManager extends StandAloneDataTypeManager {
 		return manager;
 	}
 
+	/**
+	 * Returns shared instance of built-in data type manager.
+	 * @param dataOrganzation applicable data organization
+	 * @return the manager
+	 */
+	public static synchronized BuiltInDataTypeManager getDataTypeManager(DataOrganization dataOrganzation) {
+		manager = new BuiltInDataTypeManager(dataOrganzation);
+		Runnable cleanupTask = () -> {
+			if (manager != null) {
+				manager.closeStaticInstance();
+				manager = null;
+			}
+		};
+		ShutdownHookRegistry.addShutdownHook(cleanupTask,
+				ShutdownPriority.DISPOSE_DATABASES.before());
+		return manager;
+	}
+
 	private BuiltInDataTypeManager() {
 		super(BUILT_IN_DATA_TYPES_NAME);
+		initialize();
+		setImmutable();
+	}
+
+	private BuiltInDataTypeManager(DataOrganization dataOrganzation) {
+		super(BUILT_IN_DATA_TYPES_NAME, dataOrganzation);
 		initialize();
 		setImmutable();
 	}
