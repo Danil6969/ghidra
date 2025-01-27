@@ -50,17 +50,15 @@ public final class BuiltInDataTypeManager extends StandAloneDataTypeManager {
 	 * @return the manager
 	 */
 	public static synchronized BuiltInDataTypeManager getDataTypeManager() {
-		if (manager == null) {
-			manager = new BuiltInDataTypeManager();
-			Runnable cleanupTask = () -> {
-				if (manager != null) {
-					manager.closeStaticInstance();
-					manager = null;
-				}
-			};
-			ShutdownHookRegistry.addShutdownHook(cleanupTask,
-				ShutdownPriority.DISPOSE_DATABASES.before());
-		}
+		manager = new BuiltInDataTypeManager();
+		Runnable cleanupTask = () -> {
+			if (manager != null) {
+				manager.closeStaticInstance();
+				manager = null;
+			}
+		};
+		ShutdownHookRegistry.addShutdownHook(cleanupTask,
+			ShutdownPriority.DISPOSE_DATABASES.before());
 		return manager;
 	}
 
@@ -78,7 +76,7 @@ public final class BuiltInDataTypeManager extends StandAloneDataTypeManager {
 			}
 		};
 		ShutdownHookRegistry.addShutdownHook(cleanupTask,
-				ShutdownPriority.DISPOSE_DATABASES.before());
+			ShutdownPriority.DISPOSE_DATABASES.before());
 		return manager;
 	}
 
