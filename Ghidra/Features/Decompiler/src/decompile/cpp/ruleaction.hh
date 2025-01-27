@@ -1838,16 +1838,10 @@ public:
 };
 
 class RuleByteLoop : public Rule {
-  bool cachereadonly;
-  vector<PcodeOp *> extractlist;
-  vector<PcodeOp *> insertlist;
-  intb multiplier = 0;
-  PcodeOp *endOp = (PcodeOp *)0;
   class VarnodeValues {
     map<Varnode *,uintb> vals;
   public:
-    PcodeOp *dynamicInsert;
-    VarnodeValues(void) { dynamicInsert = (PcodeOp *)0; }
+    PcodeOp *dynamicInsert = (PcodeOp *)0;
     map<Varnode *,uintb>::iterator getEntry(Varnode *key);
     bool contains(Varnode *key);
     void removeValue(Varnode *key);
@@ -1864,15 +1858,29 @@ class RuleByteLoop : public Rule {
     uintb getValue(Varnode *key,uintb off,int4 sz);
     void clear(void);
   };
-  VarnodeValues values;
-  LargeVarnodeValues largevalues;
-  bool setCountsCountervn(PcodeOp *condOp,uintb &counts,Varnode *&counterVn);
-  bool setInitOp(Varnode *counterVn,PcodeOp *&initOp);
-  bool initExtractInsertListsMultiplier(Varnode *counterVn,uintb counts);
-  void collectLargeVarnodeValues();
+  class LoopData {
+  public:
+    VarnodeValues values;
+    LargeVarnodeValues largevalues;
+    vector<PcodeOp *> extractlist;
+    vector<PcodeOp *> insertlist;
+    vector<PcodeOp*> result;
+    intb multiplier = 0;
+    uintb counts = 0;
+    bool cachereadonly = false;
+    PcodeOp *condOp = (PcodeOp *)0;
+    PcodeOp *endOp = (PcodeOp *)0;
+    PcodeOp *initOp = (PcodeOp *)0;
+    Varnode *counterVn = (Varnode *)0;
+  };
+  LoopData loopData;
+  bool setCountsCountervn(void);
+  bool setInitOp(void);
+  bool initExtractInsertListsMultiplier(void);
+  void collectLargeVarnodeValues(void);
   BlockBasic *getFallthru(PcodeOp *op);
   BlockBasic *getNonFallthru(PcodeOp *op);
-  BlockBasic *evaluateBlock(BlockBasic *bl,vector<PcodeOp*> &result,Funcdata &data);
+  BlockBasic *evaluateBlock(BlockBasic *bl,Funcdata &data);
 public:
   RuleByteLoop(const string &g) : Rule(g,0,"byteloop") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
