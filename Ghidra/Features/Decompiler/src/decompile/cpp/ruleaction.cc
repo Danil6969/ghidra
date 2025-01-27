@@ -13419,7 +13419,7 @@ void RuleByteLoop::VarnodeValues::clear(void)
 /// \brief Initialize counts and counterVn
 ///
 /// \return false if cannot proceed applying rule and true if everything is fine
-bool RuleByteLoop::setCountsCountervn(void)
+bool RuleByteLoop::setCountsCountervn(LoopData &loopData)
 
 {
   if (loopData.condOp != (PcodeOp *)0 && loopData.condOp->code() == CPUI_INT_LESS) {
@@ -13442,7 +13442,7 @@ bool RuleByteLoop::setCountsCountervn(void)
 /// \brief Initialize initOp
 ///
 /// \return false if cannot proceed applying rule and true if everything is fine
-bool RuleByteLoop::setInitOp(void)
+bool RuleByteLoop::setInitOp(LoopData &loopData)
 {
   loopData.initOp = loopData.counterVn->getDef();
   if (loopData.initOp == (PcodeOp *)0) return false;
@@ -13463,7 +13463,7 @@ bool RuleByteLoop::setInitOp(void)
 /// \brief Initialize extractlist, insertlist and multiplier
 ///
 /// \return false if cannot proceed applying rule and true if everything is fine
-bool RuleByteLoop::initExtractInsertListsMultiplier(void)
+bool RuleByteLoop::initExtractInsertListsMultiplier(LoopData &loopData)
 
 {
   list<PcodeOp *>::const_iterator iter;
@@ -13609,7 +13609,7 @@ vector<uint1> RuleByteLoop::LargeVarnodeValues::fetchValue(Varnode *key)
   return res;
 }
 
-void RuleByteLoop::collectLargeVarnodeValues(void)
+void RuleByteLoop::collectLargeVarnodeValues(LoopData &loopData)
 
 {
   for (int4 i = 0; i < loopData.extractlist.size(); ++i) {
@@ -13638,7 +13638,7 @@ BlockBasic *RuleByteLoop::getNonFallthru(PcodeOp *op)
   return (BlockBasic *)(op->isFallthruTrue() ? op->getParent()->getFalseOut() : op->getParent()->getTrueOut());
 }
 
-BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,Funcdata &data)
+BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,LoopData &loopData,Funcdata &data)
 
 {
   list<PcodeOp *>::iterator iter;
@@ -13879,27 +13879,16 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   FlowBlock *condBlock = branchOp->getParent();
   if (!condBlock->hasLoopIn()) return 0;
 
-  // Initialize objects
-  loopData.values.clear();
-  loopData.largevalues.clear();
-  loopData.extractlist = vector<PcodeOp *>();
-  loopData.insertlist = vector<PcodeOp *>();
-  loopData.result = vector<PcodeOp *>();
-  loopData.multiplier = 0;
-  loopData.counts = 0;
+  // Initialize loop data
+  LoopData loopData;
   loopData.cachereadonly = data.getArch()->readonlypropagate;
   loopData.condOp = branchOp->getIn(1)->getDef();
   loopData.endOp = branchOp->getIn(1)->getDef();
-  loopData.initOp = (PcodeOp *)0;
-  loopData.counterVn = (Varnode *)0;
 
-  if (!setCountsCountervn()) return 0;
-
-  if (!setInitOp()) return 0;
-
-  if (!initExtractInsertListsMultiplier()) return 0;
-
-  collectLargeVarnodeValues();
+  if (!setCountsCountervn(loopData)) return 0;
+  if (!setInitOp(loopData)) return 0;
+  if (!initExtractInsertListsMultiplier(loopData)) return 0;
+  collectLargeVarnodeValues(loopData);
 
   loopData.values.putValue(loopData.counterVn,0);
   BlockBasic *curbl = (BlockBasic *)condBlock;
@@ -13908,7 +13897,7 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   while (curbl != endbl) {
     if (curbl == (BlockBasic *)0)
       return 0;
-    curbl = evaluateBlock(curbl,data); // This just validates code without changes
+    curbl = evaluateBlock(curbl,loopData,data); // This just validates code without changes
   }
 
   for (int4 i=0;i<loopData.counts;++i) {
@@ -13918,7 +13907,7 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   loopData.values.putValue(loopData.counterVn,0);
   curbl = (BlockBasic *)condBlock;
   while (curbl != endbl) {
-    curbl = evaluateBlock(curbl,data);
+    curbl = evaluateBlock(curbl,loopData,data);
   }
 
   Varnode *objinitval = loopData.insertlist[0]->getIn(1);
