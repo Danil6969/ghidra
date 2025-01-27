@@ -137,6 +137,25 @@ public class DataTypeManagerHandler {
 		openProgramArchives(program);
 		addArchive(programArchive);
 
+		Archive builtInArchive = openArchives.get(0);
+		if (!(builtInArchive instanceof BuiltInArchive)) {
+			throw new AssertException("The built-in archive must always be the first");
+		}
+
+		// Remove old built-in archive
+		dataTypeIndexer.removeDataTypeManager(builtInDataTypesManager);
+		builtInDataTypesManager.removeDataTypeManagerListener(listenerDelegate);
+		openArchives.remove(builtInArchive);
+		fireArchiveClosed(builtInArchive);
+
+		// Add new built-in archive
+		builtInDataTypesManager = BuiltInDataTypeManager.getDataTypeManager(program.getDataTypeManager().getDataOrganization());
+		builtInDataTypesManager.addDataTypeManagerListener(listenerDelegate);
+		dataTypeIndexer.addDataTypeManager(builtInDataTypesManager);
+		builtInArchive = new BuiltInArchive(this, builtInDataTypesManager);
+		openArchives.addFirst(builtInArchive);
+		fireArchiveOpened(builtInArchive);
+
 		// Do not mark tool configs as changed when restoring archives used by the program.  The
 		// archives opened by the program are considered transient.  Alternatively, archives opened
 		// by the user will trigger config state changes.
