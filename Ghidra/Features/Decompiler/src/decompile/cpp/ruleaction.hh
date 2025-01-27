@@ -1873,14 +1873,13 @@ class RuleByteLoop : public Rule {
     PcodeOp *initOp = (PcodeOp *)0;
     Varnode *counterVn = (Varnode *)0;
   };
-  LoopData loopData;
-  bool setCountsCountervn(void);
-  bool setInitOp(void);
-  bool initExtractInsertListsMultiplier(void);
-  void collectLargeVarnodeValues(void);
+  bool setCountsCountervn(LoopData &loopData);
+  bool setInitOp(LoopData &loopData);
+  bool initExtractInsertListsMultiplier(LoopData &loopData);
+  void collectLargeVarnodeValues(LoopData &loopData);
   BlockBasic *getFallthru(PcodeOp *op);
   BlockBasic *getNonFallthru(PcodeOp *op);
-  BlockBasic *evaluateBlock(BlockBasic *bl,Funcdata &data);
+  BlockBasic *evaluateBlock(BlockBasic *bl,LoopData &loopData,Funcdata &data);
 public:
   RuleByteLoop(const string &g) : Rule(g,0,"byteloop") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
