@@ -19,6 +19,7 @@ import java.awt.Window;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Stream;
 
 import docking.widgets.OptionDialog;
 import ghidra.app.plugin.core.help.AboutDomainObjectUtils;
@@ -553,11 +554,16 @@ public class ImporterUtilities {
 		if (loader == null) {
 			return null;
 		}
-		return loaderMap.get(loader)
-				.stream()
-				.filter(
-					e -> e.getLanguageCompilerSpec().equals(program.getLanguageCompilerSpecPair()))
-				.findFirst()
-				.orElse(null);
+		Stream<LoadSpec> stream = loaderMap.get(loader).stream();
+		Stream<LoadSpec> filtered = stream.filter(e -> {
+			LanguageCompilerSpecPair spec = e.getLanguageCompilerSpec();
+			if (spec == null) {
+				// Not really sure but let's pretend that another operand
+				// has to be null in order to be treated as equal
+				return program.getLanguageCompilerSpecPair() == null;
+			}
+			return spec.equals(program.getLanguageCompilerSpecPair());
+		});
+		return filtered.findFirst().orElse(null);
 	}
 }
