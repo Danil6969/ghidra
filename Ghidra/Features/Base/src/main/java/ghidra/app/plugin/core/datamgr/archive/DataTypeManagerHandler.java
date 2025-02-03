@@ -151,6 +151,7 @@ public class DataTypeManagerHandler {
 		// Add new built-in archive
 		builtInDataTypesManager = BuiltInDataTypeManager.getDataTypeManager(program.getDataTypeManager().getDataOrganization());
 		builtInDataTypesManager.addDataTypeManagerListener(listenerDelegate);
+		initializeFavorites();
 		dataTypeIndexer.addDataTypeManager(builtInDataTypesManager);
 		builtInArchive = new BuiltInArchive(this, builtInDataTypesManager);
 		openArchives.addFirst(builtInArchive);
