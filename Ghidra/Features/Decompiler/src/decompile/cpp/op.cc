@@ -443,7 +443,7 @@ bool PcodeOp::isAllocaShift(void) const
   return isAllocaShift(*fd);
 }
 
-Datatype * PcodeOp::recoverVftableDatatype(TypeFactory *types) const
+Datatype *PcodeOp::recoverVftableDatatype(TypeFactory *types) const
 
 {
   const PcodeOp *op = this;
