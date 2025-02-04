@@ -1241,16 +1241,23 @@ Datatype *Varnode::recoverConstantDatatype(void) const
     PcodeOp *conditionop = cbranchop->getIn(1)->getDef();
     if (conditionop == (PcodeOp *)0) return (Datatype *)0;
     OpCode conditionopc = conditionop->code();
-    if (conditionopc != CPUI_INT_NOTEQUAL) {
-      if (conditionopc != CPUI_INT_EQUAL) return (Datatype *)0;
+    if (conditionopc == CPUI_INT_NOTEQUAL) {
+      Varnode *cvn = conditionop->getIn(1);
+      if (!cvn->isConstant()) return (Datatype *)0;
+      if (cvn->getOffset() != off) return (Datatype *)0;
+      Varnode *ptrvn = conditionop->getIn(0);
+
+      Datatype *ct = ptrvn->getTypeReadFacing(conditionop);
+      if (ct->getMetatype() != TYPE_PTR) return (Datatype *)0;
+      Datatype *ptrto = ((TypePointer *)ct)->getPtrTo();
+      if (lone->code() == CPUI_PTRSUB) {
+	if (ptrto->isStructuredType()) return ct; // This new type seems to be valid
+	// Otherwise take datatype from ptrsub directly
+	return getTypeReadFacing(lone);
+      }
+      return ct;
     }
-    Varnode *constvn = conditionop->getIn(1);
-    if (!constvn->isConstant()) return (Datatype *)0;
-    if (constvn->getOffset() != off) return (Datatype *)0;
-    Varnode *ptrvn = conditionop->getIn(0);
-    Datatype *ct = ptrvn->getTypeReadFacing(conditionop);
-    if (ct->getMetatype() != TYPE_PTR) return (Datatype *)0;
-    return ct;
+    return (Datatype *)0;
   }
   return (Datatype *)0;
 }
