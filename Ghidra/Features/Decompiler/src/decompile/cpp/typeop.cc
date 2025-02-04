@@ -1886,6 +1886,12 @@ TypeOpIntRight::TypeOpIntRight(TypeFactory *t)
   behave = new OpBehaviorIntRight();
 }
 
+Datatype *TypeOpIntRight::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_UINT);
+}
+
 Datatype *TypeOpIntRight::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
 
 {
@@ -1900,12 +1906,6 @@ Datatype *TypeOpIntRight::getInputCast(const PcodeOp *op,int4 slot,const CastStr
     return castStrategy->castStandard(reqtype,curtype,true,true);
   }
   return TypeOpBinary::getInputCast(op,slot,castStrategy);
-}
-
-Datatype *TypeOpIntRight::getInputLocal(const PcodeOp *op,int4 slot) const
-
-{
-  return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_UINT);
 }
 
 Datatype *TypeOpIntRight::getOutputLocal(const PcodeOp *op) const
