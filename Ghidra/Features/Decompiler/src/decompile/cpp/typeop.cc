@@ -2342,7 +2342,7 @@ Datatype *TypeOpMulti::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn
     PcodeOp *storeop = *oiter;
     // TODO check type equality
     if (storeop->recoverVftableDatatype(tlst) != (Datatype *)0)
-      return (Datatype *)0; // Can't there propagate because recovered type is more important
+      return (Datatype *)0; // Can't propagate there because recovered type is more important
   }
   Datatype *newtype;
   if (invn->isSpacebase()) {
