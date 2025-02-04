@@ -2551,7 +2551,7 @@ Datatype *TypeOpSubpiece::getOutputToken(const PcodeOp *op,CastStrategy *castStr
   Datatype *ct = op->getIn(0)->getHighTypeReadFacing(op);
   int8 offset;
   int8 byteOff = computeByteOffsetForComposite(op);
-  field = ct->findTruncation(byteOff,outvn->getSize(),op,1,offset);	// Use artificial slot
+ field = ct->findTruncation(byteOff,outvn->getSize(),op,1,offset);	// Use artificial slot
   if (field != (const TypeField *)0) {
     if (outvn->getSize() == field->type->getSize())
       return field->type;
