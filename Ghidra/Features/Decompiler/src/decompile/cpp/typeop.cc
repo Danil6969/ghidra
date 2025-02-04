@@ -2337,14 +2337,11 @@ Datatype *TypeOpMulti::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn
   if ((inslot!=-1)&&(outslot!=-1)) {
     return (Datatype *)0; // Must propagate input <-> output
   }
-  list<PcodeOp *>::const_iterator oiter;
-  for (oiter=outvn->beginDescend();oiter!=outvn->endDescend();++oiter) {
-    PcodeOp *storeop = *oiter;
-    // TODO check type equality
-    if (storeop->recoverVftableDatatype(tlst) != (Datatype *)0)
-      return (Datatype *)0; // Can't propagate there because recovered type is more important
-  }
-  Datatype *newtype;
+
+  Datatype *newtype = outvn->recoverVftableDatatype(tlst);
+  // Don't propagate if there is recovered type
+  if (newtype != (Datatype *)0) return (Datatype *)0;
+
   if (invn->isSpacebase()) {
     AddrSpace *spc = tlst->getArch()->getDefaultDataSpace();
     newtype = tlst->getTypePointer(alttype->getSize(),tlst->getBase(1,TYPE_UNKNOWN),spc->getWordSize());
