@@ -1275,6 +1275,19 @@ Datatype *Varnode::recoverGlobalDatatype(void) const
   return symbol->getType();
 }
 
+Datatype *Varnode::recoverVftableDatatype(TypeFactory *types) const
+
+{
+  list<PcodeOp *>::const_iterator iter;
+  for (iter=beginDescend();iter!=endDescend();++iter) {
+    PcodeOp *op = *iter;
+    Datatype *ct = op->recoverVftableDatatype(types);
+    if (ct == (Datatype *)0) continue;
+    return ct;
+  }
+  return (Datatype *)0;
+}
+
 SymbolEntry *Varnode::getSymbolInFlow(const PcodeOp *op) const
 
 {
