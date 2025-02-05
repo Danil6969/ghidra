@@ -1413,11 +1413,23 @@ Datatype *TypeOpIntAdd::getInputLocal(const PcodeOp *op,int4 slot) const
   const Varnode *invn = op->getIn(slot);
   const Varnode *outvn = op->getOut();
 
+  Datatype *ct = invn->recoverConstantDatatype();
+  if (ct != (Datatype *)0) return ct;
   if (invn->getTypeReadFacing(op)->getMetatype() == TYPE_PTR)
     return tlst->getMemsizeType(true);
   if (outvn->getTypeDefFacing()->getMetatype() == TYPE_PTR)
     return tlst->getMemsizeType(true);
   return tlst->getBaseNoChar(op->getIn(slot)->getSize(),TYPE_INT);
+}
+
+Datatype *TypeOpIntAdd::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
+
+{
+  Datatype *ct = TypeOp::getInputCast(op,slot,castStrategy);
+  if (ct != (Datatype *)0)
+    if (ct->getMetatype() == TYPE_PTR)
+      return tlst->getMemsizeType(true);
+  return ct;
 }
 
 Datatype *TypeOpIntAdd::getOutputLocal(const PcodeOp *op) const
