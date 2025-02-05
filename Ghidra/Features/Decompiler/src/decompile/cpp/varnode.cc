@@ -1229,32 +1229,50 @@ bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) cons
 Datatype *Varnode::recoverConstantDatatype(void) const
 
 {
-  if (!isConstant()) return (Datatype *)0;
-  PcodeOp *lone = loneDescend();
+  // Skip any copy there
+  const Varnode *vn = this;
+  const PcodeOp *op = (PcodeOp *)0;
+  while (true) {
+    op = vn->getDef();
+    if (op == (PcodeOp *)0) break;
+    OpCode opc = op->code();
+    if (opc == CPUI_COPY) {
+      vn = op->getIn(0);
+      continue;
+    }
+    break;
+  }
+
+  if (!vn->isConstant()) return (Datatype *)0;
+  PcodeOp *lone = vn->loneDescend();
   if (lone == (PcodeOp *)0) return (Datatype *)0;
-  uintb off = getOffset();
+  uintb off = vn->getOffset();
   const BlockBasic *parent = lone->getParent();
   if (parent->sizeIn() == 1) {
     const FlowBlock *bl = parent->getIn(0);
     PcodeOp *cbranchop = bl->lastOp();
     if (cbranchop->code() != CPUI_CBRANCH) return (Datatype *)0;
     PcodeOp *conditionop = cbranchop->getIn(1)->getDef();
-    if (conditionop == (PcodeOp *)0) return (Datatype *)0;
-    OpCode conditionopc = conditionop->code();
-    if (conditionopc == CPUI_INT_NOTEQUAL) {
+    OpCode conditionopc;
+
+    // Skip any copy there too
+    while (true) {
+      if (conditionop == (PcodeOp *)0) return (Datatype *)0;
+      conditionopc = conditionop->code();
+      if (conditionopc == CPUI_COPY) {
+	conditionop = conditionop->getIn(0)->getDef();
+	continue;
+      }
+      break;
+    }
+
+    if (conditionopc == CPUI_INT_NOTEQUAL || conditionopc == CPUI_INT_EQUAL) {
       Varnode *cvn = conditionop->getIn(1);
       if (!cvn->isConstant()) return (Datatype *)0;
       if (cvn->getOffset() != off) return (Datatype *)0;
       Varnode *ptrvn = conditionop->getIn(0);
 
       Datatype *ct = ptrvn->getTypeReadFacing(conditionop);
-      if (ct->getMetatype() != TYPE_PTR) return (Datatype *)0;
-      Datatype *ptrto = ((TypePointer *)ct)->getPtrTo();
-      if (lone->code() == CPUI_PTRSUB) {
-	if (ptrto->isStructuredType()) return ct; // This new type seems to be valid
-	// Otherwise take datatype from ptrsub directly
-	return getTypeReadFacing(lone);
-      }
       return ct;
     }
     return (Datatype *)0;
