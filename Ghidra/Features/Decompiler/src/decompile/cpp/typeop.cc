@@ -1062,6 +1062,10 @@ Datatype *TypeOpReturn::getInputLocal(const PcodeOp *op,int4 slot) const
   if (slot==0)
     return TypeOp::getInputLocal(op,slot);
 
+  const Varnode *invn = op->getIn(slot);
+  ct = invn->recoverConstantDatatype();
+  if (ct != (Datatype *)0)
+    return ct;
   // Get data-types of return input parameters
   const BlockBasic *bb = op->getParent();
   if (bb == (BlockBasic *)0)
@@ -2759,11 +2763,20 @@ Datatype *TypeOpPtrsub::getInputLocal(const PcodeOp *op,int4 slot) const
   if (slot == 0) {
     const Varnode *invn = op->getIn(0);
     Datatype *ct = invn->recoverConstantDatatype();
-    if (ct != (Datatype *)0)
-      return ct;
+    if (ct != (Datatype *)0) {
+      Datatype *dt = invn->getTypeReadFacing(op);
+      if (ct->getMetatype() == TYPE_PTR) {
+	if (dt->getMetatype() != TYPE_PTR) return ct;
+	Datatype *ptrto = ((TypePointer *)ct)->getPtrTo();
+	if (ptrto->isStructuredType()) return ct;
+
+	ptrto = ((TypePointer *)dt)->getPtrTo();
+	// Take datatype from ptrsub directly if not structured
+	if (ptrto->isStructuredType()) return dt;
+      }
+    }
     ct = invn->recoverVftableDatatype(tlst);
-    if (ct != (Datatype *)0)
-      return ct;
+    if (ct != (Datatype *)0) return ct;
   }
   return tlst->getBase(op->getIn(slot)->getSize(),TYPE_INT);
 }
