@@ -2757,7 +2757,11 @@ Datatype *TypeOpPtrsub::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
   if (slot == 0) {
-    Datatype *ct = op->getIn(0)->recoverConstantDatatype();
+    const Varnode *invn = op->getIn(0);
+    Datatype *ct = invn->recoverConstantDatatype();
+    if (ct != (Datatype *)0)
+      return ct;
+    ct = invn->recoverVftableDatatype(tlst);
     if (ct != (Datatype *)0)
       return ct;
   }
