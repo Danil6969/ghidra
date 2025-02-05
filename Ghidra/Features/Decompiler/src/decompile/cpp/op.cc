@@ -452,7 +452,16 @@ Datatype *PcodeOp::recoverVftableDatatype(TypeFactory *types) const
     if (op == (PcodeOp *)0) return (Datatype *)0;
   }
   if (op->code() != CPUI_STORE) return (Datatype *)0;
-  SymbolEntry *entry = op->getIn(2)->getSymbolInFlow(this);
+  const Varnode *invn0 = op->getIn(0);
+  const Varnode *invn1 = op->getIn(1);
+  const Varnode *invn2 = op->getIn(2);
+
+  const PcodeOp *inop1 = invn1->getDef();
+  if (inop1 != (PcodeOp *)0) {
+    if (inop1->code() == CPUI_INT_ADD) return (Datatype *)0;
+  }
+
+  SymbolEntry *entry = invn2->getSymbolInFlow(this);
   if (entry == (SymbolEntry *)0) return (Datatype *)0;
   Symbol *symbol = entry->getSymbol();
   if (symbol == (Symbol *)0) return (Datatype *)0;
@@ -461,11 +470,11 @@ Datatype *PcodeOp::recoverVftableDatatype(TypeFactory *types) const
   Scope *scope = symbol->getScope();
   string scopeName = scope->getName();
   if (scopeName == "") return (Datatype *)0;
+
   vector<Datatype *> found = types->findAll(scopeName);
   if (found.size() != 1) return (Datatype *)0;
-  AddrSpace *spc = op->getIn(0)->getSpaceFromConst();
-  const Varnode *pointerVn = op->getIn(1);
-  return types->getTypePointer(pointerVn->getSize(),found[0],spc->getWordSize());
+  AddrSpace *spc = invn0->getSpaceFromConst();
+  return types->getTypePointer(invn1->getSize(),found[0],spc->getWordSize());
 }
 
 /// Produce a hash of the following attributes: output size, the opcode, and the identity
