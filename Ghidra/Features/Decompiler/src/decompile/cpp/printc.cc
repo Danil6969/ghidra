@@ -2267,13 +2267,15 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
       if (pushPtrCodeConstant(val,(const TypePointer *)ct,vn,op))
 	return;
     }
-    entry = vn->getSymbolInFlow(op);
-    if (entry != (SymbolEntry *)0) {
-      Symbol *symbol = entry->getSymbol();
-      if (symbol != (Symbol *)0) {
-	pushOp(&addressof,op);
-	pushSymbol(symbol,vn,op);
-	return;
+    if (vn != (Varnode *)0) {
+      entry = vn->getSymbolInFlow(op);
+      if (entry != (SymbolEntry *)0) {
+	Symbol *symbol = entry->getSymbol();
+	if (symbol != (Symbol *)0) {
+	  pushOp(&addressof,op);
+	  pushSymbol(symbol,vn,op);
+	  return;
+	}
       }
     }
     break;
