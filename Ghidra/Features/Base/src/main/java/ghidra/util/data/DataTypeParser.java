@@ -403,8 +403,8 @@ public class DataTypeParser {
 	private DataType findDataType(DataTypeManager dtm, String baseName, CategoryPath category,
 			List<DataType> list) {
 
-		DataTypeManager builtInDTM = BuiltInDataTypeManager.getDataTypeManager();
 		if (dtm == null) {
+			DataTypeManager builtInDTM = BuiltInDataTypeManager.getDataTypeManager();
 			// no DTM specified--try the built-ins
 			return findDataType(builtInDTM, baseName, category, list);
 		}
@@ -431,7 +431,8 @@ public class DataTypeParser {
 		}
 
 		// nothing found--try the built-ins if we haven't yet
-		if (list.isEmpty() && dtm != builtInDTM) {
+		if (list.isEmpty() && !(dtm instanceof BuiltInDataTypeManager)) {
+			DataTypeManager builtInDTM = BuiltInDataTypeManager.getDataTypeManager(dtm.getDataOrganization());
 			return findDataType(builtInDTM, baseName, category, list);
 		}
 
