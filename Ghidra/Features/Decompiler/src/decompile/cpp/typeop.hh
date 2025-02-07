@@ -308,7 +308,7 @@ public:
 class TypeOpCall : public TypeOp {
   static bool isConstructorThisParameter(const PcodeOp *op,int4 slot,FuncCallSpecs *fc);
   static bool conflictsDefinitionDatatype(const PcodeOp *op,int4 slot,FuncCallSpecs *fc);
-  static bool datatypePropagates(const PcodeOp *op,int4 slot);
+  bool datatypePropagates(const PcodeOp *op,int4 slot) const;
 public:
   TypeOpCall(TypeFactory *t);			///< Constructor
   virtual void push(PrintLanguage *lng,const PcodeOp *op,const PcodeOp *readOp) const { lng->opCall(op); }
