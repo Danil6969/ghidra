@@ -692,7 +692,7 @@ bool TypeOpCall::conflictsDefinitionDatatype(const PcodeOp *op,int4 slot,FuncCal
   return false;
 }
 
-bool TypeOpCall::datatypePropagates(const PcodeOp *op,int4 slot)
+bool TypeOpCall::datatypePropagates(const PcodeOp *op,int4 slot) const
 
 {
   const Varnode *vn = op->getIn(slot);
@@ -703,19 +703,10 @@ bool TypeOpCall::datatypePropagates(const PcodeOp *op,int4 slot)
     SymbolEntry *sym = vn->getSymbolInFlow(op);
     if (sym != (SymbolEntry *)0) return true;
 
-    const PcodeOp *def = vn->getDef();
-    if (def != (PcodeOp *)0) {
-      if (def->code() == CPUI_CALL) {
-	FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(def->getIn(0)->getAddr());
-	string nm = fc->getName();
-	if (nm == "malloc") return true;
-	if (nm == "operator_new") return true;
-	return false;
-      }
-    }
+    Datatype *ct = vn->recoverVftableDatatype(tlst);
+    if (ct != (Datatype *)0) return false;
 
-    // Generally should not be propagated
-    return false;
+    return true;
   }
   if (conflictsDefinitionDatatype(op,slot,fc)) return false;
   return true;
