@@ -2756,8 +2756,22 @@ TypeOpPtrsub::TypeOpPtrsub(TypeFactory *t) : TypeOp(t,CPUI_PTRSUB,"->")
 
 Datatype *TypeOpPtrsub::getOutputLocal(const PcodeOp *op) const
 
-{				// Output is ptr to type of subfield
-  return tlst->getBase(op->getOut()->getSize(),TYPE_INT);
+{
+  Datatype *dt = tlst->getBase(op->getOut()->getSize(),TYPE_INT);
+  TypePointer *ptype = (TypePointer *)op->getIn(0)->getTypeReadFacing(op);
+  if (ptype->getMetatype() != TYPE_PTR) return dt;
+
+  int8 offset = AddrSpace::addressToByte((int8)op->getIn(1)->getOffset(),ptype->getWordSize());
+  int8 unusedOffset;
+  TypePointer *unusedParent;
+
+  Datatype *rettype = ptype->downChain(offset,unusedParent,unusedOffset,false,*tlst);
+  if (offset != 0) return dt;
+  if (rettype == (Datatype *)0) return dt;
+  if (rettype->getMetatype() != TYPE_PTR) return dt;
+
+  // Output is ptr to type of subfield
+  return rettype;
 }
 
 Datatype *TypeOpPtrsub::getInputLocal(const PcodeOp *op,int4 slot) const
