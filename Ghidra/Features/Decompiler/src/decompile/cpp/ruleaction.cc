@@ -7679,6 +7679,9 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
   if (evaluatePointerExpression(op, slot) != 2) return 0;
   if (!verifyPreferredPointer(op, slot)) return 0;
 
+  // Skip until RuleUnlinkPtrAdd splits uses
+  if (op->getOut()->loneDescend() == (PcodeOp *)0) return 0;
+
   AddTreeState state(data,op,slot);
   if (state.apply()) return 1;
   if (state.initAlternateForm()) {
