@@ -4022,6 +4022,30 @@ string PrintC::genericTypeName(const Datatype *ct)
   return s.str();
 }
 
+string PrintC::printedPrototypeInputs(const FuncProto *proto)
+{
+  ostringstream s;
+  bool isdotdotdot = proto->isDotdotdot();
+  int4 sz = proto->numParams();
+
+  if (sz == 0) {
+    if (isdotdotdot) return "";
+    return "void";
+  }
+
+  for(int4 i=0;i<sz;++i) {
+    if (i > 0)
+      s << ",";
+    ProtoParameter *param = proto->getParam(i);
+    s << printedTypeName(param->getType());
+  }
+
+  if (isdotdotdot)
+    s << ",...";
+
+  return s.str();
+}
+
 string PrintC::printedTypeName(const ghidra::Datatype *ct)
 
 {
