@@ -170,31 +170,35 @@ void PrintC::buildTypeStack(const Datatype *ct,vector<const Datatype *> &typesta
 void PrintC::pushPrototypeInputs(const FuncProto *proto)
 
 {
+  bool isdotdotdot = proto->isDotdotdot();
   int4 sz = proto->numParams();
 
-  if ((sz == 0)&&(!proto->isDotdotdot()))
+  if (sz == 0) {
+    if (isdotdotdot) {
+      // In ANSI C, a prototype with empty parens means the parameters are unspecified (not void)
+      // In C++, empty parens mean void, we use the ANSI C convention
+      pushAtom(Atom(EMPTY_STRING,blanktoken,EmitMarkup::no_color)); // An empty list of parameters
+      return;
+    }
     pushAtom(Atom(KEYWORD_VOID,syntax,EmitMarkup::keyword_color));
-  else {
-    for(int4 i=0;i<sz-1;++i)
-      pushOp(&comma,(const PcodeOp *)0); // Print a comma for each parameter (above 1)
-    if (proto->isDotdotdot()&&(sz!=0)) // Print comma for dotdotdot (if it is not by itself)
-      pushOp(&comma,(const PcodeOp *)0);
-    for(int4 i=0;i<sz;++i) {
-      ProtoParameter *param = proto->getParam(i);
-      pushTypeStart(param->getType(),true);
-      pushAtom(Atom(EMPTY_STRING,blanktoken,EmitMarkup::no_color));
-      pushTypeEnd(param->getType());
-    }
-    if (proto->isDotdotdot()) {
-      if (sz != 0)
-	pushAtom(Atom(DOTDOTDOT,syntax,EmitMarkup::no_color));
-      else {
-	// In ANSI C, a prototype with empty parens means the parameters are unspecified (not void)
-	// In C++, empty parens mean void, we use the ANSI C convention
-	pushAtom(Atom(EMPTY_STRING,blanktoken,EmitMarkup::no_color)); // An empty list of parameters
-      }
-    }
+    return;
   }
+
+  for(int4 i=0;i<sz-1;++i)
+    pushOp(&comma,(const PcodeOp *)0); // Print a comma for each parameter (above 1)
+
+  if (isdotdotdot) // Print comma for dotdotdot
+    pushOp(&comma,(const PcodeOp *)0);
+
+  for(int4 i=0;i<sz;++i) {
+    ProtoParameter *param = proto->getParam(i);
+    pushTypeStart(param->getType(),true);
+    pushAtom(Atom(EMPTY_STRING,blanktoken,EmitMarkup::no_color));
+    pushTypeEnd(param->getType());
+  }
+
+  if (isdotdotdot)
+    pushAtom(Atom(DOTDOTDOT,syntax,EmitMarkup::no_color));
 }
 
 /// Calculate what elements of a given symbol's namespace path are necessary to distinguish
