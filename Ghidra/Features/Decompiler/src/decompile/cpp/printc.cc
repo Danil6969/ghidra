@@ -4027,30 +4027,9 @@ string PrintC::printedTypeName(const ghidra::Datatype *ct)
 {
   ostringstream s;
   vector<const Datatype *> typestack;
-  const Datatype *dt = ct;
 
-  // build type stack
-  for(;;) {
-    typestack.push_back(dt);
-    if (dt->getName().size() != 0)
-      break;
-    if (dt->getMetatype()==TYPE_PTR) {
-      dt = ((TypePointer *)dt)->getPtrTo();
-    }
-    else if (dt->getMetatype()==TYPE_ARRAY)
-      dt = ((TypeArray *)dt)->getBase();
-    else if (dt->getMetatype()==TYPE_CODE) {
-      const FuncProto *proto = ((TypeCode *)dt)->getPrototype();
-      if (proto != (const FuncProto *)0)
-	dt = proto->getOutputType();
-      else
-	dt = glb->types->getTypeVoid();
-    }
-    else
-      break;
-  }
-
-  dt = typestack.back();
+  buildTypeStack(ct,typestack);
+  const Datatype *dt = typestack.back();
 
   if (dt->getName().size()==0) {
     s << genericTypeName(dt);
@@ -4058,6 +4037,7 @@ string PrintC::printedTypeName(const ghidra::Datatype *ct)
   else {
     s << dt->getDisplayName();
   }
+
   for(int4 i=typestack.size()-2;i>=0;--i) {
     dt = typestack[i];
     if (dt->getMetatype() == TYPE_PTR)
