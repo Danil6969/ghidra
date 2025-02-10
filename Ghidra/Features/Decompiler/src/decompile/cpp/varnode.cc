@@ -1251,6 +1251,7 @@ Datatype *Varnode::recoverConstantDatatype(void) const
   if (parent->sizeIn() == 1) {
     const FlowBlock *bl = parent->getIn(0);
     PcodeOp *cbranchop = bl->lastOp();
+    if (cbranchop == (PcodeOp *)0) return (Datatype *)0;
     if (cbranchop->code() != CPUI_CBRANCH) return (Datatype *)0;
     PcodeOp *conditionop = cbranchop->getIn(1)->getDef();
     OpCode conditionopc;
