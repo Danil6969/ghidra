@@ -236,6 +236,7 @@ protected:
   virtual void pushType(const Datatype *ct);
   virtual string genericFunctionName(const Address &addr);
   virtual string genericTypeName(const Datatype *ct);
+  virtual string printedPrototypeInputs(const FuncProto *proto);
   virtual string printedTypeName(const Datatype *ct);
 
   virtual void emitExpression(const PcodeOp *op);
