@@ -4067,12 +4067,22 @@ string PrintC::printedTypeName(const ghidra::Datatype *ct)
     if (dt->getMetatype() == TYPE_PTR)
       s << " *";
     else if (dt->getMetatype() == TYPE_ARRAY) {
+      const TypeArray *dtarray = (const TypeArray *)dt;
+
       s << " [";
-      s << ((TypeArray *)dt)->numElements();
+      s << dtarray->numElements();
       s << "]";
     }
-    else if (dt->getMetatype() == TYPE_CODE)
-      return ""; //nm = nm + "()";
+    else if (dt->getMetatype() == TYPE_CODE) {
+      const TypeCode *dtcode = (const TypeCode *)dt;
+      const FuncProto *proto = dtcode->getPrototype();
+      // Treat as invalid if it's impossible to determine arguments
+      if (proto == (const FuncProto *)0) return "";
+
+      s << "(";
+      s << printedPrototypeInputs(proto);
+      s << ")";
+    }
     else
       return "";
   }
