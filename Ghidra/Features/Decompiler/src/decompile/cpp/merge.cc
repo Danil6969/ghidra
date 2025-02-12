@@ -675,11 +675,19 @@ void Merge::trimOpOutput(PcodeOp *op)
     if (ct->getMetatype() == TYPE_PARTIALUNION)
       ct = vn->getTypeDefFacing();
   }
-  uniq = data.newUnique(vn->getSize(),ct);
+  int4 sz = vn->getSize();
+  uniq = data.newUnique(sz,ct);
   data.opSetOutput(op,uniq);	// Output of op is now stubby uniq
   data.opSetOutput(copyop,vn);	// Original output is bumped forward slightly
   data.opSetInput(copyop,uniq,0);
   data.opInsertAfter(copyop,afterop);
+
+  PcodeOp *lone1 = vn->loneDescend();
+  if (lone1 == (PcodeOp *)0) return;
+  if (lone1->code() != CPUI_COPY) return;
+  uniq = data.newUnique(sz,ct);
+  data.opSetOutput(copyop,uniq);
+  data.opSetInput(lone1,uniq,0);
 }
   
 /// \brief Trim the input HighVariable of the given PcodeOp so that its Cover is tiny
@@ -704,12 +712,26 @@ void Merge::trimOpInput(PcodeOp *op,int4 slot)
   else
     pc = op->getAddr();
   vn = op->getIn(slot);
+  PcodeOp *def = (PcodeOp *)0;
+  if (vn->getDef() != 0) {
+    if (vn->getDef()->code() == CPUI_COPY) {
+      Varnode *out = vn->getDef()->getOut();
+      if (out->loneDescend() != (PcodeOp *)0) {
+	def = vn->getDef();
+	vn = def->getIn(0);
+      }
+    }
+  }
+
   copyop = allocateCopyTrim(vn, pc, op);
   data.opSetInput(op,copyop->getOut(),slot);
   if (op->code() == CPUI_MULTIEQUAL)
     data.opInsertEnd(copyop,(BlockBasic *)op->getParent()->getIn(slot));
   else
     data.opInsertBefore(copyop,op);
+  if (def != (PcodeOp *)0) {
+    data.opDestroy(def);// Get rid of unused op
+  }
 }
 
 /// \brief Force the merge of all input and output Varnodes for the given PcodeOp
