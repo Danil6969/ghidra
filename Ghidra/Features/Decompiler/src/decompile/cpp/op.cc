@@ -319,6 +319,7 @@ bool PcodeOp::isReturnAddressConstant(Funcdata &data) const
       if (opc == CPUI_CALL) break;
       if (opc == CPUI_CALLIND) break;
       nextop = op->nextOp();
+      if (nextop == (PcodeOp *)0) break;
       if (nextop->getAddr() == nextAddress) break;
       op = nextop;
       opc = op->code();
