@@ -1297,6 +1297,7 @@ bool Merge::shadowedVarnode(const Varnode *vn)
   for(i=0;i<num;++i) {
     othervn = high->getInstance(i);
     if (othervn == vn) continue;
+    if (othervn->getCover() == (Cover *)0) continue;
     if (vn->getCover()->intersect(*othervn->getCover()) == 2) return true;
   }
   return false;
