@@ -950,6 +950,7 @@ void HighIntersectTest::gatherBlockVarnodes(HighVariable *a,int4 blk,const Cover
 {
   for(int4 i=0;i<a->numInstances();++i) {
     Varnode *vn = a->getInstance(i);
+    if (vn->getCover() == (Cover *)0) continue;
     if (1<vn->getCover()->intersectByBlock(blk,cover))
       res.push_back(vn);
   }
@@ -971,6 +972,7 @@ bool HighIntersectTest::testBlockIntersection(HighVariable *a,int4 blk,const Cov
 {
   for(int4 i=0;i<a->numInstances();++i) {
     Varnode *vn = a->getInstance(i);
+    if (vn->getCover() == (Cover *)0) continue;
     if (2>vn->getCover()->intersectByBlock(blk,cover)) continue;
     for(int4 j=0;j<blist.size();++j) {
       Varnode *vn2 = blist[j];
