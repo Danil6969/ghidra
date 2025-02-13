@@ -458,11 +458,15 @@ bool PcodeOp::isAllocaShift(void) const
   return isAllocaShift(*fd);
 }
 
-Datatype *PcodeOp::recoverVftableDatatype(TypeFactory *types) const
+Datatype *PcodeOp::recoverVftableDatatype(TypeFactory *types,bool allowNonzero) const
 
 {
   const PcodeOp *op = this;
   if (op->code() == CPUI_PTRSUB) {
+    if (!allowNonzero) {
+      uintb off = op->getIn(1)->getOffset();
+      if (off != 0) return (Datatype *)0;
+    }
     op = op->getOut()->loneDescend();
     if (op == (PcodeOp *)0) return (Datatype *)0;
   }
@@ -471,9 +475,11 @@ Datatype *PcodeOp::recoverVftableDatatype(TypeFactory *types) const
   const Varnode *invn1 = op->getIn(1);
   const Varnode *invn2 = op->getIn(2);
 
-  const PcodeOp *inop1 = invn1->getDef();
-  if (inop1 != (PcodeOp *)0) {
-    if (inop1->code() == CPUI_INT_ADD) return (Datatype *)0;
+  if (!allowNonzero) {
+    const PcodeOp *inop1 = invn1->getDef();
+    if (inop1 != (PcodeOp *)0) {
+      if (inop1->code() == CPUI_INT_ADD) return (Datatype *)0;
+    }
   }
 
   SymbolEntry *entry = invn2->getSymbolInFlow(this);
