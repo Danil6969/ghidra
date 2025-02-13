@@ -305,8 +305,10 @@ void HighVariable::updateInternalCover(void) const
   if ((highflags & coverdirty) != 0) {
     internalCover.clear();
     if (inst[0]->hasCover()) {
-      for(int4 i = 0;i < inst.size();++i)
+      for(int4 i = 0;i < inst.size();++i) {
+	if (inst[i]->getCover() == (Cover *)0) continue;
 	internalCover.merge(*inst[i]->getCover());
+      }
     }
     highflags &= ~coverdirty;
   }
