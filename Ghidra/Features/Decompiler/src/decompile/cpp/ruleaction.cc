@@ -4546,6 +4546,10 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<P
 bool RuleStoreVarnode::isPreservedStore(PcodeOp *op,Funcdata &data)
 
 {
+  TypeFactory *types = data.getArch()->types;
+  Datatype *dt = op->recoverVftableDatatype(types,true);
+  if (dt != (Datatype *)0) return true;
+
   vector<PcodeOp *> useops;
   gatherPointerUsageOps(op,data,useops);
 
