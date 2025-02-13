@@ -1231,6 +1231,7 @@ void Merge::buildDominantCopy(HighVariable *high,vector<PcodeOp *> &copy,int4 po
 	if (op->getIn(0)->copyShadow(rootVn)) continue;
       }
     }
+    if (vn->getCover() == (Cover *)0) continue;
     bCover.merge(*vn->getCover());
   }
 
@@ -1459,6 +1460,7 @@ void Merge::processCopyTrims(void)
   vector<HighVariable *> multiCopy;
 
   for(int4 i=0;i<copyTrims.size();++i) {
+    if (copyTrims[i]->getOut() == (Varnode *)0) continue;
     HighVariable *high = copyTrims[i]->getOut()->getHigh();
     if (!high->hasCopyIn1()) {
       multiCopy.push_back(high);
