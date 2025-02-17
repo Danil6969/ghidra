@@ -3285,38 +3285,29 @@ PcodeOp *ActionNameVars::getUseOp(Varnode *vn)
   list<PcodeOp *>::const_iterator iter;
   for(iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
     PcodeOp *op = *iter;
-    if (op->code() == CPUI_COPY) return op; // Some random cases when stack variable at offset 0 is used
-    if (op->code() == CPUI_INT_ADD) {
-      if (op->getIn(1)->isConstant()) return op; // Variables for which alloca is attached to
-    }
+    // Some random cases when stack variable at offset 0 is used
+    if (op->code() == CPUI_COPY) return op;
   }
   return (PcodeOp *)0;
 }
 
-void ActionNameVars::createSurrogates(Varnode *vn,Funcdata &data)
+void ActionNameVars::createSurrogate(PcodeOp *op,Funcdata &data)
 
 {
-  PcodeOp *op;
-  while (op = getUseOp(vn),op != (PcodeOp *)0) {
-    Varnode *invn = (Varnode *)0;
-    Varnode *cvn = (Varnode *)0;
-    OpCode opc = op->code();
-    if (opc == CPUI_COPY) {
-      invn = op->getIn(0);
-      cvn = data.newConstant(invn->getSize(), 0);
-    }
-    if (opc == CPUI_INT_ADD) {
-      invn = op->getIn(0);
-      cvn = op->getIn(1);
-    }
-    if (invn == (Varnode *)0) continue;
-    if (cvn == (Varnode *)0) continue;
-    vector<Varnode *> inlist;
-    inlist.push_back(invn);
-    inlist.push_back(cvn);
-    data.opSetAllInput(op,inlist);
-    data.opSetOpcode(op,CPUI_PTRSUB);
+  Varnode *invn = (Varnode *)0;
+  Varnode *cvn = (Varnode *)0;
+  OpCode opc = op->code();
+  if (opc == CPUI_COPY) {
+    invn = op->getIn(0);
+    cvn = data.newConstant(invn->getSize(),0);
   }
+  if (invn == (Varnode *)0) return;
+  if (cvn == (Varnode *)0) return;
+  vector<Varnode *> inlist;
+  inlist.push_back(invn);
+  inlist.push_back(cvn);
+  data.opSetAllInput(op,inlist);
+  data.opSetOpcode(op,CPUI_PTRSUB);
 }
 
 /// \brief Link symbols associated with a given \e spacebase Varnode
@@ -3331,10 +3322,15 @@ void ActionNameVars::linkSpacebaseSymbol(Varnode *vn,Funcdata &data,vector<Varno
 
 {
   if (!vn->isConstant() && !vn->isInput()) return;
-  createSurrogates(vn,data);
+
+  PcodeOp *op;
+  while (op = getUseOp(vn),op != (PcodeOp *)0) {
+    createSurrogate(op,data);
+  }
+
   list<PcodeOp *>::const_iterator iter;
   for(iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
-    PcodeOp *op = *iter;
+    op = *iter;
     if (op->code() != CPUI_PTRSUB) continue;
     Varnode *offVn = op->getIn(1);
     Symbol *sym = data.linkSymbolReference(offVn);
@@ -6139,6 +6135,7 @@ void ActionDatabase::universalAction(Architecture *conf)
       actprop3 = new ActionPool(Action::rule_repeatapply, "oppool3");
       actprop3->addRule( new RuleByteLoop("analysis") );
       actprop3->addRule( new RulePointerComparison("analysis") );
+      actprop3->addRule( new RuleSpacebaseAdd("analysis") );
     }
     actfullloop->addAction(actprop3);
   }
