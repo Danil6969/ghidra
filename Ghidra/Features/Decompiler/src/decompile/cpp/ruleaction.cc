@@ -13969,4 +13969,43 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+void RuleSpacebaseAdd::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_ADD);
+}
+
+int4 RuleSpacebaseAdd::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *in0 = op->getIn(0);
+  Varnode *in1 = op->getIn(1);
+  if (!in0->isSpacebase()) return 0;
+  if (!in1->isConstant()) return 0;
+
+  TypePointer *ptype = (TypePointer *)in0->getType();
+  if (ptype->getMetatype() != TYPE_PTR) return 0;
+  TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
+  if (sb->getMetatype() != TYPE_SPACEBASE) return 0;
+
+  Scope *scope = sb->getMap();
+  Address addr = sb->getAddress(in1->getOffset(),in0->getSize(),op->getAddr());
+  if (addr.isInvalid()) return 0;
+  SymbolEntry *entry = scope->queryContainer(addr,1,Address());
+  if (entry == (SymbolEntry *)0) return 0;
+  int4 off = (int4)(addr.getOffset()-entry->getAddr().getOffset())+entry->getOffset();
+
+  if (off == 0) {
+    data.opSetOpcode(op,CPUI_PTRSUB);
+    return 1;
+  }
+
+  Varnode *cvn = data.newConstant(in0->getSize(),in1->getOffset()-off);
+  PcodeOp *newop = data.newOpBefore(op,CPUI_PTRSUB,in0,cvn);
+  cvn = data.newConstant(in0->getSize(),off);
+  data.opSetInput(op,newop->getOut(),0);
+  data.opSetInput(op,cvn,1);
+  return 1;
+}
+
 } // End namespace ghidra
