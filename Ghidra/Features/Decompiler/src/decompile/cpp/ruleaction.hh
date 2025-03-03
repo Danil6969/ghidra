@@ -799,6 +799,7 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RuleStoreVarnode : public Rule {
+  static void gatherOffsetUsageOps(PcodeOp *op,Varnode *basevn,AddrSpace *space,uintb offset,Funcdata &data,vector<PcodeOp *> &res);
   static void gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<PcodeOp *> &res);
   static bool isPreservedStore(PcodeOp *op,Funcdata &data);
 public:
