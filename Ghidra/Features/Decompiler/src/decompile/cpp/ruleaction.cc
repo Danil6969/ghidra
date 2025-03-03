@@ -4419,6 +4419,9 @@ AddrSpace *RuleLoadVarnode::checkSpacebase(Architecture *glb,PcodeOp *op,uintb &
   Varnode *offvn;
   AddrSpace *loadspace;
 
+  if (op->code() != CPUI_LOAD)
+    if (op->code() != CPUI_STORE)
+      return (AddrSpace *)0;
   offvn = op->getIn(1);		// Address offset
   loadspace = op->getIn(0)->getSpaceFromConst(); // Space being loaded/stored
   // Treat segmentop as part of load/store
@@ -4491,33 +4494,20 @@ int4 RuleLoadVarnode::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
-//Get ops which use pointer to the same address as given
-void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<PcodeOp *> &res)
+//Get ops which use pointer to the same offset as given
+void RuleStoreVarnode::gatherOffsetUsageOps(PcodeOp *op,Varnode *basevn,AddrSpace *space,uintb offset,Funcdata &data,vector<PcodeOp *> &res)
 
 {
-  PcodeOp *otherop,*useop;
-
-  Varnode *addrvn = op->getIn(1);
-  PcodeOp *addrop = addrvn->getDef();
-  if (addrop == (PcodeOp *)0) return;
-  if (addrop->code() != CPUI_INT_ADD) return;
-
-  uintb locoff;
-  AddrSpace *baseoff = RuleLoadVarnode::checkSpacebase(data.getArch(),op,locoff);
-  locoff = AddrSpace::addressToByte(locoff,baseoff->getWordSize());
-  Address addr(baseoff,locoff);
-  intb off = sign_extend(locoff,8*baseoff->getAddrSize()-1);
-  Varnode *basevn = addrop->getIn(0);
-
   // Check aliasing int_add and ptrsub
+  intb addroff = sign_extend(offset,8*space->getAddrSize()-1);
   list<PcodeOp *>::const_iterator oiter;
   for (oiter=basevn->beginDescend();oiter!=basevn->endDescend();++oiter) {
-    otherop = *oiter;
+    PcodeOp *otherop = *oiter;
     if (otherop->code() == CPUI_INT_ADD) {
       if (otherop->getIn(0) != basevn) continue;
       intb otheroff = sign_extend(otherop->getIn(1)->getOffset(),8*otherop->getIn(1)->getSize()-1);
-      if (otheroff != off) continue;
-      useop = otherop->getOut()->loneDescend();
+      if (otheroff != addroff) continue;
+      PcodeOp *useop = otherop->getOut()->loneDescend();
       if (useop == (PcodeOp *)0) continue;
       if (useop == op) continue;
       res.push_back(useop);
@@ -4525,8 +4515,8 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<P
     else if (otherop->code() == CPUI_PTRSUB) {
       if (otherop->getIn(0) != basevn) continue;
       intb otheroff = sign_extend(otherop->getIn(1)->getOffset(),8*otherop->getIn(1)->getSize()-1);
-      if (otheroff != off) continue;
-      useop = otherop->getOut()->loneDescend();
+      if (otheroff != addroff) continue;
+      PcodeOp *useop = otherop->getOut()->loneDescend();
       if (useop == (PcodeOp *)0) continue;
       if (useop == op) continue;
       res.push_back(useop);
@@ -4534,12 +4524,44 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<P
   }
 
   // Also check location aliases
+  uintb byteoff = AddrSpace::addressToByte(offset,space->getWordSize());
+  Address addr(space,byteoff);
   VarnodeLocSet::const_iterator viter;
   for (viter=data.beginLoc(addr);viter!=data.endLoc(addr);++viter) {
     Varnode *vn = *viter;
-    useop = vn->loneDescend();
+    PcodeOp *useop = vn->loneDescend();
     if (useop == (PcodeOp *)0) continue;
     res.push_back(useop);
+  }
+}
+
+void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<PcodeOp *> &res)
+
+{
+  uintb endoff;
+  AddrSpace *spc = RuleLoadVarnode::checkSpacebase(data.getArch(),op,endoff);
+  if (spc == (AddrSpace *)0) return;
+
+  PcodeOp *addrop = op->getIn(1)->getDef();
+  if (addrop == (PcodeOp *)0) return;
+  if (addrop->code() != CPUI_INT_ADD) return;
+  Varnode *basevn = addrop->getIn(0);
+
+  gatherOffsetUsageOps(op,basevn,spc,endoff,data,res);
+
+  TypePointer *ptype = (TypePointer *)basevn->getType();
+  if (ptype->getMetatype() != TYPE_PTR) return;
+  TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
+  if (sb->getMetatype() != TYPE_SPACEBASE) return;
+  Scope *scope = sb->getMap();
+  Address addr = sb->getAddress(endoff,basevn->getSize(),op->getAddr());
+  if (addr.isInvalid()) return;
+  SymbolEntry *entry = scope->queryContainer(addr,1,Address());
+  if (entry == (SymbolEntry *)0) return;
+
+  uintb startoff = entry->getAddr().getOffset();
+  for (uintb off = startoff;off<endoff;off++) {
+    gatherOffsetUsageOps(op,basevn,spc,off,data,res);
   }
 }
 
