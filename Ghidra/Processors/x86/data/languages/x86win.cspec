@@ -41,6 +41,9 @@
         <pentry minsize="10" maxsize="10" metatype="float" extension="float">
           <register name="ST0"/>
         </pentry>
+        <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+          <register name="ST1"/>
+        </pentry>
         <pentry minsize="1" maxsize="500" align="4">
           <addr offset="4" space="stack"/>
         </pentry>
@@ -78,10 +81,37 @@
       </likelytrash>
     </prototype>
   </default_proto>
+  <prototype name="__internal" extrapop="unknown" stackshift="4">
+    <input>
+      <pentry minsize="1" maxsize="500" align="4">
+        <addr offset="4" space="stack"/>
+      </pentry>
+    </input>
+    <output killedbycall="true">
+      <pentry minsize="1" maxsize="4">
+        <register name="EDX"/>
+      </pentry>
+    </output>
+    <unaffected>
+      <register name="ESP"/>
+      <register name="EBP"/>
+      <register name="ESI"/>
+      <register name="EDI"/>
+      <register name="EBX"/>
+      <register name="EAX"/>
+      <register name="ECX"/>
+    </unaffected>
+    <killedbycall>
+      <register name="EDX"/>
+    </killedbycall>
+  </prototype>
   <prototype name="__cdecl" extrapop="4" stackshift="4">
     <input>
       <pentry minsize="10" maxsize="10" metatype="float" extension="float">
         <register name="ST0"/>
+      </pentry>
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST1"/>
       </pentry>
       <pentry minsize="1" maxsize="500" align="4">
         <addr offset="4" space="stack"/>
@@ -123,6 +153,9 @@
     <input>
       <pentry minsize="10" maxsize="10" metatype="float" extension="float">
         <register name="ST0"/>
+      </pentry>
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST1"/>
       </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
@@ -170,6 +203,9 @@
     <input thisbeforeretpointer="true">
       <pentry minsize="10" maxsize="10" metatype="float" extension="float">
         <register name="ST0"/>
+      </pentry>
+      <pentry minsize="10" maxsize="10" metatype="float" extension="float">
+        <register name="ST1"/>
       </pentry>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
