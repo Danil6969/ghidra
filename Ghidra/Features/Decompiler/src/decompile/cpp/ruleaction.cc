@@ -4495,7 +4495,7 @@ int4 RuleLoadVarnode::applyOp(PcodeOp *op,Funcdata &data)
 }
 
 //Get ops which use pointer to the same offset as given
-void RuleStoreVarnode::gatherOffsetUsageOps(PcodeOp *op,Varnode *basevn,AddrSpace *space,uintb offset,Funcdata &data,vector<PcodeOp *> &res)
+void RuleStoreVarnode::gatherOffsetUsageOps(PcodeOp *op,Varnode *basevn,AddrSpace *space,uintb offset,Funcdata &data,vector<PcodeOp *> &ops,vector<int4> &slots)
 
 {
   // Check aliasing int_add and ptrsub
@@ -4507,19 +4507,25 @@ void RuleStoreVarnode::gatherOffsetUsageOps(PcodeOp *op,Varnode *basevn,AddrSpac
       if (otherop->getIn(0) != basevn) continue;
       intb otheroff = sign_extend(otherop->getIn(1)->getOffset(),8*otherop->getIn(1)->getSize()-1);
       if (otheroff != addroff) continue;
-      PcodeOp *useop = otherop->getOut()->loneDescend();
+      Varnode *vn = otherop->getOut();
+      PcodeOp *useop = vn->loneDescend();
       if (useop == (PcodeOp *)0) continue;
       if (useop == op) continue;
-      res.push_back(useop);
+      ops.push_back(useop);
+      int4 slot = useop->getSlot(vn);
+      slots.push_back(slot);
     }
     else if (otherop->code() == CPUI_PTRSUB) {
       if (otherop->getIn(0) != basevn) continue;
       intb otheroff = sign_extend(otherop->getIn(1)->getOffset(),8*otherop->getIn(1)->getSize()-1);
       if (otheroff != addroff) continue;
-      PcodeOp *useop = otherop->getOut()->loneDescend();
+      Varnode *vn = otherop->getOut();
+      PcodeOp *useop = vn->loneDescend();
       if (useop == (PcodeOp *)0) continue;
       if (useop == op) continue;
-      res.push_back(useop);
+      ops.push_back(useop);
+      int4 slot = useop->getSlot(vn);
+      slots.push_back(slot);
     }
   }
 
@@ -4531,11 +4537,13 @@ void RuleStoreVarnode::gatherOffsetUsageOps(PcodeOp *op,Varnode *basevn,AddrSpac
     Varnode *vn = *viter;
     PcodeOp *useop = vn->loneDescend();
     if (useop == (PcodeOp *)0) continue;
-    res.push_back(useop);
+    ops.push_back(useop);
+    int4 slot = useop->getSlot(vn);
+    slots.push_back(slot);
   }
 }
 
-void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<PcodeOp *> &res)
+void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<PcodeOp *> &ops,vector<int4> &slots)
 
 {
   uintb endoff;
@@ -4547,7 +4555,7 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<P
   if (addrop->code() != CPUI_INT_ADD) return;
   Varnode *basevn = addrop->getIn(0);
 
-  gatherOffsetUsageOps(op,basevn,spc,endoff,data,res);
+  gatherOffsetUsageOps(op,basevn,spc,endoff,data,ops,slots);
 
   TypePointer *ptype = (TypePointer *)basevn->getType();
   if (ptype->getMetatype() != TYPE_PTR) return;
@@ -4561,7 +4569,7 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<P
 
   uintb startoff = entry->getAddr().getOffset();
   for (uintb off = startoff;off<endoff;off++) {
-    gatherOffsetUsageOps(op,basevn,spc,off,data,res);
+    gatherOffsetUsageOps(op,basevn,spc,off,data,ops,slots);
   }
 }
 
@@ -4573,44 +4581,46 @@ bool RuleStoreVarnode::isPreservedStore(PcodeOp *op,Funcdata &data)
   if (dt != (Datatype *)0) return true;
 
   vector<PcodeOp *> useops;
-  gatherPointerUsageOps(op,data,useops);
+  vector<int4> useslots;
+  gatherPointerUsageOps(op,data,useops,useslots);
 
   vector<PcodeOp *>::const_iterator iter1;
-  for (iter1=useops.begin();iter1!=useops.end();++iter1) {
-    PcodeOp *useop = *iter1;
-    switch (useop->code()) {
+  for (int4 i=0;i<useops.size();++i) {
+    uintb off1,off2 = 0;
+    AddrSpace *base1,*base2 = (AddrSpace *)0;
+    PcodeOp *guardop = (PcodeOp *)0;
+
+    PcodeOp *use = useops[i];
+    int4 slot = useslots[i];
+    switch (use->code()) {
+      case CPUI_COPY:
+	if (use->getOut()->hasNoDescend())
+	  return true; // Partial deletion of copy which is still used
+	break;
       case CPUI_LOAD:
-	if (!useop->getOut()->hasNoDescend())
+	if (!use->getOut()->hasNoDescend())
 	  return true;
 	break;
       case CPUI_STORE:
-      {
-	PcodeOp *ptrop1 = op->getIn(1)->getDef();
-	PcodeOp *ptrop2 = useop->getIn(1)->getDef();
+	if (slot == 2) return true; // An address is taken
+	base1 = RuleLoadVarnode::checkSpacebase(data.getArch(),op,off1);
+	base2 = RuleLoadVarnode::checkSpacebase(data.getArch(),use,off2);
 
-	if (ptrop1 == (PcodeOp *)0) return true;
-	if (ptrop2 == (PcodeOp *)0) return true;
-	if (ptrop1->code() != CPUI_INT_ADD) return true;
-	if (ptrop2->code() != CPUI_INT_ADD) return true;
+	if (base1 == (AddrSpace *)0) return true;
+	if (base2 == (AddrSpace *)0) return true;
+	if (off1 != off2) return true;
 
-	Varnode *cvn1 = ptrop1->getIn(1);
-	Varnode *cvn2 = ptrop2->getIn(1);
-	if (!cvn1->isConstant()) return true;
-	if (!cvn2->isConstant()) return true;
-	if (cvn1->getOffset() != cvn2->getOffset()) return true;
-	if (ptrop1->getIn(0) != ptrop2->getIn(0)) return true;
-	break; // Addresses match, this doesn't count as usage
-      }
+	// If addresses match, this doesn't count as usage
+	break;
       case CPUI_CALL:
-	return true; // Call parameter always counts as usage
+	if (slot > 0)
+	  return true; // Call parameter always counts as usage
+	break;
       case CPUI_INDIRECT:
-      {
-	PcodeOp *guardop = (PcodeOp *)useop->getIn(1)->getOffset();
-	OpCode guardopc = guardop->code();
-	if (guardopc == CPUI_STORE)
+	guardop = (PcodeOp *)use->getIn(1)->getOffset();
+	if (guardop->code() == CPUI_STORE)
 	  return true;
 	break;
-      }
       default:
 	break;
     }
