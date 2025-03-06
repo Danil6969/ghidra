@@ -4525,6 +4525,11 @@ int4 ActionDeadCode::apply(Funcdata &data)
       }
     }
     vn = op->getOut();
+    if (op->code() == CPUI_INDIRECT) {
+      if (vn->isAutoLiveHold())
+	pushConsumed(~((uintb)0),vn,worklist);
+      continue;
+    }
     if (vn->isAutoLive())
       pushConsumed(~((uintb)0),vn,worklist);
   }
