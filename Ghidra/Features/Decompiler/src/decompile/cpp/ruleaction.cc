@@ -13994,7 +13994,12 @@ int4 RuleSpacebaseAdd::applyOp(PcodeOp *op,Funcdata &data)
   Address addr = sb->getAddress(in1->getOffset(),in0->getSize(),op->getAddr());
   if (addr.isInvalid()) return 0;
   SymbolEntry *entry = scope->queryContainer(addr,1,Address());
-  if (entry == (SymbolEntry *)0) return 0;
+  // Absence of user-defined entry means it will be created there automatically
+  if (entry == (SymbolEntry *)0) {
+    // Treat this as if located directly at this place
+    data.opSetOpcode(op,CPUI_PTRSUB);
+    return 1;
+  }
   int4 off = (int4)(addr.getOffset()-entry->getAddr().getOffset())+entry->getOffset();
 
   if (off == 0) {
