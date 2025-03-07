@@ -4343,20 +4343,83 @@ bool ActionDeadCode::neverConsumed(Varnode *vn,Funcdata &data)
   return true;
 }
 
+void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata &data,vector<Varnode *> &worklist)
+
+{
+  Address addr(space,offset);
+  VarnodeLocSet::const_iterator viter;
+  for (viter=data.beginLoc(addr);viter!=data.endLoc(addr);++viter) {
+    Varnode *vn = *viter;
+    //if (!vn->hasNoDescend()) continue;
+    pushConsumed(~((uintb)0),vn,worklist);
+    vn->setAutoLiveHold();
+  }
+}
+
+/// \brief Extract address from the given op which
+/// is copy chain and INT_ADD at the end of the chain.
+/// Then use that address to mark whole spacebase container
+/// (stack variable mostly) as fully consumed.
+///
+/// \param op is the given op
+/// \param data is the given function
+/// \param worklist will hold input Varnodes that can propagate their consume property
+void ActionDeadCode::markConsumedContainer(PcodeOp *op,Funcdata &data,vector<Varnode *> &worklist)
+
+{
+  PcodeOp *addop = op;
+  while (true) {
+    if (addop == (PcodeOp *)0) return;
+    OpCode addopc = addop->code();
+    if (addopc == CPUI_COPY)
+      addop = addop->getIn(0)->getDef();
+    else if (addopc == CPUI_INT_ADD)
+      break;
+    else
+      return;
+  }
+
+  Varnode *basevn = addop->getIn(0);
+  TypePointer *ptype = (TypePointer *)basevn->getType();
+  if (ptype->getMetatype() != TYPE_PTR) return;
+  TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
+  if (sb->getMetatype() != TYPE_SPACEBASE) return;
+  AddrSpace *space = sb->getSpace();
+
+  Varnode *cvn = addop->getIn(1);
+  if (!cvn->isConstant()) return;
+  uint4 ws = space->getWordSize();
+  uintb startoff = AddrSpace::addressToByte(cvn->getOffset(),ws);
+  markConsumedAddress(space,startoff,data,worklist);
+
+  Address addr = sb->getAddress(startoff,basevn->getSize(),op->getAddr());
+  if (addr.isInvalid()) return;
+  Scope *scope = sb->getMap();
+  SymbolEntry *entry = scope->queryContainer(addr,1,Address());
+  if (entry == (SymbolEntry *)0) return;
+  int4 sz = entry->getSize();
+  for (int4 i=1;i<sz;++i)
+    markConsumedAddress(space,startoff+i,data,worklist);
+}
+
 /// \brief Determine how the given sub-function parameters are consumed
 ///
 /// Set the consume property for each input Varnode of a CPUI_CALL or CPUI_CALLIND.
 /// If the prototype is locked, assume parameters are entirely consumed.
 /// \param fc is the call specification for the given sub-function
+/// \param data is the given function
 /// \param worklist will hold input Varnodes that can propagate their consume property
-void ActionDeadCode::markConsumedParameters(FuncCallSpecs *fc,vector<Varnode *> &worklist)
+void ActionDeadCode::markConsumedParameters(FuncCallSpecs *fc,Funcdata &data,vector<Varnode *> &worklist)
 
 {
   PcodeOp *callOp = fc->getOp();
   pushConsumed(~((uintb)0),callOp->getIn(0),worklist);		// In all cases the first operand is fully consumed
   if (fc->isInputLocked() || fc->isInputActive()) {		// If the prototype is locked in, or in active recovery
-    for(int4 i=1;i<callOp->numInput();++i)
-      pushConsumed(~((uintb)0),callOp->getIn(i),worklist);	// Treat all parameters as fully consumed
+    for(int4 i=1;i<callOp->numInput();++i) {
+      Varnode *vn = callOp->getIn(i);
+      pushConsumed(~((uintb)0),vn,worklist);	// Treat all parameters as fully consumed
+      markConsumedContainer(vn->getDef(),data,worklist);
+    }
     return;
   }
   for(int4 i=1;i<callOp->numInput();++i) {
@@ -4536,7 +4599,7 @@ int4 ActionDeadCode::apply(Funcdata &data)
 
 				// Mark consumption of call parameters
   for(i=0;i<data.numCalls();++i)
-    markConsumedParameters(data.getCallSpecs(i),worklist);
+    markConsumedParameters(data.getCallSpecs(i),data,worklist);
 
 				// Propagate the consume flags
   while(!worklist.empty())
