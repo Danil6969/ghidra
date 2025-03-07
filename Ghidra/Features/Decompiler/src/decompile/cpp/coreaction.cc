@@ -1659,8 +1659,8 @@ int4 ActionVarnodeProps::apply(Funcdata &data)
     int4 vnSize = vn->getSize();
     if (vn->isAutoLiveHold()) {
       if (pass > 0) {
+	PcodeOp *loadOp = vn->getDef();
 	if (vn->isWritten()) {
-	  PcodeOp *loadOp = vn->getDef();
 	  if (loadOp->code() == CPUI_LOAD) {
 	    Varnode *ptr = loadOp->getIn(1);
 	    if (ptr->isConstant() || ptr->isReadOnly())
@@ -1675,8 +1675,8 @@ int4 ActionVarnodeProps::apply(Funcdata &data)
 	    }
 	  }
 	}
-	if (vn->getDef()->isAllocaShift(data))
-	  continue;
+	if (loadOp == (PcodeOp *)0) continue;
+	if (loadOp->code() != CPUI_LOAD) continue;
 	vn->clearAutoLiveHold();
 	count += 1;
       }
