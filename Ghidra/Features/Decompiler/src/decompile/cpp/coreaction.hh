@@ -562,7 +562,9 @@ class ActionDeadCode : public Action {
   static void pushConsumed(uintb val,Varnode *vn,vector<Varnode *> &worklist);
   static void propagateConsumed(vector<Varnode *> &worklist);
   static bool neverConsumed(Varnode *vn,Funcdata &data);
-  static void markConsumedParameters(FuncCallSpecs *fc,vector<Varnode *> &worklist);
+  static void markConsumedAddress(AddrSpace *space,uintb offset,Funcdata &data,vector<Varnode *> &worklist);
+  static void markConsumedContainer(PcodeOp *op,Funcdata &data,vector<Varnode *> &worklist);
+  static void markConsumedParameters(FuncCallSpecs *fc,Funcdata &data,vector<Varnode *> &worklist);
   static uintb gatherConsumedReturn(Funcdata &data);
   static bool lastChanceLoad(Funcdata &data,vector<Varnode *> &worklist);
 public:
