@@ -4561,9 +4561,9 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<P
   if (ptype->getMetatype() != TYPE_PTR) return;
   TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
   if (sb->getMetatype() != TYPE_SPACEBASE) return;
-  Scope *scope = sb->getMap();
   Address addr = sb->getAddress(endoff,basevn->getSize(),op->getAddr());
   if (addr.isInvalid()) return;
+  Scope *scope = sb->getMap();
   SymbolEntry *entry = scope->queryContainer(addr,1,Address());
   if (entry == (SymbolEntry *)0) return;
 
