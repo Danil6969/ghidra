@@ -4550,10 +4550,10 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<P
   AddrSpace *spc = RuleLoadVarnode::checkSpacebase(data.getArch(),op,endoff);
   if (spc == (AddrSpace *)0) return;
 
-  PcodeOp *addrop = op->getIn(1)->getDef();
-  if (addrop == (PcodeOp *)0) return;
-  if (addrop->code() != CPUI_INT_ADD) return;
-  Varnode *basevn = addrop->getIn(0);
+  PcodeOp *addop = op->getIn(1)->getDef();
+  if (addop == (PcodeOp *)0) return;
+  if (addop->code() != CPUI_INT_ADD) return;
+  Varnode *basevn = addop->getIn(0);
 
   gatherOffsetUsageOps(op,basevn,spc,endoff,data,ops,slots);
 
