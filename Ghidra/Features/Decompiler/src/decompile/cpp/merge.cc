@@ -108,13 +108,15 @@ bool Merge::mergeTestRequired(HighVariable *high_out,HighVariable *high_in)
     if (high_out->isTypeLock())	// dont merge unless
       if (high_in->getType() != high_out->getType()) return false; // both types are the same
 
-  if (high_out->isAddrTied()) {	// Do not merge address tied input
+  if (high_out->isAddrTied()) {
     if (high_in->isAddrTied()) {
       try {
 	Address inaddr = high_in->getTiedVarnode()->getAddr();
 	Address outaddr = high_out->getTiedVarnode()->getAddr();
 	if (inaddr != outaddr)
-	  return false;		// with an address tied output of different address
+	  // Do not merge address tied input
+	  // with an address tied output of different address
+	  return false;
       }
       catch (LowlevelError e) {
 	return false;
