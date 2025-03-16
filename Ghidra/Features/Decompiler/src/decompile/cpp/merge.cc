@@ -732,7 +732,12 @@ void Merge::trimOpInput(PcodeOp *op,int4 slot)
     }
   }
 
-  copyop = allocateCopyTrim(vn, pc, op);
+  Varnode *invn = vn;
+  if (vn->isFree()) {
+    invn = data.newVarnode(vn->getSize(),vn->getAddr());;
+  }
+
+  copyop = allocateCopyTrim(invn, pc, op);
   data.opSetInput(op,copyop->getOut(),slot);
   if (op->code() == CPUI_MULTIEQUAL)
     data.opInsertEnd(copyop,(BlockBasic *)op->getParent()->getIn(slot));
