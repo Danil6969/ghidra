@@ -284,9 +284,9 @@ void Funcdata::blockRemoveInternal(BlockBasic *bb,bool unreachable)
 	}
 	else {
 	  for(j=0;j<bb->sizeIn();++j) {
-        if (deadvn->isFree()) continue; // Skip if varnode free
+	    if (deadvn->isFree()) continue; // Skip if varnode free
 	    opInsertInput(op,deadvn,op->numInput()); // Otherwise make copies
-      }
+	  }
 	}
 	opZeroMulti(op);
       }
