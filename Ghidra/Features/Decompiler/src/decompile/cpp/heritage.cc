@@ -1803,14 +1803,18 @@ void Heritage::splitByRefinement(Varnode *vn,const Address &addr,const vector<in
   int4 cutsz = refine[diff];
   if (sz <= cutsz) return;	// Already refined
   while(sz > 0) {
+    bool iszero[2];
     Varnode *vn2 = fd->newVarnode(cutsz,curaddr);
     split.push_back(vn2);
     curaddr = curaddr + cutsz;
     sz -= cutsz;
     diff = (uint4)spc->wrapOffset(curaddr.getOffset() - addr.getOffset());
+    iszero[0] = cutsz == 0; // One before update
     cutsz = refine[diff];
     if (cutsz > sz)
       cutsz = sz;		// Final piece
+    iszero[1] = cutsz == 0; // Another after update
+    if (iszero[0] && iszero[1]) break;
   }
 }
 
@@ -1955,7 +1959,7 @@ TaskList::iterator Heritage::refinement(TaskList::iterator memiter,const vector<
   int4 size = (*memiter).size;
   if (size > 1024) return disjoint.end();
   Address addr = (*memiter).addr;
-  vector<int4> refine(size+1,0);
+  vector<int4> refine(size+3,0);
   buildRefinement(refine,addr,readvars);
   buildRefinement(refine,addr,writevars);
   buildRefinement(refine,addr,inputvars);
