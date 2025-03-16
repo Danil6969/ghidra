@@ -283,8 +283,10 @@ void Funcdata::blockRemoveInternal(BlockBasic *bb,bool unreachable)
 	    opInsertInput(op,deadop->getIn(j),op->numInput());
 	}
 	else {
-	  for(j=0;j<bb->sizeIn();++j)
+	  for(j=0;j<bb->sizeIn();++j) {
+        if (deadvn->isFree()) continue; // Skip if varnode free
 	    opInsertInput(op,deadvn,op->numInput()); // Otherwise make copies
+      }
 	}
 	opZeroMulti(op);
       }
