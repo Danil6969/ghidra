@@ -44,6 +44,9 @@ class StackSolver {
 public:
   void solve(void);		///< Solve the system of equations
   bool resolveExtraPop(PcodeOp *op,int4 &change,const Funcdata &data);
+  bool buildIntAddConstant1(PcodeOp *op,int4 i);
+  bool buildIntAddConstant2(PcodeOp *op,int4 i);
+  bool buildIntAddMultiply(PcodeOp *op,int4 i);
   int4 extraLoopCounts(PcodeOp *op);
   bool loopStackChange(Varnode *vn,int4 &change);
   bool buildMultiequalLoop(PcodeOp *op,Varnode *&othervn,int4 &rhsoffset);
@@ -167,6 +170,60 @@ bool StackSolver::resolveExtraPop(PcodeOp *op,int4 &change,const Funcdata &data)
     return false;
   }
   change = 4; // Otherwise make a guess
+  return false;
+}
+
+bool StackSolver::buildIntAddConstant1(PcodeOp *op,int4 i)
+
+{
+  Varnode *othervn = op->getIn(0);
+  Varnode *constvn = op->getIn(1);
+  if (!constvn->isConstant()) return false;
+  if (othervn->getAddr() != spacebase) return false;
+  vector<Varnode *>::iterator iter = lower_bound(vnlist.begin(),vnlist.end(),othervn,Varnode::comparePointers);
+  StackEqn eqn;
+  eqn.var1 = i;
+  eqn.var2 = iter-vnlist.begin();
+  eqn.rhs = constvn->getOffset();
+  eqs.push_back(eqn);
+  return true;
+}
+
+bool StackSolver::buildIntAddConstant2(PcodeOp *op,int4 i)
+
+{
+  Varnode *constvn = op->getIn(0);
+  Varnode *othervn = op->getIn(1);
+  if (!constvn->isConstant()) return false;
+  if (othervn->getAddr() != spacebase) return false;
+  vector<Varnode *>::iterator iter = lower_bound(vnlist.begin(),vnlist.end(),othervn,Varnode::comparePointers);
+  StackEqn eqn;
+  eqn.var1 = i;
+  eqn.var2 = iter-vnlist.begin();
+  eqn.rhs = constvn->getOffset();
+  eqs.push_back(eqn);
+  return true;
+}
+
+bool StackSolver::buildIntAddMultiply(PcodeOp *op,int4 i)
+
+{
+  Varnode *multvn = op->getIn(0);
+  Varnode *othervn = op->getIn(1);
+  PcodeOp *multop = multvn->getDef();
+  if (multop == (PcodeOp *)0) return false;
+  if (multop->code() != CPUI_INT_MULT) return false;
+  Varnode *constvn0 = multop->getIn(0);
+  Varnode *constvn1 = multop->getIn(1);
+  if (!constvn0->isConstant()) return false;
+  if (!constvn1->isConstant()) return false;
+  vector<Varnode *>::iterator iter = lower_bound(vnlist.begin(),vnlist.end(),othervn,Varnode::comparePointers);
+  StackEqn eqn;
+  eqn.var1 = i;
+  eqn.var2 = iter-vnlist.begin();
+  eqn.rhs = constvn0->getOffset()*constvn1->getOffset();
+  eqs.push_back(eqn);
+  return true;
   return false;
 }
 
@@ -358,19 +415,10 @@ void StackSolver::build(const Funcdata &data,AddrSpace *id,int4 spcbase)
     PcodeOp *op = vn->getDef();
 
     if (op->code() == CPUI_INT_ADD) {
-      othervn = op->getIn(0);
-      constvn = op->getIn(1);
-      if (othervn->isConstant()) {
-	constvn = othervn;
-	othervn = op->getIn(1);
-      }
-      if (!constvn->isConstant()) { missedvariables+=1; continue; }
-      if (othervn->getAddr() != spacebase) { missedvariables+=1; continue; }
-      iter = lower_bound(vnlist.begin(),vnlist.end(),othervn,Varnode::comparePointers);
-      eqn.var1 = i;
-      eqn.var2 = iter-vnlist.begin();
-      eqn.rhs = constvn->getOffset();
-      eqs.push_back(eqn);
+      if (buildIntAddConstant1(op,i)) continue;
+      if (buildIntAddConstant2(op,i)) continue;
+      if (buildIntAddMultiply(op,i)) continue;
+      missedvariables+=1;
     }
     else if (op->code() == CPUI_COPY) {
       othervn = op->getIn(0);
