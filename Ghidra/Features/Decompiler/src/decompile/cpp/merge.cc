@@ -111,9 +111,7 @@ bool Merge::mergeTestRequired(HighVariable *high_out,HighVariable *high_in)
   if (high_out->isAddrTied()) {
     if (high_in->isAddrTied()) {
       try {
-	Address inaddr = high_in->getTiedVarnode()->getAddr();
-	Address outaddr = high_out->getTiedVarnode()->getAddr();
-	if (inaddr != outaddr)
+	if (high_in->getTiedVarnode()->getAddr() != high_out->getTiedVarnode()->getAddr())
 	  // Do not merge address tied input
 	  // with an address tied output of different address
 	  return false;
