@@ -4447,8 +4447,8 @@ void ActionDeadCode::markConsumedContainer(PcodeOp *op,Funcdata &data,vector<Var
   if (entry == (SymbolEntry *)0) return;
   int4 sz = entry->getSize();
   uintb startoff = entry->getAddr().getOffset();
-  for (int4 i=1;i<sz;++i) {
-    uintb off = startoff + i;
+  uintb endoff = startoff + sz;
+  for (uintb off=startoff;off<endoff;++off) {
     if (off == curoff) continue;
     markConsumedAddress(space,off,data,worklist);
   }
