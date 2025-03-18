@@ -4214,8 +4214,12 @@ void FuncProto::updateOutputTypes(const vector<Varnode *> &triallist)
   }
   else if (outparm->isSizeTypeLocked()) {
     if (triallist.empty()) return;
-    if ((triallist[0]->getAddr() == outparm->getAddress())&&(triallist[0]->getSize() == outparm->getSize()))
-      outparm->overrideSizeLockType(triallist[0]->getHigh()->getType());
+    if ((triallist[0]->getAddr() == outparm->getAddress())&&(triallist[0]->getSize() == outparm->getSize())) {
+      Datatype *type = outparm->getType();
+      Datatype *ct = triallist[0]->getHigh()->getType();
+      if (type->getSize() == ct->getSize())
+	outparm->overrideSizeLockType(ct);
+    }
     return;
   }
   else
