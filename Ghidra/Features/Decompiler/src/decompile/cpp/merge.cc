@@ -1679,7 +1679,9 @@ bool Merge::inflateTest(Varnode *a,HighVariable *high)
   for(int4 i=0;i<ahigh->numInstances();++i) {
     Varnode *b = ahigh->getInstance(i);
     if (b->copyShadow(a)) continue;		// Intersection with a or shadows of a is allowed
-    if (2==b->getCover()->intersect( highCover )) {
+    Cover *cover = b->getCover();
+    if (cover == (Cover *)0) continue;		// No cover at all
+    if (2==cover->intersect( highCover )) {
       return true;
     }
   }
