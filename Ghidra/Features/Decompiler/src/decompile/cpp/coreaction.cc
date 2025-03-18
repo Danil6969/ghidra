@@ -4437,17 +4437,21 @@ void ActionDeadCode::markConsumedContainer(PcodeOp *op,Funcdata &data,vector<Var
   Varnode *cvn = addop->getIn(1);
   if (!cvn->isConstant()) return;
   uint4 ws = space->getWordSize();
-  uintb startoff = AddrSpace::addressToByte(cvn->getOffset(),ws);
-  markConsumedAddress(space,startoff,data,worklist);
+  uintb curoff = AddrSpace::addressToByte(cvn->getOffset(),ws);
+  markConsumedAddress(space,curoff,data,worklist);
 
-  Address addr = sb->getAddress(startoff,basevn->getSize(),op->getAddr());
+  Address addr = sb->getAddress(curoff,basevn->getSize(),op->getAddr());
   if (addr.isInvalid()) return;
   Scope *scope = sb->getMap();
   SymbolEntry *entry = scope->queryContainer(addr,1,Address());
   if (entry == (SymbolEntry *)0) return;
   int4 sz = entry->getSize();
-  for (int4 i=1;i<sz;++i)
-    markConsumedAddress(space,startoff+i,data,worklist);
+  uintb startoff = entry->getAddr().getOffset();
+  for (int4 i=1;i<sz;++i) {
+    uintb off = startoff + i;
+    if (off == curoff) continue;
+    markConsumedAddress(space,off,data,worklist);
+  }
 }
 
 /// \brief Determine how the given sub-function parameters are consumed
