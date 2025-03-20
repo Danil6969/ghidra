@@ -4412,6 +4412,7 @@ bool ActionDeadCode::testSpacebase(PcodeOp *op)
     return true;
   case CPUI_INDIRECT:
     if (vn->hasNoDescend()) {
+      // Find original varnode
       Varnode *invn = op->getIn(0);
       while (true) {
 	PcodeOp *curop = invn->getDef();
