@@ -4573,12 +4573,12 @@ void RuleStoreVarnode::gatherPointerUsageOps(PcodeOp *op,Funcdata &data,vector<P
   }
 }
 
-bool RuleStoreVarnode::isPreservedStore(PcodeOp *op,Funcdata &data)
+bool RuleStoreVarnode::testStore(PcodeOp *op,Funcdata &data)
 
 {
   TypeFactory *types = data.getArch()->types;
   Datatype *dt = op->recoverVftableDatatype(types,true);
-  if (dt != (Datatype *)0) return true;
+  if (dt != (Datatype *)0) return false;
 
   vector<PcodeOp *> useops;
   vector<int4> useslots;
@@ -4595,37 +4595,37 @@ bool RuleStoreVarnode::isPreservedStore(PcodeOp *op,Funcdata &data)
     switch (use->code()) {
       case CPUI_COPY:
 	if (use->getOut()->hasNoDescend())
-	  return true; // Partial deletion of copy which is still used
+	  return false; // Partial deletion of copy which is still used
 	break;
       case CPUI_LOAD:
 	if (!use->getOut()->hasNoDescend())
-	  return true;
+	  return false;
 	break;
       case CPUI_STORE:
-	if (slot == 2) return true; // An address is taken
+	if (slot == 2) return false; // An address is taken
 	base1 = RuleLoadVarnode::checkSpacebase(data.getArch(),op,off1);
 	base2 = RuleLoadVarnode::checkSpacebase(data.getArch(),use,off2);
 
-	if (base1 == (AddrSpace *)0) return true;
-	if (base2 == (AddrSpace *)0) return true;
-	if (off1 != off2) return true;
+	if (base1 == (AddrSpace *)0) return false;
+	if (base2 == (AddrSpace *)0) return false;
+	if (off1 != off2) return false;
 
 	// If addresses match, this doesn't count as usage
 	break;
       case CPUI_CALL:
 	if (slot > 0)
-	  return true; // Call parameter always counts as usage
+	  return false; // Call parameter always counts as usage
 	break;
       case CPUI_INDIRECT:
 	guardop = (PcodeOp *)use->getIn(1)->getOffset();
 	if (guardop->code() == CPUI_STORE)
-	  return true;
+	  return false;
 	break;
       default:
 	break;
     }
   }
-  return false;
+  return true;
 }
 
 /// \class RuleStoreVarnode
@@ -4649,7 +4649,8 @@ int4 RuleStoreVarnode::applyOp(PcodeOp *op,Funcdata &data)
 
   baseoff = RuleLoadVarnode::checkSpacebase(data.getArch(),op,offoff);
   if (baseoff == (AddrSpace *)0) return 0;
-  if (isPreservedStore(op,data)) return 0;
+  // TODO investigate cases
+  //if (!testStore(op,data)) return 0;
 
   size = op->getIn(2)->getSize();
   offoff = AddrSpace::addressToByte(offoff,baseoff->getWordSize());
