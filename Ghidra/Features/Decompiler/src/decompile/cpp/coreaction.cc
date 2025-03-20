@@ -4391,28 +4391,44 @@ bool ActionDeadCode::neverConsumed(Varnode *vn,Funcdata &data)
   return true;
 }
 
-bool ActionDeadCode::testSpacebaseVarnode(Varnode *vn)
+bool ActionDeadCode::testSpacebase(PcodeOp *op)
 
 {
-  PcodeOp *op = vn->getDef();
   if (op == (PcodeOp *)0) return true;
-  Varnode *out = op->getOut();
-  PcodeOp *lone = out->loneDescend();
+  Varnode *vn = op->getOut();
+  PcodeOp *lone = (PcodeOp *)0;
   switch (op->code()) {
   case CPUI_COPY:
+    lone = vn->loneDescend();
     if (lone == (PcodeOp *)0) return true;
     if (lone->code() == CPUI_INDIRECT) {
-      int4 num = lone->getOut()->numDescend();
-      if (num > 1) return false;
+      if (!testSpacebase(lone)) return false;
     }
     return true;
   case CPUI_MULTIEQUAL:
     // Check for multiequal which is apparently unused
     // due to value being overwritten
-    if (op->getOut()->hasNoDescend()) return false;
+    if (vn->hasNoDescend()) return false;
     return true;
   case CPUI_INDIRECT:
-    return true;
+    if (vn->hasNoDescend()) {
+      Varnode *invn = op->getIn(0);
+      while (true) {
+	PcodeOp *curop = invn->getDef();
+	if (curop == (PcodeOp *)0) break;
+	if (curop->code() != CPUI_INDIRECT) return true;
+	invn = curop->getIn(0);
+      }
+      if (invn->numDescend() > 1)
+	return false;
+      return true;
+    }
+    list<PcodeOp *>::const_iterator iter;
+    for (iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
+      PcodeOp *curop = *iter;
+      if (testSpacebase(curop)) return true;
+    }
+    return false;
   }
   return true;
 }
@@ -4425,7 +4441,7 @@ void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata 
   for (viter=data.beginLoc(addr);viter!=data.endLoc(addr);++viter) {
     Varnode *vn = *viter;
     // TODO investigate cases
-    if (!testSpacebaseVarnode(vn)) continue;
+    if (!testSpacebase(vn->getDef())) continue;
     pushConsumed(~((uintb)0),vn,worklist);
     vn->setAutoLiveHold();
   }
