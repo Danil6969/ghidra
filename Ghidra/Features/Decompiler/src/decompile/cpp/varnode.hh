@@ -284,6 +284,7 @@ public:
   bool hasCover(void) const {
     return ((flags&(Varnode::constant|Varnode::annotation|Varnode::insert))==Varnode::insert); }
   bool hasNoDescend(void) const { return descend.empty(); } ///< Return \b true if nothing reads this Varnode
+  int4 numDescend(void) const { return descend.size(); } ///< Return total number of descendants
 
   /// Return \b true if \b this is a constant with value \b val
   bool constantMatch(uintb val) const {
