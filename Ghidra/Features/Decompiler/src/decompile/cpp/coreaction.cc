@@ -4391,6 +4391,32 @@ bool ActionDeadCode::neverConsumed(Varnode *vn,Funcdata &data)
   return true;
 }
 
+bool ActionDeadCode::testSpacebaseVarnode(Varnode *vn)
+
+{
+  PcodeOp *op = vn->getDef();
+  if (op == (PcodeOp *)0) return true;
+  Varnode *out = op->getOut();
+  PcodeOp *lone = out->loneDescend();
+  switch (op->code()) {
+  case CPUI_COPY:
+    if (lone == (PcodeOp *)0) return true;
+    if (lone->code() == CPUI_INDIRECT) {
+      int4 num = lone->getOut()->numDescend();
+      if (num > 1) return false;
+    }
+    return true;
+  case CPUI_MULTIEQUAL:
+    // Check for multiequal which is apparently unused
+    // due to value being overwritten
+    if (op->getOut()->hasNoDescend()) return false;
+    return true;
+  case CPUI_INDIRECT:
+    return true;
+  }
+  return true;
+}
+
 void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata &data,vector<Varnode *> &worklist)
 
 {
@@ -4398,7 +4424,8 @@ void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata 
   VarnodeLocSet::const_iterator viter;
   for (viter=data.beginLoc(addr);viter!=data.endLoc(addr);++viter) {
     Varnode *vn = *viter;
-    //if (!vn->hasNoDescend()) continue;
+    // TODO investigate cases
+    if (!testSpacebaseVarnode(vn)) continue;
     pushConsumed(~((uintb)0),vn,worklist);
     vn->setAutoLiveHold();
   }
@@ -4421,10 +4448,8 @@ void ActionDeadCode::markConsumedContainer(PcodeOp *op,Funcdata &data,vector<Var
     OpCode addopc = addop->code();
     if (addopc == CPUI_COPY)
       addop = addop->getIn(0)->getDef();
-    else if (addopc == CPUI_INT_ADD)
-      break;
-    else
-      return;
+    else if (addopc == CPUI_INT_ADD) break;
+    else return;
   }
 
   Varnode *basevn = addop->getIn(0);
@@ -4640,13 +4665,16 @@ int4 ActionDeadCode::apply(Funcdata &data)
       }
     }
     vn = op->getOut();
-    if (op->code() == CPUI_INDIRECT) {
+    switch (op->code()) {
+    case CPUI_INDIRECT:
+      // TODO investigate cases
       if (vn->isAutoLiveHold())
 	pushConsumed(~((uintb)0),vn,worklist);
-      continue;
+      break;
+    default:
+      if (vn->isAutoLive())
+	pushConsumed(~((uintb)0),vn,worklist);
     }
-    if (vn->isAutoLive())
-      pushConsumed(~((uintb)0),vn,worklist);
   }
 
 				// Mark consumption of call parameters
