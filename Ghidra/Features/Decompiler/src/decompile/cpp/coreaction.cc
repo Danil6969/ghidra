@@ -3467,7 +3467,7 @@ int4 ActionNameVars::apply(Funcdata &data)
   return 0;
 }
 
-bool ActionMarkExplicit::isAllocaTreeUsed(Varnode *vn,Funcdata &data)
+bool ActionMarkExplicit::isAllocaTree(Varnode *vn,Funcdata &data)
 
 {
   list<PcodeOp *>::const_iterator iter;
@@ -3475,7 +3475,7 @@ bool ActionMarkExplicit::isAllocaTreeUsed(Varnode *vn,Funcdata &data)
   while (iter != vn->endDescend()) {
     PcodeOp *op = *iter;
     if (!op->isAllocaShift(data)) return true;
-    if (isAllocaTreeUsed(op->getOut(),data)) return true;
+    if (isAllocaTree(op->getOut(),data)) return true;
     iter++;
   }
   return false;
