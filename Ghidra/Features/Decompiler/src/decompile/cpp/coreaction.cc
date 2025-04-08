@@ -4480,6 +4480,17 @@ void ActionDeadCode::markConsumedContainer(PcodeOp *op,Funcdata &data,vector<Var
   if (!cvn->isConstant()) return;
   uint4 ws = space->getWordSize();
   uintb curoff = AddrSpace::addressToByte(cvn->getOffset(),ws);
+  intb off = sign_extend(curoff,8*cvn->getSize()-1);
+
+  // Inputs are not valid usually
+  // TODO figure out whether zero offset can be valid
+  if (space->stackGrowsNegative()) {
+    if (off > 0) return;
+  }
+  else {
+    if (off < 0) return;
+  }
+
   markConsumedAddress(space,curoff,data,worklist);
 
   Address addr = sb->getAddress(curoff,basevn->getSize(),op->getAddr());
