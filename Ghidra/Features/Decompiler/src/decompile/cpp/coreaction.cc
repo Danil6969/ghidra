@@ -4397,6 +4397,7 @@ bool ActionDeadCode::testSpacebase(PcodeOp *op)
   if (op == (PcodeOp *)0) return true;
   Varnode *vn = op->getOut();
   PcodeOp *lone = (PcodeOp *)0;
+  // TODO investigate cases
   switch (op->code()) {
   case CPUI_COPY:
     lone = vn->loneDescend();
@@ -4411,25 +4412,25 @@ bool ActionDeadCode::testSpacebase(PcodeOp *op)
     if (vn->hasNoDescend()) return false;
     return true;
   case CPUI_INDIRECT:
-    if (vn->hasNoDescend()) {
-      // Find original varnode
-      Varnode *invn = op->getIn(0);
-      while (true) {
-	PcodeOp *curop = invn->getDef();
-	if (curop == (PcodeOp *)0) break;
-	if (curop->code() != CPUI_INDIRECT) return true;
-	invn = curop->getIn(0);
+    if (!vn->hasNoDescend()) {
+      list<PcodeOp *>::const_iterator iter;
+      for (iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
+	PcodeOp *curop = *iter;
+	if (testSpacebase(curop)) return true;
       }
-      if (invn->numDescend() > 1)
-	return false;
-      return true;
+      return false;
     }
-    list<PcodeOp *>::const_iterator iter;
-    for (iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
-      PcodeOp *curop = *iter;
-      if (testSpacebase(curop)) return true;
+
+    // Find original varnode
+    Varnode *invn = op->getIn(0);
+    while (true) {
+      PcodeOp *curop = invn->getDef();
+      if (curop == (PcodeOp *)0) break;
+      if (curop->code() != CPUI_INDIRECT) return true;
+      invn = curop->getIn(0);
     }
-    return false;
+    if (invn->numDescend() > 1) return false;
+    return true;
   }
   return true;
 }
@@ -4437,12 +4438,20 @@ bool ActionDeadCode::testSpacebase(PcodeOp *op)
 void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata &data,vector<Varnode *> &worklist)
 
 {
+  intb off = sign_extend(offset,8*space->getAddrSize()-1);
+  if (space->stackGrowsNegative()) {
+    if (off > 0) return;
+  }
+  else {
+    if (off < 0) return;
+  }
+
   Address addr(space,offset);
   VarnodeLocSet::const_iterator viter;
   for (viter=data.beginLoc(addr);viter!=data.endLoc(addr);++viter) {
     Varnode *vn = *viter;
-    // TODO investigate cases
-    if (!testSpacebase(vn->getDef())) continue;
+    PcodeOp *op = vn->getDef();
+    if (!testSpacebase(op)) continue;
     pushConsumed(~((uintb)0),vn,worklist);
     vn->setAutoLiveHold();
   }
@@ -4480,17 +4489,6 @@ void ActionDeadCode::markConsumedContainer(PcodeOp *op,Funcdata &data,vector<Var
   if (!cvn->isConstant()) return;
   uint4 ws = space->getWordSize();
   uintb curoff = AddrSpace::addressToByte(cvn->getOffset(),ws);
-  intb off = sign_extend(curoff,8*cvn->getSize()-1);
-
-  // Inputs are not valid usually
-  // TODO figure out whether zero offset can be valid
-  if (space->stackGrowsNegative()) {
-    if (off > 0) return;
-  }
-  else {
-    if (off < 0) return;
-  }
-
   markConsumedAddress(space,curoff,data,worklist);
 
   Address addr = sb->getAddress(curoff,basevn->getSize(),op->getAddr());
@@ -4693,10 +4691,18 @@ int4 ActionDeadCode::apply(Funcdata &data)
       }
     }
     vn = op->getOut();
+    // TODO investigate cases
     switch (op->code()) {
+    case CPUI_COPY:
+      if (vn->isAutoLive())
+	pushConsumed(~((uintb)0),vn,worklist);
+      break;
     case CPUI_INDIRECT:
-      // TODO investigate cases
       if (vn->isAutoLiveHold())
+	pushConsumed(~((uintb)0),vn,worklist);
+      break;
+    case CPUI_PIECE:
+      if (vn->isAutoLive())
 	pushConsumed(~((uintb)0),vn,worklist);
       break;
     default:
