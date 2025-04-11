@@ -4694,6 +4694,9 @@ int4 ActionDeadCode::apply(Funcdata &data)
     // TODO investigate cases
     switch (op->code()) {
     case CPUI_COPY:
+    case CPUI_INT_AND:
+    case CPUI_INT_OR:
+    case CPUI_INT_RIGHT:
       if (vn->isAutoLive())
 	pushConsumed(~((uintb)0),vn,worklist);
       break;
@@ -4702,6 +4705,8 @@ int4 ActionDeadCode::apply(Funcdata &data)
 	pushConsumed(~((uintb)0),vn,worklist);
       break;
     case CPUI_PIECE:
+    case CPUI_SUBPIECE:
+    case CPUI_PTRSUB:
       if (vn->isAutoLive())
 	pushConsumed(~((uintb)0),vn,worklist);
       break;
