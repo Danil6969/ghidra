@@ -377,14 +377,14 @@ bool PrintC::needsToArr(const Varnode *vn) const
 
 {
   const PcodeOp *op = vn->getDef();
-  while (op != (PcodeOp *)0) {
+  while (op != (const PcodeOp *)0) {
     OpCode opc = op->code();
     if (opc == CPUI_COPY) {
       vn = op->getIn(0);
       op = vn->getDef();
     }
     else {
-      op = (PcodeOp *)0;
+      op = (const PcodeOp *)0;
     }
   }
   if (vn->getType()->getMetatype() == TYPE_PARTIALUNION) return false; // Unions should always be printed without TOARR
@@ -632,6 +632,16 @@ void PrintC::opTypeCast(const PcodeOp *op)
     pushVn(inVn,op,mods);
     return;
   }
+  const PcodeOp *inOp = inVn->getDef();
+  if (inOp != (const PcodeOp *)0) {
+    if (inOp->code() == CPUI_COPY) {
+      const Varnode *cvn=inOp->getIn(0);
+      if (cvn->isConstant()) {
+	pushConstant(cvn->getOffset(),outType,vartoken,outVn,op);
+	return;
+      }
+    }
+  }
 
   bool hasFunc = !outArr || inArr || needsToArr(inVn);
   bool castArr = inArr && !outArr;
@@ -646,25 +656,25 @@ void PrintC::opTypeCast(const PcodeOp *op)
 
   // Any other printing
   if (hasFunc)
-    pushOp(&function_call, op);
+    pushOp(&function_call,op);
 
   if (castArr) {
     ostringstream s;
     s << "CASTARR" << outVn->getSize();
     // cast with dereference
-    pushAtom(Atom(s.str(), optoken, EmitMarkup::no_color, op));
+    pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
   }
   else {
     if (!inArr && outArr)
-      pushOp(&addressof, op);
+      pushOp(&addressof,op);
     else
       // just reinterpret with the same bytes in memory but replaced type
-      pushAtom(Atom("CAST", optoken, EmitMarkup::no_color, op));
+      pushAtom(Atom("CAST",optoken,EmitMarkup::no_color,op));
   }
 
   if (hasFunc)
-    pushOp(&comma, op);
-  pushVn(inVn, op, mods);
+    pushOp(&comma,op);
+  pushVn(inVn,op,mods);
   if (hasFunc)
     pushType(outType); // anything else prints output type except address
 }
