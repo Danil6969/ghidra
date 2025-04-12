@@ -25,6 +25,7 @@ ElementId ELEM_HIGHLIST = ElementId("highlist",117);
 ElementId ELEM_JUMPTABLELIST = ElementId("jumptablelist",118);
 ElementId ELEM_VARNODES = ElementId("varnodes",119);
 
+const string Funcdata::vastart = "va_start";
 const string Funcdata::addrof = "addrof";
 const string Funcdata::extractind = "extractind";
 const string Funcdata::insertind = "insertind";
