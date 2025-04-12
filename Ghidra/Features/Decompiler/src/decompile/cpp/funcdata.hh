@@ -138,6 +138,7 @@ class Funcdata {
   static PcodeOp *findPrimaryBranch(PcodeOpTree::const_iterator iter,PcodeOpTree::const_iterator enditer,
 				    bool findbranch,bool findcall,bool findreturn);
 public:
+  static const string vastart;
   static const string addrof;
   static const string extractind;
   static const string insertind;
