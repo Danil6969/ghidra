@@ -416,6 +416,10 @@ void UserOpManage::initialize(Architecture *g)
     UserPcodeOp *userop = new UnspecializedPcodeOp(basicops[i],glb,i);
     registerOp(userop);
   }
+  if (getOp(Funcdata::vastart) == (UserPcodeOp *)0) {
+    UserPcodeOp *vastartOp = new UnspecializedPcodeOp(Funcdata::vastart,glb,useroplist.size());
+    registerOp(vastartOp);
+  }
   if (getOp(Funcdata::addrof) == (UserPcodeOp *)0) {
     UserPcodeOp *addrOp = new UnspecializedPcodeOp(Funcdata::addrof,glb,useroplist.size());
     registerOp(addrOp);
