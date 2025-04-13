@@ -166,7 +166,7 @@ bool StackSolver::resolveExtraPop(PcodeOp *op,int4 &change,const Funcdata &data)
       }
     }
     // Assume we only have return pointer left and no params
-    int4 change = op->getAddr().getSpace()->getAddrSize();
+    int4 change = op->getAddr().getAddrSize();
     return false;
   }
   change = 4; // Otherwise make a guess
