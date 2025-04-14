@@ -635,7 +635,7 @@ void PrintC::opTypeCast(const PcodeOp *op)
   const PcodeOp *inOp = inVn->getDef();
   if (inOp != (const PcodeOp *)0) {
     if (inOp->code() == CPUI_COPY) {
-      const Varnode *cvn=inOp->getIn(0);
+      const Varnode *cvn = inOp->getIn(0);
       if (cvn->isConstant()) {
 	pushConstant(cvn->getOffset(),outType,vartoken,outVn,op);
 	return;
