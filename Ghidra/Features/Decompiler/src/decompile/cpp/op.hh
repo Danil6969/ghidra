@@ -229,6 +229,7 @@ public:
   int4 getAllocaAttachSlot(Funcdata &data) const;
   bool isAllocaShift(Funcdata &data) const;
   bool isAllocaShift(void) const;
+  bool isVarargPtrsub(bool firstOnly) const;
   Datatype *recoverVftableDatatype(TypeFactory *types,bool allowNonzero=false) const; ///< Return owner datatype (struct representing class) if this is valid vftable store op
   bool stopsTypePropagation(void) const { return ((addlflags&stop_type_propagation)!=0); }	///< Is data-type propagation from below stopped
   void setStopTypePropagation(void) { addlflags |= stop_type_propagation; }	///< Stop data-type propagation from below
