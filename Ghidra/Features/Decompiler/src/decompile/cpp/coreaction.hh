@@ -483,8 +483,8 @@ class ActionNameVars : public Action {
   static void makeRec(ProtoParameter *param,Varnode *vn,map<HighVariable *,OpRecommend> &recmap);
   static void lookForBadJumpTables(Funcdata &data);	///< Mark the switch variable for bad jump-tables
   static void lookForFuncParamNames(Funcdata &data,const vector<Varnode *> &varlist);
-  static PcodeOp *getUseOp(Varnode *vn);	///< Iterate and find copy op or return 0
-  static void createSurrogate(PcodeOp *vn,Funcdata &data);	///< Replace raw copy or add op with ptrsub
+  static PcodeOp *getUseOp(Varnode *vn);	///< Iterate and find copy op or return null
+  static void createSurrogate(PcodeOp *vn,Funcdata &data);	///< Replace raw copy op with ptrsub
   static void linkSpacebaseSymbol(Varnode *vn,Funcdata &data,vector<Varnode *> &namerec);
   static void linkSymbols(Funcdata &data,vector<Varnode *> &namerec);
 public:
