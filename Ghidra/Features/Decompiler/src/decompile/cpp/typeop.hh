@@ -847,7 +847,6 @@ public:
 /// \brief Information about the PTRSUB op-code
 class TypeOpPtrsub : public TypeOp {
   virtual Datatype *getRelativePointerType(const PcodeOp *op) const;
-  virtual Datatype *recoverVarargsType(const PcodeOp *op) const;
 public:
   TypeOpPtrsub(TypeFactory *t);			///< Constructor
   virtual Datatype *getOutputLocal(const PcodeOp *op) const;
