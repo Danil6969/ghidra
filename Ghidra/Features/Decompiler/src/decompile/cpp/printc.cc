@@ -2460,8 +2460,13 @@ void PrintC::pushUnnamedLocation(const Address &addr,
 				   const Varnode *vn,const PcodeOp *op)
 {
   ostringstream s;
-  s << addr.getSpace()->getName();
-  addr.printRaw(s);
+  if (op->isVarargPtrsub(true)) {
+    s << "param_n";
+  }
+  else {
+    s << addr.getSpace()->getName();
+    addr.printRaw(s);
+  }
   pushAtom(Atom(s.str(),vartoken,EmitMarkup::var_color,op,vn));
 }
 
