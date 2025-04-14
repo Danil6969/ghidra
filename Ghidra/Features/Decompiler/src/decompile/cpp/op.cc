@@ -458,6 +458,67 @@ bool PcodeOp::isAllocaShift(void) const
   return isAllocaShift(*fd);
 }
 
+bool PcodeOp::isVarargPtrsub(bool firstOnly) const
+
+{
+  Funcdata *fd = getFuncdata();
+  if (fd == (Funcdata *)0) return false;
+  bool stackGrowsNegative = fd->isStackGrowsNegative();
+  if (!fd->getFuncProto().isDotdotdot()) return false;
+  const Varnode *vn0 = getIn(0);
+  const Varnode *vn1 = getIn(1);
+
+  Datatype *ct = vn0->getTypeReadFacing(this);
+  if (ct->getMetatype() != TYPE_PTR) return false;
+  Datatype *sb = ((TypePointer *)ct)->getPtrTo();
+  if (sb->getMetatype() != TYPE_SPACEBASE) return false;
+  AddrSpace *spc = ((TypeSpacebase *)sb)->getSpace();
+  string nm = spc->getName();
+  if (nm != "stack") return false;
+
+  if (!vn1->isConstant()) return false;
+  intb off = sign_extend(vn1->getOffset(),8*vn1->getSize()-1);
+  int4 num = fd->getFuncProto().numParams();
+  if (num < 1) return false;
+  ProtoParameter *last = fd->getFuncProto().getParam(num-1);
+  Address addr = last->getAddress();
+
+  if (addr.getSpace() == spc) {
+    intb addroff = sign_extend(addr.getOffset(),8*addr.getAddrSize()-1);
+    if (stackGrowsNegative) {
+      if (addroff < 0) return false;
+      int4 size = last->getSize();
+      intb min = addroff + size;
+      if (firstOnly) {
+	if (off != min) return false;
+      }
+      else {
+	if (off < min) return false;
+      }
+    }
+    else {
+      if (addroff > 0) return false;
+      intb max = addroff - 1;
+      if (firstOnly) {
+	if (off != max) return false;
+      }
+      else {
+	if (off > max) return false;
+      }
+    }
+  }
+  else {
+    if (stackGrowsNegative) {
+      if (off < 0) return false;
+    }
+    else {
+      if (off > 0) return false;
+    }
+  }
+
+  return true;
+}
+
 Datatype *PcodeOp::recoverVftableDatatype(TypeFactory *types,bool allowNonzero) const
 
 {
