@@ -2742,15 +2742,6 @@ Datatype *TypeOpPtrsub::getRelativePointerType(const PcodeOp *op) const
   return tlst->getTypePointer(vn0->getSize(),sub,ptype->getWordSize());
 }
 
-Datatype *TypeOpPtrsub::recoverVarargsType(const PcodeOp *op) const
-
-{
-  if (!op->isVarargPtrsub(false)) return (Datatype *)0;
-  vector<Datatype *> datatypes = tlst->findAll("va_list");
-  if (datatypes.size() == 1) return datatypes[0];
-  return (Datatype *)0;
-}
-
 TypeOpPtrsub::TypeOpPtrsub(TypeFactory *t) : TypeOp(t,CPUI_PTRSUB,"->")
 
 {
@@ -2766,8 +2757,10 @@ TypeOpPtrsub::TypeOpPtrsub(TypeFactory *t) : TypeOp(t,CPUI_PTRSUB,"->")
 Datatype *TypeOpPtrsub::getOutputLocal(const PcodeOp *op) const
 
 {
-  Datatype *rettype = recoverVarargsType(op);
-  if (rettype != (Datatype *)0) return rettype;
+  if (op->isVarargPtrsub(false)) {
+    vector<Datatype *> datatypes = tlst->findAll("va_list");
+    if (datatypes.size() == 1) return datatypes[0];
+  }
   Datatype *dt = tlst->getBase(op->getOut()->getSize(),TYPE_INT);
   TypePointer *ptype = (TypePointer *)op->getIn(0)->getTypeReadFacing(op);
   if (ptype->getMetatype() != TYPE_PTR) return dt;
@@ -2776,7 +2769,7 @@ Datatype *TypeOpPtrsub::getOutputLocal(const PcodeOp *op) const
   int8 unusedOffset;
   TypePointer *unusedParent;
 
-  rettype = ptype->downChain(offset,unusedParent,unusedOffset,false,*tlst);
+  Datatype *rettype = ptype->downChain(offset,unusedParent,unusedOffset,false,*tlst);
   if (offset != 0) return dt;
   if (rettype == (Datatype *)0) return dt;
   if (rettype->getMetatype() != TYPE_PTR) return dt;
@@ -2826,14 +2819,16 @@ Datatype *TypeOpPtrsub::getInputCast(const PcodeOp *op,int4 slot,const CastStrat
 Datatype *TypeOpPtrsub::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
 
 {
-  Datatype *rettype = recoverVarargsType(op);
-  if (rettype != (Datatype *)0) return rettype;
+  if (op->isVarargPtrsub(false)) {
+    vector<Datatype *> datatypes = tlst->findAll("va_list");
+    if (datatypes.size() == 1) return datatypes[0];
+  }
   TypePointer *ptype = (TypePointer *)op->getIn(0)->getHighTypeReadFacing(op);
   if (ptype->getMetatype() == TYPE_PTR) {
     int8 offset = AddrSpace::addressToByte((int8)op->getIn(1)->getOffset(),ptype->getWordSize());
     int8 unusedOffset;
     TypePointer *unusedParent;
-    rettype = ptype->downChain(offset,unusedParent,unusedOffset,false,*tlst);
+    Datatype *rettype = ptype->downChain(offset,unusedParent,unusedOffset,false,*tlst);
     if (rettype != (Datatype *)0) {
       if (offset==0) return rettype;
       if (rettype->getMetatype() == TYPE_PTR) {
