@@ -2745,47 +2745,7 @@ Datatype *TypeOpPtrsub::getRelativePointerType(const PcodeOp *op) const
 Datatype *TypeOpPtrsub::recoverVarargsType(const PcodeOp *op) const
 
 {
-  Funcdata *fd = op->getFuncdata();
-  if (fd == (Funcdata *)0) return (Datatype *)0;
-  bool stackGrowsNegative = fd->isStackGrowsNegative();
-  if (!fd->getFuncProto().isDotdotdot()) return (Datatype *)0;
-  const Varnode *vn0 = op->getIn(0);
-  const Varnode *vn1 = op->getIn(1);
-
-  Datatype *ct = vn0->getTypeReadFacing(op);
-  if (ct->getMetatype() != TYPE_PTR) return (Datatype *)0;
-  Datatype *sb = ((TypePointer *)ct)->getPtrTo();
-  if (sb->getMetatype() != TYPE_SPACEBASE) return (Datatype *)0;
-  AddrSpace *spc = ((TypeSpacebase *)sb)->getSpace();
-
-  if (!vn1->isConstant()) return (Datatype *)0;
-  intb off = sign_extend(vn1->getOffset(),8*vn1->getSize()-1);
-  if (stackGrowsNegative) {
-    if (off < 0) return (Datatype *)0;
-  }
-  else {
-    if (off > 0) return (Datatype *)0;
-  }
-
-  int4 num = fd->getFuncProto().numParams();
-  if (num < 1) return (Datatype *)0;
-  ProtoParameter *last = fd->getFuncProto().getParam(num-1);
-  Address addr = last->getAddress();
-  if (addr.getSpace() == spc) {
-    intb addroff = sign_extend(addr.getOffset(),8*addr.getAddrSize()-1);
-    if (stackGrowsNegative) {
-      if (addroff < 0) return (Datatype *)0;
-      int4 size = last->getSize();
-      intb min = addroff + size;
-      if (off < min) return (Datatype *)0;
-    }
-    else {
-      if (addroff > 0) return (Datatype *)0;
-      intb max = addroff - 1;
-      if (off > max) return (Datatype *)0;
-    }
-  }
-
+  if (!op->isVarargPtrsub(false)) return (Datatype *)0;
   vector<Datatype *> datatypes = tlst->findAll("va_list");
   if (datatypes.size() == 1) return datatypes[0];
   return (Datatype *)0;
