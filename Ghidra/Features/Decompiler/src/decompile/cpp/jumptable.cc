@@ -245,7 +245,10 @@ uintb EmulateFunction::emulatePath(uintb val,const PathMeld &pathMeld,
     }
     catch(DataUnavailError &err) {
       ostringstream msg;
-      msg << "Could not emulate address calculation at " << curop->getAddr();
+      msg << "Could not emulate address calculation at ";
+      msg << curop->getAddr();
+      msg << "\n";
+      msg << err.explain;
       throw LowlevelError(msg.str());
     }
   }
