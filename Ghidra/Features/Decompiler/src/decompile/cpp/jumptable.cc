@@ -181,14 +181,36 @@ uintb EmulateFunction::getVarnodeValue(Varnode *vn) const
 { // Get the value of a Varnode which is in a syntax tree
   // We can't just use the memory location as, within the tree,
   // this is just part of the label
+  AddrSpace *spc = vn->getSpace();
+  uintb offset = vn->getOffset();
+  int4 sz = vn->getSize();
+
   if (vn->isConstant())
-    return vn->getOffset();
+    return offset;
   map<Varnode *,uintb>::const_iterator iter;
   iter = varnodeMap.find(vn);
   if (iter != varnodeMap.end())
     return (*iter).second;	// We have seen this varnode before
 
-  return getLoadImageValue(vn->getSpace(),vn->getOffset(),vn->getSize());
+  // For uniques
+  if (spc->getType() == IPTR_INTERNAL) {
+    PcodeOp *op = vn->getDef();
+    // Defined with some pcodeop
+    if (op != (PcodeOp *)0) {
+      // It's possible to recover value
+      uintb in1 = 0;
+      uintb in2 = 0;
+      OpBehavior *behave = op->getOpcode()->getBehavior();
+      switch (op->code()) {
+	case CPUI_INT_MULT:
+	  in1 = getVarnodeValue(op->getIn(0));
+	  in2 = getVarnodeValue(op->getIn(1));
+	  return behave->evaluateBinary(op->getOut()->getSize(),op->getIn(0)->getSize(),in1,in2);
+      }
+    }
+  }
+
+  return getLoadImageValue(spc,offset,sz);
 }
 
 void EmulateFunction::setVarnodeValue(Varnode *vn,uintb val)
