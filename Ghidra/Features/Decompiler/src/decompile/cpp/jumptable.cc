@@ -192,22 +192,20 @@ uintb EmulateFunction::getVarnodeValue(Varnode *vn) const
   if (iter != varnodeMap.end())
     return (*iter).second;	// We have seen this varnode before
 
-  // For uniques
-  if (spc->getType() == IPTR_INTERNAL) {
-    PcodeOp *op = vn->getDef();
-    // Defined with some pcodeop
-    if (op != (PcodeOp *)0) {
-      // It's possible to recover value
-      uintb in1 = 0;
-      uintb in2 = 0;
-      OpBehavior *behave = op->getOpcode()->getBehavior();
-      switch (op->code()) {
-	case CPUI_INT_MULT:
-	  in1 = getVarnodeValue(op->getIn(0));
-	  in2 = getVarnodeValue(op->getIn(1));
-	  return behave->evaluateBinary(op->getOut()->getSize(),op->getIn(0)->getSize(),in1,in2);
-      }
-    }
+  PcodeOp *op = vn->getDef();
+  if (op == (PcodeOp *)0) return getLoadImageValue(spc,offset,sz);
+  Varnode *in0 = (Varnode *)0;
+  Varnode *in1 = (Varnode *)0;
+  OpBehavior *behave = op->getOpcode()->getBehavior();
+  switch (op->code()) {
+  case CPUI_INT_MULT:
+    in0 = op->getIn(0);
+    in1 = op->getIn(1);
+    if (!in0->isConstant()) break;
+    if (!in1->isConstant()) break;
+    return behave->evaluateBinary(op->getOut()->getSize(),op->getIn(0)->getSize(),in0->getOffset(),in1->getOffset());
+  default:
+    break;
   }
 
   return getLoadImageValue(spc,offset,sz);
