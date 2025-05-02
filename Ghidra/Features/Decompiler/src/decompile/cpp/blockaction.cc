@@ -1647,6 +1647,15 @@ bool CollapseStructure::checkSwitchSkips(FlowBlock *switchbl,FlowBlock *exitbloc
   return false;
 }
 
+bool CollapseStructure::needsIfNoExitFirst(FlowBlock *bl)
+
+{
+  if (!bl->hasSpecialFunction()) return false;
+  if (bl->sizeIn() == 0) return false;
+  // TODO check loops
+  return true;
+}
+
 /// Try to find a switch structure, starting with the given FlowBlock.
 /// \param bl is the given FlowBlock
 /// \return \b true if the structure was applied
@@ -1799,8 +1808,8 @@ int4 CollapseStructure::collapseInternal(FlowBlock *targetbl)
 	}
 
 	// For exception clauses
-	if (bl->hasSpecialFunction()) {
-	  // Always try ifnoexit first
+	if (needsIfNoExitFirst(bl)) {
+	  // Try ifnoexit first
 	  if (ruleBlockIfNoExit(bl)) {
 	    change = true;
 	    break;
