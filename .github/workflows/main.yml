@@ -28,7 +28,7 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle
 
       - name: Cache Ghidra dependency repository
-        uses: eskatos/gradle-command-action@v1
+        uses: eskatos/gradle-command-action@v3
         with:
           gradle-version: 8.5
           arguments: --init-script gradle/support/fetchDependencies.gradle init
@@ -46,7 +46,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
 
       - name: Build Ghidra
-        uses: eskatos/gradle-command-action@v1
+        uses: eskatos/gradle-command-action@v3
         with:
           gradle-version: 8.5
           arguments: buildGhidra
