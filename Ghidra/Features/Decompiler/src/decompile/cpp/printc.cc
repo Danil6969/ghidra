@@ -452,39 +452,62 @@ bool PrintC::checkAddressOfCast(const PcodeOp *op) const
   return true;
 }
 
+bool PrintC::isNonstructCast(Datatype *inType,Datatype *outType) const
+
+{
+  if (outType->getMetatype() != TYPE_PTR) return false;
+  if (inType->getMetatype() != TYPE_PTR) return false;
+
+  Datatype *outPointedType = (Datatype *)0;
+  Datatype *inPointedType = (Datatype *)0;
+
+  if (outType->isPointerRel()) {
+    outPointedType = ((TypePointerRel *)outType)->getParent();
+  }
+  else {
+    outPointedType = ((TypePointer *)outType)->getPtrTo();
+  }
+  if (inType->isPointerRel()) {
+    inPointedType = ((TypePointerRel *)inType)->getParent();
+  }
+  else {
+    inPointedType = ((TypePointer *)inType)->getPtrTo();
+  }
+
+  if (inPointedType->getMetatype() != TYPE_STRUCT) return true;
+  if (outPointedType->getMetatype() != TYPE_STRUCT) return true;
+  return false;
+}
+
+bool PrintC::isUpcast(Datatype *inType,Datatype *outType) const
+
+{
+  if (outType->getMetatype() != TYPE_PTR) return false;
+  if (inType->getMetatype() != TYPE_PTR) return false;
+
+  if (outType->isPointerRel()) return false;
+  if (inType->isPointerRel()) return false;
+  Datatype *outPointedType = ((TypePointer *)outType)->getPtrTo();
+  Datatype *inPointedType = ((TypePointer *)inType)->getPtrTo();
+
+  if (inPointedType->getMetatype() != TYPE_STRUCT) return false;
+  if (outPointedType->getMetatype() != TYPE_STRUCT) return false;
+
+  TypePointer *inVfptrType = (TypePointer *)inType;
+  //inVfptrType->downChain();
+  return false;
+}
+
 /// What is considered as simple cast:
 ///  - to bool
-///  - pointer to pointer which has either non-struct pointed-to (input or output)
+///  - upcast
+///  - pointer to pointer either of which (input or output) points to non-struct
 bool PrintC::isSimpleCast(Datatype *inType,Datatype *outType) const
 
 {
-  type_metatype outMeta = outType->getMetatype();
-  type_metatype inMeta = inType->getMetatype();
-  if (outMeta == TYPE_BOOL) return true;
-  if (outMeta == TYPE_PTR && inMeta == TYPE_PTR) {
-    Datatype *outPointedType;
-    Datatype *inPointedType;
-
-    if (outType->isPointerRel()) {
-      outPointedType = ((TypePointerRel *)outType)->getParent();
-    }
-    else {
-      outPointedType = ((TypePointer *)outType)->getPtrTo();
-    }
-    if (inType->isPointerRel()) {
-      inPointedType = ((TypePointerRel *)inType)->getParent();
-    }
-    else {
-      inPointedType = ((TypePointer *)inType)->getPtrTo();
-    }
-
-    type_metatype outPointedMeta = outPointedType->getMetatype();
-    type_metatype inPointedMeta = inPointedType->getMetatype();
-    if (inPointedMeta == TYPE_STRUCT && outPointedMeta == TYPE_STRUCT) {
-      return false;
-    }
-    return true;
-  }
+  if (outType->getMetatype() == TYPE_BOOL) return true;
+  if (isNonstructCast(inType,outType)) return true;
+  if (isUpcast(inType,outType)) return true;
   return false;
 }
 
