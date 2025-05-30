@@ -180,6 +180,8 @@ protected:
   bool checkArrayDeref(const Varnode *vn) const;	///< Determine whether a LOAD/STORE expression requires pointer '*' syntax
   bool needsToArr(const Varnode *vn) const;		///< Determine whether TOARR is required because of rvalue restrictions
   bool checkAddressOfCast(const PcodeOp *op) const;	///< Check if CAST can be printed as an '&'
+  bool isNonstructCast(Datatype *inType,Datatype *outType) const;
+  bool isUpcast(Datatype *inType,Datatype *outType) const;
   bool isSimpleCast(Datatype *inType,Datatype *outType) const;
   void emitStructDefinition(const TypeStruct *ct);	///< Emit the definition of a \e structure data-type
   void emitEnumDefinition(const TypeEnum *ct);		///< Emit the definition of an \e enumeration data-type
