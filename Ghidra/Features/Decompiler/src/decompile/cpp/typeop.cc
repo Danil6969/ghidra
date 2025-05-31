@@ -2827,19 +2827,16 @@ Datatype *TypeOpPtrsub::getOutputToken(const PcodeOp *op,CastStrategy *castStrat
     return TypeOp::getOutputToken(op,castStrategy);
 
   Datatype *basetype = tlst->getBase(1, TYPE_UNKNOWN);
+  TypePointer *tp = tlst->getTypePointer(op->getOut()->getSize(), basetype, ptype->getWordSize());
+
   int8 offset = AddrSpace::addressToByte((int8)op->getIn(1)->getOffset(),ptype->getWordSize());
   int8 unusedOffset;
   TypePointer *unusedParent;
-  TypePointer *rettype = ptype->downChain(offset,unusedParent,unusedOffset,false,*tlst);
-  if (rettype == (TypePointer *)0) {
-    return tlst->getTypePointer(op->getOut()->getSize(),basetype,ptype->getWordSize());
-  }
-  if (offset==0) return rettype;
-  if (rettype->getMetatype() == TYPE_PTR) {
-    TypePointerRel *tp = tlst->getTypePointerRel((TypePointer *)rettype,ptype->getPtrTo(),offset);
-    return tp;
-  }
-  return tlst->getTypePointer(op->getOut()->getSize(),basetype,ptype->getWordSize());
+  TypePointer *restype = ptype->downChain(offset,unusedParent,unusedOffset,false,*tlst);
+  if (restype == (TypePointer *)0) return tp;
+  if (offset==0) return restype;
+  if (restype->getMetatype() != TYPE_PTR) return tp;
+  return tlst->getTypePointerRel(restype,ptype->getPtrTo(),offset);
 }
 
 Datatype *TypeOpPtrsub::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn,Varnode *outvn,
