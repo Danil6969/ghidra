@@ -2769,10 +2769,9 @@ Datatype *TypeOpPtrsub::getOutputLocal(const PcodeOp *op) const
   int8 unusedOffset;
   TypePointer *unusedParent;
 
-  Datatype *rettype = ptype->downChain(offset,unusedParent,unusedOffset,false,*tlst);
+  TypePointer *rettype = ptype->downChain(offset,unusedParent,unusedOffset,false,*tlst);
   if (offset != 0) return dt;
-  if (rettype == (Datatype *)0) return dt;
-  if (rettype->getMetatype() != TYPE_PTR) return dt;
+  if (rettype == (TypePointer *)0) return dt;
 
   // Output is ptr to type of subfield
   return rettype;
@@ -2824,22 +2823,23 @@ Datatype *TypeOpPtrsub::getOutputToken(const PcodeOp *op,CastStrategy *castStrat
     if (datatypes.size() == 1) return datatypes[0];
   }
   TypePointer *ptype = (TypePointer *)op->getIn(0)->getHighTypeReadFacing(op);
-  if (ptype->getMetatype() == TYPE_PTR) {
-    int8 offset = AddrSpace::addressToByte((int8)op->getIn(1)->getOffset(),ptype->getWordSize());
-    int8 unusedOffset;
-    TypePointer *unusedParent;
-    Datatype *rettype = ptype->downChain(offset,unusedParent,unusedOffset,false,*tlst);
-    if (rettype != (Datatype *)0) {
-      if (offset==0) return rettype;
-      if (rettype->getMetatype() == TYPE_PTR) {
-	TypePointerRel *tp = tlst->getTypePointerRel((TypePointer *)rettype,ptype->getPtrTo(),offset);
-	return tp;
-      }
-    }
-    rettype = tlst->getBase(1, TYPE_UNKNOWN);
-    return tlst->getTypePointer(op->getOut()->getSize(), rettype, ptype->getWordSize());
+  if (ptype->getMetatype() != TYPE_PTR)
+    return TypeOp::getOutputToken(op,castStrategy);
+
+  Datatype *basetype = tlst->getBase(1, TYPE_UNKNOWN);
+  int8 offset = AddrSpace::addressToByte((int8)op->getIn(1)->getOffset(),ptype->getWordSize());
+  int8 unusedOffset;
+  TypePointer *unusedParent;
+  TypePointer *rettype = ptype->downChain(offset,unusedParent,unusedOffset,false,*tlst);
+  if (rettype == (TypePointer *)0) {
+    return tlst->getTypePointer(op->getOut()->getSize(),basetype,ptype->getWordSize());
   }
-  return TypeOp::getOutputToken(op,castStrategy);
+  if (offset==0) return rettype;
+  if (rettype->getMetatype() == TYPE_PTR) {
+    TypePointerRel *tp = tlst->getTypePointerRel((TypePointer *)rettype,ptype->getPtrTo(),offset);
+    return tp;
+  }
+  return tlst->getTypePointer(op->getOut()->getSize(),basetype,ptype->getWordSize());
 }
 
 Datatype *TypeOpPtrsub::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn,Varnode *outvn,
