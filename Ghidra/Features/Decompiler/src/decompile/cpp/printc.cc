@@ -452,7 +452,7 @@ bool PrintC::checkAddressOfCast(const PcodeOp *op) const
   return true;
 }
 
-bool PrintC::isNonstructCast(Datatype *inType,Datatype *outType) const
+bool PrintC::isNonstructCast(Datatype *inType,Datatype *outType,TypeFactory *types) const
 
 {
   if (outType->getMetatype() != TYPE_PTR) return false;
@@ -479,35 +479,58 @@ bool PrintC::isNonstructCast(Datatype *inType,Datatype *outType) const
   return false;
 }
 
-bool PrintC::isUpcast(Datatype *inType,Datatype *outType) const
+bool PrintC::isClassUpcast(Datatype *inType,Datatype *outType,TypeFactory *types) const
 
 {
-  if (outType->getMetatype() != TYPE_PTR) return false;
-  if (inType->getMetatype() != TYPE_PTR) return false;
-
-  if (outType->isPointerRel()) return false;
-  if (inType->isPointerRel()) return false;
+  if (outType->getSubMeta() != SUB_PTR_STRUCT) return false;
+  if (inType->getSubMeta() != SUB_PTR_STRUCT) return false;
   Datatype *outPointedType = ((TypePointer *)outType)->getPtrTo();
   Datatype *inPointedType = ((TypePointer *)inType)->getPtrTo();
-
   if (inPointedType->getMetatype() != TYPE_STRUCT) return false;
   if (outPointedType->getMetatype() != TYPE_STRUCT) return false;
+  int8 unusedOffset;
+  TypePointer *unusedParent;
 
-  TypePointer *inVfptrType = (TypePointer *)inType;
-  //inVfptrType->downChain();
+  int8 offset = 0;
+  TypePointer *inVfptrType = ((TypePointer *)inType)->downChain(offset,unusedParent,unusedOffset,false,*types);
+  if (inVfptrType == (TypePointer *)0) return false;
+  if (offset != 0) return false;
+  if (inVfptrType->getSubMeta() != SUB_PTR) return false;
+  Datatype *inpt = inVfptrType->getPtrTo();
+  if (inpt->getSubMeta() != SUB_PTR_STRUCT) return false;
+
+  offset = 0;
+  TypePointer *outVfptrType = ((TypePointer *)outType)->downChain(offset,unusedParent,unusedOffset,false,*types);
+  if (offset != 0) return false;
+  if (outVfptrType == (TypePointer *)0) return false;
+  if (outVfptrType->getSubMeta() != SUB_PTR) return false;
+  Datatype *outpt = outVfptrType->getPtrTo();
+  if (outpt->getSubMeta() != SUB_PTR_STRUCT) return false;
+
+  // TODO check that there are function pointers actually
+  inpt = ((TypePointer *)inpt)->getPtrTo();
+  outpt = ((TypePointer *)outpt)->getPtrTo();
+  if (inpt->getMetatype() != TYPE_STRUCT) return false;
+  TypeStruct *innerpt = (TypeStruct *)inpt;
+  while (true) {
+    TypeField field = *innerpt->beginField();
+    if (field.type->getMetatype() != TYPE_STRUCT) break;
+    innerpt = (TypeStruct *)field.type;
+    if (innerpt == outpt) return true;
+  }
   return false;
 }
 
 /// What is considered as simple cast:
-///  - to bool
-///  - upcast
-///  - pointer to pointer either of which (input or output) points to non-struct
-bool PrintC::isSimpleCast(Datatype *inType,Datatype *outType) const
+///  - pointer to bool
+///  - child class pointer to parent class pointer
+///  - pointer to pointer either of which or both (input or output) point(s) to non-struct
+bool PrintC::isSimpleCast(Datatype *inType,Datatype *outType,TypeFactory *types) const
 
 {
   if (outType->getMetatype() == TYPE_BOOL) return true;
-  if (isNonstructCast(inType,outType)) return true;
-  if (isUpcast(inType,outType)) return true;
+  if (isClassUpcast(inType,outType,types)) return true;
+  if (isNonstructCast(inType,outType,types)) return true;
   return false;
 }
 
@@ -649,7 +672,8 @@ void PrintC::opTypeCast(const PcodeOp *op)
     pushVn(inVn,op,mods);
     return;
   }
-  if (isSimpleCast(inType,outType)) {
+  TypeFactory *types = op->getFuncdata()->getArch()->types;
+  if (isSimpleCast(inType,outType,types)) {
     pushOp(&typecast,op);
     pushType(outType);
     pushVn(inVn,op,mods);
