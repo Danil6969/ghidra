@@ -4465,7 +4465,7 @@ void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata 
 /// \param op is the given op
 /// \param data is the given function
 /// \param worklist will hold input Varnodes that can propagate their consume property
-void ActionDeadCode::markConsumedContainer(PcodeOp *op,Funcdata &data,vector<Varnode *> &worklist)
+void ActionDeadCode::markConsumedAddOp(PcodeOp *op,Funcdata &data,vector<Varnode *> &worklist)
 
 {
   PcodeOp *addop = op;
@@ -4487,8 +4487,9 @@ void ActionDeadCode::markConsumedContainer(PcodeOp *op,Funcdata &data,vector<Var
 
   Varnode *cvn = addop->getIn(1);
   if (!cvn->isConstant()) return;
+  uintb val = cvn->getOffset();
   uint4 ws = space->getWordSize();
-  uintb curoff = AddrSpace::addressToByte(cvn->getOffset(),ws);
+  uintb curoff = AddrSpace::addressToByte(val,ws);
   markConsumedAddress(space,curoff,data,worklist);
 
   Address addr = sb->getAddress(curoff,basevn->getSize(),op->getAddr());
@@ -4521,7 +4522,7 @@ void ActionDeadCode::markConsumedParameters(FuncCallSpecs *fc,Funcdata &data,vec
     for(int4 i=1;i<callOp->numInput();++i) {
       Varnode *vn = callOp->getIn(i);
       pushConsumed(~((uintb)0),vn,worklist);	// Treat all parameters as fully consumed
-      markConsumedContainer(vn->getDef(),data,worklist);
+      markConsumedAddOp(vn->getDef(),data,worklist);
     }
     return;
   }
