@@ -482,8 +482,12 @@ bool PrintC::isNonstructCast(Datatype *inType,Datatype *outType,TypeFactory *typ
 bool PrintC::isClassUpcast(Datatype *inType,Datatype *outType,TypeFactory *types) const
 
 {
-  if (outType->getSubMeta() != SUB_PTR_STRUCT) return false;
-  if (inType->getSubMeta() != SUB_PTR_STRUCT) return false;
+  if (outType->getSubMeta() != SUB_PTR_STRUCT)
+    if (outType->getSubMeta() != SUB_PTR)
+      return false;
+  if (inType->getSubMeta() != SUB_PTR_STRUCT)
+    if (inType->getSubMeta() != SUB_PTR)
+      return false;
   Datatype *outPointedType = ((TypePointer *)outType)->getPtrTo();
   Datatype *inPointedType = ((TypePointer *)inType)->getPtrTo();
   if (inPointedType->getMetatype() != TYPE_STRUCT) return false;
