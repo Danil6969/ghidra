@@ -36,6 +36,7 @@ int4 RuleEarlyRemoval::applyOp(PcodeOp *op,Funcdata &data)
   if (!vn->hasNoDescend()) return 0;
   if (vn->isAutoLive()) return 0;
   AddrSpace *spc = vn->getSpace();
+  if (spc->getType() == IPTR_SPACEBASE) return 0;
   if (spc->doesDeadcode())
     if (!data.deadRemovalAllowedSeen(spc))
       return 0;
