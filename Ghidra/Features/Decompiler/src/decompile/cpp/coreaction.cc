@@ -4724,17 +4724,6 @@ int4 ActionDeadCode::apply(Funcdata &data)
   for(i=0;i<data.numCalls();++i)
     markConsumedParameters(data.getCallSpecs(i),data,worklist);
 
-  for(iter=data.beginOpAlive();iter!=data.endOpAlive();++iter) {
-    op = *iter;
-    if (op->code() != CPUI_COPY) continue;
-    spc = op->getOut()->getAddr().getSpace();
-    if (spc->getType() != IPTR_PROCESSOR) continue;
-    if (spc->getName() == "register") continue;
-    vn = op->getIn(0);
-    if (vn->getDef() == (PcodeOp *)0) continue;
-    markConsumedAddOp(vn->getDef(),data,worklist);
-  }
-
 				// Propagate the consume flags
   while(!worklist.empty())
     propagateConsumed(worklist);
