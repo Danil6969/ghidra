@@ -4142,6 +4142,7 @@ void ActionDeadCode::propagateConsumed(vector<Varnode *> &worklist)
   vn->clearConsumeList();
 
   PcodeOp *op = vn->getDef();	// Assume vn is written
+  Funcdata *fd = op->getFuncdata();
 
   int4 sz;
   uintb a,b;
@@ -4223,6 +4224,9 @@ void ActionDeadCode::propagateConsumed(vector<Varnode *> &worklist)
     }
     break;
   case CPUI_COPY:
+    pushConsumed(outc,op->getIn(0),worklist);
+    markConsumedAddOp(op->getIn(0)->getDef(),*fd,worklist);
+    break;
   case CPUI_INT_NEGATE:
     pushConsumed(outc,op->getIn(0),worklist);
     break;
@@ -4453,7 +4457,6 @@ void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata 
     PcodeOp *op = vn->getDef();
     if (!testSpacebase(op)) continue;
     pushConsumed(~((uintb)0),vn,worklist);
-    vn->setAutoLiveHold();
   }
 }
 
