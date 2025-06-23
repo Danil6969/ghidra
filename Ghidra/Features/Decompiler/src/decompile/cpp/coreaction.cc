@@ -4690,6 +4690,7 @@ int4 ActionDeadCode::apply(Funcdata &data)
     else {
       for(i=0;i<op->numInput();++i) {
 	vn = op->getIn(i);
+	// TODO fix incorrect optimize out
 	if (vn->isAutoLive())
 	  pushConsumed(~((uintb)0),vn,worklist);
       }
