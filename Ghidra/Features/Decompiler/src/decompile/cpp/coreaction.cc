@@ -4457,6 +4457,7 @@ void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata 
     PcodeOp *op = vn->getDef();
     if (!testSpacebase(op)) continue;
     pushConsumed(~((uintb)0),vn,worklist);
+    //vn->setAutoLiveHold();
   }
 }
 
