@@ -452,33 +452,6 @@ bool PrintC::checkAddressOfCast(const PcodeOp *op) const
   return true;
 }
 
-bool PrintC::isNonstructCast(Datatype *inType,Datatype *outType,TypeFactory *types) const
-
-{
-  if (outType->getMetatype() != TYPE_PTR) return false;
-  if (inType->getMetatype() != TYPE_PTR) return false;
-
-  Datatype *outPointedType = (Datatype *)0;
-  Datatype *inPointedType = (Datatype *)0;
-
-  if (outType->isPointerRel()) {
-    outPointedType = ((TypePointerRel *)outType)->getParent();
-  }
-  else {
-    outPointedType = ((TypePointer *)outType)->getPtrTo();
-  }
-  if (inType->isPointerRel()) {
-    inPointedType = ((TypePointerRel *)inType)->getParent();
-  }
-  else {
-    inPointedType = ((TypePointer *)inType)->getPtrTo();
-  }
-
-  if (inPointedType->getMetatype() != TYPE_STRUCT) return true;
-  if (outPointedType->getMetatype() != TYPE_STRUCT) return true;
-  return false;
-}
-
 bool PrintC::isClassUpcast(Datatype *inType,Datatype *outType,TypeFactory *types) const
 
 {
@@ -525,16 +498,47 @@ bool PrintC::isClassUpcast(Datatype *inType,Datatype *outType,TypeFactory *types
   return false;
 }
 
+bool PrintC::isNonstructCast(Datatype *inType,Datatype *outType,TypeFactory *types) const
+
+{
+  if (outType->getMetatype() != TYPE_PTR) return false;
+  if (inType->getMetatype() != TYPE_PTR) return false;
+
+  Datatype *outPointedType = (Datatype *)0;
+  Datatype *inPointedType = (Datatype *)0;
+
+  if (outType->isPointerRel()) {
+    outPointedType = ((TypePointerRel *)outType)->getParent();
+  }
+  else {
+    outPointedType = ((TypePointer *)outType)->getPtrTo();
+  }
+  if (inType->isPointerRel()) {
+    inPointedType = ((TypePointerRel *)inType)->getParent();
+  }
+  else {
+    inPointedType = ((TypePointer *)inType)->getPtrTo();
+  }
+
+  if (inPointedType->getMetatype() != TYPE_STRUCT) return true;
+  if (outPointedType->getMetatype() != TYPE_STRUCT) return true;
+  return false;
+}
+
 /// What is considered as simple cast:
 ///  - pointer to bool
 ///  - child class pointer to parent class pointer
 ///  - pointer to pointer either of which or both (input or output) point(s) to non-struct
+///  - pointer to integer
+///  - integer to pointer
 bool PrintC::isSimpleCast(Datatype *inType,Datatype *outType,TypeFactory *types) const
 
 {
   if (outType->getMetatype() == TYPE_BOOL) return true;
   if (isClassUpcast(inType,outType,types)) return true;
   if (isNonstructCast(inType,outType,types)) return true;
+  //if (isPointerIntegerCast(inType,outType,types)) return true;
+  //if (isIntegerPointerCast(inType,outType,types)) return true;
   return false;
 }
 
