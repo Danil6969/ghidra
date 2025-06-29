@@ -501,18 +501,10 @@ bool PrintC::isClassUpcast(Datatype *inType,Datatype *outType,TypeFactory *types
 bool PrintC::isNonstructCast(Datatype *inType,Datatype *outType,TypeFactory *types) const
 
 {
-  if (outType->getMetatype() != TYPE_PTR) return false;
   if (inType->getMetatype() != TYPE_PTR) return false;
+  if (outType->getMetatype() != TYPE_PTR) return false;
 
-  Datatype *outPointedType = (Datatype *)0;
   Datatype *inPointedType = (Datatype *)0;
-
-  if (outType->isPointerRel()) {
-    outPointedType = ((TypePointerRel *)outType)->getParent();
-  }
-  else {
-    outPointedType = ((TypePointer *)outType)->getPtrTo();
-  }
   if (inType->isPointerRel()) {
     inPointedType = ((TypePointerRel *)inType)->getParent();
   }
@@ -520,8 +512,34 @@ bool PrintC::isNonstructCast(Datatype *inType,Datatype *outType,TypeFactory *typ
     inPointedType = ((TypePointer *)inType)->getPtrTo();
   }
 
+  Datatype *outPointedType = (Datatype *)0;
+  if (outType->isPointerRel()) {
+    outPointedType = ((TypePointerRel *)outType)->getParent();
+  }
+  else {
+    outPointedType = ((TypePointer *)outType)->getPtrTo();
+  }
+
   if (inPointedType->getMetatype() != TYPE_STRUCT) return true;
   if (outPointedType->getMetatype() != TYPE_STRUCT) return true;
+  return false;
+}
+
+bool PrintC::isPointerIntegerCast(Datatype *inType,Datatype *outType,TypeFactory *types) const
+{
+  if (inType->getMetatype() != TYPE_PTR) return false;
+
+  if (outType->getMetatype() == TYPE_INT) return true;
+  if (outType->getMetatype() == TYPE_UINT) return true;
+  return false;
+}
+
+bool PrintC::isIntegerPointerCast(Datatype *inType,Datatype *outType,TypeFactory *types) const
+{
+  if (outType->getMetatype() != TYPE_PTR) return false;
+
+  if (inType->getMetatype() == TYPE_INT) return true;
+  if (inType->getMetatype() == TYPE_UINT) return true;
   return false;
 }
 
@@ -537,8 +555,8 @@ bool PrintC::isSimpleCast(Datatype *inType,Datatype *outType,TypeFactory *types)
   if (outType->getMetatype() == TYPE_BOOL) return true;
   if (isClassUpcast(inType,outType,types)) return true;
   if (isNonstructCast(inType,outType,types)) return true;
-  //if (isPointerIntegerCast(inType,outType,types)) return true;
-  //if (isIntegerPointerCast(inType,outType,types)) return true;
+  if (isPointerIntegerCast(inType,outType,types)) return true;
+  if (isIntegerPointerCast(inType,outType,types)) return true;
   return false;
 }
 
