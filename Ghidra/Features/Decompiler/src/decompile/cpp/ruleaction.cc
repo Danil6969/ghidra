@@ -4112,6 +4112,7 @@ bool RuleSubtractionCollapse::form1(PcodeOp *op,Funcdata &data)
     newvn->copySymbolIfValid(c[0]);
   else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
     newvn->copySymbolIfValid(c[1]);
+
   PcodeOp *newmultop = data.newOpBefore(op, CPUI_INT_MULT,v[1],cvn);
   PcodeOp *newaddop = data.newOpBefore(op,CPUI_INT_ADD,v[0],newmultop->getOut());
   data.opSetInput(op,newaddop->getOut(),0);
@@ -4161,6 +4162,7 @@ bool RuleSubtractionCollapse::form2(PcodeOp *op,Funcdata &data)
     newvn->copySymbolIfValid(c[0]);
   else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
     newvn->copySymbolIfValid(c[1]);
+
   PcodeOp *newmultop = data.newOpBefore(op, CPUI_INT_MULT,v,cvn);
   data.opSetInput(op,newmultop->getOut(),0);
   data.opSetInput(op,newvn,1);
@@ -4169,6 +4171,61 @@ bool RuleSubtractionCollapse::form2(PcodeOp *op,Funcdata &data)
 }
 
 bool RuleSubtractionCollapse::form3(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *v[2];           // Variable varnode
+  Varnode *c[2];           // Constant varnodes
+  intb val[2];             // Constant values
+  intb value;              // Final constant value
+  v[0] = (Varnode *)0;     // V
+  v[1] = (Varnode *)0;     // W
+  c[0] = (Varnode *)0;     // c
+  c[1] = (Varnode *)0;     // d
+  val[0] = 0;              // c
+  val[1] = 0;              // d
+  value = 0;               // c-d
+
+  if (op->code() != CPUI_INT_ADD) return false;
+  v[0] = op->getIn(0);
+  PcodeOp *addop = op->getIn(1)->getDef();
+  if (addop == (PcodeOp *)0) return false;
+  if (addop->code() != CPUI_INT_ADD) return false;
+  c[1] = addop->getIn(1);
+  PcodeOp *multop = addop->getIn(0)->getDef();
+  if (multop == (PcodeOp *)0) return false;
+  if (multop->code() != CPUI_INT_MULT) return false;
+
+  Varnode *cvn = multop->getIn(1);
+  if (!cvn->isConstant()) return false;
+  if (cvn->getOffset() != calc_mask(cvn->getSize())) return false;
+  PcodeOp *ptrsubop = multop->getIn(0)->getDef();
+  if (ptrsubop == (PcodeOp *)0) return false;
+  if (ptrsubop->code() != CPUI_PTRSUB) return false;
+  v[1] = ptrsubop->getIn(0);
+  c[0] = ptrsubop->getIn(1);
+
+  if (v[0]->isFree()) return false;
+  if (v[1]->isFree()) return false;
+  if (!c[0]->isConstant()) return false;
+  if (!c[1]->isConstant()) return false;
+
+  val[0] = sign_extend(c[0]->getOffset(),8*c[0]->getSize()-1);
+  val[1] = sign_extend(c[1]->getOffset(),8*c[1]->getSize()-1);
+  value = val[0] - val[1];
+
+  Varnode *newvn = data.newConstant(c[0]->getSize(),value&cvn->getOffset());
+  if (c[0]->getSymbolEntry() != (SymbolEntry *)0)
+    newvn->copySymbolIfValid(c[0]);
+  else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
+    newvn->copySymbolIfValid(c[1]);
+
+  PcodeOp *newaddop = data.newOpBefore(op,CPUI_INT_ADD,v[1],newvn);
+  PcodeOp *newmultop = data.newOpBefore(op,CPUI_INT_MULT,newaddop->getOut(),cvn);
+  data.opSetInput(op,newmultop->getOut(),1);
+  return true;
+}
+
+bool RuleSubtractionCollapse::form4(PcodeOp *op,Funcdata &data)
 
 {
   Varnode *v;              // Variable varnode
@@ -4215,6 +4272,9 @@ bool RuleSubtractionCollapse::form3(PcodeOp *op,Funcdata &data)
     newvn->copySymbolIfValid(c[0]);
   else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
     newvn->copySymbolIfValid(c[1]);
+  else if (c[2]->getSymbolEntry() != (SymbolEntry *)0)
+    newvn->copySymbolIfValid(c[2]);
+
   PcodeOp *newmultop = data.newOpBefore(op, CPUI_INT_MULT,v,cvn);
   data.opSetInput(op,newmultop->getOut(),0);
   data.opSetInput(op,newvn,1);
@@ -4222,7 +4282,7 @@ bool RuleSubtractionCollapse::form3(PcodeOp *op,Funcdata &data)
   return true;
 }
 
-bool RuleSubtractionCollapse::form4(PcodeOp *op,Funcdata &data)
+bool RuleSubtractionCollapse::form5(PcodeOp *op,Funcdata &data)
 
 {
   Varnode *v[4];           // Variable varnode
@@ -4303,7 +4363,12 @@ bool RuleSubtractionCollapse::form4(PcodeOp *op,Funcdata &data)
     newvn1->copySymbolIfValid(c[1]);
     newvn2->copySymbolIfValid(c[1]);
   }
-  PcodeOp *newaddop1 = data.newOpBefore(op,CPUI_INT_ADD,v[1],v[2]);;
+  else if (c[2]->getSymbolEntry() != (SymbolEntry *)0) {
+    newvn1->copySymbolIfValid(c[2]);
+    newvn2->copySymbolIfValid(c[2]);
+  }
+
+  PcodeOp *newaddop1 = data.newOpBefore(op,CPUI_INT_ADD,v[1],v[2]);
   PcodeOp *newaddop2 = data.newOpBefore(op,CPUI_INT_ADD,newaddop1->getOut(),v[3]);
   PcodeOp *newmultop1 = data.newOpBefore(op,CPUI_INT_MULT,newaddop2->getOut(),c[2]);
   PcodeOp *newmultop2 = data.newOpBefore(op,CPUI_INT_MULT,v[0],newvn1);
@@ -4329,6 +4394,7 @@ void RuleSubtractionCollapse::getOpList(vector<uint4> &oplist) const
 ///  - `(V + (W + d) * -1) + c  =>  (V + W * -1) + (c-d)`
 ///  - `(V + d) * -1 + c        =>  V * -1 + (c-d)`
 /// PTRADD forms:
+///  - `V + (d + PTRSUB(W,c) * -1)                                => V + (W + (c-d)) * -1`
 ///  - `PTRADD(V,d,e) * -1 + c                                    =>  V * -1 + (c-(d*e))`
 ///  - `PTRADD(PTRSUB(V,c),(((PTRSUB(V,d) * -1) + W) + X) + Y,e)  =>  ((((W + X) + Y) * e) + (V * 1-e)) + (c-d*e)`
 int4 RuleSubtractionCollapse::applyOp(PcodeOp *op,Funcdata &data)
@@ -4340,6 +4406,7 @@ int4 RuleSubtractionCollapse::applyOp(PcodeOp *op,Funcdata &data)
   // PTRADD
   if (form3(op,data)) return 1;
   if (form4(op,data)) return 1;
+  if (form5(op,data)) return 1;
   return 0;
 }
 
