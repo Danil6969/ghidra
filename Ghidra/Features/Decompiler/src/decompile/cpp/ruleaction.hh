@@ -765,6 +765,7 @@ class RuleSubtractionCollapse : public Rule {
   static bool form2(PcodeOp *op,Funcdata &data);
   static bool form3(PcodeOp *op,Funcdata &data);
   static bool form4(PcodeOp *op,Funcdata &data);
+  static bool form5(PcodeOp *op,Funcdata &data);
 public:
   RuleSubtractionCollapse(const string &g) : Rule(g, 0, "subtractioncollapse") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
