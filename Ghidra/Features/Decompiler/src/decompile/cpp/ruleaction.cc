@@ -6501,6 +6501,9 @@ int4 RuleUnlinkPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
   if (RuleInferPointerMult::canApply(op,data)) {
     if (unlinkAddOp(op,data)) return 1;
   }
+  if (RuleInferPointerAdd::canApply(op,data)) {
+    if (unlinkAddOp(op,data)) return 1;
+  }
   return 0;
 }
 
@@ -12480,6 +12483,13 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,set<Varnode *> visited
       if (checkPointerUsages(descend->getOut(),visitedVarnodes,data)) return true;
     }
     if (!(opc == CPUI_INT_ADD || opc == CPUI_INT_MULT)) continue;
+    if (descend->getOut() != (Varnode *)0) {
+      PcodeOp *lone = descend->getOut()->loneDescend();
+      if (lone != (PcodeOp *)0) {
+	if (lone->code() == CPUI_LOAD) return true;
+	if (lone->code() == CPUI_STORE) return true;
+      }
+    }
     Varnode *out = vn;
     PcodeOp *addop = op;
     if (!addop->containsInput(out)) return false;
@@ -12564,9 +12574,6 @@ PcodeOp *RuleInferPointerMult::getCounterInitOp(PcodeOp *multiop,int4 &slot)
 intb RuleInferPointerMult::getCounterIncrement(PcodeOp *op)
 
 {
-  // Should not touch if haven't split out other descendants yet
-  if (op->getOut()->loneDescend() == (PcodeOp *)0) return 0;
-
   // Increment must be constant
   Varnode *cvn = op->getIn(1);
   if (!cvn->isConstant()) return 0;
@@ -12646,6 +12653,9 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
 
   // Specific to this form
   if (op->code() != CPUI_INT_ADD) return false;
+
+  // Should not touch if haven't split out other descendants yet
+  if (op->getOut()->loneDescend() == (PcodeOp *)0) return false;
 
   intb increment = getCounterIncrement(op);
   if (increment == 0) return false;
@@ -12848,22 +12858,51 @@ PcodeOp *RuleInferPointerAdd::getCounterInitOp(PcodeOp *multiop,int4 &slot)
   return (PcodeOp *)0;
 }
 
+intb RuleInferPointerAdd::getCounterIncrement(PcodeOp *op)
+
+{
+  // Increment must be constant
+  Varnode *cvn = op->getIn(1);
+  if (!cvn->isConstant()) return 0;
+  Varnode *invn = op->getIn(0);
+  if (invn->isFree()) return 0;
+
+  PcodeOp *multiop = invn->getDef();
+  if (multiop == (PcodeOp *)0) return 0;
+  if (multiop->code() != CPUI_MULTIEQUAL) return 0;
+
+  // Check multi input
+  Varnode *inmulti = multiop->getIn(1);
+  if (inmulti->isFree()) return 0;
+  PcodeOp *inadd = inmulti->getDef();
+  if (inadd == (PcodeOp *)0) return 0;
+  // Must loop to INT_ADD
+  if (inadd != op) return 0;
+
+  int4 slot;
+  PcodeOp *initop = getCounterInitOp(multiop,slot);
+  if (initop == (PcodeOp *)0) return 0;
+  return sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
+}
+
 bool RuleInferPointerAdd::isMainOp(PcodeOp *mainop,PcodeOp *otherop)
 
 {
   if (otherop == mainop) return true;
-  intb increment = RuleInferPointerMult::getCounterIncrement(mainop);
+  intb increment = getCounterIncrement(mainop);
   if (otherop->code() != CPUI_INT_ADD) return false;
   if (otherop->getIn(0) != mainop->getIn(0)) return false;
   if (!otherop->getIn(1)->isConstant()) return false;
   Varnode *cvn = otherop->getIn(1);
   intb c = sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
   if (c != increment) return false;
-  if (otherop->getAddr() == mainop->getAddr()) return true;
   PcodeOp *lone = otherop->getOut()->loneDescend();
   if (lone != (PcodeOp *)0) {
     if (lone->code() == CPUI_INDIRECT) return true;
+    if (lone->code() == CPUI_LOAD) return false;
+    if (lone->code() == CPUI_STORE) return false;
   }
+  if (otherop->getAddr() == mainop->getAddr()) return true;
   return false;
 }
 
@@ -12895,7 +12934,10 @@ bool RuleInferPointerAdd::getOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb 
 bool RuleInferPointerAdd::formConstant(PcodeOp *op,Funcdata &data)
 
 {
-  intb increment = RuleInferPointerMult::getCounterIncrement(op);
+  // Should not touch if haven't split out other descendants yet
+  if (op->getOut()->loneDescend() == (PcodeOp *)0) return false;
+
+  intb increment = getCounterIncrement(op);
   if (increment == 0) return false;
 
   PcodeOp *multiOp = op->getIn(0)->getDef();
@@ -12944,19 +12986,22 @@ bool RuleInferPointerAdd::formConstant(PcodeOp *op,Funcdata &data)
 bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
 
 {
-  intb increment = RuleInferPointerMult::getCounterIncrement(op);
+  // Should not touch if haven't split out other descendants yet
+  if (op->getOut()->loneDescend() == (PcodeOp *)0) return false;
+
+  intb increment = getCounterIncrement(op);
   if (increment == 0) return false;
 
   PcodeOp *multiOp = op->getIn(0)->getDef();
   int4 slot; // Slot with constant
-  PcodeOp *initOp = getCounterInitOp(multiOp, slot);
+  PcodeOp *initOp = getCounterInitOp(multiOp,slot);
 
   if (initOp == (PcodeOp *)0) return false;
   if (initOp->code() != CPUI_INT_ADD) return false;
   Varnode *cvn = initOp->getIn(slot);
   if (!cvn->isConstant()) return false;
   int4 size = cvn->getSize();
-  Varnode *spacebasevn = initOp->getIn(1 - slot);
+  Varnode *spacebasevn = initOp->getIn(1-slot);
   if (spacebasevn->isFree()) return false;
   if (!spacebasevn->isSpacebase()) return false;
   Varnode *initopOut = initOp->getOut();
@@ -12985,6 +13030,7 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
     descends.push_back(descend);
   }
 
+  if (descends.empty()) return false;
   for(vector<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
     PcodeOp *descend = *iter;
     PcodeOp *newop = data.newOpAfter(multiOp,CPUI_INT_ADD,multiOut,initopOut);
@@ -12992,7 +13038,28 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
     data.opSetInput(descend,newop->getOut(),slot);
   }
   // Also subtract initializer
-  data.opSetInput(multiOp,data.newConstant(size,0),0);
+  PcodeOp *newop = data.newOpBefore(multiOp,CPUI_COPY,data.newConstant(size,0));
+  data.opSetInput(multiOp,newop->getOut(),0);
+  return true;
+}
+
+bool RuleInferPointerAdd::canApply(PcodeOp *op,Funcdata &data)
+
+{
+  intb increment = getCounterIncrement(op);
+  if (increment == 0) return false;
+
+  Varnode *invn0 = op->getIn(0);
+  if (invn0->isFree()) return false;
+  PcodeOp *multiop = invn0->getDef();
+  int4 slot;
+  PcodeOp *initop = getCounterInitOp(multiop, slot);
+  if (initop == 0) return false;
+  Varnode *initvn = initop->getIn(slot);
+
+  Varnode *out = multiop->getOut();
+  if (out->isFree()) return false;
+
   return true;
 }
 
