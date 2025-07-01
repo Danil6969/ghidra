@@ -1800,6 +1800,8 @@ class RuleInferPointerAdd : public Rule {
   static bool formConstant(PcodeOp *op,Funcdata &data);
   static bool formSpacebase(PcodeOp *op,Funcdata &data);
 public:
+  static intb getCounterIncrement(PcodeOp *op);
+  static bool canApply(PcodeOp *op,Funcdata &data);
   RuleInferPointerAdd(const string &g) : Rule(g,0,"inferpointeradd") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
