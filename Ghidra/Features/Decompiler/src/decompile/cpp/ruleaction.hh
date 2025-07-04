@@ -1774,14 +1774,14 @@ public:
 
 class RuleInferPointerMult : public Rule {
   static PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
-  static bool isMainOp(PcodeOp *mainop,PcodeOp *otherop);
+  static intb getCounterIncrement(PcodeOp *op);
+  static intb getCounterMultiplier(PcodeOp *op);
   // Forms for the rule
   static bool formIncrement(PcodeOp *op,Funcdata &data);
   static bool formAssignment(PcodeOp *op,Funcdata &data);
 public:
   static bool checkPointerUsages(Varnode *vn,set<Varnode *> visitedVarnodes,Funcdata &data);
-  static intb getCounterIncrement(PcodeOp *op);
-  static intb getCounterMultiplier(PcodeOp *op);
+  static bool isMainOp(PcodeOp *mainop,PcodeOp *otherop);
   static bool canApply(PcodeOp *op,Funcdata &data);
   RuleInferPointerMult(const string &g) : Rule(g,0,"inferpointermult") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
@@ -1794,13 +1794,12 @@ public:
 
 class RuleInferPointerAdd : public Rule {
   static PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
-  static bool isMainOp(PcodeOp *mainop,PcodeOp *otherop);
+  static intb getCounterIncrement(PcodeOp *op);
   static bool getOffsets(PcodeOp *op,PcodeOp *initop,int4 slot,intb increment,intb &shiftOffset,intb &initialOffset,int4 &size);
   // Forms for the rule
   static bool formConstant(PcodeOp *op,Funcdata &data);
   static bool formSpacebase(PcodeOp *op,Funcdata &data);
 public:
-  static intb getCounterIncrement(PcodeOp *op);
   static bool canApply(PcodeOp *op,Funcdata &data);
   RuleInferPointerAdd(const string &g) : Rule(g,0,"inferpointeradd") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
