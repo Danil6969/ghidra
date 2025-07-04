@@ -12639,8 +12639,10 @@ bool RuleInferPointerMult::isMainOp(PcodeOp *mainop,PcodeOp *otherop)
   intb c = sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
   if (c != increment) return false;
   PcodeOp *lone = otherop->getOut()->loneDescend();
+  // TODO investigate cases
   if (lone != (PcodeOp *)0) {
-    if (lone->code() == CPUI_INDIRECT) return true;
+    if (lone->code() == CPUI_INDIRECT)
+      return true;
     if (lone->code() == CPUI_LOAD) return false;
     if (lone->code() == CPUI_STORE) return false;
   }
