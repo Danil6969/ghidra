@@ -1178,8 +1178,10 @@ void Heritage::guard(const Address &addr,int4 size,bool addIndirects,
 
   for(iter=write.begin();iter!=write.end();++iter) {
     vn = *iter;
-    if (vn->getSize() < size)
-      *iter = vn = normalizeWriteSize(vn,addr,size);
+    if (vn->getSize() < size) {
+      if (addr.getSpace()->getType() != IPTR_SPACEBASE)
+	*iter = vn = normalizeWriteSize(vn,addr,size);
+    }
     vn->setActiveHeritage();
   }
 
