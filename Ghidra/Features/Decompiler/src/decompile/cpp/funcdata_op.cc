@@ -650,12 +650,20 @@ PcodeOp *Funcdata::newOpAfter(PcodeOp *prev,OpCode opc,Varnode *in1,Varnode *in2
   PcodeOp *newop;
   int4 sz;
 
-  sz = (in3 == (Varnode *)0) ? 2 : 3;
+  if (in3 == (Varnode *)0) {
+    if (in2 == (Varnode *)0)
+      sz = 1;
+    else
+      sz = 2;
+  }
+  else
+    sz = 3;
   newop = newOp(sz,prev->getAddr());
   opSetOpcode(newop,opc);
   newUniqueOut(in1->getSize(),newop);
   opSetInput(newop,in1,0);
-  opSetInput(newop,in2,1);
+  if (sz>=2)
+    opSetInput(newop,in2,1);
   if (sz==3)
     opSetInput(newop,in3,2);
   opInsertAfter(newop,prev);
