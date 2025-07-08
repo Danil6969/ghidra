@@ -4610,7 +4610,7 @@ int4 ActionDeadCode::apply(Funcdata &data)
 {
   int4 i;
   list<PcodeOp *>::const_iterator iter;
-  PcodeOp *op;
+  PcodeOp *op,*lone;
   Varnode *vn;
   uintb returnConsume;
   vector<Varnode *> worklist;
@@ -4700,6 +4700,15 @@ int4 ActionDeadCode::apply(Funcdata &data)
     // TODO investigate cases
     switch (op->code()) {
     case CPUI_COPY:
+      if (vn->getSpace()->getType() != IPTR_SPACEBASE) break;
+      if (vn->hasNoDescend()) break;
+      lone = vn->loneDescend();
+      if (lone == (PcodeOp *)0) break;
+      if (lone->code() == CPUI_INDIRECT) {
+	pushConsumed(~((uintb)0),vn,worklist);
+	break;
+      }
+      break;
     case CPUI_INT_AND:
     case CPUI_INT_OR:
     case CPUI_INT_RIGHT:
