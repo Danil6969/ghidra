@@ -368,6 +368,17 @@ Datatype *TypeOpCopy::getInputCast(const PcodeOp *op,int4 slot,const CastStrateg
 {
   Datatype *reqtype = op->getOut()->getHighTypeDefFacing();	// Require input to be same type as output
   Datatype *curtype = op->getIn(0)->getHighTypeReadFacing(op);
+  while (reqtype->getSize() > op->getOut()->getSize()) {
+    if (reqtype->getMetatype() == TYPE_STRUCT) {
+      int8 off;
+      Datatype *sub = ((TypeStruct *)reqtype)->getSubType(0,&off);
+      if (sub == (Datatype *)0) break;
+      if (off != 0) break;
+      if (sub->getSize() < op->getOut()->getSize()) break;
+      reqtype = sub;
+    }
+    else break;
+  }
   return castStrategy->castStandard(reqtype,curtype,false,true);
 }
 
