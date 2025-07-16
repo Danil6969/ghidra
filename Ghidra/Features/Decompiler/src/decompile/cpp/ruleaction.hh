@@ -1781,7 +1781,7 @@ class RuleInferPointerMult : public Rule {
   static bool formAssignment(PcodeOp *op,Funcdata &data);
 public:
   static bool checkPointerUsages(Varnode *vn,set<Varnode *> visitedVarnodes,Funcdata &data);
-  static bool isMainOp(PcodeOp *mainop,PcodeOp *otherop);
+  static bool testMainOp(PcodeOp *mainop,PcodeOp *otherop,bool &isMain);
   static bool canApply(PcodeOp *op,Funcdata &data);
   RuleInferPointerMult(const string &g) : Rule(g,0,"inferpointermult") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
