@@ -446,7 +446,7 @@ public:
   PcodeOp *newOp(int4 inputs,const Address &pc);		/// Allocate a new PcodeOp with Address
   PcodeOp *newOp(int4 inputs,const SeqNum &sq);			/// Allocate a new PcodeOp with sequence number
   PcodeOp *newOpBefore(PcodeOp *follow,OpCode opc,Varnode *in1,Varnode *in2=(Varnode *)0,Varnode *in3=(Varnode *)0);
-  PcodeOp *newOpAfter(PcodeOp *prev,OpCode opc,Varnode *in1,Varnode *in2,Varnode *in3=(Varnode *)0);
+  PcodeOp *newOpAfter(PcodeOp *prev,OpCode opc,Varnode *in1,Varnode *in2=(Varnode *)0,Varnode *in3=(Varnode *)0);
   PcodeOp *cloneOp(const PcodeOp *op,const SeqNum &seq);	/// Clone a PcodeOp into \b this function
   PcodeOp *getFirstReturnOp(void) const;			/// Find a representative CPUI_RETURN op for \b this function
   PcodeOp *newIndirectOp(PcodeOp *indeffect,const Address &addr,int4 sz,uint4 extraFlags);
