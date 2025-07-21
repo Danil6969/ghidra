@@ -364,7 +364,10 @@ void PureOp::decode(Decoder &decoder)
 {
   uint4 elemId = decoder.openElement();
   name = decoder.readString(ATTRIB_NAME);
+  decoder.closeElement(elemId);
   UserPcodeOp *base = glb->userops.getOp(name);
+  if (base == (UserPcodeOp *)0)
+    throw LowlevelError("Unknown userop name in <pureop>: "+name);
   useropindex = base->getIndex();
 }
 
