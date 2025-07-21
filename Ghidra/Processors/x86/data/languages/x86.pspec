@@ -203,8 +203,8 @@
   <pureop name="cpuid_brand_part1_info"/>
   <pureop name="cpuid_brand_part2_info"/>
   <pureop name="cpuid_brand_part3_info"/>
-  <pureop name="exp"/>
-  <pureop name="log"/>
+  <pureop name="exp2"/>
+  <pureop name="log2"/>
   <pureop name="sin"/>
   <pureop name="cos"/>
   <pureop name="tan"/>
