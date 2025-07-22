@@ -15,7 +15,10 @@
  */
 package ghidra.program.model.data.delphi;
 
+import ghidra.program.model.address.Address;
 import ghidra.program.model.data.*;
+import ghidra.program.model.listing.*;
+import ghidra.program.model.util.ListingUtils;
 
 public class TVmtMethodEntry {
 	public static StructureDataType getDataType(CategoryPath path, DataTypeManager manager) {
@@ -24,5 +27,15 @@ public class TVmtMethodEntry {
 		dt.add(CodePointer.getDataType(path, manager), "CodeAddress", "");
 		dt.add(new ArrayDataType(CharDataType.dataType, 0, 1), "Name", "");
 		return dt;
+	}
+
+	public static Address putObject(Address address, CategoryPath path, Program program) {
+		ProgramBasedDataTypeManager manager = program.getDataTypeManager();
+		StructureDataType thisDT = getDataType(path, manager);
+		ListingUtils.deleteCreateData(address, thisDT, program);
+		address = address.add(thisDT.getLength());
+		Data data = ListingUtils.deleteCreateData(address, PascalString255DataType.dataType, program);
+		address = address.add(data.getLength());
+		return address;
 	}
 }
