@@ -15,7 +15,10 @@
  */
 package ghidra.program.model.data.delphi;
 
+import ghidra.program.model.address.Address;
 import ghidra.program.model.data.*;
+import ghidra.program.model.listing.Program;
+import ghidra.program.model.util.*;
 
 public class TVmtMethodExEntry {
 	public static StructureDataType getDataType(CategoryPath path, DataTypeManager manager) {
@@ -24,5 +27,14 @@ public class TVmtMethodExEntry {
 		dt.add(Word.getDataType(path, manager), "Flags", "");
 		dt.add(Smallint.getDataType(path, manager), "VirtualIndex", "");
 		return dt;
+	}
+
+	public static Address putObject(Address address, CategoryPath path, Program program) {
+		ProgramBasedDataTypeManager manager = program.getDataTypeManager();
+		StructureDataType thisDT = getDataType(path, manager);
+		ListingUtils.deleteCreateData(address, thisDT, program);
+		Address vmtMethodEntry = MemoryUtils.readPointer(address, program);
+		address = address.add(thisDT.getLength());
+		return address;
 	}
 }
