@@ -15,12 +15,11 @@
  */
 package ghidra.program.model.data.delphi;
 
-import ghidra.program.model.util.ListingUtils;
-import ghidra.program.model.util.MemoryUtils;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.data.*;
 import ghidra.program.model.listing.Program;
 import ghidra.program.model.mem.MemoryAccessException;
+import ghidra.program.model.util.*;
 
 public class TVmtFieldTable_0 {
 	public static StructureDataType getDataType(CategoryPath path, DataTypeManager manager) {
