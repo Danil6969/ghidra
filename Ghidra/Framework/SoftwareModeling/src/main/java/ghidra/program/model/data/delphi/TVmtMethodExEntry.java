@@ -35,6 +35,7 @@ public class TVmtMethodExEntry {
 		ListingUtils.deleteCreateData(address, thisDT, program);
 		Address vmtMethodEntry = MemoryUtils.readPointer(address, program);
 		address = address.add(thisDT.getLength());
+		TVmtMethodEntry.putObject(vmtMethodEntry, path, program);
 		return address;
 	}
 }
