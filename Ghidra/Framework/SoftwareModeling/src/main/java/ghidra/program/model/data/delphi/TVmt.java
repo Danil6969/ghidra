@@ -70,6 +70,10 @@ public class TVmt {
 			TVmtFieldTable_0.putObject(vmtFieldTable, path, program);
 		}
 		address = address.add(pointerDT.getLength());
+		Address vmtMethodTable = MemoryUtils.readPointer(address, program);
+		if (vmtMethodTable != null) {
+			TVmtMethodTable_0.putObject(vmtMethodTable, path, program);
+		}
 		address = address.add(pointerDT.getLength());
 		address = address.add(pointerDT.getLength());
 		Address vmtClassName = MemoryUtils.readPointer(address, program);
