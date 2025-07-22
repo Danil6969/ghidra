@@ -41,7 +41,7 @@ public class TVmtMethodTable_0 {
 			for (int i = 0; i < count; i++) {
 				address = TVmtMethodEntry.putObject(address, path, program);
 			}
-			return address;
+			return TVmtMethodTable_1.putObject(address, path, program);
 		} catch (MemoryAccessException e) {
 			return null;
 		}
