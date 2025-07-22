@@ -15,12 +15,11 @@
  */
 package ghidra.program.model.data.delphi;
 
-import ghidra.program.model.util.ListingUtils;
-import ghidra.program.model.util.MemoryUtils;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.data.*;
 import ghidra.program.model.listing.*;
 import ghidra.program.model.mem.MemoryAccessException;
+import ghidra.program.model.util.*;
 
 public class TVmtFieldExEntry {
 	public static StructureDataType getDataType(CategoryPath path, DataTypeManager manager) {
@@ -36,8 +35,8 @@ public class TVmtFieldExEntry {
 		try {
 			ProgramBasedDataTypeManager manager = program.getDataTypeManager();
 			StructureDataType thisDT = getDataType(path, manager);
-			TypedefDataType byteDT = Byte.getDataType(path, manager);
 			ListingUtils.deleteCreateData(address, thisDT, program);
+			TypedefDataType byteDT = Byte.getDataType(path, manager);
 			address = address.add(thisDT.getLength());
 			Data data = ListingUtils.deleteCreateData(address, PascalString255DataType.dataType, program);
 			address = address.add(data.getLength());
