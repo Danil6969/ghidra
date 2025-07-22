@@ -15,7 +15,11 @@
  */
 package ghidra.program.model.data.delphi;
 
+import ghidra.program.model.address.Address;
 import ghidra.program.model.data.*;
+import ghidra.program.model.listing.Program;
+import ghidra.program.model.mem.MemoryAccessException;
+import ghidra.program.model.util.*;
 
 public class TVmtMethodTable_0 {
 	public static StructureDataType getDataType(CategoryPath path, DataTypeManager manager) {
@@ -24,5 +28,22 @@ public class TVmtMethodTable_0 {
 		dt.add(Word.getDataType(path, manager), "Count", "");
 		dt.add(new ArrayDataType(entryDT, 0, entryDT.getLength()), "Entry", "");
 		return dt;
+	}
+
+	public static Address putObject(Address address, CategoryPath path, Program program) {
+		try {
+			ProgramBasedDataTypeManager manager = program.getDataTypeManager();
+			StructureDataType thisDT = getDataType(path, manager);
+			ListingUtils.deleteCreateData(address, thisDT, program);
+			TypedefDataType wordDT = Word.getDataType(path, manager);
+			long count = MemoryUtils.readNumber(address, wordDT.getLength(), program);
+			address = address.add(thisDT.getLength());
+			for (int i = 0; i < count; i++) {
+				address = TVmtMethodEntry.putObject(address, path, program);
+			}
+			return address;
+		} catch (MemoryAccessException e) {
+			return null;
+		}
 	}
 }
