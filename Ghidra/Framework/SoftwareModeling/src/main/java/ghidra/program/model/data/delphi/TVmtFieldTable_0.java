@@ -35,9 +35,9 @@ public class TVmtFieldTable_0 {
 	public static Address putObject(Address address, CategoryPath path, Program program) {
 		try {
 			ProgramBasedDataTypeManager manager = program.getDataTypeManager();
-			ListingUtils.deleteCreateData(address, getDataType(path, manager), program);
+			StructureDataType thisDT = getDataType(path, manager);
+			ListingUtils.deleteCreateData(address, thisDT, program);
 			TypedefDataType wordDT = Word.getDataType(path, manager);
-			StructureDataType thisDT = TVmtFieldTable_0.getDataType(path, manager);
 			long count = MemoryUtils.readNumber(address, wordDT.getLength(), program);
 			address = address.add(thisDT.getLength());
 			for (int i = 0; i < count; i++) {
