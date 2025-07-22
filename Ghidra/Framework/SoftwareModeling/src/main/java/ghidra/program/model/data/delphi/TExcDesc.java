@@ -16,11 +16,10 @@
 package ghidra.program.model.data.delphi;
 
 import ghidra.program.model.data.*;
-import ghidra.program.model.util.ListingUtils;
-import ghidra.program.model.util.MemoryUtils;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.*;
 import ghidra.program.model.mem.MemoryAccessException;
+import ghidra.program.model.util.*;
 
 public class TExcDesc {
 	public static StructureDataType getDataType(CategoryPath path, DataTypeManager manager) {
@@ -35,8 +34,8 @@ public class TExcDesc {
 	public static Address putObject(Address address, CategoryPath path, Program program) {
 		try {
 			ProgramBasedDataTypeManager manager = program.getDataTypeManager();
-			StructureDataType thisDT = getDataType(path, manager);
 			TypedefDataType integerDT = Integer.getDataType(path, manager);
+			StructureDataType thisDT = getDataType(path, manager);
 			ListingUtils.deleteCreateData(address, thisDT, program);
 			long count = MemoryUtils.readNumber(address, integerDT.getLength(), program);
 			address = address.add(thisDT.getLength());
