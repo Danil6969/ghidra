@@ -42,6 +42,8 @@ public class TVmtMethodTable_1 {
 				ListingUtils.deleteCreateData(address, entryDT, program);
 				address = address.add(entryDT.getLength());
 			}
+			ListingUtils.deleteCreateData(address, wordDT, program);
+			address = address.add(wordDT.getLength());
 			return address;
 		} catch (MemoryAccessException e) {
 			return null;
