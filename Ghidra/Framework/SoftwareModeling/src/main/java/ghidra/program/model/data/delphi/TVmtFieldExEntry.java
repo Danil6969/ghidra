@@ -41,9 +41,11 @@ public class TVmtFieldExEntry {
 			Data data = ListingUtils.deleteCreateData(address, PascalString255DataType.dataType, program);
 			address = address.add(data.getLength());
 			long count = MemoryUtils.readNumber(address, byteDT.getLength(), program);
+			ListingUtils.deleteCreateData(address, byteDT, program);
 			address = address.add(byteDT.getLength());
 			for (int i = 1; i < count; i++) {
-				address = address.add(1);
+				ListingUtils.deleteCreateData(address, byteDT, program);
+				address = address.add(byteDT.getLength());
 			}
 			return address;
 		} catch (MemoryAccessException e) {
