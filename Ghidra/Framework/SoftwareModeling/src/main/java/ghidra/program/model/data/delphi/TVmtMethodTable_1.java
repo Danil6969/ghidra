@@ -38,7 +38,9 @@ public class TVmtMethodTable_1 {
 			long count = MemoryUtils.readNumber(address, wordDT.getLength(), program);
 			address = address.add(wordDT.getLength());
 			for (int i = 0; i < count; i++) {
-				address = TVmtMethodExEntry.putObject(address, path, program);
+				StructureDataType entryDT = TVmtMethodExEntry.getDataType(path, manager);
+				ListingUtils.deleteCreateData(address, entryDT, program);
+				address = address.add(entryDT.getLength());
 			}
 			return address;
 		} catch (MemoryAccessException e) {
