@@ -220,13 +220,7 @@ bool PcodeOp::isMultNonCollapsible(void) const
   const Varnode *out = getOut();
   if (out->hasNoDescend()) return false;
   PcodeOp *lone = out->loneDescend();
-  if (lone == (PcodeOp *)0) {
-    Varnode *stackvn = (*out->beginDescend())->getOut();
-    Funcdata *data = getFuncdata();
-    if (stackvn->isStackVariableAddress(*data,false,true))
-      return false;
-    return true;
-  }
+  if (lone == (PcodeOp *)0) return false;
 
   // Always collapse loop counters
   if (lone->isLoopedIncrement()) return false;
@@ -258,20 +252,16 @@ bool PcodeOp::isSubpieceNonCollapsible(void) const
   // Check if this is subtraction of two pointers
   if (dt == (Datatype *)0) return false;
   if (dt->getMetatype() != TYPE_PTR) return false;
-  const Varnode *out1 = getOut();
-  list<PcodeOp *>::const_iterator iter1;
-  for(iter1=out1->beginDescend();iter1!=out1->endDescend();++iter1) {
-    PcodeOp *op1 = *iter1;
-    if (op1 == (PcodeOp *)0) continue;
-    if (op1->code() != CPUI_INT_MULT) continue;
-    const Varnode *out2 = op1->getOut();
-    list<PcodeOp *>::const_iterator iter2;
-    for(iter2=out2->beginDescend();iter2!=out2->endDescend();++iter2) {
-      PcodeOp *op2 = *iter2;
-      if (op2 == (PcodeOp *)0) continue;
-      if (op2->code() != CPUI_INT_ADD) continue;
-      return true;
-    }
+  PcodeOp *lone = getOut()->loneDescend();
+  if (lone == (PcodeOp *)0) return false;
+  if (lone->code() != CPUI_INT_MULT) return false;
+  const Varnode *out = lone->getOut();
+  list<PcodeOp *>::const_iterator iter;
+  for(iter=out->beginDescend();iter!=out->endDescend();++iter) {
+    PcodeOp *op = *iter;
+    if (op == (PcodeOp *)0) continue;
+    if (op->code() != CPUI_INT_ADD) continue;
+    return true;
   }
   return false;
 }
@@ -285,15 +275,15 @@ bool PcodeOp::isCollapsible(void) const
   if (!isAssignment()) return false;
   if (inrefs.size()==0) return false;
   if (getOut()->getSize() > sizeof(uintb)) return false;
+  for(int4 i=0;i<inrefs.size();++i)
+    if (!getIn(i)->isConstant()) return false;
+  if (getOut()->numDescend() > 1) return true;
 
   // Check specific opcode dependent requirements
   if (isAddNonCollapsible()) return false;
   if (isMultNonCollapsible()) return false;
   if (isPieceNonCollapsible()) return false;
   if (isSubpieceNonCollapsible()) return false;
-
-  for(int4 i=0;i<inrefs.size();++i)
-    if (!getIn(i)->isConstant()) return false;
   return true;
 }
 
