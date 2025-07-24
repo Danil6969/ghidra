@@ -3697,6 +3697,11 @@ int4 RuleCollapseConstants::applyOp(PcodeOp *op,Funcdata &data)
 
   if (!op->isCollapsible()) return 0; // Expression must be collapsible
 
+  if (op->getOut()->numDescend() > 1) {
+    data.splitUses(op->getOut());
+    return 1;
+  }
+
   Address newval;
   bool markedInput = false;
   try {
