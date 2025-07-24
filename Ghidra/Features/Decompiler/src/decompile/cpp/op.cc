@@ -220,7 +220,6 @@ bool PcodeOp::isMultNonCollapsible(void) const
   const Varnode *out = getOut();
   if (out->hasNoDescend()) return false;
   PcodeOp *lone = out->loneDescend();
-  if (lone == (PcodeOp *)0) return false;
 
   // Always collapse loop counters
   if (lone->isLoopedIncrement()) return false;
@@ -253,7 +252,6 @@ bool PcodeOp::isSubpieceNonCollapsible(void) const
   if (dt == (Datatype *)0) return false;
   if (dt->getMetatype() != TYPE_PTR) return false;
   PcodeOp *lone = getOut()->loneDescend();
-  if (lone == (PcodeOp *)0) return false;
   if (lone->code() != CPUI_INT_MULT) return false;
   const Varnode *out = lone->getOut();
   list<PcodeOp *>::const_iterator iter;
