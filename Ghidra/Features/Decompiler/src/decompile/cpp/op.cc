@@ -208,7 +208,6 @@ bool PcodeOp::isAddNonCollapsible(void) const
 {
   if (code() != CPUI_INT_ADD) return false;
   Datatype *ct = getIn(0)->recoverConstantDatatype();
-  ct = getIn(0)->recoverConstantDatatype();
   if (ct != (Datatype *)0)
     return true;
   return false;
@@ -218,8 +217,16 @@ bool PcodeOp::isMultNonCollapsible(void) const
 
 {
   if (code() != CPUI_INT_MULT) return false;
-  PcodeOp *lone = getOut()->loneDescend();
-  if (lone == (PcodeOp *)0) return true;
+  const Varnode *out = getOut();
+  if (out->hasNoDescend()) return false;
+  PcodeOp *lone = out->loneDescend();
+  if (lone == (PcodeOp *)0) {
+    Varnode *stackvn = (*out->beginDescend())->getOut();
+    Funcdata *data = getFuncdata();
+    if (stackvn->isStackVariableAddress(*data,false,true))
+      return false;
+    return true;
+  }
 
   // Always collapse loop counters
   if (lone->isLoopedIncrement()) return false;
@@ -461,6 +468,7 @@ bool PcodeOp::isAllocaShift(void) const
 bool PcodeOp::isVarargPtrsub(bool firstOnly) const
 
 {
+  if (code() != CPUI_PTRSUB) return false;
   Funcdata *fd = getFuncdata();
   if (fd == (Funcdata *)0) return false;
   bool stackGrowsNegative = fd->isStackGrowsNegative();
