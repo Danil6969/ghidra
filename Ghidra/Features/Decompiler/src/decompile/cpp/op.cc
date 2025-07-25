@@ -275,7 +275,9 @@ bool PcodeOp::isCollapsible(void) const
   if (getOut()->getSize() > sizeof(uintb)) return false;
   for(int4 i=0;i<inrefs.size();++i)
     if (!getIn(i)->isConstant()) return false;
-  if (getOut()->numDescend() > 1) return true;
+  // At this point it is collapsible in sense that
+  // all inputs are constants. Now we have to split up descendants
+  if (getOut()->loneDescend() == (PcodeOp *)0) return true;
 
   // Check specific opcode dependent requirements
   if (isAddNonCollapsible()) return false;
