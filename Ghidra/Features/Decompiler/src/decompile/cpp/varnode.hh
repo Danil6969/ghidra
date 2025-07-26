@@ -349,7 +349,8 @@ public:
   void encode(Encoder &encoder) const; ///< Encode a description of \b this to a stream
   static bool comparePointers(const Varnode *a,const Varnode *b) { return (*a < *b); }	///< Compare Varnodes as pointers
   static void printRaw(ostream &s,const Varnode *vn);	///< Print raw info about a Varnode to stream
-  const Varnode *getCopyChainInput(void) const;
+  Varnode *getCopyChainInput(void);			///< Skip copy chain up to its root
+  const Varnode *getCopyChainInput(void) const;		///< Skip copy chain
   Datatype *recoverConstantDatatype(void) const;	///< Recover datatype of a constant based on flow
   Datatype *recoverGlobalDatatype(void) const;		///< Recover datatype of a global
   Datatype *recoverVftableDatatype(TypeFactory *types) const;	///< Recover datatype of last vftable store (from descendants)
