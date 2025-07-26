@@ -4475,6 +4475,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,Funcdata &data,vector<Varnode
   if (op == (PcodeOp *)0) return;
   if (op->getOut() == (Varnode *)0) return;
   PcodeOp *addop = op->getOut()->getCopyChainInput()->getDef();
+  if (addop == (PcodeOp *)0) return;
   if (addop->code() != CPUI_INT_ADD)
     if (addop->code() != CPUI_PTRSUB)
       return;
