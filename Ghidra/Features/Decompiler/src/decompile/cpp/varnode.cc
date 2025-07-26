@@ -1225,27 +1225,33 @@ bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) cons
   return false;
 }
 
+Varnode *Varnode::getCopyChainInput(void)
+
+{
+  if (def == (PcodeOp *)0) return this;
+  if (def->code() != CPUI_COPY) return this;
+  Varnode *invn = def->getIn(0);
+  return invn->getCopyChainInput();
+}
+
+const Varnode *Varnode::getCopyChainInput(void) const
+
+{
+  if (def == (PcodeOp *)0) return this;
+  if (def->code() != CPUI_COPY) return this;
+  Varnode *invn = def->getIn(0);
+  return invn->getCopyChainInput();
+}
+
 // TODO finish all cases
 Datatype *Varnode::recoverConstantDatatype(void) const
 
 {
-  // Skip any copy there
-  const Varnode *vn = this;
-  const PcodeOp *op = (PcodeOp *)0;
-  while (true) {
-    op = vn->getDef();
-    if (op == (PcodeOp *)0) break;
-    OpCode opc = op->code();
-    if (opc == CPUI_COPY) {
-      vn = op->getIn(0);
-      continue;
-    }
-    break;
-  }
-
+  const Varnode *vn = getCopyChainInput();
   if (!vn->isConstant()) return (Datatype *)0;
   PcodeOp *lone = vn->loneDescend();
   if (lone == (PcodeOp *)0) return (Datatype *)0;
+
   uintb off = vn->getOffset();
   const BlockBasic *parent = lone->getParent();
   if (parent->sizeIn() == 1) {
@@ -1253,26 +1259,33 @@ Datatype *Varnode::recoverConstantDatatype(void) const
     PcodeOp *cbranchop = bl->lastOp();
     if (cbranchop == (PcodeOp *)0) return (Datatype *)0;
     if (cbranchop->code() != CPUI_CBRANCH) return (Datatype *)0;
-    PcodeOp *conditionop = cbranchop->getIn(1)->getDef();
-    OpCode conditionopc;
 
-    // Skip any copy there too
-    while (true) {
-      if (conditionop == (PcodeOp *)0) return (Datatype *)0;
-      conditionopc = conditionop->code();
-      if (conditionopc == CPUI_COPY) {
-	conditionop = conditionop->getIn(0)->getDef();
-	continue;
-      }
-      break;
-    }
-
+    Varnode *conditionvn = cbranchop->getIn(1);
+    conditionvn = conditionvn->getCopyChainInput();
+    PcodeOp *conditionop = conditionvn->getDef();
+    OpCode conditionopc = conditionop->code();
     if (conditionopc == CPUI_INT_NOTEQUAL || conditionopc == CPUI_INT_EQUAL) {
       Varnode *cvn = conditionop->getIn(1);
       if (!cvn->isConstant()) return (Datatype *)0;
       if (cvn->getOffset() != off) return (Datatype *)0;
-      Varnode *ptrvn = conditionop->getIn(0);
+      if (bl->sizeOut() == 2) {
+	const FlowBlock *another = (const FlowBlock *)0;
+	if (bl->getOut(0) == (FlowBlock *)parent)
+	  another = bl->getOut(1);
+	if (bl->getOut(1) == (FlowBlock *)parent)
+	  another = bl->getOut(0);
 
+	if (another != (const FlowBlock *)0) {
+	  PcodeOp *retOp = another->lastOp();
+	  if (retOp->code() == CPUI_RETURN) {
+	    Varnode *invn = retOp->getIn(1);
+	    invn = invn->getCopyChainInput();
+	    if (invn->isConstant()) return (Datatype *)0;
+	  }
+	}
+      }
+
+      Varnode *ptrvn = conditionop->getIn(0);
       Datatype *ct = ptrvn->getTypeReadFacing(conditionop);
       return ct;
     }
