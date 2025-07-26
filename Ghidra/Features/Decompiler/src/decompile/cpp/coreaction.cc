@@ -4472,16 +4472,12 @@ void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata 
 void ActionDeadCode::markConsumedAddOp(PcodeOp *op,Funcdata &data,vector<Varnode *> &worklist)
 
 {
-  PcodeOp *addop = op;
-  while (true) {
-    if (addop == (PcodeOp *)0) return;
-    OpCode addopc = addop->code();
-    if (addopc == CPUI_COPY)
-      addop = addop->getIn(0)->getDef();
-    else if (addopc == CPUI_INT_ADD) break;
-    else if (addopc == CPUI_PTRSUB) break;
-    else return;
-  }
+  if (op == (PcodeOp *)0) return;
+  if (op->getOut() == (Varnode *)0) return;
+  PcodeOp *addop = op->getOut()->getCopyChainInput()->getDef();
+  if (addop->code() != CPUI_INT_ADD)
+    if (addop->code() != CPUI_PTRSUB)
+      return;
 
   Varnode *basevn = addop->getIn(0);
   TypePointer *ptype = (TypePointer *)basevn->getType();
