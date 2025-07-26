@@ -4479,6 +4479,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,Funcdata &data,vector<Varnode
     if (addopc == CPUI_COPY)
       addop = addop->getIn(0)->getDef();
     else if (addopc == CPUI_INT_ADD) break;
+    else if (addopc == CPUI_PTRSUB) break;
     else return;
   }
 
@@ -4726,8 +4727,9 @@ int4 ActionDeadCode::apply(Funcdata &data)
 	pushConsumed(~((uintb)0),vn,worklist);
       break;
     default:
-      if (vn->isAutoLive())
+      if (vn->isAutoLive()) {
 	pushConsumed(~((uintb)0),vn,worklist);
+      }
     }
   }
 
