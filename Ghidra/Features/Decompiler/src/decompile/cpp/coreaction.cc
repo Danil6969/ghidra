@@ -4495,10 +4495,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
   uintb curOff = AddrSpace::addressToByte(val,ws);
   markConsumedAddress(space,curOff,data,worklist);
 
-  uintb startOff = 0;
-  uintb endOff = 0;
-  int4 sz = 0;
-  // use point
+  // inspect use point
   TypePointer *tp = (TypePointer *)0;
   OpCode opc = op->code();
   if (opc == CPUI_CALL) {
@@ -4506,16 +4503,28 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
     ProtoParameter *param = fc->getParam(slot-1);
     tp = (TypePointer *)param->getType();
   }
+
+  // mark according to use point datatype
+  uintb startOff = 0;
+  uintb endOff = 0;
+  int4 sz = 0;
   if (tp != (TypePointer *)0 && tp->getMetatype() == TYPE_PTR) {
-    sz = tp->getPtrTo()->getSize();
-    startOff = curOff;
-    endOff = curOff + sz;
+    if (tp->isFormalPointerRel()) {
+      TypePointerRel *ptrel = (TypePointerRel *)tp;
+      sz = ptrel->getParent()->getSize();
+      startOff = curOff - ptrel->getPointerOffset();
+    }
+    else {
+      sz = tp->getPtrTo()->getSize();
+      startOff = curOff;
+    }
+    endOff = startOff + sz;
     for (uintb off=startOff;off<endOff;++off) {
       markConsumedAddress(space,off,data,worklist);
     }
   }
 
-  // container itself
+  // mark according to container data itself
   Address addr = sb->getAddress(curOff,basevn->getSize(),addop->getAddr());
   if (addr.isInvalid()) return;
   Scope *scope = sb->getMap();
