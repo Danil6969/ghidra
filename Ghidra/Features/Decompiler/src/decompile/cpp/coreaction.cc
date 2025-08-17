@@ -4479,6 +4479,8 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
       return;
 
   Varnode *basevn = addop->getIn(0);
+  if (basevn->isConstant()) return;
+  if (basevn->getDef() != (PcodeOp *)0) return;
   TypePointer *ptype = (TypePointer *)basevn->getType();
   if (ptype->getMetatype() != TYPE_PTR) return;
   TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
