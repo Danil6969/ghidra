@@ -1393,10 +1393,8 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
 	return (SymbolEntry *)0;
       break;
     case CPUI_INT_MULT:
-    {
       if (!vn->isPtrdiffOperand(data)) return (SymbolEntry *)0;
       break;
-    }
     case CPUI_STORE:
       if (slot != 2)
 	return (SymbolEntry *)0;
@@ -4498,10 +4496,13 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
   // inspect use point
   TypePointer *tp = (TypePointer *)0;
   OpCode opc = op->code();
-  if (opc == CPUI_CALL) {
-    FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(op->getIn(0)->getAddr());
-    ProtoParameter *param = fc->getParam(slot-1);
-    tp = (TypePointer *)param->getType();
+  switch (op->code()) {
+    case CPUI_CALL:
+    {
+      FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(op->getIn(0)->getAddr());
+      ProtoParameter *param = fc->getParam(slot-1);
+      tp = (TypePointer *)param->getType();
+    }
   }
 
   // mark according to use point datatype
