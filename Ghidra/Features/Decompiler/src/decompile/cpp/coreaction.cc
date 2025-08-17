@@ -4485,6 +4485,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
   TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
   if (sb->getMetatype() != TYPE_SPACEBASE) return;
   AddrSpace *space = sb->getSpace();
+  Scope *scope = sb->getMap();
 
   Varnode *cvn = addop->getIn(1);
   if (!cvn->isConstant()) return;
@@ -4495,13 +4496,27 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
 
   // inspect use point
   TypePointer *tp = (TypePointer *)0;
-  OpCode opc = op->code();
   switch (op->code()) {
+    case CPUI_COPY:
+    {
+      Varnode *out = op->getOut();
+      if (out->getSpace()->getType() == IPTR_SPACEBASE) {
+	uintb useOff = out->getOffset();
+	Address useAddr = sb->getAddress(useOff,out->getSize(),op->getAddr());
+	SymbolEntry *useEntry = scope->queryContainer(useAddr,1,Address());
+	if (useEntry == (SymbolEntry *)0)
+	  break;
+	Datatype *useDt = useEntry->getSymbol()->getType();
+	break;
+      }
+      break;
+    }
     case CPUI_CALL:
     {
       FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(op->getIn(0)->getAddr());
       ProtoParameter *param = fc->getParam(slot-1);
       tp = (TypePointer *)param->getType();
+      break;
     }
   }
 
@@ -4528,7 +4543,6 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
   // mark according to container data itself
   Address addr = sb->getAddress(curOff,basevn->getSize(),addop->getAddr());
   if (addr.isInvalid()) return;
-  Scope *scope = sb->getMap();
   SymbolEntry *entry = scope->queryContainer(addr,1,Address());
   if (entry == (SymbolEntry *)0) return;
   sz = entry->getSize();
