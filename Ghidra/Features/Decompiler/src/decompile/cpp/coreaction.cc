@@ -4492,7 +4492,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
   uintb curoff = AddrSpace::addressToByte(val,ws);
   markConsumedAddress(space,curoff,data,worklist);
 
-  Address addr = sb->getAddress(curoff,basevn->getSize(),op->getAddr());
+  Address addr = sb->getAddress(curoff,basevn->getSize(),addop->getAddr());
   if (addr.isInvalid()) return;
   Scope *scope = sb->getMap();
   SymbolEntry *entry = scope->queryContainer(addr,1,Address());
