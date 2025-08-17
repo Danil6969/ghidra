@@ -4472,7 +4472,8 @@ void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata 
 void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vector<Varnode *> &worklist)
 
 {
-  PcodeOp *addop = op->getIn(slot)->getCopyChainInput()->getDef();
+  Varnode *vn = op->getIn(slot);
+  PcodeOp *addop = vn->getCopyChainInput()->getDef();
   if (addop == (PcodeOp *)0) return;
   if (addop->code() != CPUI_INT_ADD)
     if (addop->code() != CPUI_PTRSUB)
@@ -4491,19 +4492,39 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
   if (!cvn->isConstant()) return;
   uintb val = cvn->getOffset();
   uint4 ws = space->getWordSize();
-  uintb curoff = AddrSpace::addressToByte(val,ws);
-  markConsumedAddress(space,curoff,data,worklist);
+  uintb curOff = AddrSpace::addressToByte(val,ws);
+  markConsumedAddress(space,curOff,data,worklist);
 
-  Address addr = sb->getAddress(curoff,basevn->getSize(),addop->getAddr());
+  uintb startOff = 0;
+  uintb endOff = 0;
+  int4 sz = 0;
+  // use point
+  TypePointer *tp = (TypePointer *)0;
+  OpCode opc = op->code();
+  if (opc == CPUI_CALL) {
+    FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(op->getIn(0)->getAddr());
+    ProtoParameter *param = fc->getParam(slot-1);
+    tp = (TypePointer *)param->getType();
+  }
+  if (tp != (TypePointer *)0 && tp->getMetatype() == TYPE_PTR) {
+    sz = tp->getPtrTo()->getSize();
+    startOff = curOff;
+    endOff = curOff + sz;
+    for (uintb off=startOff;off<endOff;++off) {
+      markConsumedAddress(space,off,data,worklist);
+    }
+  }
+
+  // container itself
+  Address addr = sb->getAddress(curOff,basevn->getSize(),addop->getAddr());
   if (addr.isInvalid()) return;
   Scope *scope = sb->getMap();
   SymbolEntry *entry = scope->queryContainer(addr,1,Address());
   if (entry == (SymbolEntry *)0) return;
-  int4 sz = entry->getSize();
-  uintb startoff = entry->getAddr().getOffset();
-  uintb endoff = startoff + sz;
-  for (uintb off=startoff;off<endoff;++off) {
-    if (off == curoff) continue;
+  sz = entry->getSize();
+  startOff = entry->getAddr().getOffset();
+  endOff = startOff + sz;
+  for (uintb off=startOff;off<endOff;++off) {
     markConsumedAddress(space,off,data,worklist);
   }
 }
