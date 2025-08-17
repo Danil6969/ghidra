@@ -4225,7 +4225,7 @@ void ActionDeadCode::propagateConsumed(vector<Varnode *> &worklist)
     break;
   case CPUI_COPY:
     pushConsumed(outc,op->getIn(0),worklist);
-    markConsumedAddOp(op->getIn(0)->getDef(),*fd,worklist);
+    markConsumedAddOp(op,0,*fd,worklist);
     break;
   case CPUI_INT_NEGATE:
     pushConsumed(outc,op->getIn(0),worklist);
@@ -4469,12 +4469,10 @@ void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata 
 /// \param op is the given op
 /// \param data is the given function
 /// \param worklist will hold input Varnodes that can propagate their consume property
-void ActionDeadCode::markConsumedAddOp(PcodeOp *op,Funcdata &data,vector<Varnode *> &worklist)
+void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vector<Varnode *> &worklist)
 
 {
-  if (op == (PcodeOp *)0) return;
-  if (op->getOut() == (Varnode *)0) return;
-  PcodeOp *addop = op->getOut()->getCopyChainInput()->getDef();
+  PcodeOp *addop = op->getIn(slot)->getCopyChainInput()->getDef();
   if (addop == (PcodeOp *)0) return;
   if (addop->code() != CPUI_INT_ADD)
     if (addop->code() != CPUI_PTRSUB)
@@ -4524,7 +4522,7 @@ void ActionDeadCode::markConsumedParameters(FuncCallSpecs *fc,Funcdata &data,vec
     for(int4 i=1;i<callOp->numInput();++i) {
       Varnode *vn = callOp->getIn(i);
       pushConsumed(~((uintb)0),vn,worklist);	// Treat all parameters as fully consumed
-      markConsumedAddOp(vn->getDef(),data,worklist);
+      markConsumedAddOp(callOp,i,data,worklist);
     }
     return;
   }
