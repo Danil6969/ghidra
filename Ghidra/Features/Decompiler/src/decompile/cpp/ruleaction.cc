@@ -4178,25 +4178,21 @@ bool RuleSubtractionCollapse::form2(PcodeOp *op,Funcdata &data)
 bool RuleSubtractionCollapse::form3(PcodeOp *op,Funcdata &data)
 
 {
-  Varnode *v[2];           // Variable varnode
+  Varnode *v;              // Variable varnode
   Varnode *c[2];           // Constant varnodes
   intb val[2];             // Constant values
   intb value;              // Final constant value
-  v[0] = (Varnode *)0;     // V
-  v[1] = (Varnode *)0;     // W
+  v = (Varnode *)0;        // V
   c[0] = (Varnode *)0;     // c
   c[1] = (Varnode *)0;     // d
   val[0] = 0;              // c
   val[1] = 0;              // d
   value = 0;               // c-d
 
+  if (op == (PcodeOp *)0) return false;
   if (op->code() != CPUI_INT_ADD) return false;
-  v[0] = op->getIn(0);
-  PcodeOp *addop = op->getIn(1)->getDef();
-  if (addop == (PcodeOp *)0) return false;
-  if (addop->code() != CPUI_INT_ADD) return false;
-  c[1] = addop->getIn(1);
-  PcodeOp *multop = addop->getIn(0)->getDef();
+  c[1] = op->getIn(1);
+  PcodeOp *multop = op->getIn(0)->getDef();
   if (multop == (PcodeOp *)0) return false;
   if (multop->code() != CPUI_INT_MULT) return false;
 
@@ -4206,11 +4202,10 @@ bool RuleSubtractionCollapse::form3(PcodeOp *op,Funcdata &data)
   PcodeOp *ptrsubop = multop->getIn(0)->getDef();
   if (ptrsubop == (PcodeOp *)0) return false;
   if (ptrsubop->code() != CPUI_PTRSUB) return false;
-  v[1] = ptrsubop->getIn(0);
+  v = ptrsubop->getIn(0);
   c[0] = ptrsubop->getIn(1);
 
-  if (v[0]->isFree()) return false;
-  if (v[1]->isFree()) return false;
+  if (v->isFree()) return false;
   if (!c[0]->isConstant()) return false;
   if (!c[1]->isConstant()) return false;
 
@@ -4224,9 +4219,10 @@ bool RuleSubtractionCollapse::form3(PcodeOp *op,Funcdata &data)
   else if (c[1]->getSymbolEntry() != (SymbolEntry *)0)
     newvn->copySymbolIfValid(c[1]);
 
-  PcodeOp *newaddop = data.newOpBefore(op,CPUI_PTRSUB,v[1],newvn);
-  PcodeOp *newmultop = data.newOpBefore(op,CPUI_INT_MULT,newaddop->getOut(),cvn);
-  data.opSetInput(op,newmultop->getOut(),1);
+  PcodeOp *newptrsubop = data.newOpBefore(op,CPUI_PTRSUB,v,newvn);
+  data.opSetInput(op,newptrsubop->getOut(),0);
+  data.opSetInput(op,cvn,1);
+  data.opSetOpcode(op,CPUI_INT_MULT);
   return true;
 }
 
