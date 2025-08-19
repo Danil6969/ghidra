@@ -6353,6 +6353,8 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop2->addRule( new RuleInferPointerAdd("analysis") );
 	actprop2->addRule( new RuleInferPointerMult("analysis") );
 	actprop2->addRule( new RulePtrArith("typerecovery") );
+	actprop2->addRule( new RulePtrsubOr("typerecovery") );
+	actprop2->addRule( new RulePtrsubAdjust("typerecovery") );
 	actprop2->addRule( new RuleUnlinkPtrAdd("typerecovery") );
 	actprop2->addRule( new RuleAllocaPushParams("analysis") );
 	//actprop2->addRule( new RuleIndirectConcat("analysis") );
