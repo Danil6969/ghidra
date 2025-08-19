@@ -1772,6 +1772,17 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 
+class RulePtrsubOr : public Rule {
+public:
+  RulePtrsubOr(const string &g) : Rule( g, 0, "ptrsubor") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RulePtrsubOr(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
 class RuleInferPointerMult : public Rule {
   static PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
   static intb getCounterIncrement(PcodeOp *op);
