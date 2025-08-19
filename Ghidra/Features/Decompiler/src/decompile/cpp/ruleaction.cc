@@ -12465,6 +12465,41 @@ int4 RuleOrCompare::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+/// \class RulePtrsubOr
+/// \brief Simplify INT_OR just to INT_ADD when used with
+/// PTRSUB due to alignment guarantees (stack for example)
+///   e = (c | d) - c
+///
+/// `PTRSUB(V,c) | d` => 'PTRSUB(V,c) + e'
+void RulePtrsubOr::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_OR);
+}
+
+int4 RulePtrsubOr::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  PcodeOp *ptrsubop = op->getIn(0)->getDef();
+  if (ptrsubop == (PcodeOp *)0) return 0;
+  if (ptrsubop->code() != CPUI_PTRSUB) return 0;
+  Varnode *basevn = ptrsubop->getIn(0);
+  // base varnode is pure value and not some calculated one
+  if (basevn->getDef() != (PcodeOp *)0) return 0;
+
+  Varnode *cvn = op->getIn(1);
+  if (!cvn->isConstant()) return 0;
+
+  // calculate offset
+  uintb off1 = ptrsubop->getIn(1)->getOffset();
+  uintb off2 = cvn->getOffset();
+  uintb off = (off1 | off2) - off1;
+  int4 sz = cvn->getSize();
+  data.opSetOpcode(op,CPUI_INT_ADD);
+  data.opSetInput(op,data.newConstant(sz,off&calc_mask(sz)),1);
+  return 0;
+}
+
 PcodeOp *RuleInferPointerMult::getCounterInitOp(PcodeOp *multiop,int4 &slot)
 
 {
