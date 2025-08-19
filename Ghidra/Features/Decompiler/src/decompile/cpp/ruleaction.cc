@@ -12470,7 +12470,7 @@ int4 RuleOrCompare::applyOp(PcodeOp *op,Funcdata &data)
 /// PTRSUB due to alignment guarantees (stack for example)
 ///   e = (c | d) - c
 ///
-/// `PTRSUB(V,c) | d` => 'PTRSUB(V,c) + e'
+/// `PTRSUB(V,c) | d` => 'PTRSUB(V,c) + e`
 void RulePtrsubOr::getOpList(vector<uint4> &oplist) const
 
 {
@@ -12497,6 +12497,33 @@ int4 RulePtrsubOr::applyOp(PcodeOp *op,Funcdata &data)
   int4 sz = cvn->getSize();
   data.opSetOpcode(op,CPUI_INT_ADD);
   data.opSetInput(op,data.newConstant(sz,off&calc_mask(sz)),1);
+  return 0;
+}
+
+/// \class RulePtrsubAdjust
+/// \brief Adjust constants inside ptrsub added with variable and constant
+/// so it fits better according to field offsets inside the given datatype
+/// inside datatype of PTRSUB(V,c) there will be current field and the next one
+/// e is the next field offset minus d
+///
+/// `PTRSUB(V,c) + (W + d)` => 'PTRSUB(PTRSUB(V,c),d) + W` if e equals to d
+/// `PTRSUB(V,c) + (W + d)` => 'PTRSUB(V,c+e) + (W + d-e)` otherwise
+void RulePtrsubAdjust::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_ADD);
+}
+
+int4 RulePtrsubAdjust::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  PcodeOp *ptrsubop = op->getIn(0)->getDef();
+  if (ptrsubop == (PcodeOp *)0) return 0;
+  if (ptrsubop->code() != CPUI_PTRSUB) return 0;
+
+  PcodeOp *addop = op->getIn(1)->getDef();
+  if (addop == (PcodeOp *)0) return 0;
+  if (addop->code() != CPUI_INT_ADD) return 0;
   return 0;
 }
 
