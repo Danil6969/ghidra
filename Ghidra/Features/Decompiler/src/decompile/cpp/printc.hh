@@ -180,7 +180,6 @@ protected:
   bool checkArrayDeref(const Varnode *vn) const;	///< Determine whether a LOAD/STORE expression requires pointer '*' syntax
   bool needsToArr(const Varnode *vn) const;		///< Determine whether TOARR is required because of rvalue restrictions
   bool checkAddressOfCast(const PcodeOp *op) const;	///< Check if CAST can be printed as an '&'
-  bool isClassDowncast(Datatype *inType,Datatype *outType,TypeFactory *types) const;
   bool isClassUpcast(Datatype *inType,Datatype *outType,TypeFactory *types) const;
   bool isNonstructCast(Datatype *inType,Datatype *outType,TypeFactory *types) const;
   bool isPointerIntegerCast(Datatype *inType,Datatype *outType,TypeFactory *types) const;
