@@ -12480,6 +12480,9 @@ void RulePtrsubOr::getOpList(vector<uint4> &oplist) const
 int4 RulePtrsubOr::applyOp(PcodeOp *op,Funcdata &data)
 
 {
+  Varnode *c[2];
+  uintb val[2];
+
   PcodeOp *ptrsubop = op->getIn(0)->getDef();
   if (ptrsubop == (PcodeOp *)0) return 0;
   if (ptrsubop->code() != CPUI_PTRSUB) return 0;
@@ -12487,27 +12490,26 @@ int4 RulePtrsubOr::applyOp(PcodeOp *op,Funcdata &data)
   // base varnode is pure value and not some calculated one
   if (basevn->getDef() != (PcodeOp *)0) return 0;
 
-  Varnode *cvn = op->getIn(1);
-  if (!cvn->isConstant()) return 0;
+  c[0] = ptrsubop->getIn(1);
+  c[1] = op->getIn(1);
+  if (!c[0]->isConstant()) return 0;
+  if (!c[1]->isConstant()) return 0;
 
   // calculate offset
-  uintb off1 = ptrsubop->getIn(1)->getOffset();
-  uintb off2 = cvn->getOffset();
-  uintb off = (off1 | off2) - off1;
-  int4 sz = cvn->getSize();
+  val[0] = c[0]->getOffset();
+  val[1] = c[1]->getOffset();
+  uintb off = (val[0] | val[1]) - val[0];
+  int4 sz = c[1]->getSize();
   data.opSetOpcode(op,CPUI_INT_ADD);
   data.opSetInput(op,data.newConstant(sz,off&calc_mask(sz)),1);
   return 0;
 }
 
-/// \class RulePtrsubAdjust
-/// \brief Adjust constants inside ptrsub added with variable and constant
-/// so it fits better according to field offsets inside the given datatype
-/// inside datatype of PTRSUB(V,c) there will be current field and the next one
-/// e is the next field offset minus d
+  /// \class RulePtrsubAdjust
+/// \brief Adjust constants inside ptrsub added with
+/// variable and constant so it fits better
 ///
-/// `PTRSUB(V,c) + (W + d)` => 'PTRSUB(PTRSUB(V,c),d) + W` if e equals to d
-/// `PTRSUB(V,c) + (W + d)` => 'PTRSUB(V,c+e) + (W + d-e)` otherwise
+/// `PTRSUB(V,c) + (W + d)` => 'PTRSUB(V,c+e) + (W + d-e)`
 void RulePtrsubAdjust::getOpList(vector<uint4> &oplist) const
 
 {
@@ -12517,14 +12519,62 @@ void RulePtrsubAdjust::getOpList(vector<uint4> &oplist) const
 int4 RulePtrsubAdjust::applyOp(PcodeOp *op,Funcdata &data)
 
 {
+  Varnode *newvn[2];
+  Varnode *c[2];
+  uintb val[2];
+
   PcodeOp *ptrsubop = op->getIn(0)->getDef();
   if (ptrsubop == (PcodeOp *)0) return 0;
   if (ptrsubop->code() != CPUI_PTRSUB) return 0;
+  Varnode *basevn = ptrsubop->getIn(0);
+  c[0] = ptrsubop->getIn(1);
 
   PcodeOp *addop = op->getIn(1)->getDef();
   if (addop == (PcodeOp *)0) return 0;
   if (addop->code() != CPUI_INT_ADD) return 0;
-  return 0;
+  Varnode *invn = addop->getIn(0);
+  c[1] = addop->getIn(1);
+
+  if (basevn->isConstant()) return 0;
+  if (invn->isConstant()) return 0;
+  if (!c[0]->isConstant()) return 0;
+  if (!c[1]->isConstant()) return 0;
+
+  val[0] = c[0]->getOffset();
+  val[1] = c[1]->getOffset();
+
+  TypePointer *ptype = (TypePointer *)basevn->getType();
+  if (ptype->getMetatype() != TYPE_PTR) return 0;
+  TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
+  if (sb->getMetatype() != TYPE_SPACEBASE) return 0;
+  Scope *scope = sb->getMap();
+
+  Address addr = sb->getAddress(val[0],basevn->getSize(),op->getAddr());
+  if (addr.isInvalid()) return 0;
+  SymbolEntry *entry1 = scope->queryContainer(addr,1,Address());
+  if (entry1 == (SymbolEntry *)0) return 0;
+
+  uintb off = (intb)entry1->getSize();
+  if (off <= val[1]) return 0;
+  uintb diff = off - val[1];
+  addr = sb->getAddress(val[0] + off,basevn->getSize(),op->getAddr());
+  SymbolEntry *entry2 = scope->queryContainer(addr,1,Address());
+  if (entry2 == (SymbolEntry *)0) return 0;
+  Datatype *dt = entry2->getSymbol()->getType();
+  if (dt->getMetatype() != TYPE_ARRAY) return 0;
+  while (dt->getMetatype() == TYPE_ARRAY) {
+    dt = ((TypeArray *)dt)->getBase();
+  }
+  if (diff > dt->getSize()) return 0;
+
+  int4 sz = c[0]->getSize();
+  newvn[0] = data.newConstant(sz,(val[0] + off) & calc_mask(sz));
+  newvn[1] = data.newConstant(sz,(val[1] - off) & calc_mask(sz));
+  PcodeOp *newptrsubop = data.newOpBefore(op,CPUI_PTRSUB,basevn,newvn[0]);
+  PcodeOp *newaddop = data.newOpBefore(op,CPUI_INT_ADD,invn,newvn[1]);
+  data.opSetInput(op,newptrsubop->getOut(),0);
+  data.opSetInput(op,newaddop->getOut(),1);
+  return 1;
 }
 
 PcodeOp *RuleInferPointerMult::getCounterInitOp(PcodeOp *multiop,int4 &slot)
