@@ -456,6 +456,13 @@ void ScoreUnionFields::scoreTrialDown(const Trial &trial,bool lastLevel)
 	    resType = baseType->downChain(off,par,parOff,trial.array,typegrp);
 	    if (resType != (Datatype*)0)
 	      score = 5;
+	    PcodeOp *lone = trial.op->getOut()->loneDescend();
+	    if (lone != (PcodeOp *)0) {
+	      if (lone->code() == CPUI_STORE)
+		score = 3;
+	      if (lone->code() == CPUI_LOAD)
+		score = 3;
+	    }
 	  }
 	  else {
 	    if (trial.array) {
