@@ -6165,7 +6165,7 @@ void ActionDatabase::universalAction(Architecture *conf)
   act->addAction( new ActionConstbase("base"));
   act->addAction( new ActionNormalizeSetup("normalanalysis"));
   act->addAction( new ActionDefaultParams("base"));
-  //act->addAction( new ActionParamShiftStart("paramshift") );
+  //  act->addAction( new ActionParamShiftStart("paramshift") );
   act->addAction( new ActionExtraPopSetup("base",stackspace) );
   act->addAction( new ActionPrototypeTypes("protorecovery"));
   act->addAction( new ActionFuncLink("protorecovery") );
@@ -6185,7 +6185,7 @@ void ActionDatabase::universalAction(Architecture *conf)
       actmainloop->addAction( new ActionDirectWrite("protorecovery_b", false) );
       actmainloop->addAction( new ActionActiveParam("protorecovery") );
       actmainloop->addAction( new ActionReturnRecovery("protorecovery") );
-      //actmainloop->addAction( new ActionParamShiftStop("paramshift") );
+      //      actmainloop->addAction( new ActionParamShiftStop("paramshift") );
       actmainloop->addAction( new ActionRestrictLocal("localrecovery") ); // Do before dead code removed
       actmainloop->addAction( new ActionDeadCode("deadcode") );
       actmainloop->addAction( new ActionDynamicMapping("dynamic") ); // Must come before restructurevarnode and infertypes
@@ -6357,7 +6357,7 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop2->addRule( new RulePtrsubAdjust("typerecovery") );
 	actprop2->addRule( new RuleUnlinkPtrAdd("typerecovery") );
 	actprop2->addRule( new RuleAllocaPushParams("analysis") );
-	//actprop2->addRule( new RuleIndirectConcat("analysis") );
+	//	actprop2->addRule( new RuleIndirectConcat("analysis") );
 	actprop2->addRule( new RuleLoadVarnode("stackvars") );
 	actprop2->addRule( new RuleStoreVarnode("stackvars") );
       }
