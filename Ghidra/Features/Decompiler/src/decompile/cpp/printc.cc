@@ -711,11 +711,13 @@ void PrintC::opTypeCast(const PcodeOp *op)
       const Varnode *cvn = inOp->getIn(0);
       if (cvn->isConstant()) {
 	while (outVn->getSize() < outType->getSize()) {
+	  Datatype *newtype = (Datatype *)0;
 	  if (outType->getMetatype() == TYPE_ARRAY) {
-	    outType = ((TypeArray *)outType)->getBase();
-	    continue;
+	    newtype = ((TypeArray *)outType)->getBase();
 	  }
-	  break;
+	  if (newtype == (Datatype *)0) break;
+	  if (outType->getSize() < outVn->getSize()) break;
+	  outType = newtype;
 	}
 	if (!(inMeta == TYPE_PTR && outMeta == TYPE_INT)) {
 	  pushConstant(cvn->getOffset(),outType,vartoken,outVn,op);
