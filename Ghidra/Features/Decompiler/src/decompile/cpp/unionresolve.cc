@@ -848,6 +848,16 @@ void ScoreUnionFields::scoreTrialUp(const Trial &trial,bool lastLevel)
       else
 	score = -2;
       break;
+    case CPUI_INT_ZEXT:
+      if (trial.vn->getSize() != trial.fitType->getSize())
+	score = -10;
+      else {
+	if (meta == TYPE_UNION)
+	  score = -5;
+	else
+	  score = 5;
+      }
+      break;
     case CPUI_PIECE:
       if (meta == TYPE_FLOAT || meta == TYPE_BOOL)
 	score = -5;
@@ -961,7 +971,10 @@ void ScoreUnionFields::scoreConstantFit(const Trial &trial)
 	score = 1;
       }
       else {
-	score = 2;
+	if (trial.fitType->getSize() == size)
+	  score = 3;
+	else
+	  score = 2;
       }
     }
     else {
