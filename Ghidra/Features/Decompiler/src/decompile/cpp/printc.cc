@@ -2649,9 +2649,19 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       if (casttype->needsResolution())
 	casttype = casttype->findResolve(op, inslot);
       int4 size = vn->getSize();
-      if (casttype == (Datatype *)0 && op->getOpcode()->getOpcode() == CPUI_COPY) {
-	casttype = op->getIn(0)->getType();
-	size = op->getIn(0)->getSize();
+      if (op->code() == CPUI_COPY) {
+	if (casttype == (Datatype *)0) {
+	  casttype = op->getIn(0)->getType();
+	  size = op->getIn(0)->getSize();
+	}
+	else {
+	  // If sizes don't match this can mean
+	  // that wrong datatype is used
+	  if (casttype->getSize() != sz) {
+	    // Try to use another datatype instead
+	    casttype = vn->getType();
+	  }
+	}
       }
 
       if (casttype != (Datatype *)0) {
