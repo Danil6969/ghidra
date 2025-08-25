@@ -1098,6 +1098,10 @@ ScoreUnionFields::ScoreUnionFields(TypeFactory &tgrp,Datatype *parentType,PcodeO
       if (fieldType->getMetatype() == TYPE_ARRAY)
 	isArray = true;
       fieldType = typegrp.getTypePointerStripArray(parentType->getSize(),fieldType,wordSize);
+      if (isArray && fieldType->getMetatype() == TYPE_PTR) {
+	if (vn->getSize() != fieldType->getSize()
+	  fieldType = ((TypePointer *)fieldType)->getPtrTo();
+	  }
     }
     if (vn->getSize() != fieldType->getSize())
       scores[i+1] -= 10;	// Data-type does not even match size of Varnode, don't create trial
