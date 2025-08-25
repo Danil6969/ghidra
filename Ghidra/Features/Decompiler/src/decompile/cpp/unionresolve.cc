@@ -1099,8 +1099,8 @@ ScoreUnionFields::ScoreUnionFields(TypeFactory &tgrp,Datatype *parentType,PcodeO
 	isArray = true;
       fieldType = typegrp.getTypePointerStripArray(parentType->getSize(),fieldType,wordSize);
       if (isArray && fieldType->getMetatype() == TYPE_PTR) {
-	if (vn->getSize() != fieldType->getSize())
-	  fieldType = ((TypePointer *)fieldType)->getPtrTo();
+	//if (vn->getSize() != fieldType->getSize())
+	fieldType = ((TypePointer *)fieldType)->getPtrTo();
 	  }
     }
     if (vn->getSize() != fieldType->getSize())
