@@ -1060,8 +1060,18 @@ ScoreUnionFields::ScoreUnionFields(TypeFactory &tgrp,Datatype *parentType,PcodeO
 {
   if (testSimpleCases(op, slot, parentType))
     return;
-  int4 wordSize = (parentType->getMetatype() == TYPE_PTR) ? ((TypePointer *)parentType)->getWordSize() : 0;
   int4 numFields = result.baseType->numDepend();
+  int4 wordSize = 0;
+  if (parentType->getMetatype() == TYPE_PTR)
+    wordSize = ((TypePointer *)parentType)->getWordSize();
+  // Also try to extract the word size from
+  // one of the fields if there is a pointer
+  for(int4 i=0;i<numFields;++i) {
+    if (wordSize != 0) break;
+    TypePointer *fieldType = (TypePointer *)result.baseType->getDepend(i);
+    if (fieldType->getMetatype() != TYPE_PTR) continue;
+    wordSize = fieldType->getWordSize();
+  }
   scores.resize(numFields + 1,0);
   fields.resize(numFields + 1,(Datatype *)0);
   Varnode *vn;
