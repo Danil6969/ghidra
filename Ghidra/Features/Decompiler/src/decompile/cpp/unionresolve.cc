@@ -1061,17 +1061,6 @@ ScoreUnionFields::ScoreUnionFields(TypeFactory &tgrp,Datatype *parentType,PcodeO
   if (testSimpleCases(op, slot, parentType))
     return;
   int4 numFields = result.baseType->numDepend();
-  int4 wordSize = 0;
-  if (parentType->getMetatype() == TYPE_PTR)
-    wordSize = ((TypePointer *)parentType)->getWordSize();
-  // Also try to extract the word size from
-  // one of the fields if there is a pointer
-  for(int4 i=0;i<numFields;++i) {
-    if (wordSize != 0) break;
-    TypePointer *fieldType = (TypePointer *)result.baseType->getDepend(i);
-    if (fieldType->getMetatype() != TYPE_PTR) continue;
-    wordSize = fieldType->getWordSize();
-  }
   scores.resize(numFields + 1,0);
   fields.resize(numFields + 1,(Datatype *)0);
   Varnode *vn;
@@ -1094,14 +1083,9 @@ ScoreUnionFields::ScoreUnionFields(TypeFactory &tgrp,Datatype *parentType,PcodeO
   for(int4 i=0;i<numFields;++i) {
     Datatype *fieldType = result.baseType->getDepend(i);
     bool isArray = false;
-    if (wordSize != 0) {
-      if (fieldType->getMetatype() == TYPE_ARRAY)
-	isArray = true;
-      fieldType = typegrp.getTypePointerStripArray(parentType->getSize(),fieldType,wordSize);
-      if (isArray && fieldType->getMetatype() == TYPE_PTR) {
-	//if (vn->getSize() != fieldType->getSize())
-	fieldType = ((TypePointer *)fieldType)->getPtrTo();
-	  }
+    if (fieldType->getMetatype() == TYPE_ARRAY) {
+      fieldType = ((TypeArray *)fieldType)->getBase();
+      isArray = true;
     }
     if (vn->getSize() != fieldType->getSize())
       scores[i+1] -= 10;	// Data-type does not even match size of Varnode, don't create trial
