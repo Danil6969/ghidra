@@ -3202,6 +3202,13 @@ int4 ActionSetCasts::apply(Funcdata &data)
 	count += resolveUnion(op, i, data);
 	count += castInput(op,i,data,castStrategy);
       }
+      Varnode *vn = op->getOut();
+      if (vn != (Varnode *)0) {
+	Datatype *outHighType = vn->getHigh()->getType();
+	if (outHighType->needsResolution())
+	  if (outHighType != vn->getType())
+	    outHighType->resolveInFlow(op,-1);
+      }
       if (opc == CPUI_COPY) continue;
       if (opc == CPUI_LOAD) {
 	checkPointerIssues(op, op->getOut(), data);
@@ -3209,7 +3216,6 @@ int4 ActionSetCasts::apply(Funcdata &data)
       else if (opc == CPUI_STORE) {
 	checkPointerIssues(op, op->getIn(2), data);
       }
-      Varnode *vn = op->getOut();
       if (vn == (Varnode *)0) continue;
       count += castOutput(op,data,castStrategy);
     }
