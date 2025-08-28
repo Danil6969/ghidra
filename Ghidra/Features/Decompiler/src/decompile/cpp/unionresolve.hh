@@ -144,6 +144,7 @@ class ScoreUnionFields {
   static const int4 maxPasses;	///< Maximum number of levels to score through
   static const int4 threshold;	///< Threshold of trials over which to cancel additional passes
   static const int4 maxTrials;		///< Maximum number of trials to evaluate
+  Datatype *getTypeStripComposite(Datatype *compositeType,int4 strippedSize);
   bool testPointerConstant(Varnode *vn);	///< Check if given Varnode will be treated as pointer constant later on (as of ActionConstantPtr)
   bool testArrayArithmetic(PcodeOp *op,int4 inslot);	///< Check if given PcodeOp is operating on array with union elements
   bool testSimpleCases(PcodeOp *op,int4 inslot,Datatype *parent);	///< Preliminary checks before doing full scoring
