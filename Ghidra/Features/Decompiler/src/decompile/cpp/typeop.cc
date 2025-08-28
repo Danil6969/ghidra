@@ -1427,11 +1427,11 @@ Datatype *TypeOpIntAdd::getInputLocal(const PcodeOp *op,int4 slot) const
 Datatype *TypeOpIntAdd::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
 
 {
-  Datatype *ct = TypeOp::getInputCast(op,slot,castStrategy);
-  if (ct != (Datatype *)0)
-    if (ct->getMetatype() == TYPE_PTR)
+  Datatype *curtype = op->getIn(slot)->getHighTypeReadFacing(op);
+  if (curtype != (Datatype *)0)
+    if (curtype->getMetatype() == TYPE_PTR)
       return tlst->getMemsizeType(true);
-  return ct;
+  return TypeOp::getInputCast(op,slot,castStrategy);
 }
 
 Datatype *TypeOpIntAdd::getOutputLocal(const PcodeOp *op) const
