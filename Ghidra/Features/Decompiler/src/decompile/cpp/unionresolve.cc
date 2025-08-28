@@ -471,19 +471,34 @@ void ScoreUnionFields::scoreTrialDown(const Trial &trial,bool lastLevel)
 	  Varnode *vn = trial.op->getIn(1-trial.inslot);
 	  if (vn->isConstant()) {
 	    TypePointer *baseType = (TypePointer *)trial.fitType;
+	    int4 sz = baseType->getPtrTo()->getSize();
+	    PcodeOp *lone = trial.op->getOut()->loneDescend();
+	    if (lone != (PcodeOp *)0) {
+	      if (lone->code() == CPUI_STORE) {
+		int4 valsz = lone->getIn(2)->getSize();
+		if (sz == valsz)
+		  score = 5;
+		else
+		  score = 1;
+		break;
+	      }
+	      if (lone->code() == CPUI_LOAD) {
+		int4 valsz = lone->getOut()->getSize();
+		if (sz == valsz)
+		  score = 5;
+		else
+		  score = 1;
+		break;
+	      }
+	    }
 	    int8 off = vn->getOffset();
 	    int8 parOff;
 	    TypePointer *par;
 	    resType = baseType->downChain(off,par,parOff,trial.array,typegrp);
 	    if (resType != (Datatype*)0)
 	      score = 5;
-	    PcodeOp *lone = trial.op->getOut()->loneDescend();
-	    if (lone != (PcodeOp *)0) {
-	      if (lone->code() == CPUI_STORE)
-		score = 3;
-	      if (lone->code() == CPUI_LOAD)
-		score = 3;
-	    }
+	    else
+	      score = 1;
 	  }
 	  else {
 	    if (trial.array) {
