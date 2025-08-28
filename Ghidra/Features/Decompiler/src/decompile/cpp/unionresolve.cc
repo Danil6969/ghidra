@@ -84,6 +84,21 @@ const int4 ScoreUnionFields::maxTrials = 1024;
 Datatype *ScoreUnionFields::getTypeStripComposite(Datatype *compositeType,int4 strippedSize)
 
 {
+  while (true) {
+    if (compositeType->getSize() <= strippedSize) break;
+    type_metatype meta = compositeType->getMetatype();
+    Datatype *newtype = (Datatype *)0;
+    if (meta == TYPE_ARRAY) {
+      newtype = ((TypeArray *)compositeType)->getBase();
+    }
+    if (meta == TYPE_STRUCT) {
+      TypeField field = *((TypeStruct *)compositeType)->beginField();
+      newtype = field.type;
+    }
+    if (newtype == (Datatype *)0) break;
+    if (newtype->getSize() < strippedSize) break;
+    compositeType = newtype;
+  }
   return compositeType;
 }
 
@@ -1089,10 +1104,7 @@ ScoreUnionFields::ScoreUnionFields(TypeFactory &tgrp,Datatype *parentType,PcodeO
   for(int4 i=0;i<numFields;++i) {
     Datatype *fieldType = result.baseType->getDepend(i);
     bool isArray = false;
-    if (fieldType->getMetatype() == TYPE_ARRAY) {
-      fieldType = ((TypeArray *)fieldType)->getBase();
-      isArray = true;
-    }
+    fieldType = getTypeStripComposite(fieldType,vn->getSize());
     if (vn->getSize() != fieldType->getSize())
       scores[i+1] -= 10;	// Data-type does not even match size of Varnode, don't create trial
     else if (slot < 0) {
