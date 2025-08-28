@@ -3202,7 +3202,6 @@ int4 ActionSetCasts::apply(Funcdata &data)
       }
       else if (opc == CPUI_PTRSUB) {	// Check for PTRSUB that no longer fits pointer
 	if (!ptrsubMatches(op,data)) {
-	  ptrsubMatches(op,data);
 	  if (op->getIn(1)->getOffset() == 0) {
 	    data.opRemoveInput(op, 1);
 	    data.opSetOpcode(op, CPUI_COPY);
