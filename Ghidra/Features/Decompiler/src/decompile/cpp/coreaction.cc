@@ -3192,8 +3192,12 @@ int4 ActionSetCasts::apply(Funcdata &data)
       if (opc == CPUI_CAST) continue;
       if (opc == CPUI_PTRADD) {	// Check for PTRADD that no longer fits its pointer
 	int4 sz = (int4)op->getIn(2)->getOffset();
-	TypePointer *ct = (TypePointer *)op->getIn(0)->getHighTypeReadFacing(op);
-	if ((ct->getMetatype() != TYPE_PTR)||(ct->getPtrTo()->getAlignSize() != AddrSpace::addressToByteInt(sz, ct->getWordSize())))
+	Varnode *ptrvn = op->getIn(0);
+	Datatype *ct = ptrvn->getHigh()->getType();
+	if (ct->needsResolution())
+	  ct->resolveInFlow(op,0);
+	TypePointer *pt = (TypePointer *)ptrvn->getHighTypeReadFacing(op);
+	if ((pt->getMetatype() != TYPE_PTR)||(pt->getPtrTo()->getAlignSize() != AddrSpace::addressToByteInt(sz, pt->getWordSize())))
 	  data.opUndoPtradd(op,true);
       }
       else if (opc == CPUI_PTRSUB) {	// Check for PTRSUB that no longer fits pointer
