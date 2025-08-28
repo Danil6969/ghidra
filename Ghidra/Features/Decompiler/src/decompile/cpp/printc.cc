@@ -2312,10 +2312,9 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
 {
   Datatype *subtype = (Datatype *)0;
   SymbolEntry *entry = (SymbolEntry *)0;
-  const Varnode *outVn = op->getOut();
-  if (outVn != (const Varnode *)0 && outVn->getSize() != ct->getSize()) {
+  if (vn->getSize() != ct->getSize()) {
     if (op->code() == CPUI_COPY) {
-      ct = outVn->getTypeDefFacing();
+      ct = op->getOut()->getTypeDefFacing();
     }
   }
 
