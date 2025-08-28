@@ -2870,19 +2870,29 @@ bool ActionSetCasts::tryResolutionAdjustment(PcodeOp *op,int4 slot,Funcdata &dat
       return false;
   }
 
-  Varnode *valvn = (Varnode *)0;
-  if (op->code() == CPUI_LOAD)
-    valvn = op->getOut();
-  if (op->code() == CPUI_STORE)
-    valvn = op->getIn(2);
-
-  // LOAD/STORE only
-  if (valvn != (Varnode *)0) {
+  if (op->code() == CPUI_LOAD) {
+    Varnode *vn = op->getOut();
     if (slot != 1) return true; // pointer slot only
-    Datatype *ptrtype = op->getIn(slot)->getHighTypeReadFacing(op);
-    if (ptrtype->getMetatype() != TYPE_PTR) return false;
-    if (((TypePointer *)ptrtype)->getPtrTo()->getSize() != valvn->getSize()) return false;
+    Datatype *ct = op->getIn(slot)->getHighTypeReadFacing(op);
+    if (ct->getMetatype() != TYPE_PTR) return false;
+    TypePointer *ptrtype = (TypePointer *)ct;
+    if (ptrtype->getPtrTo()->getSize() != vn->getSize()) return false;
     return true;
+  }
+
+  if (op->code() == CPUI_STORE) {
+    Varnode *vn = op->getIn(2);
+    if (slot != 1) return true; // pointer slot only
+    Datatype *ct = op->getIn(slot)->getHighTypeReadFacing(op);
+    if (ct->getMetatype() != TYPE_PTR) return false;
+    TypePointer *ptrtype = (TypePointer *)ct;
+    if (ptrtype->getPtrTo()->getSize() != vn->getSize()) return false;
+    return true;
+  }
+
+  if (op->code() == CPUI_INT_ADD) {
+    Datatype *ct = op->getIn(slot)->getHighTypeReadFacing(op);
+    if (ct->getMetatype() == TYPE_PTR) return false;
   }
   return true;
 }
