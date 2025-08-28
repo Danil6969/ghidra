@@ -246,12 +246,18 @@ void RulePiece2Zext::getOpList(vector<uint4> &oplist) const
 int4 RulePiece2Zext::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  Varnode *constvn;
+  Varnode *rootVn = op->getOut();
+  while (true) {
+    PcodeOp *lone = rootVn->loneDescend();
+    if (lone == (PcodeOp *)0) break;
+    if (lone->code() != CPUI_PIECE) break;
+    rootVn = lone->getOut();
+  }
+  if (rootVn->getSize() > sizeof(uintb)) return 0;
 
-  constvn = op->getIn(0);	// Constant must be most significant bits
+  Varnode *constvn = op->getIn(0);	// Constant must be most significant bits
   if (!constvn->isConstant()) return 0;	// Must append with constant
   if (constvn->getOffset() != 0) return 0; // of value 0
-  //if (op->getOut()->getSize() > sizeof(uintb)) return 0;
   data.opRemoveInput(op,0);	// Remove the constant
   data.opSetOpcode(op,CPUI_INT_ZEXT);
   return 1;
