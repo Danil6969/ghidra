@@ -81,6 +81,12 @@ const int4 ScoreUnionFields::threshold = 256;
 const int4 ScoreUnionFields::maxPasses = 6;
 const int4 ScoreUnionFields::maxTrials = 1024;
 
+Datatype *ScoreUnionFields::getTypeStripComposite(Datatype *compositeType,int4 strippedSize)
+
+{
+  return compositeType;
+}
+
 /// If the \b op looks like pointer constant, return \b true.
 /// \param vn is the given Varnode
 /// \return \b true if \b vn will be treated as pointer constant by ActionConstantPtr
