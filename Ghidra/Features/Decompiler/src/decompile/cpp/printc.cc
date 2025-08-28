@@ -2683,6 +2683,13 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
 	pushOp(&comma,op);
       }
       printPartial = true;
+      // For STORE on the right side
+      if (op->code() == CPUI_STORE && inslot == 2) {
+	// Under COPY
+	if (vn->getHighTypeReadFacing(op)->getMetatype() == TYPE_ARRAY) {
+	  printPartial = false; // Don't print partial
+	}
+      }
       ct = (Datatype *)0;
     }
   }
