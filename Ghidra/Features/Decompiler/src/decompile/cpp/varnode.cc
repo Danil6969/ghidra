@@ -1228,19 +1228,27 @@ bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) cons
 Varnode *Varnode::getCopyChainInput(void)
 
 {
-  if (def == (PcodeOp *)0) return this;
-  if (def->code() != CPUI_COPY) return this;
-  Varnode *invn = def->getIn(0);
-  return invn->getCopyChainInput();
+  Varnode *invn = this;
+  while (true) {
+    PcodeOp *op = invn->def;
+    if (op == (PcodeOp *)0) break;
+    if (op->code() != CPUI_COPY) break;
+    invn = op->getIn(0);
+  }
+  return invn;
 }
 
 const Varnode *Varnode::getCopyChainInput(void) const
 
 {
-  if (def == (PcodeOp *)0) return this;
-  if (def->code() != CPUI_COPY) return this;
-  Varnode *invn = def->getIn(0);
-  return invn->getCopyChainInput();
+  const Varnode *invn = this;
+  while (true) {
+    PcodeOp *op = invn->def;
+    if (op == (PcodeOp *)0) break;
+    if (op->code() != CPUI_COPY) break;
+    invn = op->getIn(0);
+  }
+  return invn;
 }
 
 // TODO finish all cases
