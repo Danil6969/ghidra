@@ -4761,15 +4761,23 @@ int4 ActionDeadCode::apply(Funcdata &data)
       }
     }
     vn = op->getOut();
+    spc = vn->getSpace();
     // TODO investigate cases
     switch (op->code()) {
     case CPUI_COPY:
-      if (vn->getSpace()->getType() != IPTR_SPACEBASE) break;
-      if (vn->hasNoDescend()) break;
-      lone = vn->loneDescend();
-      if (lone == (PcodeOp *)0) break;
-      if (lone->code() == CPUI_INDIRECT) {
+      if (spc->getType() == IPTR_PROCESSOR) {
+	if (spc->getName() == "register") break;
 	pushConsumed(~((uintb)0),vn,worklist);
+	break;
+      }
+      if (spc->getType() == IPTR_SPACEBASE) {
+	if (vn->hasNoDescend()) break;
+	lone = vn->loneDescend();
+	if (lone == (PcodeOp *)0) break;
+	if (lone->code() == CPUI_INDIRECT) {
+	  pushConsumed(~((uintb)0),vn,worklist);
+	  break;
+	}
 	break;
       }
       break;
