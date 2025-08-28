@@ -8831,7 +8831,6 @@ int4 RulePieceStructure::applyOp(PcodeOp *op,Funcdata &data)
   int4 baseOffset;
   Datatype *ct = determineDatatype(outvn, baseOffset);
   if (ct == (Datatype *)0) return 0;
-  if (ct->getMetatype() == TYPE_UNION) return 0; // TODO: more work is required
 
   if (op->code() == CPUI_INT_ZEXT) {
     if (convertZextToPiece(op,outvn->getType(),0,data))
