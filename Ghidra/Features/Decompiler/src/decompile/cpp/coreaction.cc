@@ -3153,22 +3153,36 @@ int4 ActionSetCasts::castInput(PcodeOp *op,int4 slot,Funcdata &data,CastStrategy
   return 1;
 }
 
+bool ActionSetCasts::ptraddMatches(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *ptrvn = op->getIn(0);
+  Datatype *ct = ptrvn->getHigh()->getType();
+  if (ct->needsResolution())
+    ct->resolveInFlow(op,0);
+  TypePointer *pt = (TypePointer *)ptrvn->getTypeReadFacing(op);
+  if (pt->getSubMeta() != SUB_PTRREL)
+    pt = (TypePointer *)ptrvn->getHighTypeReadFacing(op);
+
+  int4 sz = (int4)op->getIn(2)->getOffset();
+  if (pt->getMetatype() != TYPE_PTR) return false;
+  if (pt->getPtrTo()->getAlignSize() != AddrSpace::addressToByteInt(sz, pt->getWordSize())) return false;
+  return true;
+}
+
 bool ActionSetCasts::ptrsubMatches(PcodeOp *op,Funcdata &data)
 
 {
+  Varnode *ptrvn = op->getIn(0);
+  Datatype *ct = ptrvn->getHigh()->getType();
+  if (ct->needsResolution())
+    ct->resolveInFlow(op,0);
+  Datatype *pt = ptrvn->getTypeReadFacing(op);
+  if (pt->getSubMeta() != SUB_PTRREL)
+    pt = ptrvn->getHighTypeReadFacing(op);
+
   uintb offset = op->getIn(1)->getOffset();
-  Datatype *dt = op->getIn(0)->getTypeReadFacing(op);
-  if (dt->getSubMeta() != SUB_PTRREL) {
-    dt = op->getIn(0)->getHighTypeReadFacing(op);
-  }
-  if (dt->needsResolution()) {
-    dt->resolveInFlow(op,0);
-    const ResolvedUnion *resUnion = data.getUnionField(dt,op,0);
-    if (dt->getMetatype() == TYPE_PTR && resUnion != (ResolvedUnion *)0) {
-      dt = resUnion->getDatatype();
-    }
-  }
-  if (dt->isPtrsubMatching(offset,0,0)) return true;
+  if (pt->isPtrsubMatching(offset,0,0)) return true;
   return false;
 }
 
@@ -3191,13 +3205,7 @@ int4 ActionSetCasts::apply(Funcdata &data)
       OpCode opc = op->code();
       if (opc == CPUI_CAST) continue;
       if (opc == CPUI_PTRADD) {	// Check for PTRADD that no longer fits its pointer
-	int4 sz = (int4)op->getIn(2)->getOffset();
-	Varnode *ptrvn = op->getIn(0);
-	Datatype *ct = ptrvn->getHigh()->getType();
-	if (ct->needsResolution())
-	  ct->resolveInFlow(op,0);
-	TypePointer *pt = (TypePointer *)ptrvn->getHighTypeReadFacing(op);
-	if ((pt->getMetatype() != TYPE_PTR)||(pt->getPtrTo()->getAlignSize() != AddrSpace::addressToByteInt(sz, pt->getWordSize())))
+	if (!ptraddMatches(op,data))
 	  data.opUndoPtradd(op,true);
       }
       else if (opc == CPUI_PTRSUB) {	// Check for PTRSUB that no longer fits pointer
