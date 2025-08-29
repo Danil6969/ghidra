@@ -328,6 +328,7 @@ class ActionSetCasts : public Action {
   static int4 resolveUnion(PcodeOp *op,int4 slot,Funcdata &data);
   static int4 castOutput(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy);
   static int4 castInput(PcodeOp *op,int4 slot,Funcdata &data,CastStrategy *castStrategy);
+  static bool ptraddMatches(PcodeOp *op,Funcdata &data);
   static bool ptrsubMatches(PcodeOp *op,Funcdata &data);
   static PcodeOp *insertPtrsubZero(PcodeOp *op,int4 slot,Datatype *ct,Funcdata &data);
 public:
