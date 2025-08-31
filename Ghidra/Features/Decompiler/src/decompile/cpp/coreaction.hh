@@ -303,6 +303,16 @@ public:
   virtual int4 apply(Funcdata &data) { data.calcNZMask(); return 0; }
 };
 
+class ActionRepairPtradd : public Action {
+public:
+  ActionRepairPtradd(const string &g) : Action(rule_onceperfunc,"repairptradd",g) {}	///< Constructor
+  virtual Action *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Action *)0;
+    return new ActionRepairPtradd(getGroup());
+  }
+  virtual int4 apply(Funcdata &data);
+};
+
 /// \brief Fill-in CPUI_CAST p-code ops as required by the casting strategy
 ///
 /// Setting the casts is complicated by type inference and
@@ -328,10 +338,11 @@ class ActionSetCasts : public Action {
   static int4 resolveUnion(PcodeOp *op,int4 slot,Funcdata &data);
   static int4 castOutput(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy);
   static int4 castInput(PcodeOp *op,int4 slot,Funcdata &data,CastStrategy *castStrategy);
+public:
+  static PcodeOp *insertPtraddNum(PcodeOp *op,int4 slot,uintb numElements,TypePointer *ct,Funcdata &data);
+  static PcodeOp *insertPtrsubZero(PcodeOp *op,int4 slot,Datatype *ct,Funcdata &data);
   static bool ptraddMatches(PcodeOp *op,Funcdata &data);
   static bool ptrsubMatches(PcodeOp *op,Funcdata &data);
-  static PcodeOp *insertPtrsubZero(PcodeOp *op,int4 slot,Datatype *ct,Funcdata &data);
-public:
   ActionSetCasts(const string &g) : Action(rule_onceperfunc,"setcasts",g) {}	///< Constructor
   virtual Action *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Action *)0;
