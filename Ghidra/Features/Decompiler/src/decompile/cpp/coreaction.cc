@@ -2738,6 +2738,50 @@ int4 ActionDefaultParams::apply(Funcdata &data)
   return 0;			// Indicate success
 }
 
+int4 ActionRepairPtradd::apply(Funcdata &data)
+
+{
+  list<PcodeOp *>::const_iterator iter;
+  CastStrategy *castStrategy = data.getArch()->print->getCastStrategy();
+  TypeFactory *tlst = castStrategy->getTypeFactory();
+  const BlockGraph &basicblocks( data.getBasicBlocks() );
+
+  for(int4 j=0;j<basicblocks.getSize();++j) {
+    BlockBasic *bb = (BlockBasic *)basicblocks.getBlock(j);
+    for(iter=bb->beginOp();iter!=bb->endOp();++iter) {
+      PcodeOp *op = *iter;
+      if (op->notPrinted()) continue;
+      OpCode opc = op->code();
+      if (opc != CPUI_PTRADD) continue;
+      if (ActionSetCasts::ptraddMatches(op,data)) {
+	Varnode *outvn = op->getOut();
+	TypePointer *tokenct = (TypePointer *)op->getOpcode()->getOutputToken(op,castStrategy);
+	TypePointer *outHighType = (TypePointer *)outvn->getHigh()->getType();
+	if (tokenct->getMetatype() != TYPE_PTR) continue;
+	if (outHighType->getMetatype() != TYPE_PTR) continue;
+	if (tokenct->getPtrTo()->getSize() != outHighType->getPtrTo()->getSize()) {
+	  outvn->updateType(tokenct,false,false);
+	  count+=1;
+	  continue;
+	}
+	continue;
+      }
+      Varnode *ptrvn = op->getIn(0);
+      TypePointer *pt = (TypePointer *)ptrvn->getTypeReadFacing(op);
+      if (pt->getMetatype() != TYPE_PTR) continue;
+      if (!pt->isPtrsubMatching(0,0,0)) continue;
+      if (pt->getPtrTo()->getSize() < op->getIn(2)->getOffset()) continue;
+      int8 offset = 0;
+      int8 unusedOffset;
+      TypePointer *unusedParent;
+      TypePointer *ct = pt->downChain(offset,unusedParent,unusedOffset,false,*tlst);
+      ActionSetCasts::insertPtrsubZero(op,0,ct,data);
+      count += 1;
+    }
+  }
+  return 0;			// Indicate full completion
+}
+
 /// \brief Check if the data-type of the given value being used as a pointer makes sense
 ///
 /// If the data-type is a pointer make sure:
@@ -3049,6 +3093,26 @@ int4 ActionSetCasts::castOutput(PcodeOp *op,Funcdata &data,CastStrategy *castStr
   return 1;
 }
 
+/// \brief Insert a PTRADD with datatype sized offset that displaces
+/// the pointer of the given data-type by the given number of elements
+PcodeOp *ActionSetCasts::insertPtraddNum(PcodeOp *op,int4 slot,uintb numElements,TypePointer *ct,Funcdata &data)
+
+{
+  int4 sz = ct->getPtrTo()->getSize();
+  Varnode *vn = op->getIn(slot);
+  PcodeOp *newop = data.newOp(3,op->getAddr());
+  Varnode *vnout = data.newUniqueOut(vn->getSize(), newop);
+  vnout->updateType(ct,false,false);
+  vnout->setImplied();
+  data.opSetOpcode(newop, CPUI_PTRADD);
+  data.opSetInput(newop,vn,0);
+  data.opSetInput(newop,data.newConstant(4, numElements),1);
+  data.opSetInput(newop,data.newConstant(4, sz),2);
+  data.opSetInput(op,vnout,slot);
+  data.opInsertBefore(newop,op);
+  return newop;
+}
+
 /// \brief Insert a PTRSUB with offset 0 that accesses a field of the given data-type
 ///
 /// The data-type can be a structure, in which case the field at offset zero is being accessed.
@@ -3197,39 +3261,6 @@ int4 ActionSetCasts::apply(Funcdata &data)
   // We follow data flow, doing basic blocks in dominance order
   // Doing operations in basic block order
   const BlockGraph &basicblocks( data.getBasicBlocks() );
-  TypeFactory *tlst = castStrategy->getTypeFactory();
-  // Fix ptradd ops
-  for(int4 j=0;j<basicblocks.getSize();++j) {
-    BlockBasic *bb = (BlockBasic *)basicblocks.getBlock(j);
-    for(iter=bb->beginOp();iter!=bb->endOp();++iter) {
-      op = *iter;
-      if (op->notPrinted()) continue;
-      OpCode opc = op->code();
-      if (opc != CPUI_PTRADD) continue;
-      if (ptraddMatches(op,data)) {
-	Varnode *outvn = op->getOut();
-	TypePointer *tokenct = (TypePointer *)op->getOpcode()->getOutputToken(op,castStrategy);
-	TypePointer *outHighType = (TypePointer *)outvn->getHigh()->getType();
-	if (tokenct->getMetatype() != TYPE_PTR) continue;
-	if (outHighType->getMetatype() != TYPE_PTR) continue;
-	if (tokenct->getPtrTo()->getSize() == outHighType->getPtrTo()->getSize()) continue;
-	outvn->updateType(tokenct,false,false);
-	count += 1;
-      }
-      else {
-	Varnode *ptrvn = op->getIn(0);
-	TypePointer *pt = (TypePointer *)ptrvn->getTypeReadFacing(op);
-	if (pt->getMetatype() != TYPE_PTR) continue;
-	if (!pt->isPtrsubMatching(0,0,0)) continue;
-	int8 offset = 0;
-	int8 unusedOffset;
-	TypePointer *unusedParent;
-	TypePointer *ct = pt->downChain(offset,unusedParent,unusedOffset,false,*tlst);
-	insertPtrsubZero(op,0,ct,data);
-	count += 1;
-      }
-    }
-  }
   for(int4 j=0;j<basicblocks.getSize();++j) {
     BlockBasic *bb = (BlockBasic *)basicblocks.getBlock(j);
     for(iter=bb->beginOp();iter!=bb->endOp();++iter) {
@@ -3240,7 +3271,7 @@ int4 ActionSetCasts::apply(Funcdata &data)
       if (opc == CPUI_PTRADD) {	// Check for PTRADD that no longer fits its pointer
 	if (!ptraddMatches(op,data)) {
 	  data.opUndoPtradd(op,true);
-	  count+=1;
+	  count += 1;
 	}
       }
       else if (opc == CPUI_PTRSUB) {	// Check for PTRSUB that no longer fits pointer
@@ -3252,7 +3283,7 @@ int4 ActionSetCasts::apply(Funcdata &data)
 	  else {
 	    data.opSetOpcode(op, CPUI_INT_ADD);
 	  }
-	  count+=1;
+	  count += 1;
 	}
       }
       // Do input casts first, as output may depend on input
@@ -6517,6 +6548,7 @@ void ActionDatabase::universalAction(Architecture *conf)
   act->addAction( new ActionMapGlobals("fixateglobals") );
   act->addAction( new ActionDynamicSymbols("dynamic") );
   act->addAction( new ActionNameVars("merge") );
+  act->addAction( new ActionRepairPtradd("casts") );
   act->addAction( new ActionSetCasts("casts") );
   act->addAction( new ActionFinalStructure("blockrecovery") );
   act->addAction( new ActionPrototypeWarnings("protorecovery") );
