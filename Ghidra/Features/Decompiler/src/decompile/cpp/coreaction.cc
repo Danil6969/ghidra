@@ -3197,6 +3197,39 @@ int4 ActionSetCasts::apply(Funcdata &data)
   // We follow data flow, doing basic blocks in dominance order
   // Doing operations in basic block order
   const BlockGraph &basicblocks( data.getBasicBlocks() );
+  TypeFactory *tlst = castStrategy->getTypeFactory();
+  // Fix ptradd ops
+  for(int4 j=0;j<basicblocks.getSize();++j) {
+    BlockBasic *bb = (BlockBasic *)basicblocks.getBlock(j);
+    for(iter=bb->beginOp();iter!=bb->endOp();++iter) {
+      op = *iter;
+      if (op->notPrinted()) continue;
+      OpCode opc = op->code();
+      if (opc != CPUI_PTRADD) continue;
+      if (ptraddMatches(op,data)) {
+	Varnode *outvn = op->getOut();
+	TypePointer *tokenct = (TypePointer *)op->getOpcode()->getOutputToken(op,castStrategy);
+	TypePointer *outHighType = (TypePointer *)outvn->getHigh()->getType();
+	if (tokenct->getMetatype() != TYPE_PTR) continue;
+	if (outHighType->getMetatype() != TYPE_PTR) continue;
+	if (tokenct->getPtrTo()->getSize() == outHighType->getPtrTo()->getSize()) continue;
+	outvn->updateType(tokenct,false,false);
+	count += 1;
+      }
+      else {
+	Varnode *ptrvn = op->getIn(0);
+	TypePointer *pt = (TypePointer *)ptrvn->getTypeReadFacing(op);
+	if (pt->getMetatype() != TYPE_PTR) continue;
+	if (!pt->isPtrsubMatching(0,0,0)) continue;
+	int8 offset = 0;
+	int8 unusedOffset;
+	TypePointer *unusedParent;
+	TypePointer *ct = pt->downChain(offset,unusedParent,unusedOffset,false,*tlst);
+	insertPtrsubZero(op,0,ct,data);
+	count += 1;
+      }
+    }
+  }
   for(int4 j=0;j<basicblocks.getSize();++j) {
     BlockBasic *bb = (BlockBasic *)basicblocks.getBlock(j);
     for(iter=bb->beginOp();iter!=bb->endOp();++iter) {
@@ -3205,8 +3238,10 @@ int4 ActionSetCasts::apply(Funcdata &data)
       OpCode opc = op->code();
       if (opc == CPUI_CAST) continue;
       if (opc == CPUI_PTRADD) {	// Check for PTRADD that no longer fits its pointer
-	if (!ptraddMatches(op,data))
+	if (!ptraddMatches(op,data)) {
 	  data.opUndoPtradd(op,true);
+	  count+=1;
+	}
       }
       else if (opc == CPUI_PTRSUB) {	// Check for PTRSUB that no longer fits pointer
 	if (!ptrsubMatches(op,data)) {
@@ -3214,8 +3249,10 @@ int4 ActionSetCasts::apply(Funcdata &data)
 	    data.opRemoveInput(op, 1);
 	    data.opSetOpcode(op, CPUI_COPY);
 	  }
-	  else
+	  else {
 	    data.opSetOpcode(op, CPUI_INT_ADD);
+	  }
+	  count+=1;
 	}
       }
       // Do input casts first, as output may depend on input
