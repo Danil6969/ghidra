@@ -3221,6 +3221,8 @@ int4 ActionSetCasts::castOutput(PcodeOp *op,Funcdata &data,CastStrategy *castStr
 PcodeOp *ActionSetCasts::insertPtraddNum(PcodeOp *op,int4 slot,uintb numElements,TypePointer *ct,Funcdata &data)
 
 {
+  CastStrategy *castStrategy = data.getArch()->print->getCastStrategy();
+  TypeFactory *tlst = castStrategy->getTypeFactory();
   int4 sz = ct->getPtrTo()->getSize();
   Varnode *vn = op->getIn(slot);
   PcodeOp *newop = data.newOp(3,op->getAddr());
