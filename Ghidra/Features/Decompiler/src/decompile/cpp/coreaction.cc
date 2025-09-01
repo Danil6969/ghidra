@@ -2738,153 +2738,132 @@ int4 ActionDefaultParams::apply(Funcdata &data)
   return 0;			// Indicate success
 }
 
-bool ActionRepairPtradd::updateOutputType(Funcdata &data,const BlockGraph &basicblocks,CastStrategy *castStrategy)
+bool ActionRepairPtradd::updateOutputType(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst)
 
 {
-  list<PcodeOp *>::const_iterator iter;
-  for(int4 j=0;j<basicblocks.getSize();++j) {
-    BlockBasic *bb = (BlockBasic *)basicblocks.getBlock(j);
-    for(iter=bb->beginOp();iter!=bb->endOp();++iter) {
-      PcodeOp *op = *iter;
-      if (op->notPrinted()) continue;
-      OpCode opc = op->code();
-      if (opc != CPUI_PTRADD) continue;
-      if (!ActionSetCasts::ptraddMatches(op,data)) continue;
-      Varnode *outvn = op->getOut();
-      TypePointer *tokenct = (TypePointer *)op->getOpcode()->getOutputToken(op,castStrategy);
-      TypePointer *outHighType = (TypePointer *)outvn->getHigh()->getType();
-      if (tokenct->getMetatype() != TYPE_PTR) continue;
-      if (outHighType->getMetatype() != TYPE_PTR) continue;
-      if (tokenct->getPtrTo()->getSize() == outHighType->getPtrTo()->getSize()) continue;
-      outvn->updateType(tokenct,false,false);
-      return true;
-    }
-  }
-  return false;
+  if (!ActionSetCasts::ptraddMatches(op,data)) return false;
+  Varnode *outvn = op->getOut();
+  TypePointer *tokenct = (TypePointer *)op->getOpcode()->getOutputToken(op,castStrategy);
+  TypePointer *outHighType = (TypePointer *)outvn->getHigh()->getType();
+  if (tokenct->getMetatype() != TYPE_PTR) return false;
+  if (outHighType->getMetatype() != TYPE_PTR) return false;
+  if (tokenct->getPtrTo()->getSize() == outHighType->getPtrTo()->getSize()) return false;
+  outvn->updateType(tokenct,false,false);
+  return true;
 }
 
-bool ActionRepairPtradd::placePtrsubZero(Funcdata &data,const BlockGraph &basicblocks,TypeFactory *tlst)
+bool ActionRepairPtradd::placePtrsubZero(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst)
 
 {
-  list<PcodeOp *>::const_iterator iter;
-  for(int4 j=0;j<basicblocks.getSize();++j) {
-    BlockBasic *bb = (BlockBasic *)basicblocks.getBlock(j);
-    for(iter=bb->beginOp();iter!=bb->endOp();++iter) {
-      PcodeOp *op = *iter;
-      if (op->notPrinted()) continue;
-      OpCode opc = op->code();
-      if (opc != CPUI_PTRADD) continue;
-      if (ActionSetCasts::ptraddMatches(op,data)) continue;
-      Varnode *ptrvn = op->getIn(0);
-      TypePointer *pt = (TypePointer *)ptrvn->getTypeReadFacing(op);
-      if (pt->getMetatype() != TYPE_PTR) continue;
-      if (!pt->isPtrsubMatching(0,0,0)) continue;
-      if (pt->getPtrTo()->getSize() < AddrSpace::addressToByteInt(op->getIn(2)->getOffset(),pt->getWordSize())) continue;
-      int8 offset = 0;
-      int8 unusedOffset;
-      TypePointer *unusedParent;
-      TypePointer *ct = pt->downChain(offset,unusedParent,unusedOffset,false,*tlst);
-      ActionSetCasts::insertPtrsubZero(op,0,ct,data);
-      return true;
-    }
-  }
-  return false;
+  if (ActionSetCasts::ptraddMatches(op,data)) return false;
+  Varnode *ptrvn = op->getIn(0);
+  TypePointer *pt = (TypePointer *)ptrvn->getTypeReadFacing(op);
+  if (pt->getMetatype() != TYPE_PTR) return false;
+  if (!pt->isPtrsubMatching(0,0,0)) return false;
+  if (pt->getPtrTo()->getSize() < AddrSpace::addressToByteInt(op->getIn(2)->getOffset(),pt->getWordSize())) return false;
+  int8 offset = 0;
+  int8 unusedOffset;
+  TypePointer *unusedParent;
+  TypePointer *ct = pt->downChain(offset,unusedParent,unusedOffset,false,*tlst);
+  ActionSetCasts::insertPtrsubZero(op,0,ct,data);
+  return true;
 }
 
-bool ActionRepairPtradd::distributePtradd(Funcdata &data,const BlockGraph &basicblocks,CastStrategy *castStrategy,TypeFactory *tlst)
+bool ActionRepairPtradd::distributePtradd(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst)
 
 {
-  list<PcodeOp *>::const_iterator iter;
-  for(int4 j=0;j<basicblocks.getSize();++j) {
-    BlockBasic *bb = (BlockBasic *)basicblocks.getBlock(j);
-    for(iter=bb->beginOp();iter!=bb->endOp();++iter) {
-      PcodeOp *op = *iter;
-      if (op->notPrinted()) continue;
-      OpCode opc = op->code();
-      if (opc != CPUI_PTRADD) continue;
-      if (!ActionSetCasts::ptraddMatches(op,data)) continue;
-      Varnode *invn0 = op->getIn(0);
-      Varnode *invn1 = op->getIn(1);
-      Varnode *invn2 = op->getIn(2);
-      if (!invn1->isConstant()) continue;
-      intb off1 = invn1->getOffset();
-      intb elsize1 = invn2->getOffset();
-      intb off = off1 * elsize1;
-      if (off == 0) continue;
+  intb off,off1,off2;
+  intb elsize1,elsize2;
 
-      PcodeOp *ptrsubop = invn0->getDef();
-      if (ptrsubop == (PcodeOp *)0) continue;
-      if (ptrsubop->code() != CPUI_PTRSUB) continue;
-      if (ptrsubop->getIn(1)->getOffset() != 0) continue;
+  if (!ActionSetCasts::ptraddMatches(op,data)) return false;
+  Varnode *invn0 = op->getIn(0);
+  Varnode *invn1 = op->getIn(1);
+  Varnode *invn2 = op->getIn(2);
+  if (!invn1->isConstant()) return false;
+  off1 = invn1->getOffset();
+  elsize1 = invn2->getOffset();
+  off = off1 * elsize1;
+  if (off == 0) return false;
 
-      Varnode *ptrvn = ptrsubop->getIn(0);
-      TypePointer *pt = (TypePointer *)ptrvn->getTypeReadFacing(op);
-      if (pt->getMetatype() != TYPE_PTR) continue;
-      if (!pt->isPtrsubMatching(0,0,0)) continue;
-      if (pt->getPtrTo()->getSize() % pt->getWordSize() != 0) continue;
-      int8 sz = AddrSpace::byteToAddressInt(pt->getPtrTo()->getSize(),pt->getWordSize());
-      intb num = off / sz;
-      intb rem = off - num * sz;
-      if (off < 0 && rem != 0) {
-	num -= 1;
-	rem = off - num * sz;
-      }
-      if (num == 0) continue;
-      if (!invn0->isImplied()) {
-	if (invn0->getSpace()->getType() == IPTR_INTERNAL)
-	  invn0->setImplied();
-      }
-      data.opSetInput(op,ptrvn,0);
-      data.opSetInput(op,data.newConstant(4,(int4)rem),1);
+  PcodeOp *ptrsubop = invn0->getDef();
+  if (ptrsubop == (PcodeOp *)0) return false;
+  if (ptrsubop->code() != CPUI_PTRSUB) return false;
+  if (ptrsubop->getIn(1)->getOffset() != 0) return false;
 
-      int8 offset = 0;
-      int8 unusedOffset;
-      TypePointer *unusedParent;
-      TypePointer *ct = pt->downChain(offset,unusedParent,unusedOffset,false,*tlst);
-      ActionSetCasts::insertPtrsubZero(op,0,ct,data);
-      ptrsubop = op->getIn(0)->getDef();
-      PcodeOp *ptraddop = ActionSetCasts::insertPtraddNum(ptrsubop,0,num,pt,data);
-      intb elsize2 = ptraddop->getIn(2)->getOffset();
-      if (elsize1 == elsize2) {
-	// There will be no ptrsub and only one ptradd
-	// if the elsize constants are equal
-	off1 = ptraddop->getIn(1)->getOffset();
-	uintb off2 = op->getIn(1)->getOffset();
-	off = off1 + off2;
-	data.opSetInput(op,ptraddop->getIn(0),0);
-	data.opSetInput(op,data.newConstant(4,(int4)off),1);
-	off2 = off2;
-      }
-      return true;
-    }
+  Varnode *ptrvn = ptrsubop->getIn(0);
+  TypePointer *pt = (TypePointer *)ptrvn->getTypeReadFacing(op);
+  if (pt->getMetatype() != TYPE_PTR) return false;
+  if (!pt->isPtrsubMatching(0,0,0)) return false;
+  if (pt->getPtrTo()->getSize() % pt->getWordSize() != 0) return false;
+  int8 sz = AddrSpace::byteToAddressInt(pt->getPtrTo()->getSize(),pt->getWordSize());
+  intb num = off / sz;
+  intb rem = off - num * sz;
+  if (off < 0 && rem != 0) {
+    num -= 1;
+    rem = off - num * sz;
   }
-  return false;
+  if (num == 0) return false;
+  if (!invn0->isImplied()) {
+    if (invn0->getSpace()->getType() == IPTR_INTERNAL)
+      invn0->setImplied();
+  }
+  data.opSetInput(op,ptrvn,0);
+  data.opSetInput(op,data.newConstant(4,(int4)rem),1);
+
+  int8 offset = 0;
+  int8 unusedOffset;
+  TypePointer *unusedParent;
+  TypePointer *ct = pt->downChain(offset,unusedParent,unusedOffset,false,*tlst);
+  ActionSetCasts::insertPtrsubZero(op,0,ct,data);
+  ptrsubop = op->getIn(0)->getDef();
+  PcodeOp *ptraddop = ActionSetCasts::insertPtraddNum(ptrsubop,0,num,pt,data);
+  elsize2 = ptraddop->getIn(2)->getOffset();
+  if (elsize1 == elsize2) {
+    // There will be no ptrsub and only one ptradd
+    // if the elsize constants are equal
+    off1 = ptraddop->getIn(1)->getOffset();
+    off2 = op->getIn(1)->getOffset();
+    off = off1 + off2;
+    data.opSetInput(op,ptraddop->getIn(0),0);
+    data.opSetInput(op,data.newConstant(4,(int4)off),1);
+    off2 = off2;
+  }
+  return true;
 }
 
 int4 ActionRepairPtradd::apply(Funcdata &data)
 
 {
+  bool change;
+  list<PcodeOp *>::const_iterator iter;
   CastStrategy *castStrategy = data.getArch()->print->getCastStrategy();
   TypeFactory *tlst = castStrategy->getTypeFactory();
   const BlockGraph &basicblocks( data.getBasicBlocks() );
-  bool change;
 
   do {
     change = false;
-    if (updateOutputType(data,basicblocks,castStrategy)) {
-      change = true;
-      count += 1;
-    }
-    if (placePtrsubZero(data,basicblocks,tlst)) {
-      change = true;
-      count += 1;
-    }
-    if (distributePtradd(data,basicblocks,castStrategy,tlst)) {
-      change = true;
-      count += 1;
+    for(int4 j=0;j<basicblocks.getSize();++j) {
+      BlockBasic *bb = (BlockBasic *)basicblocks.getBlock(j);
+      for(iter=bb->beginOp();iter!=bb->endOp();++iter) {
+	PcodeOp *op = *iter;
+	if (op->notPrinted()) continue;
+	OpCode opc = op->code();
+	if (opc != CPUI_PTRADD) continue;
+	if (updateOutputType(op,data,castStrategy,tlst)) {
+	  change = true;
+	  count += 1;
+	}
+	if (placePtrsubZero(op,data,castStrategy,tlst)) {
+	  change = true;
+	  count += 1;
+	}
+	if (distributePtradd(op,data,castStrategy,tlst)) {
+	  change = true;
+	  count += 1;
+	}
+      }
     }
   } while (change);
-
   return 0;			// Indicate full completion
 }
 
