@@ -306,7 +306,8 @@ public:
 class ActionRepairPtradd : public Action {
   bool updateOutputType(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst);
   bool placePtrsubZero(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst);
-  bool distributePtradd(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst);
+  bool distributePtraddPtrsub(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst);
+  bool distributePtraddPtradd(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst);
 public:
   ActionRepairPtradd(const string &g) : Action(rule_onceperfunc,"repairptradd",g) {}	///< Constructor
   virtual Action *clone(const ActionGroupList &grouplist) const {
