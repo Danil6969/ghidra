@@ -2769,7 +2769,7 @@ bool ActionRepairPtradd::placePtrsubZero(PcodeOp *op,Funcdata &data,CastStrategy
   return true;
 }
 
-bool ActionRepairPtradd::distributePtradd(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst)
+bool ActionRepairPtradd::distributePtraddPtrsub(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst)
 
 {
   intb off,off1,off2;
@@ -2780,6 +2780,8 @@ bool ActionRepairPtradd::distributePtradd(PcodeOp *op,Funcdata &data,CastStrateg
   Varnode *invn1 = op->getIn(1);
   Varnode *invn2 = op->getIn(2);
   if (!invn1->isConstant()) return false;
+  int4 vnsz = invn1->getSize();
+  Datatype *dt = tlst->getBase(vnsz,TYPE_INT);
   off1 = invn1->getOffset();
   elsize1 = invn2->getOffset();
   off = off1 * elsize1;
@@ -2807,8 +2809,10 @@ bool ActionRepairPtradd::distributePtradd(PcodeOp *op,Funcdata &data,CastStrateg
     if (invn0->getSpace()->getType() == IPTR_INTERNAL)
       invn0->setImplied();
   }
+  Varnode *indexVn = data.newConstant(vnsz,rem&calc_mask(vnsz));
   data.opSetInput(op,ptrvn,0);
-  data.opSetInput(op,data.newConstant(4,(int4)rem),1);
+  data.opSetInput(op,indexVn,1);
+  indexVn->updateType(dt,false,false);
 
   int8 offset = 0;
   int8 unusedOffset;
@@ -2824,10 +2828,40 @@ bool ActionRepairPtradd::distributePtradd(PcodeOp *op,Funcdata &data,CastStrateg
     off1 = ptraddop->getIn(1)->getOffset();
     off2 = op->getIn(1)->getOffset();
     off = off1 + off2;
+    Varnode *indexVn = data.newConstant(vnsz,off&calc_mask(vnsz));
     data.opSetInput(op,ptraddop->getIn(0),0);
-    data.opSetInput(op,data.newConstant(4,(int4)off),1);
-    off2 = off2;
+    data.opSetInput(op,indexVn,1);
+    indexVn->updateType(dt,false,false);
   }
+  return true;
+}
+
+bool ActionRepairPtradd::distributePtraddPtradd(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst)
+
+{
+  intb elsize1,elsize2;
+  intb off,off1,off2;
+  if (!ActionSetCasts::ptraddMatches(op,data)) return false;
+  Varnode *invn0 = op->getIn(0);
+  Varnode *invn1 = op->getIn(1);
+  Varnode *invn2 = op->getIn(2);
+  PcodeOp *ptraddop = invn0->getDef();
+  if (ptraddop == (PcodeOp *)0) return false;
+  if (ptraddop->code() != CPUI_PTRADD) return false;
+  if (!ptraddop->getIn(1)->isConstant()) return false;
+  if (!invn1->isConstant()) return false;
+  int4 vnsz = invn1->getSize();
+  Datatype *dt = tlst->getBase(vnsz,TYPE_INT);
+  elsize1 = invn2->getOffset();
+  elsize2 = ptraddop->getIn(2)->getOffset();
+  if (elsize1 != elsize2) return false;
+  off1 = invn1->getOffset();
+  off2 = ptraddop->getIn(1)->getOffset();
+  off = off1 + off2;
+  Varnode *indexVn = data.newConstant(vnsz,off&calc_mask(vnsz));
+  data.opSetInput(op,ptraddop->getIn(0),0);
+  data.opSetInput(op,indexVn,1);
+  indexVn->updateType(dt,false,false);
   return true;
 }
 
@@ -2857,7 +2891,11 @@ int4 ActionRepairPtradd::apply(Funcdata &data)
 	  change = true;
 	  count += 1;
 	}
-	if (distributePtradd(op,data,castStrategy,tlst)) {
+	if (distributePtraddPtrsub(op,data,castStrategy,tlst)) {
+	  change = true;
+	  count += 1;
+	}
+	if (distributePtraddPtradd(op,data,castStrategy,tlst)) {
 	  change = true;
 	  count += 1;
 	}
@@ -3189,12 +3227,16 @@ PcodeOp *ActionSetCasts::insertPtraddNum(PcodeOp *op,int4 slot,uintb numElements
   Varnode *vnout = data.newUniqueOut(vn->getSize(), newop);
   vnout->updateType(ct,false,false);
   vnout->setImplied();
+  int4 vnsz = ct->getSize();
+  Datatype *dt = tlst->getBase(vnsz,TYPE_INT);
+  Varnode *indexVn = data.newConstant(vnsz,numElements&calc_mask(vnsz));
   data.opSetOpcode(newop, CPUI_PTRADD);
   data.opSetInput(newop,vn,0);
-  data.opSetInput(newop,data.newConstant(4, numElements),1);
-  data.opSetInput(newop,data.newConstant(4, sz),2);
+  data.opSetInput(newop,indexVn,1);
+  data.opSetInput(newop,data.newConstant(4,sz),2);
   data.opSetInput(op,vnout,slot);
   data.opInsertBefore(newop,op);
+  indexVn->updateType(dt,false,false);
   return newop;
 }
 
@@ -3220,7 +3262,7 @@ PcodeOp *ActionSetCasts::insertPtrsubZero(PcodeOp *op,int4 slot,Datatype *ct,Fun
   vnout->setImplied();
   data.opSetOpcode(newop, CPUI_PTRSUB);
   data.opSetInput(newop,vn,0);
-  data.opSetInput(newop,data.newConstant(4, 0),1);
+  data.opSetInput(newop,data.newConstant(4,0),1);
   data.opSetInput(op,vnout,slot);
   data.opInsertBefore(newop,op);
   return newop;
