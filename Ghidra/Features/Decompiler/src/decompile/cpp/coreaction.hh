@@ -304,9 +304,9 @@ public:
 };
 
 class ActionRepairPtradd : public Action {
-  bool updateOutputType(Funcdata &data,const BlockGraph &basicblocks,CastStrategy *castStrategy);
-  bool placePtrsubZero(Funcdata &data,const BlockGraph &basicblocks,TypeFactory *tlst);
-  bool distributePtradd(Funcdata &data,const BlockGraph &basicblocks,CastStrategy *castStrategy,TypeFactory *tlst);
+  bool updateOutputType(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst);
+  bool placePtrsubZero(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst);
+  bool distributePtradd(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst);
 public:
   ActionRepairPtradd(const string &g) : Action(rule_onceperfunc,"repairptradd",g) {}	///< Constructor
   virtual Action *clone(const ActionGroupList &grouplist) const {
