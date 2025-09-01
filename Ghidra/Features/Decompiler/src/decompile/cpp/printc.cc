@@ -689,7 +689,13 @@ void PrintC::opTypeCast(const PcodeOp *op)
   bool inArr = inMeta == TYPE_ARRAY;
   string outTypeName = printedTypeName(outType);
   string inTypeName = printedTypeName(inType);
-  bool nameEquals = !outTypeName.empty() && outTypeName == inTypeName; // Types may be inequal if name is empty
+  bool nameEquals = false;
+  // Types may be inequal if name is empty
+  if (!outTypeName.empty() && inTypeName.empty()) {
+    if (outTypeName == inTypeName) {
+      nameEquals = true;
+    }
+  }
   if (option_nocasts) {
     pushVn(inVn,op,mods);
     return;
@@ -697,6 +703,17 @@ void PrintC::opTypeCast(const PcodeOp *op)
   if (nameEquals) {
     pushVn(inVn,op,mods);
     return;
+  }
+  PcodeOp *lone = outVn->loneDescend();
+  if (lone != (PcodeOp *)0 && lone->code() == CPUI_STORE) {
+    if (outMeta == TYPE_PTR && inMeta == TYPE_PTR) {
+      if (lone->getIn(2)->getHighTypeReadFacing(op)->getMetatype() == TYPE_ARRAY) {
+	// We don't print pointer to other pointer cast
+	// if there is lone store op under COPY
+	pushVn(inVn,op,mods);
+	return;
+      }
+    }
   }
   TypeFactory *types = op->getFuncdata()->getArch()->types;
   if (isSimpleCast(inType,outType,types)) {
