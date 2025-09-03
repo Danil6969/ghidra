@@ -193,6 +193,7 @@ class SplitDatatype {
   bool testCopyConstraints(PcodeOp *copyOp);
   bool generateConstants(Varnode *vn,vector<Varnode *> &inVarnodes);
   void buildInConstants(Varnode *rootVn,vector<Varnode *> &inVarnodes,bool bigEndian);
+  Varnode *getPieceInVarnode(Varnode *pieceVn,int4 offset,int4 size);
   void buildInSubpieces(Varnode *rootVn,PcodeOp *followOp,vector<Varnode *> &inVarnodes);
   void buildOutVarnodes(Varnode *rootVn,vector<Varnode *> &outVarnodes);
   void buildOutConcats(Varnode *rootVn,PcodeOp *previousOp,vector<Varnode *> &outVarnodes);
