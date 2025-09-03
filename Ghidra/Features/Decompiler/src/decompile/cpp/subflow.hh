@@ -180,6 +180,7 @@ class SplitDatatype {
     bool find(PcodeOp *op,Datatype *valueType);	///< Locate root pointer for underlying LOAD or STORE
     void duplicateToTemp(Funcdata &data,PcodeOp *followOp);	///< COPY the root varnode into a temp register
     void freePointerChain(Funcdata &data);	///< Remove unused pointer calculations
+    void freeValueVarnode(Varnode *vn,Funcdata &data);	///< Remove unused pointer calculations
   };
   Funcdata &data;			///< The containing function
   TypeFactory *types;			///< The data-type container
@@ -193,7 +194,7 @@ class SplitDatatype {
   bool testCopyConstraints(PcodeOp *copyOp);
   bool generateConstants(Varnode *vn,vector<Varnode *> &inVarnodes);
   void buildInConstants(Varnode *rootVn,vector<Varnode *> &inVarnodes,bool bigEndian);
-  Varnode *getPieceInVarnode(Varnode *pieceVn,int4 offset,int4 size);
+  Varnode *getPieceInputVarnode(Varnode *pieceVn,int4 offset,int4 size);
   void buildInSubpieces(Varnode *rootVn,PcodeOp *followOp,vector<Varnode *> &inVarnodes);
   void buildOutVarnodes(Varnode *rootVn,vector<Varnode *> &outVarnodes);
   void buildOutConcats(Varnode *rootVn,PcodeOp *previousOp,vector<Varnode *> &outVarnodes);
