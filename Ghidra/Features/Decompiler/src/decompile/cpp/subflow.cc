@@ -2202,6 +2202,33 @@ void SplitDatatype::buildInConstants(Varnode *rootVn,vector<Varnode *> &inVarnod
   }
 }
 
+Varnode *SplitDatatype::getPieceInVarnode(Varnode *pieceVn,int4 offset,int4 size)
+
+{
+  Varnode *vn;
+  int4 off;
+
+  PcodeOp *op = pieceVn->getDef();
+  if (op == (PcodeOp *)0) return (Varnode *)0;
+  if (op->code() != CPUI_PIECE) return (Varnode *)0;
+  Varnode *vn1 = op->getIn(0);
+  Varnode *vn2 = op->getIn(1);
+  // Select varnode to draw from
+  if (offset < vn2->getSize()) {
+    vn = vn2;
+    off = offset;
+  }
+  else {
+    vn = vn1;
+    off = offset - vn2->getSize();
+  }
+  if (vn->getSize() == size) return vn;
+  if (vn->getSize() < size) return (Varnode *)0;
+  // Now recurse to see if there is
+  // more piece varnode to drill down to
+  return getPieceInVarnode(vn,off,size);
+}
+
 /// \brief Build input Varnodes by extracting SUBPIECEs from the root
 ///
 /// Extract different pieces from the given root based on the offsets and
@@ -2222,11 +2249,16 @@ void SplitDatatype::buildInSubpieces(Varnode *rootVn,PcodeOp *followOp,vector<Va
     addr.renormalize(dt->getSize());
     if (addr.isBigEndian())
       off = rootVn->getSize() - off - dt->getSize();
+    Varnode *outVn = getPieceInVarnode(rootVn, off, dt->getSize());
+    if (outVn != (Varnode *)0) {
+      inVarnodes.push_back(outVn);
+      continue;
+    }
     PcodeOp *subpiece = data.newOp(2, followOp->getAddr());
     data.opSetOpcode(subpiece, CPUI_SUBPIECE);
     data.opSetInput(subpiece,rootVn,0);
     data.opSetInput(subpiece,data.newConstant(4, off), 1);
-    Varnode *outVn = data.newVarnodeOut(dt->getSize(), addr, subpiece);
+    outVn = data.newVarnodeOut(dt->getSize(), addr, subpiece);
     inVarnodes.push_back(outVn);
     outVn->updateType(dt, false, false);
     data.opInsertBefore(subpiece, followOp);
