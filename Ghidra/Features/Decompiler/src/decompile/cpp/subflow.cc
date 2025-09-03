@@ -1917,6 +1917,24 @@ void SplitDatatype::RootPointer::freePointerChain(Funcdata &data)
   }
 }
 
+void SplitDatatype::RootPointer::freeValueVarnode(Varnode *vn,Funcdata &data)
+
+{
+  if (vn->isAddrTied()) return;
+  if (!vn->hasNoDescend()) return;
+  PcodeOp *op = vn->getDef();
+  if (op == (PcodeOp *)0) return;
+
+  vector<Varnode *> inputs;
+  if (op->code() == CPUI_PIECE) {
+    inputs.push_back(op->getIn(0));
+    inputs.push_back(op->getIn(1));
+  }
+  data.opDestroy(op);
+  for(int4 i=0;i<inputs.size();++i)
+    freeValueVarnode(inputs[i],data);
+}
+
 /// \brief Obtain the component of the given data-type at the specified offset
 ///
 /// The data-type must be a composite of some form. This method finds a component data-type
@@ -2202,12 +2220,13 @@ void SplitDatatype::buildInConstants(Varnode *rootVn,vector<Varnode *> &inVarnod
   }
 }
 
-Varnode *SplitDatatype::getPieceInVarnode(Varnode *pieceVn,int4 offset,int4 size)
+Varnode *SplitDatatype::getPieceInputVarnode(Varnode *pieceVn,int4 offset,int4 size)
 
 {
   Varnode *vn;
   int4 off;
 
+  if (pieceVn->isAddrTied()) return (Varnode *)0;
   PcodeOp *op = pieceVn->getDef();
   if (op == (PcodeOp *)0) return (Varnode *)0;
   if (op->code() != CPUI_PIECE) return (Varnode *)0;
@@ -2226,7 +2245,7 @@ Varnode *SplitDatatype::getPieceInVarnode(Varnode *pieceVn,int4 offset,int4 size
   if (vn->getSize() < size) return (Varnode *)0;
   // Now recurse to see if there is
   // more piece varnode to drill down to
-  return getPieceInVarnode(vn,off,size);
+  return getPieceInputVarnode(vn,off,size);
 }
 
 /// \brief Build input Varnodes by extracting SUBPIECEs from the root
@@ -2249,7 +2268,7 @@ void SplitDatatype::buildInSubpieces(Varnode *rootVn,PcodeOp *followOp,vector<Va
     addr.renormalize(dt->getSize());
     if (addr.isBigEndian())
       off = rootVn->getSize() - off - dt->getSize();
-    Varnode *outVn = getPieceInVarnode(rootVn, off, dt->getSize());
+    Varnode *outVn = getPieceInputVarnode(rootVn, off, dt->getSize());
     if (outVn != (Varnode *)0) {
       inVarnodes.push_back(outVn);
       continue;
@@ -2641,6 +2660,7 @@ bool SplitDatatype::splitStore(PcodeOp *storeOp,Datatype *outType)
     loadRoot.freePointerChain(data);
   }
   storeRoot.freePointerChain(data);
+  storeRoot.freeValueVarnode(inVn,data);
   return true;
 }
 
