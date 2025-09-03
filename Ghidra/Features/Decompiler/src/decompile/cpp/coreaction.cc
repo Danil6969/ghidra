@@ -3062,6 +3062,7 @@ bool ActionSetCasts::tryResolutionAdjustment(PcodeOp *op,int4 slot,Funcdata &dat
     if (ct->getMetatype() == TYPE_PTR) return false;
 	return true;
   }
+
   return true;
 }
 
