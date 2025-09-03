@@ -3060,6 +3060,7 @@ bool ActionSetCasts::tryResolutionAdjustment(PcodeOp *op,int4 slot,Funcdata &dat
   if (op->code() == CPUI_INT_ADD) {
     Datatype *ct = op->getIn(slot)->getHighTypeReadFacing(op);
     if (ct->getMetatype() == TYPE_PTR) return false;
+	return true;
   }
   return true;
 }
