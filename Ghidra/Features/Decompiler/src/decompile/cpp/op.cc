@@ -287,6 +287,14 @@ bool PcodeOp::isCollapsible(void) const
   return true;
 }
 
+bool PcodeOp::isStaticCastCopy(void) const
+
+{
+  if (code() != CPUI_COPY) return false;
+  if (getIn(0)->isConstant()) return false;
+  return true;
+}
+
 bool PcodeOp::isReturnAddressConstant(Funcdata &data) const
 
 {
@@ -319,7 +327,6 @@ bool PcodeOp::isReturnAddressConstant(Funcdata &data) const
       if (nextop == (PcodeOp *)0) break;
       if (nextop->getAddr() == nextAddress) break;
       op = nextop;
-      opc = op->code();
     }
     if (opc == CPUI_CALL) return true;
     if (opc == CPUI_CALLIND) return true;
