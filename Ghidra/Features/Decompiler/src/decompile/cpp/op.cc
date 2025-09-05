@@ -364,14 +364,6 @@ bool PcodeOp::isReturnAddressConstant(Funcdata &data) const
   return false;
 }
 
-bool PcodeOp::isReturnAddressConstant(void) const
-
-{
-  Funcdata *fd = getFuncdata();
-  if (fd == (Funcdata *)0) return false;
-  return isReturnAddressConstant(*fd);
-}
-
 int4 PcodeOp::getAllocaAttachSlot(Funcdata &data) const
 
 {
