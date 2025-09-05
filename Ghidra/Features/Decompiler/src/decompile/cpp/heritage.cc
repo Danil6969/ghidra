@@ -468,7 +468,7 @@ Varnode *Heritage::normalizeWriteSize(Varnode *vn,const Address &addr,int4 size)
       fd->opInsertBefore(newop,op);
     }
   }
-  isretaddr = op->isReturnAddressConstant();
+  isretaddr = op->isReturnAddressConstant(*fd);
   if (overlap != 0 && !isretaddr) {
     newop = fd->newOp(2,op->getAddr());
     if (addr.isBigEndian())
