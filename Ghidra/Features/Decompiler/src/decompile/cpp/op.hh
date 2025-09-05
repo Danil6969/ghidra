@@ -226,7 +226,6 @@ public:
   bool isCollapsible(void) const; ///< Return \b true if this can be collapsed to a COPY of a constant
   bool isStaticCastCopy(void) const;
   bool isReturnAddressConstant(Funcdata &data) const;
-  bool isReturnAddressConstant(void) const;
   int4 getAllocaAttachSlot(Funcdata &data) const;
   bool isAllocaShift(Funcdata &data) const;
   bool isAllocaShift(void) const;
