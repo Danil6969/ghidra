@@ -3219,7 +3219,7 @@ bool PrintC::emitArrCopy(const PcodeOp *op)
 void PrintC::emitExpression(const PcodeOp *op)
    
 {
-  const Funcdata *fd = op->getParent()->getFuncdata();
+  const Funcdata *fd = op->getFuncdata();
   const Varnode *outvn = op->getOut();
   if (outvn != (Varnode *)0 && outvn->isAllocaAddress(*(Funcdata *)fd)) {
     Comment label(Comment::user1,fd->getAddress(),fd->getAddress(),0,"Alloca");
