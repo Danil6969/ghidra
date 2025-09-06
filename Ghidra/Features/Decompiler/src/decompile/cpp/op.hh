@@ -224,7 +224,7 @@ public:
   bool isCompare(void) const; ///< Return \b true if this is compare op
   bool isLoopedIncrement(void) const; ///< Return \b true if this is eventually constant increment (or decrement) of looped multiequal op
   bool isCollapsible(void) const; ///< Return \b true if this can be collapsed to a COPY of a constant
-  bool isStaticCastCopy(void) const;
+  bool isStaticCastCopy(Funcdata &data) const;
   bool isReturnAddressConstant(Funcdata &data) const;
   int4 getAllocaAttachSlot(Funcdata &data) const;
   bool isAllocaShift(Funcdata &data) const;
