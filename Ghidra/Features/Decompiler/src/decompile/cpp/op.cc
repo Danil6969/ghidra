@@ -298,6 +298,36 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
     return true;
   }
   OpCode opc = def->code();
+  if (opc == CPUI_COPY) return false;
+  if (opc == CPUI_INT_EQUAL) return false;
+  if (opc == CPUI_INT_NOTEQUAL) return false;
+  if (opc == CPUI_INT_SLESS) return false;
+  if (opc == CPUI_INT_SLESSEQUAL) return false;
+  if (opc == CPUI_INT_LESS) return false;
+  if (opc == CPUI_INT_LESSEQUAL) return false;
+
+  if (opc == CPUI_BOOL_NEGATE) return false;
+  if (opc == CPUI_BOOL_XOR) return false;
+  if (opc == CPUI_BOOL_AND) return false;
+  if (opc == CPUI_BOOL_OR) return false;
+
+  if (opc == CPUI_FLOAT_EQUAL) return false;
+  if (opc == CPUI_FLOAT_NOTEQUAL) return false;
+  if (opc == CPUI_FLOAT_LESS) return false;
+  if (opc == CPUI_FLOAT_LESSEQUAL) return false;
+  if (opc == CPUI_FLOAT_NAN) return false;
+  if (opc == CPUI_FLOAT_ADD) return false;
+  if (opc == CPUI_FLOAT_DIV) return false;
+  if (opc == CPUI_FLOAT_MULT) return false;
+  if (opc == CPUI_FLOAT_SUB) return false;
+  if (opc == CPUI_FLOAT_NEG) return false;
+  if (opc == CPUI_FLOAT_SQRT) return false;
+  if (opc == CPUI_FLOAT_INT2FLOAT) return false;
+  if (opc == CPUI_FLOAT_FLOAT2FLOAT) return false;
+  if (opc == CPUI_FLOAT_TRUNC) return false;
+  if (opc == CPUI_FLOAT_CEIL) return false;
+  if (opc == CPUI_FLOAT_FLOOR) return false;
+  if (opc == CPUI_FLOAT_ROUND) return false;
   return true;
 }
 
