@@ -287,11 +287,17 @@ bool PcodeOp::isCollapsible(void) const
   return true;
 }
 
-bool PcodeOp::isStaticCastCopy(void) const
+bool PcodeOp::isStaticCastCopy(Funcdata &data) const
 
 {
   if (code() != CPUI_COPY) return false;
-  if (getIn(0)->isConstant()) return false;
+  const Varnode *in = getIn(0);
+  const PcodeOp *def = in->getDef();
+  if (def == (PcodeOp *)0) {
+    if (in->isConstant()) return false;
+    return true;
+  }
+  OpCode opc = def->code();
   return true;
 }
 
