@@ -1285,7 +1285,7 @@ Datatype *Varnode::recoverConstantDatatype(void) const
 
 	if (another != (const FlowBlock *)0) {
 	  PcodeOp *retOp = another->lastOp();
-	  if (retOp->code() == CPUI_RETURN) {
+	  if (retOp->code() == CPUI_RETURN && retOp->numInput() > 1) {
 	    Varnode *invn = retOp->getIn(1);
 	    invn = invn->getCopyChainInput();
 	    if (invn->isConstant()) return (Datatype *)0;
