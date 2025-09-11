@@ -298,7 +298,6 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
     return true;
   }
   OpCode opc = def->code();
-  if (opc == CPUI_COPY) return false;
   if (opc == CPUI_INT_EQUAL) return false;
   if (opc == CPUI_INT_NOTEQUAL) return false;
   if (opc == CPUI_INT_SLESS) return false;
@@ -328,6 +327,8 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
   if (opc == CPUI_FLOAT_CEIL) return false;
   if (opc == CPUI_FLOAT_FLOOR) return false;
   if (opc == CPUI_FLOAT_ROUND) return false;
+
+  if (!getOut()->isStaticCastOutput(data)) return false;
   return true;
 }
 
