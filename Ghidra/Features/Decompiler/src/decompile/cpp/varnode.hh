@@ -355,7 +355,7 @@ public:
   Datatype *recoverGlobalDatatype(void) const;		///< Recover datatype of a global
   Datatype *recoverVftableDatatype(TypeFactory *types) const;	///< Recover datatype of last vftable store (from descendants)
   SymbolEntry *getSymbolInFlow(const PcodeOp *op) const;
-  bool isStaticCastOut(Funcdata &data) const;
+  bool isStaticCastOutput(Funcdata &data) const;
   bool isInternalFunctionParameter(void) const;
   bool hasPointerUsages(void) const;
   const PcodeOp *getAllocaShiftOp(Funcdata &data) const;
