@@ -1355,7 +1355,29 @@ SymbolEntry *Varnode::getSymbolInFlow(const PcodeOp *op) const
 bool Varnode::isStaticCastOutput(Funcdata &data) const
 
 {
-  return true;
+  list<PcodeOp *>::const_iterator iter;
+
+  for (iter=beginDescend();iter!=endDescend();++iter) {
+    PcodeOp *op = *iter;
+    OpCode opc = op->code();
+
+    if (opc == CPUI_COPY) {
+      if (op->getOut()->isStaticCastOutput(data))
+	return true;
+      continue;
+    }
+    if (opc == CPUI_CALL) {
+      return true;
+    }
+
+    if (opc == CPUI_SUBPIECE) continue;
+
+    if (opc == CPUI_INT_ADD) return true;
+    if (opc == CPUI_PTRADD) return true;
+    if (opc == CPUI_PTRSUB) return true;
+    return true;
+  }
+  return false;
 }
 
 bool Varnode::isInternalFunctionParameter(void) const
