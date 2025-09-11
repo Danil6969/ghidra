@@ -267,6 +267,11 @@ bool Merge::mergeTestBasic(Varnode *vn)
   if (vn->isImplied()) return false;
   if (vn->isProtoPartial()) return false;
   if (vn->isSpacebase()) return false;
+  PcodeOp *op = vn->getDef();
+  if (op != (PcodeOp *)0) {
+    Funcdata *fd = op->getFuncdata();
+    if (op->isStaticCastCopy(*fd)) return false;
+  }
   return true;
 }
 
