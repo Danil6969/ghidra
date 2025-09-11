@@ -1930,6 +1930,9 @@ void SplitDatatype::RootPointer::freeValueVarnode(Varnode *vn,Funcdata &data)
     inputs.push_back(op->getIn(0));
     inputs.push_back(op->getIn(1));
   }
+  if (op->code() == CPUI_COPY) {
+    inputs.push_back(op->getIn(0));
+  }
   data.opDestroy(op);
   for(int4 i=0;i<inputs.size();++i)
     freeValueVarnode(inputs[i],data);
@@ -2229,6 +2232,9 @@ Varnode *SplitDatatype::getPieceInputVarnode(Varnode *pieceVn,int4 offset,int4 s
   if (pieceVn->isAddrTied()) return (Varnode *)0;
   PcodeOp *op = pieceVn->getDef();
   if (op == (PcodeOp *)0) return (Varnode *)0;
+  if (op->code() == CPUI_COPY)
+    // Recurse to input of copy op
+    return getPieceInputVarnode(op->getIn(0),offset,size);
   if (op->code() != CPUI_PIECE) return (Varnode *)0;
   Varnode *vn1 = op->getIn(0);
   Varnode *vn2 = op->getIn(1);
