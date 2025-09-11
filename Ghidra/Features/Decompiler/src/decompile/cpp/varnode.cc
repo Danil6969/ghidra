@@ -1352,6 +1352,12 @@ SymbolEntry *Varnode::getSymbolInFlow(const PcodeOp *op) const
   return entry;
 }
 
+bool Varnode::isStaticCastOutput(Funcdata &data) const
+
+{
+  return true;
+}
+
 bool Varnode::isInternalFunctionParameter(void) const
 
 {
