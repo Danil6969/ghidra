@@ -391,6 +391,7 @@ Datatype *TypeOpCopy::getOutputToken(const PcodeOp *op,CastStrategy *castStrateg
 Datatype *TypeOpCopy::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn,Varnode *outvn,
 				    int4 inslot,int4 outslot)
 {
+  if (op->isStaticCastCopy(*op->getFuncdata())) return (Datatype *)0;
   if ((inslot!=-1)&&(outslot!=-1)) return (Datatype *)0; // Must propagate input <-> output
   Datatype *newtype;
   if (invn->isSpacebase()) {
