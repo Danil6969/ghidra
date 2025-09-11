@@ -3793,7 +3793,8 @@ int4 RulePropagateCopy::applyOp(PcodeOp *op,Funcdata &data)
     copyop = vn->getDef();
     if (copyop->code()!=CPUI_COPY)
       continue;			// not a propagating instruction
-    
+    if (copyop->isStaticCastCopy(data)) continue;
+
     invn = copyop->getIn(0);
     if (!invn->isHeritageKnown()) continue; // Don't propagate free's away from their first use
     if (invn == vn)
