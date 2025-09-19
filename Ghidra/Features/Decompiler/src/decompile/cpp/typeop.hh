@@ -247,6 +247,7 @@ class TypeOpCopy : public TypeOp {
 public:
   TypeOpCopy(TypeFactory *t);			///< Constructor
   virtual Datatype *getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const;
+  virtual Datatype *getOutputLocal(const PcodeOp *op) const;
   virtual Datatype *getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const;
   virtual Datatype *propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn,Varnode *outvn,
 				  int4 inslot,int4 outslot);
@@ -316,6 +317,7 @@ public:
   virtual Datatype *getInputLocal(const PcodeOp *op,int4 slot) const;
   virtual Datatype *getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const;
   virtual Datatype *getOutputLocal(const PcodeOp *op) const;
+  virtual Datatype *getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const;
 };
 
 /// \brief Information about the CALLIND op-code
