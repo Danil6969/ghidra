@@ -382,6 +382,12 @@ Datatype *TypeOpCopy::getInputCast(const PcodeOp *op,int4 slot,const CastStrateg
   return castStrategy->castStandard(reqtype,curtype,false,true);
 }
 
+Datatype *TypeOpCopy::getOutputLocal(const PcodeOp *op) const
+
+{
+  return op->getIn(0)->getTypeReadFacing(op);
+}
+
 Datatype *TypeOpCopy::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
 
 {
@@ -828,6 +834,20 @@ Datatype *TypeOpCall::getOutputLocal(const PcodeOp *op) const
   ct = fc->getOutputType();
   if (ct->getMetatype() == TYPE_VOID) return TypeOp::getOutputLocal(op);
   return ct;
+}
+
+Datatype *TypeOpCall::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
+
+{
+  const Varnode *vn = op->getIn(0);
+  const FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(vn->getAddr());
+  if (fc->isOverride()) {
+    Datatype *ct = fc->getFuncdata()->getFuncProto().getOutputType(); // We need self output type
+    if (ct->getMetatype() != TYPE_VOID) {
+      return ct;
+    }
+  }
+  return TypeOp::getOutputToken(op,castStrategy);
 }
 
 TypeOpCallind::TypeOpCallind(TypeFactory *t) : TypeOp(t,CPUI_CALLIND,"callind")
