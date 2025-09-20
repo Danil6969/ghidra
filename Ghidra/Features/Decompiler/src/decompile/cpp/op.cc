@@ -295,6 +295,7 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
   const PcodeOp *def = in->getDef();
   if (def == (PcodeOp *)0) {
     if (in->isConstant()) return false;
+    if (!getOut()->isStaticCastOutput(data)) return false;
     return true;
   }
   OpCode opc = def->code();
