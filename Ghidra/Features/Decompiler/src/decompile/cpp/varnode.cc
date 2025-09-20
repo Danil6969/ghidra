@@ -1368,6 +1368,7 @@ bool Varnode::isStaticCastOutput(Funcdata &data) const
     }
 
     if (opc == CPUI_LOAD) continue;
+    if (opc == CPUI_STORE) continue;
     if (opc == CPUI_CALL) continue;
     if (opc == CPUI_RETURN) continue;
     if (opc == CPUI_SUBPIECE) continue;
