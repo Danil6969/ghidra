@@ -2247,8 +2247,9 @@ Varnode *SplitDatatype::getPieceInputVarnode(Varnode *pieceVn,int4 offset,int4 s
     vn = vn1;
     off = offset - vn2->getSize();
   }
-  if (vn->getSize() == size) return vn;
+  if (vn->isAddrTied()) return (Varnode *)0;
   if (vn->getSize() < size) return (Varnode *)0;
+  if (vn->getSize() == size) return vn;
   // Now recurse to see if there is
   // more piece varnode to drill down to
   return getPieceInputVarnode(vn,off,size);
