@@ -1379,7 +1379,16 @@ bool Varnode::isStaticCastOutput(Funcdata &data) const
     if (opc == CPUI_SUBPIECE) continue;
 
     if (opc == CPUI_MULTIEQUAL) return true;
-    if (opc == CPUI_INT_ADD) return true;
+    if (opc == CPUI_INT_ADD) {
+      int4 slot = op->getSlot(this);
+      PcodeOp *otherop = op->getIn(1-slot)->getDef();
+      if (otherop != (PcodeOp *)0) {
+	if (otherop->code() == CPUI_INT_MULT) {
+	  return false;
+	}
+      }
+      return true;
+    }
     if (opc == CPUI_PTRADD) return true;
     if (opc == CPUI_PTRSUB) return true;
     return true;
