@@ -1351,6 +1351,18 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
 	return (SymbolEntry *)0;
       break;
     }
+    case CPUI_CALLOTHER:
+    {
+      string nm = op->getOpcode()->getOperatorName(op);
+      if (nm == "ExclusiveMonitorPass") {
+	if (slot == 1)
+	  break;
+	return (SymbolEntry *)0;
+      }
+      if (!glb->infer_pointers)
+	return (SymbolEntry *)0;
+      break;
+    }
     case CPUI_COPY:
       if (!checkCopy(op, data))
 	return (SymbolEntry *)0;
