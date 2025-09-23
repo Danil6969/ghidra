@@ -168,13 +168,17 @@ bool Datatype::isStructuredType(void) const
 uint4 Datatype::getDisplayFormat(uintb val) const
 
 {
-  if (val == 0) {
-    if (getMetatype() == TYPE_PTR) {
-      // Null pointer prints as decimal
+  if (getMetatype() == TYPE_PTR && val == 0) {
+    // Null pointer prints as decimal
+    return Symbol::force_dec;
+  }
+  if (isCharPrint()) {
+    if (val == 0) {
+      // Null char always prints as decimal
       return Symbol::force_dec;
     }
-    if (isCharPrint()) {
-      // Null char prints as decimal
+    if (val == 1) {
+      // Probably means 1 int value
       return Symbol::force_dec;
     }
   }
