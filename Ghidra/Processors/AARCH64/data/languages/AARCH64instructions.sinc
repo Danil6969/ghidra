@@ -412,7 +412,7 @@ define register offset=0x1800 size=8
 	dbgvcr32_el2
 ];
 
-define register offset=0x3000 size=4 contextreg;
+define register offset=0x3000 size=12 contextreg;
 
 # value loaded from memory to store in register
 # or computed to store in memory
@@ -1014,6 +1014,10 @@ define context contextreg
 	PAC_clobber = (22,22) noflow
 	ShowBTI = (23,23) noflow
 	ShowMemTag = (24,24) noflow
+
+	exceptionFlag=(60,62)   noflow
+	exceptionVariant=(63,63)   noflow
+	exceptionOffset=(64,95) noflow
 ;
 
 define token instrAARCH64 (32) endian = little
@@ -3962,6 +3966,94 @@ macro zext_rh(reg)
 macro zext_rs(reg)
 {
 	reg[32,32] = 0;
+}
+
+exceptRel: reloc is exceptionOffset [ reloc = inst_next + exceptionOffset; ] { export *[ram]:8 reloc; }
+
+# Common
+@define FLAG_CLEARED		"exceptionFlag=0"
+@define FLAG_TRY			"exceptionFlag=1"
+# C++
+@define FLAG_CATCH			"exceptionFlag=2"
+@define FLAG_UNWIND			"exceptionFlag=3"
+
+define pcodeop try;
+define pcodeop catch;
+define pcodeop unwind;
+
+with : ImmS_ImmR_TestSet=0 {
+
+# These clauses can have 2 opposite variants: direct and inverse
+
+# try clauses
+# try clause variant 0
+:^instruction is $(FLAG_TRY) & exceptionVariant=0 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+{
+    e:1 = try();
+    if (!e) goto <lab_skip>;
+	goto exceptRel;
+	<lab_skip>
+	build instruction;
+}
+
+# try clause variant 1
+:^instruction is $(FLAG_TRY) & exceptionVariant=1 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+{
+    e:1 = try();
+    if (e) goto <lab_catch>;
+	build instruction;
+	goto <lab_skip>;
+	<lab_catch>
+	goto exceptRel;
+	<lab_skip>
+}
+
+# catch clauses
+# catch clause variant 0
+:^instruction is $(FLAG_CATCH) & exceptionVariant=0 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+{
+    e:1 = catch();
+    if (!e) goto <lab_skip>;
+	goto exceptRel;
+	<lab_skip>
+	build instruction;
+}
+
+# catch clause variant 1
+:^instruction is $(FLAG_CATCH) & exceptionVariant=1 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+{
+    e:1 = catch();
+    if (e) goto <lab_catch>;
+	build instruction;
+	goto <lab_skip>;
+	<lab_catch>
+	goto exceptRel;
+	<lab_skip>
+}
+
+# unwind clauses
+# unwind clause variant 0
+:^instruction is $(FLAG_UNWIND) & exceptionVariant=0 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+{
+    e:1 = unwind();
+    if (!e) goto <lab_skip>;
+	goto exceptRel;
+	<lab_skip>
+	build instruction;
+}
+
+# unwind clause variant 1
+:^instruction is $(FLAG_UNWIND) & exceptionVariant=1 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+{
+    e:1 = unwind();
+    if (e) goto <lab_catch>;
+	build instruction;
+	goto <lab_skip>;
+	<lab_catch>
+	goto exceptRel;
+	<lab_skip>
+}
+
 }
 
 # SECTION instructions
