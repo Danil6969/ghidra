@@ -5716,7 +5716,7 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=0 & b_21=1 & Rs_GPR32 & b_15=1 & Rt2_G
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR64;
 	*(addrReg + 4) = Rt2_GPR64;
-	status = ExclusiveMonitorsStatus();
+	status = ExclusiveMonitorsStatus(addrReg, rsize);
 <fail>
 	Rs_GPR64 = zext(status);
 }
@@ -5734,7 +5734,7 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=0 & b_21=1 & Rs_GPR32 & b_15=1 & Rt2_G
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR32;
 	*(addrReg + 4) = Rt2_GPR32;
-	status = ExclusiveMonitorsStatus();
+	status = ExclusiveMonitorsStatus(addrReg, rsize);
 <fail>
 	Rs_GPR64 = zext(status);
 }
@@ -5752,7 +5752,7 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=1 & addrR
 	check:1 = ExclusiveMonitorPass(addrReg, rsize);
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR64;
-	status = ExclusiveMonitorsStatus();
+	status = ExclusiveMonitorsStatus(addrReg, rsize);
 <fail>
 	Rs_GPR64 = zext(status);
 }
@@ -5770,7 +5770,7 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=1 & addrR
 	check:1 = ExclusiveMonitorPass(addrReg, rsize);
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR32;
-	status = ExclusiveMonitorsStatus();
+	status = ExclusiveMonitorsStatus(addrReg, rsize);
 <fail>
 	Rs_GPR64 = zext(status);
 }
@@ -5789,7 +5789,7 @@ is size.ldstr=0 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=1 & addrR
 	if (!check) goto <fail>;
 	local tmp:4 = Rt_GPR32;
 	*addrReg = tmp:1;
-	status = ExclusiveMonitorsStatus();
+	status = ExclusiveMonitorsStatus(addrReg, rsize);
 <fail>
 	Rs_GPR64 = zext(status);
 }
@@ -5808,7 +5808,7 @@ is size.ldstr=1 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=1 & addrR
 	if (!check) goto <fail>;
 	local tmp:4 = Rt_GPR32;
 	*addrReg = tmp:2;
-	status = ExclusiveMonitorsStatus();
+	status = ExclusiveMonitorsStatus(addrReg, rsize);
 <fail>
 	Rs_GPR64 = zext(status);
 }
@@ -6096,7 +6096,7 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=0 & b_21=1 & Rs_GPR32 & b_15=0 & Rt2_G
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR64;
 	*(addrReg + 8) = Rt2_GPR64;
-	status = ExclusiveMonitorsStatus();
+	status = ExclusiveMonitorsStatus(addrReg, rsize);
 <fail>
 	Rs_GPR64 = zext(status);
 }
@@ -6114,7 +6114,7 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=0 & b_21=1 & Rs_GPR32 & b_15=0 & Rt2_G
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR32;
 	*(addrReg + 4) = Rt2_GPR32;
-	status = ExclusiveMonitorsStatus();
+	status = ExclusiveMonitorsStatus(addrReg, rsize);
 <fail>
 	Rs_GPR64 = zext(status);
 }
@@ -6132,7 +6132,7 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=0 & addrR
 	check:1 = ExclusiveMonitorPass(addrReg, rsize);
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR64;
-	status = ExclusiveMonitorsStatus();
+	status = ExclusiveMonitorsStatus(addrReg, rsize);
 <fail>
 	Rs_GPR64 = zext(status);
 }
@@ -6150,7 +6150,7 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=0 & addrR
 	check:1 = ExclusiveMonitorPass(addrReg, rsize);
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR32;
-	status = ExclusiveMonitorsStatus();
+	status = ExclusiveMonitorsStatus(addrReg, rsize);
 <fail>
 	Rs_GPR64 = zext(status);
 }
@@ -6169,7 +6169,7 @@ is size.ldstr=0 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=0 & addrR
 	if (!check) goto <fail>;
 	local tmp:4 = Rt_GPR32;
 	*addrReg = tmp:1;
-	status = ExclusiveMonitorsStatus();
+	status = ExclusiveMonitorsStatus(addrReg, rsize);
 <fail>
 	Rs_GPR64 = zext(status);
 }
@@ -6188,7 +6188,7 @@ is size.ldstr=1 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=0 & addrR
 	if (!check) goto <fail>;
 	local tmp:4 = Rt_GPR32;
 	*addrReg = tmp:2;
-	status = ExclusiveMonitorsStatus();
+	status = ExclusiveMonitorsStatus(addrReg, rsize);
 <fail>
 	Rs_GPR64 = zext(status);
 }
