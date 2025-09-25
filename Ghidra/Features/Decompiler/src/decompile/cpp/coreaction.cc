@@ -1363,7 +1363,7 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
 	if (slot == 1)
 	  break;
 	return (SymbolEntry *)0;
-	  }
+      }
       if (!glb->infer_pointers)
 	return (SymbolEntry *)0;
       break;
