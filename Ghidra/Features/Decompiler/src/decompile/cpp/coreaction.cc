@@ -3125,7 +3125,18 @@ int4 ActionSetCasts::resolveUnion(PcodeOp *op,int4 slot,Funcdata &data)
   if (resUnion != (ResolvedUnion*)0 && resUnion->getFieldNum() >= 0) {
     // Insert specific placeholder indicating which field is accessed
     if (dt->getMetatype() == TYPE_PTR) {
-      PcodeOp *ptrsub = insertPtrsubZero(op,slot,resUnion->getDatatype(),data);
+      Datatype *resdt = resUnion->getDatatype();
+      TypePointer *pt = (TypePointer *)dt;
+      Datatype *ptrto = pt->getPtrTo();
+      if (ptrto->getMetatype() == TYPE_UNION) {
+	CastStrategy *castStrategy = data.getArch()->print->getCastStrategy();
+	TypeFactory *tlst = castStrategy->getTypeFactory();
+	int4 num = resUnion->getFieldNum();
+	const TypeField *field = ((TypeUnion *)ptrto)->getField(num);
+	resdt = tlst->getTypePointer(pt->getSize(),field->type,pt->getWordSize());
+      }
+
+      PcodeOp *ptrsub = insertPtrsubZero(op,slot,resdt,data);
       data.setUnionField(dt, ptrsub,-1,*resUnion);			// Attach the resolution to the PTRSUB
     }
     else if (vn->isImplied()) {
