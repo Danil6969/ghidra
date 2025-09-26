@@ -3119,8 +3119,7 @@ int4 ActionSetCasts::resolveUnion(PcodeOp *op,int4 slot,Funcdata &data)
   Datatype *dt = vn->getHigh()->getType();
   if (!dt->needsResolution())
     return 0;
-  if (dt != vn->getType())
-    dt->resolveInFlow(op, slot);	// Last chance to resolve data-type based on flow
+  dt->resolveInFlow(op, slot);	// Last chance to resolve data-type based on flow
   const ResolvedUnion *resUnion = data.getUnionField(dt, op,slot);
   if (resUnion != (ResolvedUnion*)0 && resUnion->getFieldNum() >= 0) {
     // Insert specific placeholder indicating which field is accessed
