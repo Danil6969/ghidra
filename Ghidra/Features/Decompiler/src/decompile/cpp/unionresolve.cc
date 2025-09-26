@@ -1118,15 +1118,19 @@ ScoreUnionFields::ScoreUnionFields(TypeFactory &tgrp,Datatype *parentType,PcodeO
   visited.insert(VisitMark(vn,0));
   for(int4 i=0;i<numFields;++i) {
     Datatype *fieldType = result.baseType->getDepend(i);
-    bool isArray = false;
-    fieldType = getTypeStripComposite(fieldType,vn->getSize());
+    if (parentType->getMetatype() == TYPE_PTR) {
+      TypePointer *pt = (TypePointer *)parentType;
+      fieldType = tgrp.getTypePointer(pt->getSize(),fieldType,pt->getWordSize());
+    }
+    else
+      fieldType = getTypeStripComposite(fieldType,vn->getSize());
     if (vn->getSize() != fieldType->getSize())
       scores[i+1] -= 10;	// Data-type does not even match size of Varnode, don't create trial
     else if (slot < 0) {
-      trialCurrent.emplace_back(vn,fieldType,i+1,isArray);
+      trialCurrent.emplace_back(vn,fieldType,i+1,false);
     }
     else {
-      trialCurrent.emplace_back(op,slot,fieldType,i+1,isArray);
+      trialCurrent.emplace_back(op,slot,fieldType,i+1,false);
     }
     fields[i+1] = fieldType;
     visited.insert(VisitMark(vn,i+1));
