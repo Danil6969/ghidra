@@ -429,6 +429,7 @@ PcodeOp *Merge::allocateCopyTrim(Varnode *inVn,const Address &addr,PcodeOp *trim
   Datatype *ct = inVn->getType();
   if (ct->needsResolution()) {		// If the data-type needs resolution
     if (inVn->isWritten()) {
+      ct->resolveInFlow(inVn->getDef(),-1);
       int4 fieldNum = data.inheritResolution(ct, copyOp, -1, inVn->getDef(), -1);
       data.forceFacingType(ct, fieldNum, copyOp, 0);
     }
