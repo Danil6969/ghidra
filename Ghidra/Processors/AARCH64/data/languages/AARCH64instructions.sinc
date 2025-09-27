@@ -421,9 +421,12 @@ define register offset=0x3104 size=8 tmp_ldXn;
 define register offset=0x310c size=4 tmp_stWn;
 define register offset=0x3110 size=8 tmp_stXn;
 
+define register offset=0x3200 size=8 exclusiveAddress;
+define register offset=0x3208 size=1 exclusiveSize;
+
 # General purpose and SIMD registers
 #
-# These will start at 0x3800 and there should be no defined registers
+# These will start at 0x4000 and there should be no defined registers
 # after this address (this is because the size of the registers is
 # potentially variable).
 #
@@ -3156,7 +3159,6 @@ define pcodeop DCPSInstruction;
 define pcodeop DC_ZVA;
 define pcodeop DRPSInstruction;
 define pcodeop ExceptionReturn;
-define pcodeop SetExclusiveMonitors;
 define pcodeop ExclusiveMonitorsPass;
 define pcodeop ExclusiveMonitorsStatus;
 define pcodeop HaltBreakPoint;
@@ -3178,6 +3180,7 @@ define pcodeop pacib;
 define pcodeop pacizb;
 define pcodeop SendEvent;
 define pcodeop SendEventLocally;
+define pcodeop SetExclusiveMonitors;
 define pcodeop SoftwareBreakpoint;
 define pcodeop SpeculationBarrier;
 define pcodeop SysOp_R;
