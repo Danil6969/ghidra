@@ -1354,7 +1354,7 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
     case CPUI_CALLOTHER:
     {
       string nm = op->getOpcode()->getOperatorName(op);
-      if (nm == "SetExclusiveMonitors") {
+      if (nm == "ClearExclusiveLocal") {
 	if (slot == 1)
 	  break;
 	return (SymbolEntry *)0;
@@ -1365,6 +1365,11 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
 	return (SymbolEntry *)0;
       }
       if (nm == "ExclusiveMonitorsStatus") {
+	if (slot == 1)
+	  break;
+	return (SymbolEntry *)0;
+      }
+      if (nm == "SetExclusiveMonitors") {
 	if (slot == 1)
 	  break;
 	return (SymbolEntry *)0;
