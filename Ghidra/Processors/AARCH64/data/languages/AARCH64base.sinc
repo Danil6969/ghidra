@@ -1434,7 +1434,7 @@ is sf=1 & op=1 & s=0 & b_2428=0x1a & b_2123=4 & Rm_GPR64 & InvCondOp & b_1011=0 
 :clrex CRm_uimm4_def15
 is b_2431=0xd5 & b_2223=0 & l=0 & Op0=0 & Op1=3 & CRn=0x3 & CRm_uimm4_def15 & Op2=2 & Rt=0x1f
 {
-	ClearExclusiveLocal();
+	ClearExclusiveLocal(exclusiveAddress, exclusiveSize);
 }
 
 # C6.2.57 CLS page C6-1243 line 72939 MATCH x5ac01400/mask=x7ffffc00
@@ -2868,6 +2868,9 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=1 & b_21=1 & b_15=1 & Rt2_GPR64 & addr
 {
 	rsize:1 = 16;
 	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveAddress = addrReg;
+	exclusiveSize = rsize;
+
 	local addrval1:8 = *(addrReg);
 	local addrval2:8 = *(addrReg+8);
 	Rt_GPR64 = addrval1;
@@ -2883,6 +2886,9 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=1 & b_21=1 & b_1620 & b_15=1 & Rt2_GPR
 {
 	rsize:1 = 8;
 	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveAddress = addrReg;
+	exclusiveSize = rsize;
+
 	local addrval1:8 = zext(*:4(addrReg));
 	local addrval2:8 = zext(*:4(addrReg+4));
 	Rt_GPR64 = addrval1;
@@ -2899,6 +2905,9 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=1 & addrReg & Rt_GPR
 {
 	rsize:1 = 8;
 	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveAddress = addrReg;
+	exclusiveSize = rsize;
+
 	Rt_GPR64 = *addrReg;
 }
 
@@ -2912,6 +2921,9 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=1 & addrReg & Rt_GPR
 {
 	rsize:1 = 4;
 	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveAddress = addrReg;
+	exclusiveSize = rsize;
+
 	tmp:4 = *addrReg;
 	Rt_GPR64 = zext(tmp);
 }
@@ -2926,6 +2938,9 @@ is size.ldstr=0 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=1 & addrReg & Rt_GPR
 {
 	rsize:1 = 1;
 	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveAddress = addrReg;
+	exclusiveSize = rsize;
+
 	tmp:1 = *addrReg;
 	Rt_GPR64 = zext(tmp);
 }
@@ -2940,6 +2955,9 @@ is size.ldstr=1 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=1 & addrReg & Rt_GPR
 {
 	rsize:1 = 2;
 	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveAddress = addrReg;
+	exclusiveSize = rsize;
+
 	tmp:2 = *addrReg;
 	Rt_GPR64 = zext(tmp);
 }
@@ -3530,6 +3548,9 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=1 & b_21=1 & b_15=0 & Rt2_GPR64 & addr
 {
 	rsize:1 = 16;
 	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveAddress = addrReg;
+	exclusiveSize = rsize;
+
 	local addrval1:8 = *addrReg;
 	local addrval2:8 = *(addrReg + 8);
 	Rt_GPR64 = addrval1;
@@ -3546,6 +3567,9 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=1 & b_21=1 & b_15=0 & Rt2_GPR32 & addr
 {
 	rsize:1 = 8;
 	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveAddress = addrReg;
+	exclusiveSize = rsize;
+
 	local addrval1:8 = zext(*:4 addrReg);
 	local addrval2:8 = zext(*:4 (addrReg + 4));
 	Rt_GPR64 = addrval1;
@@ -3562,6 +3586,9 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=0 & addrReg & Rt_GPR
 {
 	rsize:1 = 8;
 	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveAddress = addrReg;
+	exclusiveSize = rsize;
+
 	Rt_GPR64 = *addrReg;
 }
 
@@ -3575,6 +3602,9 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=0 & addrReg & Rt_GPR
 {
 	rsize:1 = 4;
 	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveAddress = addrReg;
+	exclusiveSize = rsize;
+
 	Rt_GPR64 = zext(*:4 addrReg);
 }
 
@@ -3588,6 +3618,9 @@ is size.ldstr=0 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=0 & addrReg & Rt_GPR
 {
 	rsize:1 = 1;
 	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveAddress = addrReg;
+	exclusiveSize = rsize;
+
 	Rt_GPR64 = zext(*:1 addrReg);
 }
 
@@ -3601,6 +3634,9 @@ is size.ldstr=1 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=0 & addrReg & Rt_GPR
 {
 	rsize:1 = 2;
 	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveAddress = addrReg;
+	exclusiveSize = rsize;
+
 	Rt_GPR64 = zext(*:2 addrReg);
 }
 
