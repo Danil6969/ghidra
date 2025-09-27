@@ -1354,7 +1354,7 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
     case CPUI_CALLOTHER:
     {
       string nm = op->getOpcode()->getOperatorName(op);
-      if (nm == "ExclusiveMonitorPass") {
+      if (nm == "ExclusiveMonitorsPass") {
 	if (slot == 1)
 	  break;
 	return (SymbolEntry *)0;
