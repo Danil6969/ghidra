@@ -2389,7 +2389,7 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
 	return;
     }
     if (vn != (Varnode *)0) {
-      entry = vn->getSymbolInFlow(op);
+      entry = vn->getGlobalPointerSymbol(op);
       if (entry != (SymbolEntry *)0) {
 	Symbol *symbol = entry->getSymbol();
 	if (symbol != (Symbol *)0) {
