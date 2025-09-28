@@ -1330,20 +1330,24 @@ Datatype *Varnode::recoverVftableDatatype(TypeFactory *types) const
   return dt;
 }
 
-SymbolEntry *Varnode::getSymbolInFlow(const PcodeOp *op) const
+SymbolEntry *Varnode::getLocalValueSymbol(const PcodeOp *op) const
 
 {
   if (op == (PcodeOp *)0) return (SymbolEntry *)0;
-  if (getSpace()->getType() == IPTR_SPACEBASE) {
-    const ScopeLocal *scope = op->getFuncdata()->getScopeLocal();
-    if (scope->getSpaceId() != getSpace()) return (SymbolEntry *)0;
-    return scope->queryContainer(getAddr(),1,Address());
-  }
+  const ScopeLocal *scope = op->getFuncdata()->getScopeLocal();
+  if (scope->getSpaceId() != getSpace()) return (SymbolEntry *)0;
+  return scope->queryContainer(getAddr(),1,Address());
+}
+
+SymbolEntry *Varnode::getGlobalPointerSymbol(const PcodeOp *op) const
+
+{
+  if (op == (PcodeOp *)0) return (SymbolEntry *)0;
   if (def != (PcodeOp *)0) {
     if (def->code() != CPUI_PTRSUB) return (SymbolEntry *)0;
     if (!def->getIn(0)->isConstant()) return (SymbolEntry *)0;
     if (def->getIn(0)->getOffset() != 0) return (SymbolEntry *)0;
-    return def->getIn(1)->getSymbolInFlow(def);
+    return def->getIn(1)->getGlobalPointerSymbol(def);
   }
   if (!isConstant()) return (SymbolEntry *)0;
   Funcdata *fd = op->getFuncdata();
