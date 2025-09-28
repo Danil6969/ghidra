@@ -718,7 +718,7 @@ bool TypeOpCall::datatypePropagates(const PcodeOp *op,int4 slot) const
   // Is this a first parameter for some constructor
   if (isConstructorThisParameter(op,slot,fc)) {
     // Some exceptional cases
-    SymbolEntry *sym = vn->getSymbolInFlow(op);
+    SymbolEntry *sym = vn->getGlobalPointerSymbol(op);
     if (sym != (SymbolEntry *)0) return true;
 
     Datatype *ct = vn->recoverVftableDatatype(tlst);
