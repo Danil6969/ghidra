@@ -4554,7 +4554,7 @@ int4 RuleLoadVarnode::applyOp(PcodeOp *op,Funcdata &data)
   offoff = AddrSpace::addressToByte(offoff,baseoff->getWordSize());
   // In normal address space (and not in the register one)
   if (baseoff->getType() == IPTR_PROCESSOR && baseoff->getName() != "register") {
-    SymbolEntry *entry = op->getIn(1)->getSymbolInFlow(op);
+    SymbolEntry *entry = op->getIn(1)->getGlobalPointerSymbol(op);
     // Must have symbol defined there
     if (entry == (SymbolEntry *)0) return 0;
   }
