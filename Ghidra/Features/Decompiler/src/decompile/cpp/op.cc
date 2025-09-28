@@ -578,7 +578,7 @@ Datatype *PcodeOp::recoverVftableDatatype(TypeFactory *types,bool allowNonzero) 
     }
   }
 
-  SymbolEntry *entry = invn2->getSymbolInFlow(this);
+  SymbolEntry *entry = invn2->getGlobalPointerSymbol(this);
   if (entry == (SymbolEntry *)0) return (Datatype *)0;
   Symbol *symbol = entry->getSymbol();
   if (symbol == (Symbol *)0) return (Datatype *)0;
