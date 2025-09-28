@@ -1334,6 +1334,7 @@ SymbolEntry *Varnode::getLocalValueSymbol(const PcodeOp *op) const
 
 {
   if (op == (PcodeOp *)0) return (SymbolEntry *)0;
+  if (getSpace()->getType() != IPTR_SPACEBASE) return (SymbolEntry *)0;
   const ScopeLocal *scope = op->getFuncdata()->getScopeLocal();
   if (scope->getSpaceId() != getSpace()) return (SymbolEntry *)0;
   return scope->queryContainer(getAddr(),1,Address());
