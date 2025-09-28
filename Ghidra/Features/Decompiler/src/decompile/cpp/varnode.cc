@@ -1334,6 +1334,11 @@ SymbolEntry *Varnode::getSymbolInFlow(const PcodeOp *op) const
 
 {
   if (op == (PcodeOp *)0) return (SymbolEntry *)0;
+  if (getSpace()->getType() == IPTR_SPACEBASE) {
+    const ScopeLocal *scope = op->getFuncdata()->getScopeLocal();
+    if (scope->getSpaceId() != getSpace()) return (SymbolEntry *)0;
+    return scope->queryContainer(getAddr(),1,Address());
+  }
   if (def != (PcodeOp *)0) {
     if (def->code() != CPUI_PTRSUB) return (SymbolEntry *)0;
     if (!def->getIn(0)->isConstant()) return (SymbolEntry *)0;
@@ -1349,8 +1354,8 @@ SymbolEntry *Varnode::getSymbolInFlow(const PcodeOp *op) const
   if (spc == (AddrSpace *)0) return (SymbolEntry *)0;
   Address rampoint = glb->resolveConstant(spc,getOffset(),getSize(),op->getAddr(),fullEncoding);
   if (rampoint.isInvalid()) return (SymbolEntry *)0;
-  SymbolEntry *entry = fd->getScopeLocal()->getParent()->queryContainer(rampoint,1,Address());
-  return entry;
+  Scope *scope = fd->getScopeLocal()->getParent();
+  return scope->queryContainer(rampoint,1,Address());
 }
 
 bool Varnode::isStaticCastOutput(Funcdata &data) const
