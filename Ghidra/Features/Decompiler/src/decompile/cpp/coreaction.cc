@@ -4783,9 +4783,15 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
 	uintb useOff = out->getOffset();
 	Address useAddr = sb->getAddress(useOff,out->getSize(),op->getAddr());
 	SymbolEntry *useEntry = scope->queryContainer(useAddr,1,Address());
-	if (useEntry == (SymbolEntry *)0)
-	  break;
-	Datatype *useDt = useEntry->getSymbol()->getType();
+	if (useEntry == (SymbolEntry *)0) break;
+	uintb offset1 = useEntry->getAddr().getOffset();
+	uintb offset2 = useAddr.getOffset();
+	if (offset2 < offset1) break;
+	Datatype *containerDt = useEntry->getSymbol()->getType();
+	int8 newoff;
+	Datatype *subDt = containerDt->getSubType(offset2 - offset1, &newoff);
+	if (newoff != 0) break; // Pointer cannot be split in parts
+	tp = (TypePointer *)subDt;
 	break;
       }
       break;
