@@ -1387,6 +1387,12 @@ bool Varnode::isStaticCastOutput(Funcdata &data) const
       }
       return true;
     }
+    if (opc == CPUI_MULTIEQUAL) {
+      // TODO is there infinite recursion?
+      if (op->getOut()->isStaticCastOutput(data))
+	return true;
+      continue;
+    }
 
     if (opc == CPUI_LOAD) continue;
     if (opc == CPUI_STORE) continue;
@@ -1402,7 +1408,6 @@ bool Varnode::isStaticCastOutput(Funcdata &data) const
     if (opc == CPUI_CBRANCH) return false;
     if (opc == CPUI_SUBPIECE) return false;
 
-    if (opc == CPUI_MULTIEQUAL) return true;
     if (opc == CPUI_PTRADD) return true;
     if (opc == CPUI_PTRSUB) return true;
     return true;
