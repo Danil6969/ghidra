@@ -1401,6 +1401,7 @@ bool Varnode::isStaticCastOutput(Funcdata &data) const
     if (opc == CPUI_INT_EQUAL) continue;
     if (opc == CPUI_INT_NOTEQUAL) continue;
     if (opc == CPUI_INT_LESSEQUAL) continue;
+    if (opc == CPUI_INT_AND) continue;
     if (opc == CPUI_INT_OR) continue;
     if (opc == CPUI_INT_RIGHT) continue;
     if (opc == CPUI_INT_MULT) continue;
