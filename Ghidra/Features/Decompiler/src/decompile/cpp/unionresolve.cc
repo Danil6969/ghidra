@@ -102,6 +102,48 @@ Datatype *ScoreUnionFields::getTypeStripComposite(Datatype *compositeType,int4 s
   return compositeType;
 }
 
+PcodeOp *ScoreUnionFields::getCallAddressUse(set<BlockBasic *> visitedBlocks,PcodeOp *op,const Address &loc)
+
+{
+  BlockBasic *bl = op->getParent();
+  if (bl == (BlockBasic *)0) return (PcodeOp *)0;
+  if (visitedBlocks.find(bl) != visitedBlocks.end()) return (PcodeOp *)op;
+  visitedBlocks.insert(bl);
+  PcodeOp *curop = op;
+  while (curop != (PcodeOp *)0) {
+    if (curop->code() == CPUI_CALL) {
+      //for ()
+      return curop;
+    }
+    BlockBasic *curbl = curop->getParent();
+    list<PcodeOp *>::iterator iter = curop->getBasicIter();
+    iter++;
+    if (iter != curbl->endOp()) {
+      curop = *iter;
+    }
+    else {
+      int4 szout = curbl->sizeOut();
+      if (szout == 0)
+	return (PcodeOp *)0;
+      else if (szout == 1) {
+	curop = curbl->getOut(0)->firstOp();
+	return getCallAddressUse(visitedBlocks,curop,loc);
+      }
+      else if (szout == 2) {
+	curop = curbl->getOut(0)->firstOp();
+	PcodeOp *resop = getCallAddressUse(visitedBlocks,curop,loc);
+	if (resop != (PcodeOp *)0)
+	  return resop;
+	curop = curbl->getOut(1)->firstOp();
+	return getCallAddressUse(visitedBlocks,curop,loc);
+      }
+      else
+	return (PcodeOp *)0;
+    }
+  }
+  return curop;
+}
+
 /// If the \b op looks like pointer constant, return \b true.
 /// \param vn is the given Varnode
 /// \return \b true if \b vn will be treated as pointer constant by ActionConstantPtr
@@ -726,6 +768,23 @@ void ScoreUnionFields::scoreTrialUp(const Trial &trial,bool lastLevel)
   PcodeOp *def = trial.vn->getDef();
   switch(def->code()) {
     case CPUI_COPY:
+      if (trial.vn->isAddrTied()) {
+	set<BlockBasic *> visitedVarnodes;
+	PcodeOp *useop = getCallAddressUse(visitedVarnodes,def,trial.vn->getAddr());
+	SymbolEntry *entry = (SymbolEntry *)0;
+	if (trial.vn->getSpace()->getType() == IPTR_SPACEBASE)
+	  entry = trial.vn->getLocalValueSymbol(def);
+	//else
+	  //entry = trial.vn->getGlobalValueSymbol(def);
+	if (entry != (SymbolEntry *)0 && useop != (PcodeOp *)0) {
+	  resType = trial.fitType;
+	  newslot = 0;
+	  break;
+	}
+      }
+      resType = trial.fitType;		// No score, but we can propagate
+      newslot = 0;
+      break;
     case CPUI_MULTIEQUAL:
     case CPUI_INDIRECT:
       resType = trial.fitType;		// No score, but we can propagate
@@ -1014,7 +1073,6 @@ void ScoreUnionFields::scoreConstantFit(const Trial &trial)
       }
     }
     else {
-      AddrSpace *spc = typegrp.getArch()->getDefaultDataSpace();
       bool looksLikePointer = testPointerConstant(trial.vn);
       if (meta == TYPE_PTR) {
 	score = looksLikePointer ? 2 : -2;
