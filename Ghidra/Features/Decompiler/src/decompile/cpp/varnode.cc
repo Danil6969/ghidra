@@ -1363,7 +1363,7 @@ SymbolEntry *Varnode::getGlobalPointerSymbol(const PcodeOp *op) const
   return scope->queryContainer(rampoint,1,Address());
 }
 
-bool Varnode::isStaticCastOutput(Funcdata &data) const
+bool Varnode::isStaticCastOutput(set<Varnode *> visitedVarnodes,Funcdata &data) const
 
 {
   list<PcodeOp *>::const_iterator iter;
@@ -1373,7 +1373,7 @@ bool Varnode::isStaticCastOutput(Funcdata &data) const
     OpCode opc = op->code();
 
     if (opc == CPUI_COPY) {
-      if (op->getOut()->isStaticCastOutput(data))
+      if (op->getOut()->isStaticCastOutput(visitedVarnodes,data))
 	return true;
       continue;
     }
@@ -1389,7 +1389,7 @@ bool Varnode::isStaticCastOutput(Funcdata &data) const
     }
     if (opc == CPUI_MULTIEQUAL) {
       // TODO is there infinite recursion?
-      if (op->getOut()->isStaticCastOutput(data))
+      if (op->getOut()->isStaticCastOutput(visitedVarnodes,data))
 	return true;
       continue;
     }
