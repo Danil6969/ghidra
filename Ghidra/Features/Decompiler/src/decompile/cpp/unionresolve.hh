@@ -145,10 +145,11 @@ class ScoreUnionFields {
   static const int4 threshold;	///< Threshold of trials over which to cancel additional passes
   static const int4 maxTrials;		///< Maximum number of trials to evaluate
   Datatype *getTypeStripComposite(Datatype *compositeType,int4 strippedSize);
-  PcodeOp *getCallAddressUse(set<BlockBasic *> visitedBlocks,PcodeOp *op,const Address &loc);
+  PcodeOp *getCallAddressUse(set<BlockBasic *> visitedBlocks,PcodeOp *op,Varnode *vn,int4 &slot);
   bool testPointerConstant(Varnode *vn);	///< Check if given Varnode will be treated as pointer constant later on (as of ActionConstantPtr)
   bool testArrayArithmetic(PcodeOp *op,int4 inslot);	///< Check if given PcodeOp is operating on array with union elements
   bool testSimpleCases(PcodeOp *op,int4 inslot,Datatype *parent);	///< Preliminary checks before doing full scoring
+  int4 scoreAddrTied(Varnode *vn,int4 scoreIndex,PcodeOp *op);
   int4 scoreLockedType(Datatype *ct,Datatype *lockType);	///< Score trial data-type against a locked data-type
   int4 scoreParameter(Datatype *ct,const PcodeOp *callOp,int4 paramSlot);	///< Score trial data-type against a parameter
   int4 scoreReturnType(Datatype *ct,const PcodeOp *callOp);	///< Score trial data-type against return data-type of function
