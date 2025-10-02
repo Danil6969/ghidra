@@ -102,18 +102,52 @@ Datatype *ScoreUnionFields::getTypeStripComposite(Datatype *compositeType,int4 s
   return compositeType;
 }
 
-PcodeOp *ScoreUnionFields::getCallAddressUse(set<BlockBasic *> visitedBlocks,PcodeOp *op,const Address &loc)
+PcodeOp *ScoreUnionFields::getCallAddressUse(set<BlockBasic *> visitedBlocks,PcodeOp *op,Varnode *vn,int4 &slot)
 
 {
   BlockBasic *bl = op->getParent();
   if (bl == (BlockBasic *)0) return (PcodeOp *)0;
-  if (visitedBlocks.find(bl) != visitedBlocks.end()) return (PcodeOp *)op;
+  Funcdata *fd = op->getFuncdata();
+  if (visitedBlocks.find(bl) != visitedBlocks.end()) return (PcodeOp *)0;
   visitedBlocks.insert(bl);
   PcodeOp *curop = op;
   while (curop != (PcodeOp *)0) {
     if (curop->code() == CPUI_CALL) {
-      //for ()
-      return curop;
+      FuncCallSpecs *fc = fd->getCallSpecs(curop);
+      if (fc != (FuncCallSpecs *)0) {
+	for (int4 i=1;i<curop->numInput();++i) {
+	  Varnode *invn = curop->getIn(i);
+	  PcodeOp *ptrsubop = invn->getDef();
+	  if (ptrsubop == (PcodeOp *)0) continue;
+	  if (ptrsubop->code() != CPUI_PTRSUB) continue;
+
+	  ProtoParameter *param = fc->getParam(i-1);
+	  TypePointer *pt = (TypePointer *)param->getType();
+	  if (pt->getMetatype() != TYPE_PTR) continue;
+
+	  Varnode *spcvn = ptrsubop->getIn(0);
+	  TypePointer *ptype = (TypePointer *)spcvn->getType();
+	  if (ptype->getMetatype() != TYPE_PTR) continue;
+	  TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
+	  if (sb->getMetatype() != TYPE_SPACEBASE) continue;
+
+	  Varnode *offvn = ptrsubop->getIn(1);
+	  if (!offvn->isConstant()) continue;
+
+	  VarnodeData vdata1;
+	  vdata1.space = vn->getSpace();
+	  vdata1.offset = vn->getOffset();
+	  vdata1.size = vn->getSize();
+	  VarnodeData vdata2;
+	  vdata2.space = sb->getSpace();
+	  vdata2.offset = offvn->getOffset();
+	  vdata2.size = pt->getPtrTo()->getSize();
+	  if (!vdata2.contains(vdata1)) continue;
+
+	  slot = i;
+	  return curop;
+	}
+      }
     }
     BlockBasic *curbl = curop->getParent();
     list<PcodeOp *>::iterator iter = curop->getBasicIter();
@@ -127,21 +161,21 @@ PcodeOp *ScoreUnionFields::getCallAddressUse(set<BlockBasic *> visitedBlocks,Pco
 	return (PcodeOp *)0;
       else if (szout == 1) {
 	curop = curbl->getOut(0)->firstOp();
-	return getCallAddressUse(visitedBlocks,curop,loc);
+	return getCallAddressUse(visitedBlocks,curop,vn,slot);
       }
       else if (szout == 2) {
 	curop = curbl->getOut(0)->firstOp();
-	PcodeOp *resop = getCallAddressUse(visitedBlocks,curop,loc);
+	PcodeOp *resop = getCallAddressUse(visitedBlocks,curop,vn,slot);
 	if (resop != (PcodeOp *)0)
 	  return resop;
 	curop = curbl->getOut(1)->firstOp();
-	return getCallAddressUse(visitedBlocks,curop,loc);
+	return getCallAddressUse(visitedBlocks,curop,vn,slot);
       }
       else
 	return (PcodeOp *)0;
     }
   }
-  return curop;
+  return (PcodeOp *)0;
 }
 
 /// If the \b op looks like pointer constant, return \b true.
@@ -219,6 +253,18 @@ bool ScoreUnionFields::testSimpleCases(PcodeOp *op,int4 inslot,Datatype *parent)
     return false;		// Do the full scoring
   return true;			// Assume we don't have to extract a field if copying
 }
+
+int4 ScoreUnionFields::scoreAddrTied(Varnode *vn,int4 scoreIndex,PcodeOp *op)
+
+{
+  int4 score = 0;
+  set<BlockBasic *> visitedVarnodes;
+  int4 slot;
+  PcodeOp *useop = getCallAddressUse(visitedVarnodes,op,vn,slot);
+  if (useop != (PcodeOp *)0) {
+  }
+  return score;
+};
 
 /// A trial that encounters a locked data-type does not propagate through it but scores
 /// the trial data-type against the locked data-type.
@@ -769,18 +815,10 @@ void ScoreUnionFields::scoreTrialUp(const Trial &trial,bool lastLevel)
   switch(def->code()) {
     case CPUI_COPY:
       if (trial.vn->isAddrTied()) {
-	set<BlockBasic *> visitedVarnodes;
-	PcodeOp *useop = getCallAddressUse(visitedVarnodes,def,trial.vn->getAddr());
-	SymbolEntry *entry = (SymbolEntry *)0;
-	if (trial.vn->getSpace()->getType() == IPTR_SPACEBASE)
-	  entry = trial.vn->getLocalValueSymbol(def);
-	//else
-	  //entry = trial.vn->getGlobalValueSymbol(def);
-	if (entry != (SymbolEntry *)0 && useop != (PcodeOp *)0) {
-	  resType = trial.fitType;
-	  newslot = 0;
-	  break;
-	}
+	score = scoreAddrTied(trial.vn,trial.scoreIndex,def);
+	resType = trial.fitType;
+	newslot = 0;
+	break;
       }
       resType = trial.fitType;		// No score, but we can propagate
       newslot = 0;
