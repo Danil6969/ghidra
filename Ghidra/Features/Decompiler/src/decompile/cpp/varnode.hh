@@ -356,7 +356,7 @@ public:
   Datatype *recoverVftableDatatype(TypeFactory *types) const;	///< Recover datatype of last vftable store (from descendants)
   SymbolEntry *getLocalValueSymbol(const PcodeOp *op) const;
   SymbolEntry *getGlobalPointerSymbol(const PcodeOp *op) const;
-  bool isStaticCastOutput(Funcdata &data) const;
+  bool isStaticCastOutput(set<Varnode *> visitedVarnodes,Funcdata &data) const;
   bool isInternalFunctionParameter(void) const;
   bool hasPointerUsages(void) const;
   const PcodeOp *getAllocaShiftOp(Funcdata &data) const;
