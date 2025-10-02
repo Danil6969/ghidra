@@ -122,6 +122,8 @@ PcodeOp *ScoreUnionFields::getCallAddressUse(set<BlockBasic *> visitedBlocks,Pco
 	  if (ptrsubop->code() != CPUI_PTRSUB) continue;
 
 	  ProtoParameter *param = fc->getParam(i-1);
+	  // Function has unknown param list???
+	  if (param == (ProtoParameter *)0) continue;
 	  TypePointer *pt = (TypePointer *)param->getType();
 	  if (pt->getMetatype() != TYPE_PTR) continue;
 
@@ -262,6 +264,15 @@ int4 ScoreUnionFields::scoreAddrTied(Varnode *vn,int4 scoreIndex,PcodeOp *op)
   int4 slot;
   PcodeOp *useop = getCallAddressUse(visitedVarnodes,op,vn,slot);
   if (useop != (PcodeOp *)0) {
+    FuncCallSpecs *fc = useop->getFuncdata()->getCallSpecs(useop);
+    ProtoParameter *param = fc->getParam(slot - 1);
+    // Param type must be already checked to be a pointer
+    Datatype *dt1 = ((TypePointer *)param->getType())->getPtrTo();
+    Datatype *dt2 = fields[scoreIndex];
+    // TODO check cases when dt1 is inside dt2
+    if (dt1 == dt2) {
+      score += 1;
+    }
   }
   return score;
 };
