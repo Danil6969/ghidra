@@ -1363,11 +1363,13 @@ SymbolEntry *Varnode::getGlobalPointerSymbol(const PcodeOp *op) const
   return scope->queryContainer(rampoint,1,Address());
 }
 
-bool Varnode::isStaticCastOutput(set<Varnode *> visitedVarnodes,Funcdata &data) const
+bool Varnode::isStaticCastOutput(set<const Varnode *> visitedVarnodes,Funcdata &data) const
 
 {
-  list<PcodeOp *>::const_iterator iter;
+  if (visitedVarnodes.find(this) != visitedVarnodes.end()) return (Varnode *)0;
+  visitedVarnodes.insert(this);
 
+  list<PcodeOp *>::const_iterator iter;
   for (iter=beginDescend();iter!=endDescend();++iter) {
     PcodeOp *op = *iter;
     OpCode opc = op->code();
@@ -1449,7 +1451,9 @@ bool Varnode::hasPointerUsages(void) const
 {
   // Must protect against self recursion (repeating PcodeOps)
   set<const Varnode *> visitedVarnodes;
-  return hasPointerUsagesRecurse(visitedVarnodes);
+  bool hasusages = hasPointerUsagesRecurse(visitedVarnodes);
+  visitedVarnodes.clear();
+  return hasusages;
 }
 
 const PcodeOp *Varnode::getAllocaShiftOp(Funcdata &data) const
