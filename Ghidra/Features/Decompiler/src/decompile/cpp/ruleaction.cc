@@ -3104,7 +3104,7 @@ int4 RuleIndirectCollapse::applyOp(PcodeOp *op,Funcdata &data)
     else if (op->getOut()->hasNoLocalAlias()) {
       if (op->isIndirectCreation() || op->noIndirectCollapse())
 	return 0;
-      // Sometimes we need to protect switch variable which is on stack
+      // Sometimes we need to protect switch variable which is on the stack
       if (protectJumptable(op))
 	return 0;
     }
