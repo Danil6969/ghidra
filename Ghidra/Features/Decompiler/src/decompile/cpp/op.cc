@@ -296,8 +296,9 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
   if (def == (PcodeOp *)0) {
     if (in->isConstant()) return false;
     set<Varnode *> visitedVarnodes;
-    if (!getOut()->isStaticCastOutput(visitedVarnodes,data)) return false;
-    return true;
+    bool iscast = getOut()->isStaticCastOutput(visitedVarnodes, data);
+    visitedVarnodes.clear();
+    return iscast;
   }
   OpCode opc = def->code();
   if (opc == CPUI_INT_EQUAL) return false;
@@ -331,8 +332,9 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
   if (opc == CPUI_FLOAT_ROUND) return false;
 
   set<Varnode *> visitedVarnodes;
-  if (!getOut()->isStaticCastOutput(visitedVarnodes,data)) return false;
-  return true;
+  bool iscast = getOut()->isStaticCastOutput(visitedVarnodes,data);
+  visitedVarnodes.clear();
+  return iscast;
 }
 
 bool PcodeOp::isReturnAddressConstant(Funcdata &data) const
