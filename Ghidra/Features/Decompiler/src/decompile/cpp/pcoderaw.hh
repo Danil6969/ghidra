@@ -54,7 +54,6 @@ struct VarnodeData {
 
   /// Does \b this container another given VarnodeData
   bool contains(const VarnodeData &op2) const;
-  bool includes(const VarnodeData &op2) const;
 };
 
 /// VarnodeData can be sorted in terms of the space its in
