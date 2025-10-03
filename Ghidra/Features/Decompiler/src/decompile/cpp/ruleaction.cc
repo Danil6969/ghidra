@@ -1835,6 +1835,7 @@ void RuleAndCompare::getOpList(vector<uint4> &oplist) const
 int4 RuleAndCompare::applyOp(PcodeOp *op,Funcdata &data)
 
 {
+  if (!data.hasTypeRecoveryStarted()) return 0;
   if (!op->getIn(1)->isConstant()) return 0;
   if (op->getIn(1)->getOffset() != 0) return 0;
 
@@ -1866,6 +1867,7 @@ int4 RuleAndCompare::applyOp(PcodeOp *op,Funcdata &data)
   }
 
   if (basevn->getSize() > sizeof(uintb)) return 0; // No array masking is allowed
+  if (!validateDatatype(basevn,subop,baseconst)) return 0;
   if (baseconst == calc_mask(andvn->getSize())) return 0;	// Degenerate AND
   if (basevn->isFree()) return 0;
 
@@ -1883,6 +1885,14 @@ int4 RuleAndCompare::applyOp(PcodeOp *op,Funcdata &data)
   data.opSetInput(op,newout,0);
   data.opSetInput(op,data.newConstant(basevn->getSize(),0),1);
   return 1;
+}
+
+bool RuleAndCompare::validateDatatype(Varnode *vn,PcodeOp* op,uintb mask)
+
+{
+  Datatype *ct = vn->getTypeReadFacing(op);
+  if (ct->getMetatype() == TYPE_STRUCT) return false;
+  return true;
 }
 
 /// \class RuleDoubleSub
