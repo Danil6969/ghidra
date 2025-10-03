@@ -12681,131 +12681,6 @@ intb RuleInferPointerMult::getCounterMultiplier(PcodeOp *op)
   return sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
 }
 
-bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,set<Varnode *> visitedVarnodes,Funcdata &data)
-
-{
-  if (visitedVarnodes.find(vn) != visitedVarnodes.end()) return false;
-  visitedVarnodes.insert(vn);
-  PcodeOp *multiop = vn->getDef();
-  if (multiop == (PcodeOp *)0) return false;
-  if (multiop->code() != CPUI_MULTIEQUAL) return false;
-
-  for(list<PcodeOp *>::const_iterator iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
-    PcodeOp *op = *iter;
-    PcodeOp *descend = op;
-    OpCode opc = descend->code();
-    if (opc == CPUI_MULTIEQUAL) {
-      if (descend == multiop) continue;
-      // Check if used somewhere farther
-      if (checkPointerUsages(descend->getOut(),visitedVarnodes,data)) return true;
-    }
-    if (!(opc == CPUI_INT_ADD || opc == CPUI_INT_MULT)) continue;
-    if (descend->getOut() != (Varnode *)0) {
-      PcodeOp *lone = descend->getOut()->loneDescend();
-      if (lone != (PcodeOp *)0) {
-	if (lone->code() == CPUI_LOAD) return true;
-	if (lone->code() == CPUI_STORE) return true;
-      }
-    }
-    Varnode *out = vn;
-    PcodeOp *addop = op;
-    if (!addop->containsInput(out)) return false;
-    int4 addslot = addop->getSlot(out);
-    while (opc == CPUI_INT_ADD || opc == CPUI_INT_MULT) {
-      addop = descend;
-      if (!addop->containsInput(out)) return false;
-      addslot = addop->getSlot(out);
-
-      // Check if any of the other add inputs are defined as the result of some pointer operation
-      for (int4 i=0;i<addop->numInput();++i) {
-	if (i == addslot) continue;
-	Varnode *invn = addop->getIn(i);
-	PcodeOp *inop = invn->getDef();
-	if (inop == (PcodeOp *)0) continue;
-	if (inop->code() == CPUI_PTRADD) return true;
-	if (inop->code() == CPUI_PTRSUB) return true;
-      }
-
-      out = addop->getOut();
-      descend = out->loneDescend();
-      if (descend == (PcodeOp *)0) break;
-      opc = descend->code();
-    }
-
-    if (descend == (PcodeOp *)0) continue;
-    opc = descend->code();
-    if (opc == CPUI_LOAD || opc == CPUI_STORE) {
-      Varnode *ptrvn = addop->getIn(1-addslot);
-      Datatype *ptrdt = ptrvn->getTypeReadFacing(addop);
-      Varnode *othervn = addop->getIn(addslot);
-      Datatype *otherdt = othervn->getTypeReadFacing(addop);
-      if (ptrdt->getMetatype() != TYPE_PTR) continue;
-      return true;
-    }
-    if (opc = CPUI_CALL) {
-      FuncCallSpecs *fc = data.getCallSpecs(descend);
-      int4 slot = descend->getSlot(out);
-      if (fc == (FuncCallSpecs *)0) continue;
-      ProtoParameter *param = fc->getParam(slot-1);
-      if (param == (ProtoParameter *)0) continue;
-      Datatype *dt = param->getType();
-      if (dt->getMetatype() != TYPE_PTR) continue;
-      return true;
-    }
-  }
-  return false;
-}
-
-bool RuleInferPointerMult::testMainOp(PcodeOp *mainop,PcodeOp *otherop,bool &isMain)
-
-{
-  if (otherop == mainop) {
-    isMain = true;
-    return true;
-  }
-  intb increment = getCounterIncrement(mainop);
-  if (otherop->code() != CPUI_INT_ADD) {
-    isMain = false;
-    return true;
-  }
-  if (otherop->getIn(0) != mainop->getIn(0)) {
-    isMain = false;
-    return true;
-  }
-  if (!otherop->getIn(1)->isConstant()) {
-    isMain = false;
-    return true;
-  }
-  Varnode *cvn = otherop->getIn(1);
-  intb c = sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
-  if (c != increment) {
-    isMain = false;
-    return true;
-  }
-  PcodeOp *lone = otherop->getOut()->loneDescend();
-  // TODO investigate cases
-  if (lone != (PcodeOp *)0) {
-    if (lone->code() == CPUI_LOAD) {
-      isMain = false;
-      return true;
-    }
-    if (lone->code() == CPUI_STORE) {
-      isMain = false;
-      return true;
-    }
-    if (lone->code() == CPUI_INDIRECT) {
-      isMain = true;
-      return false;
-    }
-  }
-  if (otherop->getAddr() == mainop->getAddr()) {
-    isMain = true;
-    return false;
-  }
-  isMain = false;
-  return false;
-}
-
 bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
 
 {
@@ -12983,6 +12858,131 @@ bool RuleInferPointerMult::canApply(PcodeOp *op,Funcdata &data)
   if (out->isFree()) return false;
 
   return true;
+}
+
+bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,set<Varnode *> visitedVarnodes,Funcdata &data)
+
+{
+  if (visitedVarnodes.find(vn) != visitedVarnodes.end()) return false;
+  visitedVarnodes.insert(vn);
+  PcodeOp *multiop = vn->getDef();
+  if (multiop == (PcodeOp *)0) return false;
+  if (multiop->code() != CPUI_MULTIEQUAL) return false;
+
+  for(list<PcodeOp *>::const_iterator iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
+    PcodeOp *op = *iter;
+    PcodeOp *descend = op;
+    OpCode opc = descend->code();
+    if (opc == CPUI_MULTIEQUAL) {
+      if (descend == multiop) continue;
+      // Check if used somewhere farther
+      if (checkPointerUsages(descend->getOut(),visitedVarnodes,data)) return true;
+    }
+    if (!(opc == CPUI_INT_ADD || opc == CPUI_INT_MULT)) continue;
+    if (descend->getOut() != (Varnode *)0) {
+      PcodeOp *lone = descend->getOut()->loneDescend();
+      if (lone != (PcodeOp *)0) {
+	if (lone->code() == CPUI_LOAD) return true;
+	if (lone->code() == CPUI_STORE) return true;
+      }
+    }
+    Varnode *out = vn;
+    PcodeOp *addop = op;
+    if (!addop->containsInput(out)) return false;
+    int4 addslot = addop->getSlot(out);
+    while (opc == CPUI_INT_ADD || opc == CPUI_INT_MULT) {
+      addop = descend;
+      if (!addop->containsInput(out)) return false;
+      addslot = addop->getSlot(out);
+
+      // Check if any of the other add inputs are defined as the result of some pointer operation
+      for (int4 i=0;i<addop->numInput();++i) {
+	if (i == addslot) continue;
+	Varnode *invn = addop->getIn(i);
+	PcodeOp *inop = invn->getDef();
+	if (inop == (PcodeOp *)0) continue;
+	if (inop->code() == CPUI_PTRADD) return true;
+	if (inop->code() == CPUI_PTRSUB) return true;
+      }
+
+      out = addop->getOut();
+      descend = out->loneDescend();
+      if (descend == (PcodeOp *)0) break;
+      opc = descend->code();
+    }
+
+    if (descend == (PcodeOp *)0) continue;
+    opc = descend->code();
+    if (opc == CPUI_LOAD || opc == CPUI_STORE) {
+      Varnode *ptrvn = addop->getIn(1-addslot);
+      Datatype *ptrdt = ptrvn->getTypeReadFacing(addop);
+      Varnode *othervn = addop->getIn(addslot);
+      Datatype *otherdt = othervn->getTypeReadFacing(addop);
+      if (ptrdt->getMetatype() != TYPE_PTR) continue;
+      return true;
+    }
+    if (opc = CPUI_CALL) {
+      FuncCallSpecs *fc = data.getCallSpecs(descend);
+      int4 slot = descend->getSlot(out);
+      if (fc == (FuncCallSpecs *)0) continue;
+      ProtoParameter *param = fc->getParam(slot-1);
+      if (param == (ProtoParameter *)0) continue;
+      Datatype *dt = param->getType();
+      if (dt->getMetatype() != TYPE_PTR) continue;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool RuleInferPointerMult::testMainOp(PcodeOp *mainop,PcodeOp *otherop,bool &isMain)
+
+{
+  if (otherop == mainop) {
+    isMain = true;
+    return true;
+  }
+  intb increment = getCounterIncrement(mainop);
+  if (otherop->code() != CPUI_INT_ADD) {
+    isMain = false;
+    return true;
+  }
+  if (otherop->getIn(0) != mainop->getIn(0)) {
+    isMain = false;
+    return true;
+  }
+  if (!otherop->getIn(1)->isConstant()) {
+    isMain = false;
+    return true;
+  }
+  Varnode *cvn = otherop->getIn(1);
+  intb c = sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
+  if (c != increment) {
+    isMain = false;
+    return true;
+  }
+  PcodeOp *lone = otherop->getOut()->loneDescend();
+  // TODO investigate cases
+  if (lone != (PcodeOp *)0) {
+    if (lone->code() == CPUI_LOAD) {
+      isMain = false;
+      return true;
+    }
+    if (lone->code() == CPUI_STORE) {
+      isMain = false;
+      return true;
+    }
+    if (lone->code() == CPUI_INDIRECT) {
+      isMain = true;
+      return false;
+    }
+  }
+  if (otherop->getAddr() == mainop->getAddr()) {
+    isMain = true;
+    return false;
+  }
+  isMain = false;
+  return false;
 }
 
 PcodeOp *RuleInferPointerAdd::getCounterInitOp(PcodeOp *multiop,int4 &slot)
