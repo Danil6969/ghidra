@@ -79,8 +79,8 @@ class AddTreeState {
   void clear(void);			///< Reset for a new ADD tree traversal
 public:
   AddTreeState(Funcdata &d,PcodeOp *op,int4 slot);	///< Construct given root of ADD tree and pointer
-  bool canApply(void);
   bool apply(void);		///< Attempt to transform the pointer expression
+  bool canApply(void);
   bool initAlternateForm(void);		///< Prepare analysis if there is an alternate form of the base pointer
 };
 
@@ -103,7 +103,6 @@ public:
 class RuleCollectTerms : public Rule {
   static Varnode *getMultCoeff(Varnode *vn,uintb &coef);	///< Get the multiplicative coefficient
 public:
-  static bool isVolatileVarnode(Varnode *vn);
   RuleCollectTerms(const string &g) : Rule(g, 0, "collect_terms") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
@@ -111,6 +110,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+  static bool isVolatileVarnode(Varnode *vn);
 };
 class RuleSelectCse : public Rule {
 public:
@@ -1096,7 +1096,6 @@ class RuleCancelOutPtrAdd : public Rule {
   static bool processOp(PcodeOp *op,PcodeOp *negateOp,PcodeOp *multi,Funcdata &data);
   static bool canProcessOp(PcodeOp *op,PcodeOp *negateOp,PcodeOp *multi);
 public:
-  static bool canApply(PcodeOp *op);
   RuleCancelOutPtrAdd(const string &g) : Rule(g, 0, "canceloutptradd") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
@@ -1104,12 +1103,12 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+  static bool canApply(PcodeOp *op);
 };
 class RulePtrArith : public Rule {
   static bool replaceMultiplier(PcodeOp *op,Funcdata &data);
   static bool preprocess(PcodeOp *op,Funcdata &data);
 public:
-  static bool canApply(PcodeOp *op,Funcdata &data);
   RulePtrArith(const string &g) : Rule(g, 0, "ptrarith") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
@@ -1117,6 +1116,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+  static bool canApply(PcodeOp *op,Funcdata &data);
   static bool verifyPreferredPointer(PcodeOp *op,int4 slot);
   static bool isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOther);
   static int4 evaluatePointerExpression(PcodeOp *op,int4 slot);
@@ -1804,7 +1804,6 @@ class RuleInferPointerMult : public Rule {
 public:
   static bool checkPointerUsages(Varnode *vn,set<Varnode *> visitedVarnodes,Funcdata &data);
   static bool testMainOp(PcodeOp *mainop,PcodeOp *otherop,bool &isMain);
-  static bool canApply(PcodeOp *op,Funcdata &data);
   RuleInferPointerMult(const string &g) : Rule(g,0,"inferpointermult") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
@@ -1812,6 +1811,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+  static bool canApply(PcodeOp *op,Funcdata &data);
 };
 
 class RuleInferPointerAdd : public Rule {
@@ -1822,7 +1822,6 @@ class RuleInferPointerAdd : public Rule {
   static bool formConstant(PcodeOp *op,Funcdata &data);
   static bool formSpacebase(PcodeOp *op,Funcdata &data);
 public:
-  static bool canApply(PcodeOp *op,Funcdata &data);
   RuleInferPointerAdd(const string &g) : Rule(g,0,"inferpointeradd") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
@@ -1830,6 +1829,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+  static bool canApply(PcodeOp *op,Funcdata &data);
 };
 
 class RulePointerComparison : public Rule {
