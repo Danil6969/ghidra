@@ -401,6 +401,7 @@ public:
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+  static bool validateDatatype(Varnode *vn,PcodeOp* op,uintb mask);
 };
 class RuleDoubleSub : public Rule {
 public:
