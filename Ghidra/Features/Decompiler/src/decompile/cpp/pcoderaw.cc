@@ -66,18 +66,6 @@ bool VarnodeData::contains(const VarnodeData &op2) const
   return true;
 }
 
-/// Return \b true, if \b this, as an address range, includes the other address range
-/// \param op2 is the other VarnodeData to test for containment
-/// \return \b true if \b this contains the other
-bool VarnodeData::includes(const VarnodeData &op2) const
-
-{
-  if (space != op2.space) return false;
-  if (op2.offset <= offset) return false;
-  if ((offset + (size-1)) <= (op2.offset + (op2.size-1))) return false;
-  return true;
-}
-
 /// This assumes the \<op> element is already open.
 /// Decode info suitable for call to PcodeEmit::dump.  The output pointer is changed to null if there
 /// is no output for this op, otherwise the existing pointer is used to store the output.
