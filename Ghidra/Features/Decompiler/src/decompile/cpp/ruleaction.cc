@@ -1867,7 +1867,7 @@ int4 RuleAndCompare::applyOp(PcodeOp *op,Funcdata &data)
   }
 
   if (basevn->getSize() > sizeof(uintb)) return 0; // No array masking is allowed
-  if (!validateDatatype(basevn,subop,baseconst)) return 0;
+  if (!validateDatatype(basevn->getTypeReadFacing(subop),baseconst)) return 0;
   if (baseconst == calc_mask(andvn->getSize())) return 0;	// Degenerate AND
   if (basevn->isFree()) return 0;
 
@@ -1887,12 +1887,22 @@ int4 RuleAndCompare::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
-bool RuleAndCompare::validateDatatype(Varnode *vn,PcodeOp* op,uintb mask)
+bool RuleAndCompare::validateDatatype(Datatype *dt,uintb mask)
 
 {
-  Datatype *ct = vn->getTypeReadFacing(op);
-  if (ct->getMetatype() == TYPE_STRUCT) return false;
-  return true;
+  int8 newoff;
+  Datatype *subdt = dt->getSubType(0,&newoff);
+  if (subdt == (Datatype *)0) return true;
+  if (newoff != 0) return true;
+  int4 pos = mostsigbit_set(mask);
+  int4 sz = (pos / 8) + 1;
+  if (subdt->getSize() < sz) return true;
+  if (subdt->getMetatype() == TYPE_INT) return false;
+  if (subdt->getMetatype() == TYPE_UINT) return false;
+  if (subdt->getMetatype() == TYPE_BOOL) return false;
+  if (subdt->getMetatype() == TYPE_FLOAT) return false;
+  if (subdt->getMetatype() == TYPE_PTR) return false;
+  return validateDatatype(subdt,mask);
 }
 
 /// \class RuleDoubleSub
