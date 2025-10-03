@@ -1802,8 +1802,6 @@ class RuleInferPointerMult : public Rule {
   static bool formIncrement(PcodeOp *op,Funcdata &data);
   static bool formAssignment(PcodeOp *op,Funcdata &data);
 public:
-  static bool checkPointerUsages(Varnode *vn,set<Varnode *> visitedVarnodes,Funcdata &data);
-  static bool testMainOp(PcodeOp *mainop,PcodeOp *otherop,bool &isMain);
   RuleInferPointerMult(const string &g) : Rule(g,0,"inferpointermult") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
@@ -1812,6 +1810,8 @@ public:
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
   static bool canApply(PcodeOp *op,Funcdata &data);
+  static bool checkPointerUsages(Varnode *vn,set<Varnode *> visitedVarnodes,Funcdata &data);
+  static bool testMainOp(PcodeOp *mainop,PcodeOp *otherop,bool &isMain);
 };
 
 class RuleInferPointerAdd : public Rule {
