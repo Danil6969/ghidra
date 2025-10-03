@@ -144,7 +144,7 @@ PcodeOp *ScoreUnionFields::getCallAddressUse(set<BlockBasic *> visitedBlocks,Pco
 	  vdata2.space = sb->getSpace();
 	  vdata2.offset = offvn->getOffset();
 	  vdata2.size = pt->getPtrTo()->getSize();
-	  if (!vdata2.contains(vdata1)) continue;
+	  if (!vdata2.includes(vdata1)) continue;
 
 	  slot = i;
 	  return curop;
