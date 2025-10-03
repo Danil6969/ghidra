@@ -104,23 +104,6 @@ Varnode *RuleCollectTerms::getMultCoeff(Varnode *vn,uintb &coef)
   return testop->getIn(0);
 }
 
-bool RuleCollectTerms::isVolatileVarnode(Varnode *vn)
-
-{
-  AddrSpace *spc = vn->getSpace();
-  spacetype type = spc->getType();
-  if (type == IPTR_CONSTANT) return false;
-  if (type == IPTR_PROCESSOR) {
-    const Translate *trans = spc->getTrans();
-    uintb off = vn->getOffset();
-    uintb sz = vn->getSize();
-    const string &nm = trans->getRegisterName(spc, off, sz);
-    if (!nm.empty()) return false; // Register (if valid) is not volatile (multithreaded)
-    return true;
-  }
-  return false;
-}
-
 /// \class RuleCollectTerms
 /// \brief Collect terms in a sum: `V * c + V * d   =>  V * (c + d)`
 void RuleCollectTerms::getOpList(vector<uint4> &oplist) const
@@ -200,6 +183,23 @@ int4 RuleCollectTerms::applyOp(PcodeOp *op,Funcdata &data)
   data.opSetInput(order[lastconst]->getOp(),data.newConstant(vn1->getSize(),coef1),order[lastconst]->getSlot());
   
   return 1;
+}
+
+bool RuleCollectTerms::isVolatileVarnode(Varnode *vn)
+
+{
+  AddrSpace *spc = vn->getSpace();
+  spacetype type = spc->getType();
+  if (type == IPTR_CONSTANT) return false;
+  if (type == IPTR_PROCESSOR) {
+    const Translate *trans = spc->getTrans();
+    uintb off = vn->getOffset();
+    uintb sz = vn->getSize();
+    const string &nm = trans->getRegisterName(spc, off, sz);
+    if (!nm.empty()) return false; // Register (if valid) is not volatile (multithreaded)
+    return true;
+  }
+  return false;
 }
 
 /// \class RuleSelectCse
@@ -6824,6 +6824,34 @@ bool RuleCancelOutPtrAdd::processOp(PcodeOp *op,PcodeOp *negateOp,PcodeOp *multi
   return true;
 }
 
+void RuleCancelOutPtrAdd::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_ADD);
+}
+
+int4 RuleCancelOutPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  if (!checkPointerUsages(op)) return 0;
+
+  vector<PcodeOp *> negateops;
+  gatherNegateOps(op,negateops);
+  vector<Varnode *> others;
+  vector<PcodeOp *> multis;
+  gatherPossiblePairingOps(op->getOut(),multis,others);
+
+  vector<PcodeOp *>::const_iterator iter;
+  for (iter=negateops.begin();iter!=negateops.end();++iter) {
+    PcodeOp *negateOp = *iter;
+    vector<PcodeOp *>::const_iterator iter;
+    for (iter=multis.begin();iter!=multis.end();++iter) {
+      if (processOp(op,negateOp,*iter,data)) return 1;
+    }
+  }
+  return 0;
+}
+
 bool RuleCancelOutPtrAdd::canProcessOp(PcodeOp *op,PcodeOp *negateOp,PcodeOp *multi)
 
 {
@@ -6875,34 +6903,6 @@ bool RuleCancelOutPtrAdd::canApply(PcodeOp *op)
     }
   }
   return false;
-}
-
-void RuleCancelOutPtrAdd::getOpList(vector<uint4> &oplist) const
-
-{
-  oplist.push_back(CPUI_INT_ADD);
-}
-
-int4 RuleCancelOutPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
-
-{
-  if (!checkPointerUsages(op)) return 0;
-
-  vector<PcodeOp *> negateops;
-  gatherNegateOps(op,negateops);
-  vector<Varnode *> others;
-  vector<PcodeOp *> multis;
-  gatherPossiblePairingOps(op->getOut(),multis,others);
-
-  vector<PcodeOp *>::const_iterator iter;
-  for (iter=negateops.begin();iter!=negateops.end();++iter) {
-    PcodeOp *negateOp = *iter;
-    vector<PcodeOp *>::const_iterator iter;
-    for (iter=multis.begin();iter!=multis.end();++iter) {
-      if (processOp(op,negateOp,*iter,data)) return 1;
-    }
-  }
-  return 0;
 }
 
 void AddTreeState::clear(void)
@@ -7385,34 +7385,6 @@ bool AddTreeState::buildDegenerate(void)
   return true;
 }
 
-/// \return \b true if a transform can be applied
-bool AddTreeState::canApply(void)
-
-{
-  if (isDegenerate) {
-    if (baseType->getAlignSize() < ct->getWordSize()) {
-      // If the size is really less than scale, there is
-      // probably some sort of padding going on
-      return false;        // Don't transform at all
-    }
-    if (baseOp->getOut()->getTypeDefFacing()->getMetatype() != TYPE_PTR) {
-      // Make sure pointer propagates thru INT_ADD
-      return false;
-    }
-    return true;
-  }
-  spanAddTree(baseOp,1);
-  if (!valid) return false;		// Were there any show stoppers
-  if (distributeOp != (PcodeOp *)0 && !isDistributeUsed) {
-    clear();
-    preventDistribution = true;
-    spanAddTree(baseOp,1);
-  }
-  calcSubtype();
-  if (!valid) return false;
-  return true;
-}
-
 /// \return \b true if a transform was applied
 bool AddTreeState::apply(void)
 
@@ -7454,6 +7426,34 @@ bool AddTreeState::apply(void)
     return true;
   }
   buildTree();
+  return true;
+}
+
+/// \return \b true if a transform can be applied
+bool AddTreeState::canApply(void)
+
+{
+  if (isDegenerate) {
+    if (baseType->getAlignSize() < ct->getWordSize()) {
+      // If the size is really less than scale, there is
+      // probably some sort of padding going on
+      return false;        // Don't transform at all
+    }
+    if (baseOp->getOut()->getTypeDefFacing()->getMetatype() != TYPE_PTR) {
+      // Make sure pointer propagates thru INT_ADD
+      return false;
+    }
+    return true;
+  }
+  spanAddTree(baseOp,1);
+  if (!valid) return false;		// Were there any show stoppers
+  if (distributeOp != (PcodeOp *)0 && !isDistributeUsed) {
+    clear();
+    preventDistribution = true;
+    spanAddTree(baseOp,1);
+  }
+  calcSubtype();
+  if (!valid) return false;
   return true;
 }
 
@@ -7716,30 +7716,6 @@ bool RulePtrArith::preprocess(PcodeOp *op,Funcdata &data)
   return false;
 }
 
-bool RulePtrArith::canApply(PcodeOp *op,Funcdata &data)
-
-{
-  int4 slot;
-  const Datatype *ct = (const Datatype *)0; // Unnecessary initialization
-
-  if (!data.hasTypeRecoveryStarted()) return false;
-
-  for(slot=0;slot<op->numInput();++slot) { // Search for pointer type
-    ct = op->getIn(slot)->getTypeReadFacing(op);
-    if (ct->getMetatype() == TYPE_PTR) break;
-  }
-  if (slot == op->numInput()) return false;
-  if (evaluatePointerExpression(op, slot) != 2) return false;
-  if (!verifyPreferredPointer(op, slot)) return false;
-
-  AddTreeState state(data,op,slot);
-  if (state.canApply()) return true;
-  if (state.initAlternateForm()) {
-    if (state.canApply()) return true;
-  }
-  return false;
-}
-
 /// \class RulePtrArith
 /// \brief Transform pointer arithmetic
 ///
@@ -7790,6 +7766,30 @@ int4 RulePtrArith::applyOp(PcodeOp *op,Funcdata &data)
     if (state.apply()) return 1;
   }
   return 0;
+}
+
+bool RulePtrArith::canApply(PcodeOp *op,Funcdata &data)
+
+{
+  int4 slot;
+  const Datatype *ct = (const Datatype *)0; // Unnecessary initialization
+
+  if (!data.hasTypeRecoveryStarted()) return false;
+
+  for(slot=0;slot<op->numInput();++slot) { // Search for pointer type
+    ct = op->getIn(slot)->getTypeReadFacing(op);
+    if (ct->getMetatype() == TYPE_PTR) break;
+  }
+  if (slot == op->numInput()) return false;
+  if (evaluatePointerExpression(op, slot) != 2) return false;
+  if (!verifyPreferredPointer(op, slot)) return false;
+
+  AddTreeState state(data,op,slot);
+  if (state.canApply()) return true;
+  if (state.initAlternateForm()) {
+    if (state.canApply()) return true;
+  }
+  return false;
 }
 
 /// \brief Prevents infinite loop in cases when struct contains pointers to the same type as itself
@@ -12941,28 +12941,6 @@ bool RuleInferPointerMult::formAssignment(PcodeOp *op,Funcdata &data)
   return true;
 }
 
-bool RuleInferPointerMult::canApply(PcodeOp *op,Funcdata &data)
-
-{
-  intb increment = getCounterIncrement(op);
-  if (increment == 0) return false;
-  if (increment == 1) return false;
-  if (increment == -1) return false;
-
-  Varnode *invn0 = op->getIn(0);
-  if (invn0->isFree()) return false;
-  PcodeOp *multiop = invn0->getDef();
-  int4 slot;
-  PcodeOp *initop = getCounterInitOp(multiop, slot);
-  if (initop == 0) return false;
-  Varnode *initvn = initop->getIn(slot);
-
-  Varnode *out = multiop->getOut();
-  if (out->isFree()) return false;
-
-  return true;
-}
-
 void RuleInferPointerMult::getOpList(vector<uint4> &oplist) const
 
 {
@@ -12983,6 +12961,28 @@ int4 RuleInferPointerMult::applyOp(PcodeOp *op,Funcdata &data)
   if (formIncrement(op,data)) return 1;
   if (formAssignment(op,data)) return 1;
   return 0;
+}
+
+bool RuleInferPointerMult::canApply(PcodeOp *op,Funcdata &data)
+
+{
+  intb increment = getCounterIncrement(op);
+  if (increment == 0) return false;
+  if (increment == 1) return false;
+  if (increment == -1) return false;
+
+  Varnode *invn0 = op->getIn(0);
+  if (invn0->isFree()) return false;
+  PcodeOp *multiop = invn0->getDef();
+  int4 slot;
+  PcodeOp *initop = getCounterInitOp(multiop, slot);
+  if (initop == 0) return false;
+  Varnode *initvn = initop->getIn(slot);
+
+  Varnode *out = multiop->getOut();
+  if (out->isFree()) return false;
+
+  return true;
 }
 
 PcodeOp *RuleInferPointerAdd::getCounterInitOp(PcodeOp *multiop,int4 &slot)
@@ -13186,6 +13186,24 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
   return true;
 }
 
+void RuleInferPointerAdd::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_ADD);
+}
+
+/// \class RuleInferPointerAdd
+/// \brief Infer pointer counter addition everywhere it is used but make assignments simpler instead
+/// Only possible if writen twice. First is the initializer and the second is the increment:
+///  - `V = W + X; ... = V; V = V + c => V = W; ... = V + X; V = V + c`
+int4 RuleInferPointerAdd::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  if (formConstant(op,data)) return 1;
+  if (formSpacebase(op,data)) return 1;
+  return 0;
+}
+
 bool RuleInferPointerAdd::canApply(PcodeOp *op,Funcdata &data)
 
 {
@@ -13204,24 +13222,6 @@ bool RuleInferPointerAdd::canApply(PcodeOp *op,Funcdata &data)
   if (out->isFree()) return false;
 
   return true;
-}
-
-void RuleInferPointerAdd::getOpList(vector<uint4> &oplist) const
-
-{
-  oplist.push_back(CPUI_INT_ADD);
-}
-
-/// \class RuleInferPointerAdd
-/// \brief Infer pointer counter addition everywhere it is used but make assignments simpler instead
-/// Only possible if writen twice. First is the initializer and the second is the increment:
-///  - `V = W + X; ... = V; V = V + c => V = W; ... = V + X; V = V + c`
-int4 RuleInferPointerAdd::applyOp(PcodeOp *op,Funcdata &data)
-
-{
-  if (formConstant(op,data)) return 1;
-  if (formSpacebase(op,data)) return 1;
-  return 0;
 }
 
 // Returns change of counter or 0 if not a valid counter vn
