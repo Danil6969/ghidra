@@ -12499,8 +12499,12 @@ int4 RulePtrsubOr::applyOp(PcodeOp *op,Funcdata &data)
   if (ptrsubop == (PcodeOp *)0) return 0;
   if (ptrsubop->code() != CPUI_PTRSUB) return 0;
   Varnode *basevn = ptrsubop->getIn(0);
-  // base varnode is pure value and not some calculated one
+  // Base varnode must be a pure value and not some calculated one
   if (basevn->getDef() != (PcodeOp *)0) return 0;
+  TypePointer *ptype = (TypePointer *)basevn->getType();
+  if (ptype->getMetatype() != TYPE_PTR) return 0;
+  TypeSpacebase *sb = (TypeSpacebase *) ptype->getPtrTo();
+  if (sb->getMetatype() != TYPE_SPACEBASE) return 0;
 
   c[0] = ptrsubop->getIn(1);
   c[1] = op->getIn(1);
