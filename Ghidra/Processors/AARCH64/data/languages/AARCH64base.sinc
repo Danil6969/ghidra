@@ -2867,7 +2867,7 @@ is size.ldstr=1 & b_2429=0x8 & b_23=1 & L=1 & b_21=0 & b_1620=0b11111 & b_15=1 &
 is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=1 & b_21=1 & b_15=1 & Rt2_GPR64 & addrReg & Rt_GPR64
 {
 	rsize:1 = 16;
-	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveResult = SetExclusiveMonitors(addrReg, rsize);
 	exclusiveAddress = addrReg;
 	exclusiveSize = rsize;
 
@@ -2885,7 +2885,7 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=1 & b_21=1 & b_15=1 & Rt2_GPR64 & addr
 is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=1 & b_21=1 & b_1620 & b_15=1 & Rt2_GPR32 & addrReg & Rt_GPR32 & Rt_GPR64 & Rt2_GPR64
 {
 	rsize:1 = 8;
-	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveResult = SetExclusiveMonitors(addrReg, rsize);
 	exclusiveAddress = addrReg;
 	exclusiveSize = rsize;
 
@@ -2904,7 +2904,7 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=1 & b_21=1 & b_1620 & b_15=1 & Rt2_GPR
 is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=1 & addrReg & Rt_GPR64
 {
 	rsize:1 = 8;
-	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveResult = SetExclusiveMonitors(addrReg, rsize);
 	exclusiveAddress = addrReg;
 	exclusiveSize = rsize;
 
@@ -2920,7 +2920,7 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=1 & addrReg & Rt_GPR
 is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=1 & addrReg & Rt_GPR32 & Rt_GPR64
 {
 	rsize:1 = 4;
-	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveResult = SetExclusiveMonitors(addrReg, rsize);
 	exclusiveAddress = addrReg;
 	exclusiveSize = rsize;
 
@@ -2937,7 +2937,7 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=1 & addrReg & Rt_GPR
 is size.ldstr=0 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=1 & addrReg & Rt_GPR32 & Rt_GPR64
 {
 	rsize:1 = 1;
-	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveResult = SetExclusiveMonitors(addrReg, rsize);
 	exclusiveAddress = addrReg;
 	exclusiveSize = rsize;
 
@@ -2954,7 +2954,7 @@ is size.ldstr=0 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=1 & addrReg & Rt_GPR
 is size.ldstr=1 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=1 & addrReg & Rt_GPR32 & Rt_GPR64
 {
 	rsize:1 = 2;
-	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveResult = SetExclusiveMonitors(addrReg, rsize);
 	exclusiveAddress = addrReg;
 	exclusiveSize = rsize;
 
@@ -3547,7 +3547,7 @@ is size.ldstr=3 & b_2729=7 & v=0 & b_2425=0 & b_23=0 & b_2122=2 & b_1011=0 & Uns
 is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=1 & b_21=1 & b_15=0 & Rt2_GPR64 & addrReg & Rt_GPR64
 {
 	rsize:1 = 16;
-	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveResult = SetExclusiveMonitors(addrReg, rsize);
 	exclusiveAddress = addrReg;
 	exclusiveSize = rsize;
 
@@ -3566,7 +3566,7 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=1 & b_21=1 & b_15=0 & Rt2_GPR64 & addr
 is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=1 & b_21=1 & b_15=0 & Rt2_GPR32 & addrReg & Rt_GPR32 & Rt_GPR64 & Rt2_GPR64
 {
 	rsize:1 = 8;
-	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveResult = SetExclusiveMonitors(addrReg, rsize);
 	exclusiveAddress = addrReg;
 	exclusiveSize = rsize;
 
@@ -3585,7 +3585,7 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=1 & b_21=1 & b_15=0 & Rt2_GPR32 & addr
 is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=0 & addrReg & Rt_GPR64
 {
 	rsize:1 = 8;
-	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveResult = SetExclusiveMonitors(addrReg, rsize);
 	exclusiveAddress = addrReg;
 	exclusiveSize = rsize;
 
@@ -3601,7 +3601,7 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=0 & addrReg & Rt_GPR
 is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=0 & addrReg & Rt_GPR32 & Rt_GPR64
 {
 	rsize:1 = 4;
-	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveResult = SetExclusiveMonitors(addrReg, rsize);
 	exclusiveAddress = addrReg;
 	exclusiveSize = rsize;
 
@@ -3617,7 +3617,7 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=0 & addrReg & Rt_GPR
 is size.ldstr=0 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=0 & addrReg & Rt_GPR32 & Rt_GPR64
 {
 	rsize:1 = 1;
-	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveResult = SetExclusiveMonitors(addrReg, rsize);
 	exclusiveAddress = addrReg;
 	exclusiveSize = rsize;
 
@@ -3633,7 +3633,7 @@ is size.ldstr=0 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=0 & addrReg & Rt_GPR
 is size.ldstr=1 & b_2429=0x8 & b_23=0 & L=1 & b_21=0 & b_15=0 & addrReg & Rt_GPR32 & Rt_GPR64
 {
 	rsize:1 = 2;
-	SetExclusiveMonitors(addrReg, rsize);
+	exclusiveResult = SetExclusiveMonitors(addrReg, rsize);
 	exclusiveAddress = addrReg;
 	exclusiveSize = rsize;
 
@@ -5772,7 +5772,8 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=0 & b_21=1 & Rs_GPR32 & b_15=1 & Rt2_G
 {
 	status:1 = 1;
 	rsize:1 = 16;
-	check:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	pass:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	check = pass && exclusiveResult;
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR64;
 	*(addrReg + 8) = Rt2_GPR64;
@@ -5790,7 +5791,8 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=0 & b_21=1 & Rs_GPR32 & b_15=1 & Rt2_G
 {
 	status:1 = 1;
 	rsize:1 = 8;
-	check:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	pass:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	check = pass && exclusiveResult;
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR32;
 	*(addrReg + 4) = Rt2_GPR32;
@@ -5809,7 +5811,8 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=1 & addrR
 {
 	status:1 = 1;
 	rsize:1 = 8;
-	check:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	pass:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	check = pass && exclusiveResult;
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR64;
 	status = ExclusiveMonitorsStatus(addrReg, rsize);
@@ -5827,7 +5830,8 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=1 & addrR
 {
 	status:1 = 1;
 	rsize:1 = 4;
-	check:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	pass:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	check = pass && exclusiveResult;
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR32;
 	status = ExclusiveMonitorsStatus(addrReg, rsize);
@@ -5845,7 +5849,8 @@ is size.ldstr=0 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=1 & addrR
 {
 	status:1 = 1;
 	rsize:1 = 1;
-	check:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	pass:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	check = pass && exclusiveResult;
 	if (!check) goto <fail>;
 	local tmp:4 = Rt_GPR32;
 	*addrReg = tmp:1;
@@ -5864,7 +5869,8 @@ is size.ldstr=1 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=1 & addrR
 {
 	status:1 = 1;
 	rsize:1 = 2;
-	check:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	pass:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	check = pass && exclusiveResult;
 	if (!check) goto <fail>;
 	local tmp:4 = Rt_GPR32;
 	*addrReg = tmp:2;
@@ -6152,7 +6158,8 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=0 & b_21=1 & Rs_GPR32 & b_15=0 & Rt2_G
 {
 	status:1 = 1;
 	rsize:1 = 16;
-	check:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	pass:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	check = pass && exclusiveResult;
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR64;
 	*(addrReg + 8) = Rt2_GPR64;
@@ -6170,7 +6177,8 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=0 & b_21=1 & Rs_GPR32 & b_15=0 & Rt2_G
 {
 	status:1 = 1;
 	rsize:1 = 8;
-	check:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	pass:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	check = pass && exclusiveResult;
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR32;
 	*(addrReg + 4) = Rt2_GPR32;
@@ -6189,7 +6197,8 @@ is size.ldstr=3 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=0 & addrR
 {
 	status:1 = 1;
 	rsize:1 = 8;
-	check:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	pass:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	check = pass && exclusiveResult;
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR64;
 	status = ExclusiveMonitorsStatus(addrReg, rsize);
@@ -6207,7 +6216,8 @@ is size.ldstr=2 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=0 & addrR
 {
 	status:1 = 1;
 	rsize:1 = 4;
-	check:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	pass:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	check = pass && exclusiveResult;
 	if (!check) goto <fail>;
 	*addrReg = Rt_GPR32;
 	status = ExclusiveMonitorsStatus(addrReg, rsize);
@@ -6225,7 +6235,8 @@ is size.ldstr=0 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=0 & addrR
 {
 	status:1 = 1;
 	rsize:1 = 1;
-	check:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	pass:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	check = pass && exclusiveResult;
 	if (!check) goto <fail>;
 	local tmp:4 = Rt_GPR32;
 	*addrReg = tmp:1;
@@ -6244,7 +6255,8 @@ is size.ldstr=1 & b_2429=0x8 & b_23=0 & L=0 & b_21=0 & Rs_GPR32 & b_15=0 & addrR
 {
 	status:1 = 1;
 	rsize:1 = 2;
-	check:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	pass:1 = ExclusiveMonitorsPass(addrReg, rsize);
+	check = pass && exclusiveResult;
 	if (!check) goto <fail>;
 	local tmp:4 = Rt_GPR32;
 	*addrReg = tmp:2;
