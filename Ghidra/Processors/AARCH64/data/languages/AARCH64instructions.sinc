@@ -423,6 +423,7 @@ define register offset=0x3110 size=8 tmp_stXn;
 
 define register offset=0x3200 size=8 exclusiveAddress;
 define register offset=0x3208 size=1 exclusiveSize;
+define register offset=0x3209 size=1 exclusiveResult;
 
 # General purpose and SIMD registers
 #
