@@ -1409,6 +1409,10 @@ bool Varnode::isStaticCastOutput(set<const Varnode *> visitedVarnodes,Funcdata &
     if (opc == CPUI_INT_MULT) continue;
 
     if (opc == CPUI_CBRANCH) return false;
+    if (opc == CPUI_BOOL_NEGATE) return false;
+    if (opc == CPUI_BOOL_XOR) return false;
+    if (opc == CPUI_BOOL_AND) return false;
+    if (opc == CPUI_BOOL_OR) return false;
     if (opc == CPUI_SUBPIECE) return false;
 
     if (opc == CPUI_PTRADD) return true;
