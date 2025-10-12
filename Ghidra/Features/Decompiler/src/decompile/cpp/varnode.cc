@@ -1225,6 +1225,64 @@ bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) cons
   return false;
 }
 
+bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Funcdata &data) const
+
+{
+  if (visitedVarnodes.find(this) != visitedVarnodes.end()) return (Varnode *)0;
+  visitedVarnodes.insert(this);
+
+  list<PcodeOp *>::const_iterator iter;
+  for (iter=beginDescend();iter!=endDescend();++iter) {
+    PcodeOp *op = *iter;
+    OpCode opc = op->code();
+
+    if (opc == CPUI_COPY) {
+      if (op->getOut()->isStaticCastOutput(visitedVarnodes,data))
+	return true;
+      continue;
+    }
+    if (opc == CPUI_INT_ADD) {
+      int4 slot = op->getSlot(this);
+      PcodeOp *otherop = op->getIn(1-slot)->getDef();
+      if (otherop != (PcodeOp *)0) {
+	if (otherop->code() == CPUI_INT_MULT) {
+	  return false;
+	}
+      }
+      return true;
+    }
+    if (opc == CPUI_MULTIEQUAL) {
+      if (op->getOut()->isStaticCastOutput(visitedVarnodes,data))
+	return true;
+      continue;
+    }
+
+    if (opc == CPUI_LOAD) continue;
+    if (opc == CPUI_STORE) continue;
+    if (opc == CPUI_CALL) continue;
+    if (opc == CPUI_RETURN) continue;
+    if (opc == CPUI_INT_EQUAL) continue;
+    if (opc == CPUI_INT_NOTEQUAL) continue;
+    if (opc == CPUI_INT_LESSEQUAL) continue;
+    if (opc == CPUI_INT_AND) continue;
+    if (opc == CPUI_INT_OR) continue;
+    if (opc == CPUI_INT_RIGHT) continue;
+    if (opc == CPUI_INT_MULT) continue;
+
+    if (opc == CPUI_CBRANCH) return false;
+    if (opc == CPUI_BOOL_NEGATE) return false;
+    if (opc == CPUI_BOOL_XOR) return false;
+    if (opc == CPUI_BOOL_AND) return false;
+    if (opc == CPUI_BOOL_OR) return false;
+    if (opc == CPUI_SUBPIECE) return false;
+
+    if (opc == CPUI_PTRADD) return true;
+    if (opc == CPUI_PTRSUB) return true;
+    return true;
+  }
+  return false;
+}
+
 Varnode *Varnode::getCopyChainInput(void)
 
 {
@@ -1363,65 +1421,6 @@ SymbolEntry *Varnode::getGlobalPointerSymbol(const PcodeOp *op) const
   return scope->queryContainer(rampoint,1,Address());
 }
 
-bool Varnode::isStaticCastOutput(set<const Varnode *> visitedVarnodes,Funcdata &data) const
-
-{
-  if (visitedVarnodes.find(this) != visitedVarnodes.end()) return (Varnode *)0;
-  visitedVarnodes.insert(this);
-
-  list<PcodeOp *>::const_iterator iter;
-  for (iter=beginDescend();iter!=endDescend();++iter) {
-    PcodeOp *op = *iter;
-    OpCode opc = op->code();
-
-    if (opc == CPUI_COPY) {
-      if (op->getOut()->isStaticCastOutput(visitedVarnodes,data))
-	return true;
-      continue;
-    }
-    if (opc == CPUI_INT_ADD) {
-      int4 slot = op->getSlot(this);
-      PcodeOp *otherop = op->getIn(1-slot)->getDef();
-      if (otherop != (PcodeOp *)0) {
-	if (otherop->code() == CPUI_INT_MULT) {
-	  return false;
-	}
-      }
-      return true;
-    }
-    if (opc == CPUI_MULTIEQUAL) {
-      // TODO is there infinite recursion?
-      if (op->getOut()->isStaticCastOutput(visitedVarnodes,data))
-	return true;
-      continue;
-    }
-
-    if (opc == CPUI_LOAD) continue;
-    if (opc == CPUI_STORE) continue;
-    if (opc == CPUI_CALL) continue;
-    if (opc == CPUI_RETURN) continue;
-    if (opc == CPUI_INT_EQUAL) continue;
-    if (opc == CPUI_INT_NOTEQUAL) continue;
-    if (opc == CPUI_INT_LESSEQUAL) continue;
-    if (opc == CPUI_INT_AND) continue;
-    if (opc == CPUI_INT_OR) continue;
-    if (opc == CPUI_INT_RIGHT) continue;
-    if (opc == CPUI_INT_MULT) continue;
-
-    if (opc == CPUI_CBRANCH) return false;
-    if (opc == CPUI_BOOL_NEGATE) return false;
-    if (opc == CPUI_BOOL_XOR) return false;
-    if (opc == CPUI_BOOL_AND) return false;
-    if (opc == CPUI_BOOL_OR) return false;
-    if (opc == CPUI_SUBPIECE) return false;
-
-    if (opc == CPUI_PTRADD) return true;
-    if (opc == CPUI_PTRSUB) return true;
-    return true;
-  }
-  return false;
-}
-
 bool Varnode::isInternalFunctionParameter(void) const
 
 {
@@ -1458,6 +1457,64 @@ bool Varnode::hasPointerUsages(void) const
   bool hasusages = hasPointerUsagesRecurse(visitedVarnodes);
   visitedVarnodes.clear();
   return hasusages;
+}
+
+bool Varnode::isStaticCastOutput(set<const Varnode *> visitedVarnodes,Funcdata &data) const
+
+{
+  if (visitedVarnodes.find(this) != visitedVarnodes.end()) return (Varnode *)0;
+  visitedVarnodes.insert(this);
+
+  list<PcodeOp *>::const_iterator iter;
+  for (iter=beginDescend();iter!=endDescend();++iter) {
+    PcodeOp *op = *iter;
+    OpCode opc = op->code();
+
+    if (opc == CPUI_COPY) {
+      if (op->getOut()->isStaticCastOutput(visitedVarnodes,data))
+	return true;
+      continue;
+    }
+    if (opc == CPUI_INT_ADD) {
+      int4 slot = op->getSlot(this);
+      PcodeOp *otherop = op->getIn(1-slot)->getDef();
+      if (otherop != (PcodeOp *)0) {
+	if (otherop->code() == CPUI_INT_MULT) {
+	  return false;
+	}
+      }
+      return true;
+    }
+    if (opc == CPUI_MULTIEQUAL) {
+      if (op->getOut()->isStaticCastOutput(visitedVarnodes,data))
+	return true;
+      continue;
+    }
+
+    if (opc == CPUI_LOAD) continue;
+    if (opc == CPUI_STORE) continue;
+    if (opc == CPUI_CALL) continue;
+    if (opc == CPUI_RETURN) continue;
+    if (opc == CPUI_INT_EQUAL) continue;
+    if (opc == CPUI_INT_NOTEQUAL) continue;
+    if (opc == CPUI_INT_LESSEQUAL) continue;
+    if (opc == CPUI_INT_AND) continue;
+    if (opc == CPUI_INT_OR) continue;
+    if (opc == CPUI_INT_RIGHT) continue;
+    if (opc == CPUI_INT_MULT) continue;
+
+    if (opc == CPUI_CBRANCH) return false;
+    if (opc == CPUI_BOOL_NEGATE) return false;
+    if (opc == CPUI_BOOL_XOR) return false;
+    if (opc == CPUI_BOOL_AND) return false;
+    if (opc == CPUI_BOOL_OR) return false;
+    if (opc == CPUI_SUBPIECE) return false;
+
+    if (opc == CPUI_PTRADD) return true;
+    if (opc == CPUI_PTRSUB) return true;
+    return true;
+  }
+  return false;
 }
 
 const PcodeOp *Varnode::getAllocaShiftOp(Funcdata &data) const
