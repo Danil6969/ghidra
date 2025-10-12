@@ -359,7 +359,7 @@ public:
   SymbolEntry *getGlobalPointerSymbol(const PcodeOp *op) const;
   bool isInternalFunctionParameter(void) const;
   bool hasPointerUsages(void) const;
-  bool isStaticCastOutput(set<const Varnode *> visitedVarnodes,Funcdata &data) const;
+  bool isStaticCastOutput(Funcdata &data) const;
   const PcodeOp *getAllocaShiftOp(Funcdata &data) const;
   bool isAllocaAddress(Funcdata &data) const { return getAllocaShiftOp(data) != (PcodeOp *)0; }	///< Does \b this varnode have corresponding alloca shift op
   bool isAllocaLength(Funcdata &data) const;
