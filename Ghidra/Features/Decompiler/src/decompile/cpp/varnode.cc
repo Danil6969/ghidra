@@ -1454,9 +1454,9 @@ bool Varnode::hasPointerUsages(void) const
 {
   // Must protect against self recursion (repeating PcodeOps)
   set<const Varnode *> visitedVarnodes;
-  bool hasusages = hasPointerUsagesRecurse(visitedVarnodes);
+  bool res = hasPointerUsagesRecurse(visitedVarnodes);
   visitedVarnodes.clear();
-  return hasusages;
+  return res;
 }
 
 bool Varnode::isStaticCastOutput(set<const Varnode *> visitedVarnodes,Funcdata &data) const
