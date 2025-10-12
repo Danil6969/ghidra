@@ -1242,6 +1242,7 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
       continue;
     }
     if (opc == CPUI_INT_ADD) {
+      Varnode *out = op->getOut();
       int4 slot = op->getSlot(this);
       PcodeOp *otherop = op->getIn(1-slot)->getDef();
       if (otherop != (PcodeOp *)0) {
@@ -1249,7 +1250,11 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
 	  return false;
 	}
       }
-      return true;
+      if (out->hasPointerUsages()) return true;
+      if (!data.hasTypeRecoveryStarted()) return true;
+      if (out->getTypeDefFacing()->getMetatype() == TYPE_PTR) return true;
+      if (getTypeReadFacing(op)->getMetatype() == TYPE_PTR) return true;
+      return false;
     }
     if (opc == CPUI_MULTIEQUAL) {
       if (op->getOut()->isStaticCastOutputRecurse(visitedVarnodes,data))
