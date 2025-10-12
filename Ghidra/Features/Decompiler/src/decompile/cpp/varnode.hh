@@ -174,6 +174,7 @@ private:
   void eraseDescend(PcodeOp *op); ///< Erase a descendant (reading) PcodeOp from this Varnode's list
   void destroyDescend(void);	///< Clear all descendant (reading) PcodeOps
   bool hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) const;
+  bool isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Funcdata &data) const;
 public:
   // only to be used by HighVariable
   void setHigh(HighVariable *tv,int2 mg) { high = tv; mergegroup = mg; } ///< Set the HighVariable owning this Varnode
@@ -356,9 +357,9 @@ public:
   Datatype *recoverVftableDatatype(TypeFactory *types) const;	///< Recover datatype of last vftable store (from descendants)
   SymbolEntry *getLocalValueSymbol(const PcodeOp *op) const;
   SymbolEntry *getGlobalPointerSymbol(const PcodeOp *op) const;
-  bool isStaticCastOutput(set<const Varnode *> visitedVarnodes,Funcdata &data) const;
   bool isInternalFunctionParameter(void) const;
   bool hasPointerUsages(void) const;
+  bool isStaticCastOutput(set<const Varnode *> visitedVarnodes,Funcdata &data) const;
   const PcodeOp *getAllocaShiftOp(Funcdata &data) const;
   bool isAllocaAddress(Funcdata &data) const { return getAllocaShiftOp(data) != (PcodeOp *)0; }	///< Does \b this varnode have corresponding alloca shift op
   bool isAllocaLength(Funcdata &data) const;
