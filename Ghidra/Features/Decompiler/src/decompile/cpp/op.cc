@@ -292,6 +292,8 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
 {
   if (code() != CPUI_COPY) return false;
   const Varnode *in = getIn(0);
+  // TODO recursive or non-recursive?
+  if (in->isStackVariableAddress(data,false,true)) return false;
   const PcodeOp *def = in->getDef();
   if (def == (PcodeOp *)0) {
     if (in->isConstant()) return false;
