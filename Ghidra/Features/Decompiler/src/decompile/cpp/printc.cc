@@ -820,24 +820,27 @@ void PrintC::opStore(const PcodeOp *op)
   // We assume the STORE is a statement
   bool usearray = checkArrayDeref(op->getIn(1));
   uint4 m = mods;
-  if (op->getIn(2)->getHighTypeReadFacing(op)->getMetatype() != TYPE_ARRAY)
+  bool isarray = op->getIn(2)->getHighTypeReadFacing(op)->getMetatype() == TYPE_ARRAY;
+  if (!isarray)
     pushOp(&assignment,op);	// This is an assignment
   else {
     ostringstream s;
-    s << "COPY" << op->getIn(2)->getSize();
     pushOp(&function_call,op);
-    pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+    pushAtom(Atom("builtin_memcpy",optoken,EmitMarkup::no_color,op));
+    pushOp(&comma,op);
     pushOp(&comma,op);
   }
   if (usearray && (!isSet(force_pointer)))
     m |= print_store_value;
-  else if (op->getIn(2)->getHighTypeReadFacing(op)->getMetatype() != TYPE_ARRAY) {
+  else if (!isarray) {
     pushOp(&dereference,op);
   }
   // implied vn's pushed on in reverse order for efficiency
   // see PrintLanguage::pushVnImplied
   pushVn(op->getIn(2),op,mods);
   pushVn(op->getIn(1),op,m);
+  if (isarray)
+    push_integer(op->getIn(2)->getSize(),4,false,syntax,(Varnode *)0,op);
 }
 
 void PrintC::opBranch(const PcodeOp *op)
@@ -3205,13 +3208,14 @@ bool PrintC::emitArrCopy(const PcodeOp *op)
 {
   if (op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY) return false;
   ostringstream s;
-  s << "COPY" << op->getOut()->getSize();
   pushOp(&function_call,op);
-  pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
+  pushAtom(Atom("builtin_memcpy",optoken,EmitMarkup::no_color,op));
+  pushOp(&comma,op);
   pushOp(&comma,op);
   pushSymbolDetail(op->getOut(),op,false);
   op->getOpcode()->push(this,op,(PcodeOp *)0);
   recurse();
+  push_integer(op->getOut()->getSize(),4,false,syntax,(Varnode *)0,op);
   return true;
 }
 
