@@ -3463,8 +3463,7 @@ int4 ActionSetCasts::apply(Funcdata &data)
       if (vn != (Varnode *)0) {
 	Datatype *outHighType = vn->getHigh()->getType();
 	if (outHighType->needsResolution())
-	  if (outHighType != vn->getType())
-	    outHighType->resolveInFlow(op,-1);
+	  outHighType->resolveInFlow(op,-1);
       }
       if (opc == CPUI_COPY) continue;
       if (opc == CPUI_LOAD) {
