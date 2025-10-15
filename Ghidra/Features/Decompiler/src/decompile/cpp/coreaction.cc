@@ -3163,6 +3163,78 @@ int4 ActionSetCasts::resolveUnion(PcodeOp *op,int4 slot,Funcdata &data)
   return 0;
 }
 
+void ActionSetCasts::resolveOutput(PcodeOp *op)
+
+{
+  Varnode *vn = op->getOut();
+  if (vn == (Varnode *)0) return;
+  HighVariable *high = vn->getHigh();
+  Datatype *outHighType = high->getType();
+  if (outHighType->needsResolution())
+    outHighType->resolveInFlow(op,-1);
+
+  Symbol *sym = high->getSymbol();
+  if (sym == (Symbol *)0) return;
+  Datatype *ct = sym->getType();
+  int4 sz = vn->getSize();
+  int4 off = high->getSymbolOffset();
+  if (off < 0) return;
+
+  int8 newoff;
+  while(ct != (Datatype *)0) {
+    if (off == 0) {
+      if (sz == 0) break;
+      if (sz == ct->getSize()) {
+	if (!ct->needsResolution()) break;
+	if (ct->getMetatype() == TYPE_PTR) break;
+      }
+    }
+    if (ct->getMetatype()==TYPE_STRUCT) {
+      if (ct->needsResolution() && ct->getSize() == sz) {
+	ct->resolveInFlow(op,-1);
+	Datatype *outtype = ct->findResolve(op,-1);
+	if (outtype == ct)
+	  break;
+      }
+      const TypeField *field;
+      ct->resolveTruncation(off,op,-1,newoff);
+      field = ct->findTruncation(off,sz,op,-1,newoff);
+      if (field == (const TypeField *)0) {
+	ct = (Datatype *)0;
+      }
+      else {
+	off = newoff;
+	ct = field->type;
+      }
+    }
+    else if (ct->getMetatype() == TYPE_ARRAY) {
+      int4 el;
+      Datatype *arrayof = ((TypeArray *)ct)->getSubEntry(off,sz,&off,&el);
+      if (arrayof == (Datatype *)0) {
+	ct = (Datatype *)0;
+      }
+      else {
+	ct = arrayof;
+      }
+    }
+    else if (ct->getMetatype() == TYPE_UNION) {
+      const TypeField *field;
+      ct->resolveTruncation(off,op,-1,newoff);
+      field = ct->findTruncation(off,sz,op,-1,newoff);
+      if (field == (const TypeField*)0) {
+	ct = (Datatype *)0;
+      }
+      else {
+	off = newoff;
+	ct = field->type;
+      }
+    }
+    else {
+      ct = (Datatype *)0;
+    }
+  }
+}
+
 /// \brief Insert cast to output Varnode type after given PcodeOp if it is necessary
 ///
 /// \param op is the given PcodeOp
@@ -3459,12 +3531,7 @@ int4 ActionSetCasts::apply(Funcdata &data)
 	count += resolveUnion(op, i, data);
 	count += castInput(op,i,data,castStrategy);
       }
-      Varnode *vn = op->getOut();
-      if (vn != (Varnode *)0) {
-	Datatype *outHighType = vn->getHigh()->getType();
-	if (outHighType->needsResolution())
-	  outHighType->resolveInFlow(op,-1);
-      }
+      resolveOutput(op);
       if (opc == CPUI_COPY) continue;
       if (opc == CPUI_LOAD) {
 	checkPointerIssues(op, op->getOut(), data);
@@ -3472,7 +3539,7 @@ int4 ActionSetCasts::apply(Funcdata &data)
       else if (opc == CPUI_STORE) {
 	checkPointerIssues(op, op->getIn(2), data);
       }
-      if (vn == (Varnode *)0) continue;
+      if (op->getOut() == (Varnode *)0) continue;
       count += castOutput(op,data,castStrategy);
     }
   }
