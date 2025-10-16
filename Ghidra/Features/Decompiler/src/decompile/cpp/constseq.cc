@@ -459,6 +459,52 @@ bool StringSequence::transform(void)
   return true;
 }
 
+Datatype *StringSequence::findCharDatatype(Datatype *ct,int4 offset)
+
+{
+  if (ct->isCharPrint()) {
+    if (offset == 0)
+      return ct;
+    return (Datatype *)0;
+  }
+  type_metatype meta = ct->getMetatype();
+  if (meta == TYPE_ARRAY) {
+    int8 newoff;
+    Datatype *dt = ct->getSubType(offset,&newoff);
+    return findCharDatatype(dt,newoff);
+  }
+  else if (meta == TYPE_STRUCT) {
+    int8 newoff;
+    Datatype *dt = ct->getSubType(offset,&newoff);
+    if (dt != (Datatype *)0)
+      return findCharDatatype(dt,newoff);
+    return (Datatype *)0;
+  }
+  else if (meta == TYPE_UNION) {
+    TypeUnion *tu = (TypeUnion *)ct;
+    int4 numFields = tu->numDepend();
+    for (int4 i=0;i<numFields;++i) {
+      Datatype *dt = tu->getField(i)->type;
+      dt = findCharDatatype(dt,offset);
+      if (dt != (Datatype *)0)
+	return dt;
+    }
+  }
+  else if (meta == TYPE_PARTIALSTRUCT) {
+    TypePartialStruct *tps = (TypePartialStruct *)ct;
+    Datatype *ts = tps->getParent();
+    int4 off = tps->getOffset() + offset;
+    return findCharDatatype(ts,off);
+  }
+  else if (meta == TYPE_PARTIALUNION) {
+    TypePartialUnion *tpu = (TypePartialUnion *)ct;
+    TypeUnion *tu = tpu->getParentUnion();
+    int4 off = tpu->getOffset() + offset;
+    return findCharDatatype(tu,off);
+  }
+  return (Datatype *)0;
+}
+
 /// From a starting pointer, backtrack through PTRADDs and COPYs to a putative root Varnode pointer.
 /// \param initPtr is pointer Varnode into the root STORE
 void HeapSequence::findBasePointer(Varnode *initPtr)
