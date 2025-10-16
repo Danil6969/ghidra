@@ -77,6 +77,7 @@ class StringSequence : public ArraySequence {
 public:
   StringSequence(Funcdata &fdata,Datatype *ct,SymbolEntry *ent,PcodeOp *root,const Address &addr);
   bool transform(void);		///< Transform COPYs into a single memcpy user-op
+  static Datatype *findCharDatatype(Datatype *ct,int4 offset);
 };
 
 /// \brief A sequence of STORE operations writing characters through the same string pointer
