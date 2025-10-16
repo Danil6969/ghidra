@@ -74,11 +74,11 @@ class StringSequence : public ArraySequence {
 			    list<WriteNode> &points,vector<WriteNode> &deadOps);
   void removeCopyOps(PcodeOp *replaceOp);	///< Remove all the COPY ops from the basic block
   Varnode *constructTypedPointer(PcodeOp *insertPoint);
-  static Datatype *findCharArrayDatatype(Datatype *ct,int8 offset,int8 &lastOffset);
 public:
   StringSequence(Funcdata &fdata,Datatype *ct,SymbolEntry *ent,PcodeOp *root,const Address &addr);
   bool transform(void);		///< Transform COPYs into a single memcpy user-op
   static Datatype *findCharDatatype(Datatype *ct,int8 offset);
+  static Datatype *findCharArrayDatatype(Datatype *ct,int8 offset,int8 &lastOffset);
 };
 
 /// \brief A sequence of STORE operations writing characters through the same string pointer
