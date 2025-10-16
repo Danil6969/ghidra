@@ -8953,14 +8953,21 @@ void RuleSplitCopy::getOpList(vector<uint4> &oplist) const
 int4 RuleSplitCopy::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  Datatype *inType = op->getIn(0)->getTypeReadFacing(op);
+  Varnode *invn = op->getIn(0);
+  Datatype *inType = invn->getTypeReadFacing(op);
   Datatype *outType = op->getOut()->getTypeDefFacing();
+  Datatype *ct = op->getOut()->getType();
+  if (invn->isConstant()) {
+    Datatype *dt = StringSequence::findCharDatatype(ct,0);
+    if (dt != (Datatype *)0)
+      ct = dt;
+  }
   type_metatype metain = inType->getMetatype();
   type_metatype metaout = outType->getMetatype();
   if (metain != TYPE_PARTIALSTRUCT && metaout != TYPE_PARTIALSTRUCT &&
       metain != TYPE_ARRAY && metaout != TYPE_ARRAY &&
       metain != TYPE_STRUCT && metaout != TYPE_STRUCT)
-    return false;
+    return 0;
   SplitDatatype splitter(data);
   if (splitter.splitCopy(op, inType, outType))
     return 1;
