@@ -8958,9 +8958,10 @@ int4 RuleSplitCopy::applyOp(PcodeOp *op,Funcdata &data)
   Datatype *outType = op->getOut()->getTypeDefFacing();
   Datatype *ct = op->getOut()->getType();
   if (invn->isConstant()) {
-    Datatype *dt = StringSequence::findCharDatatype(ct,0);
+    int8 lastOffset;
+    Datatype *dt = StringSequence::findCharArrayDatatype(ct,0,lastOffset);
     if (dt != (Datatype *)0)
-      ct = dt;
+      outType = dt;
   }
   type_metatype metain = inType->getMetatype();
   type_metatype metaout = outType->getMetatype();
