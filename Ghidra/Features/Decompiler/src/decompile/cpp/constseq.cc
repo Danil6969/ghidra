@@ -197,15 +197,10 @@ StringSequence::StringSequence(Funcdata &fdata,Datatype *ct,SymbolEntry *ent,Pco
   if (rootOp->getIn(0)->getOffset() == 0)
     return;
   Datatype *parentType = entry->getSymbol()->getType();
-  Datatype *arrayType = (Datatype *)0;
   int8 lastOff = 0;
-  do {
-    if (parentType == ct)
-      break;
-    arrayType = parentType;
-    lastOff = off;
-    parentType = parentType->getSubType(off, &off);
-  } while(parentType != (Datatype *)0);
+  Datatype *arrayType = findCharArrayDatatype(parentType,off,lastOff);
+  parentType = arrayType->getSubType(off, &off);
+
   if (parentType != ct || arrayType == (Datatype *)0 || arrayType->getMetatype() != TYPE_ARRAY)
     return;
   startAddr = rootAddr - lastOff;
@@ -337,6 +332,60 @@ Varnode *StringSequence::constructTypedPointer(PcodeOp *insertPoint)
   return spacePtr;
 }
 
+Datatype *StringSequence::findCharArrayDatatype(Datatype *ct,int8 offset,int8 &lastOffset)
+
+{
+  if (ct->isCharPrint())
+    return (Datatype *)0;
+  type_metatype meta = ct->getMetatype();
+  if (meta == TYPE_ARRAY) {
+    int8 newoff;
+    Datatype *dt = ct->getSubType(offset,&newoff);
+    if (dt == (Datatype *)0)
+      return (Datatype *)0;
+    if (dt->isCharPrint())
+      return ct;
+    lastOffset = newoff;
+    dt = findCharArrayDatatype(dt,newoff,lastOffset);
+    return dt;
+  }
+  else if (meta == TYPE_STRUCT) {
+    int8 newoff;
+    Datatype *dt = ct->getSubType(offset,&newoff);
+    if (dt == (Datatype *)0)
+      return (Datatype *)0;
+    lastOffset = newoff;
+    return findCharArrayDatatype(dt,newoff,lastOffset);
+  }
+  else if (meta == TYPE_UNION) {
+    TypeUnion *tu = (TypeUnion *)ct;
+    int4 numFields = tu->numDepend();
+    for (int4 i=0;i<numFields;++i) {
+      Datatype *dt = tu->getField(i)->type;
+      dt = findCharArrayDatatype(dt,offset,lastOffset);
+      if (dt != (Datatype *)0) {
+	lastOffset = offset;
+	return dt;
+      }
+    }
+  }
+  else if (meta == TYPE_PARTIALSTRUCT) {
+    TypePartialStruct *tps = (TypePartialStruct *)ct;
+    Datatype *dt = tps->getParent();
+    int4 off = tps->getOffset() + offset;
+    lastOffset = off;
+    return findCharArrayDatatype(dt,off,lastOffset);
+  }
+  else if (meta == TYPE_PARTIALUNION) {
+    TypePartialUnion *tpu = (TypePartialUnion *)ct;
+    TypeUnion *tu = tpu->getParentUnion();
+    int4 off = tpu->getOffset() + offset;
+    lastOffset = off;
+    return findCharArrayDatatype(tu,off,lastOffset);
+  }
+  return (Datatype *)0;
+}
+
 /// A built-in user-op that copies string data is created.  Its first (destination) parameter is constructed
 /// as a pointer to the array holding the character data, which may be nested in other arrays or structures.
 /// The second (source) parameter is an \e internal \e string constructed from the \b byteArray.  The
@@ -459,7 +508,7 @@ bool StringSequence::transform(void)
   return true;
 }
 
-Datatype *StringSequence::findCharDatatype(Datatype *ct,int4 offset)
+Datatype *StringSequence::findCharDatatype(Datatype *ct,int8 offset)
 
 {
   if (ct->isCharPrint()) {
@@ -963,7 +1012,8 @@ int4 RuleStringCopy::applyOp(PcodeOp *op,Funcdata &data)
   if (!op->getIn(0)->isConstant()) return 0;		// Constant
   Varnode *outvn = op->getOut();
   Datatype *ct = outvn->getType();
-  if (!ct->isCharPrint()) return 0;			// Copied to a "char" data-type Varnode
+  ct = StringSequence::findCharDatatype(ct,0);	// Find char data-type to copy into
+  if (ct == (Datatype *)0) return 0;
   if (ct->isOpaqueString()) return 0;
   if (!outvn->isAddrTied()) return 0;
   SymbolEntry *entry = data.getScopeLocal()->queryContainer(outvn->getAddr(), outvn->getSize(), op->getAddr());
