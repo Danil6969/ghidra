@@ -466,14 +466,16 @@ Datatype *StringSequence::findCharDatatype(Datatype *ct,int8 offset)
   if (meta == TYPE_ARRAY) {
     int8 newoff;
     Datatype *dt = ct->getSubType(offset,&newoff);
+    if (dt == (Datatype *)0)
+      return (Datatype *)0;
     return findCharDatatype(dt,newoff);
   }
   else if (meta == TYPE_STRUCT) {
     int8 newoff;
     Datatype *dt = ct->getSubType(offset,&newoff);
-    if (dt != (Datatype *)0)
-      return findCharDatatype(dt,newoff);
-    return (Datatype *)0;
+    if (dt == (Datatype *)0)
+      return (Datatype *)0;
+    return findCharDatatype(dt,newoff);
   }
   else if (meta == TYPE_UNION) {
     TypeUnion *tu = (TypeUnion *)ct;
@@ -481,9 +483,10 @@ Datatype *StringSequence::findCharDatatype(Datatype *ct,int8 offset)
     for (int4 i=0;i<numFields;++i) {
       Datatype *dt = tu->getField(i)->type;
       dt = findCharDatatype(dt,offset);
-      if (dt != (Datatype *)0)
-	return dt;
+      if (dt == (Datatype *)0) continue;
+      return dt;
     }
+    return (Datatype *)0;
   }
   else if (meta == TYPE_PARTIALSTRUCT) {
     TypePartialStruct *tps = (TypePartialStruct *)ct;
@@ -531,11 +534,11 @@ Datatype *StringSequence::findCharArrayDatatype(Datatype *ct,int8 offset,int8 &l
     for (int4 i=0;i<numFields;++i) {
       Datatype *dt = tu->getField(i)->type;
       dt = findCharArrayDatatype(dt,offset,lastOffset);
-      if (dt != (Datatype *)0) {
-	lastOffset = offset;
-	return dt;
-      }
+      if (dt == (Datatype *)0) continue;
+      lastOffset = offset;
+      return dt;
     }
+    return (Datatype *)0;
   }
   else if (meta == TYPE_PARTIALSTRUCT) {
     TypePartialStruct *tps = (TypePartialStruct *)ct;
