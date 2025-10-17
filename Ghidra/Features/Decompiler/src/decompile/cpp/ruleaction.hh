@@ -1260,6 +1260,7 @@ public:
 };
 
 class RuleSplitCopy : public Rule {
+  static Datatype *findCharArrayContainingDatatype(Datatype *ct,int8 offset,int4 size,TypeFactory *types);
 public:
   RuleSplitCopy(const string &g) : Rule( g, 0, "splitcopy") {}		///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
