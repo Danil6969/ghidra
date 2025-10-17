@@ -199,9 +199,9 @@ StringSequence::StringSequence(Funcdata &fdata,Datatype *ct,SymbolEntry *ent,Pco
   Datatype *parentType = entry->getSymbol()->getType();
   int8 lastOff = 0;
   Datatype *arrayType = findCharArrayDatatype(parentType,off,lastOff);
-  parentType = arrayType->getSubType(off, &off);
+  Datatype *baseType = arrayType->getSubType(lastOff, &off);
 
-  if (parentType != ct || arrayType == (Datatype *)0 || arrayType->getMetatype() != TYPE_ARRAY)
+  if (baseType != ct || arrayType == (Datatype *)0 || arrayType->getMetatype() != TYPE_ARRAY)
     return;
   startAddr = rootAddr - lastOff;
   if (!collectCopyOps(arrayType->getSize()))
@@ -514,8 +514,10 @@ Datatype *StringSequence::findCharArrayDatatype(Datatype *ct,int8 offset,int8 &l
     Datatype *dt = ct->getSubType(offset,&newoff);
     if (dt == (Datatype *)0)
       return (Datatype *)0;
-    if (dt->isCharPrint())
+    if (dt->isCharPrint()) {
+      lastOffset = offset;
       return ct;
+    }
     lastOffset = newoff;
     dt = findCharArrayDatatype(dt,newoff,lastOffset);
     return dt;
@@ -533,9 +535,9 @@ Datatype *StringSequence::findCharArrayDatatype(Datatype *ct,int8 offset,int8 &l
     int4 numFields = tu->numDepend();
     for (int4 i=0;i<numFields;++i) {
       Datatype *dt = tu->getField(i)->type;
+      lastOffset = offset;
       dt = findCharArrayDatatype(dt,offset,lastOffset);
       if (dt == (Datatype *)0) continue;
-      lastOffset = offset;
       return dt;
     }
     return (Datatype *)0;
