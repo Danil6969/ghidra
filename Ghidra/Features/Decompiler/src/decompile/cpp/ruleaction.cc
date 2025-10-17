@@ -8939,6 +8939,58 @@ int4 RulePieceStructure::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+Datatype *RuleSplitCopy::findCharArrayContainingDatatype(Datatype *ct,int8 offset,int4 size,TypeFactory *types)
+
+{
+  // Should not be a char type itself but containing a char type
+  if (ct->isCharPrint())
+    return (Datatype *)0;
+  // Is there char or chars array type inside?
+  Datatype *dt = StringSequence::findCharDatatype(ct,0);
+  // Return null if there is no such on this path
+  if (dt == (Datatype *)0) return (Datatype *)0;
+  type_metatype meta = ct->getMetatype();
+  if (meta == TYPE_ARRAY) {
+    int8 newoff;
+    Datatype *dt = ct->getSubType(offset,&newoff);
+    if (dt->isCharPrint())
+      return ct;
+    return findCharArrayContainingDatatype(dt,newoff,size,types);
+  }
+  else if (meta == TYPE_STRUCT) {
+    int8 newoff;
+    Datatype *dt = ct->getSubType(offset,&newoff);
+    if (dt != (Datatype *)0)
+      return findCharArrayContainingDatatype(dt,newoff,size,types);
+    return (Datatype *)0;
+  }
+  else
+  if (meta == TYPE_UNION) {
+    TypeUnion *tu = (TypeUnion *)ct;
+    int4 numFields = tu->numDepend();
+    for (int4 i=0;i<numFields;++i) {
+      dt = tu->getField(i)->type;
+      dt = findCharArrayContainingDatatype(dt,offset,size,types);
+      if (dt != (Datatype *)0)
+	return dt;
+    }
+  }
+  else if (meta == TYPE_PARTIALSTRUCT) {
+    TypePartialStruct *tps = (TypePartialStruct *)ct;
+    Datatype *ts = tps->getParent();
+    int4 off = tps->getOffset() + offset;
+    return findCharArrayContainingDatatype(ts,off,size,types);
+  }
+  else if (meta == TYPE_PARTIALUNION) {
+    TypePartialUnion *tpu = (TypePartialUnion *)ct;
+    TypeUnion *tu = tpu->getParentUnion();
+    int4 off = tpu->getOffset() + offset;
+    return findCharArrayContainingDatatype(tu,off,size,types);
+  }
+  int8 lastoff;
+  return StringSequence::findCharArrayDatatype(ct,0,lastoff);
+}
+
 /// \class RuleSplitCopy
 /// \brief Split COPY ops based on TypePartialStruct
 ///
@@ -8953,16 +9005,17 @@ void RuleSplitCopy::getOpList(vector<uint4> &oplist) const
 int4 RuleSplitCopy::applyOp(PcodeOp *op,Funcdata &data)
 
 {
+  TypeFactory *typegrp = data.getArch()->types;
   Varnode *invn = op->getIn(0);
-  Datatype *inType = invn->getTypeReadFacing(op);
-  Datatype *outType = op->getOut()->getTypeDefFacing();
-  Datatype *ct = op->getOut()->getType();
+  Varnode *outvn = op->getOut();
+  Datatype *ct = outvn->getType();
+  Datatype *outType = (Datatype *)0;
   if (invn->isConstant()) {
-    int8 lastOffset;
-    Datatype *dt = StringSequence::findCharArrayDatatype(ct,0,lastOffset);
-    if (dt != (Datatype *)0)
-      outType = dt;
+    outType = findCharArrayContainingDatatype(ct,0,outvn->getSize(),typegrp);
   }
+  if (outType == (Datatype *)0)
+    outType = outvn->getTypeDefFacing();
+  Datatype *inType = invn->getTypeReadFacing(op);
   type_metatype metain = inType->getMetatype();
   type_metatype metaout = outType->getMetatype();
   if (metain != TYPE_PARTIALSTRUCT && metaout != TYPE_PARTIALSTRUCT &&
