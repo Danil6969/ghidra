@@ -8942,38 +8942,44 @@ int4 RulePieceStructure::applyOp(PcodeOp *op,Funcdata &data)
 Datatype *RuleSplitCopy::findCharArrayContainingDatatype(Datatype *ct,int8 offset,int4 size,TypeFactory *types)
 
 {
-  // Should not be a char type itself but containing a char type
-  if (ct->isCharPrint())
-    return (Datatype *)0;
-  // Is there char or chars array type inside?
-  Datatype *dt = StringSequence::findCharDatatype(ct,0);
-  // Return null if there is no such on this path
-  if (dt == (Datatype *)0) return (Datatype *)0;
+  if (ct->isCharPrint()) {
+    if (offset != 0)
+      return (Datatype *)0;
+    if (size <= ct->getSize())
+      return (Datatype *)0;
+    return ct;
+  }
   type_metatype meta = ct->getMetatype();
   if (meta == TYPE_ARRAY) {
     int8 newoff;
-    Datatype *dt = ct->getSubType(offset,&newoff);
-    if (dt->isCharPrint())
-      return ct;
-    return findCharArrayContainingDatatype(dt,newoff,size,types);
+    Datatype *dt1 = ct->getSubType(offset,&newoff);
+    if (dt1 == (Datatype *)0)
+      return (Datatype *)0;
+    Datatype *dt2 = findCharArrayContainingDatatype(dt1,newoff,size,types);
+    if (dt2 == (Datatype *)0)
+      return (Datatype *)0;
+    if (dt2->isCharPrint())
+      return types->getExactPiece(ct,offset,size);
+    return dt2;
   }
   else if (meta == TYPE_STRUCT) {
     int8 newoff;
     Datatype *dt = ct->getSubType(offset,&newoff);
-    if (dt != (Datatype *)0)
-      return findCharArrayContainingDatatype(dt,newoff,size,types);
-    return (Datatype *)0;
+    if (dt == (Datatype *)0)
+      return (Datatype *)0;
+    return findCharArrayContainingDatatype(dt,newoff,size,types);
   }
   else
   if (meta == TYPE_UNION) {
     TypeUnion *tu = (TypeUnion *)ct;
     int4 numFields = tu->numDepend();
     for (int4 i=0;i<numFields;++i) {
-      dt = tu->getField(i)->type;
-      dt = findCharArrayContainingDatatype(dt,offset,size,types);
-      if (dt != (Datatype *)0)
-	return dt;
+      Datatype *dt1 = tu->getField(i)->type;
+      Datatype *dt2 = findCharArrayContainingDatatype(dt1,offset,size,types);
+      if (dt2 == (Datatype *)0) continue;
+      return dt2;
     }
+    return (Datatype *)0;
   }
   else if (meta == TYPE_PARTIALSTRUCT) {
     TypePartialStruct *tps = (TypePartialStruct *)ct;
@@ -8987,8 +8993,7 @@ Datatype *RuleSplitCopy::findCharArrayContainingDatatype(Datatype *ct,int8 offse
     int4 off = tpu->getOffset() + offset;
     return findCharArrayContainingDatatype(tu,off,size,types);
   }
-  int8 lastoff;
-  return StringSequence::findCharArrayDatatype(ct,0,lastoff);
+  return (Datatype *)0;
 }
 
 /// \class RuleSplitCopy
