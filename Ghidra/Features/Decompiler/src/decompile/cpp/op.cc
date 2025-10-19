@@ -556,6 +556,19 @@ bool PcodeOp::isVarargPtrsub(bool firstOnly) const
   return true;
 }
 
+bool PcodeOp::isIndirectSelfCopy(void) const
+
+{
+  if (code() != CPUI_COPY) return false;
+  PcodeOp *op1 = getOut()->loneDescend();
+  if (op1 == (PcodeOp *)0) return false;
+  if (op1->code() != CPUI_INDIRECT) return false;
+  const PcodeOp *op2 = getIn(0)->getDef();
+  if (op2 != (PcodeOp *)0 && op2->code() == CPUI_CAST)
+    op2 = op2->getIn(0)->getDef();
+  return true;
+}
+
 Datatype *PcodeOp::recoverVftableDatatype(TypeFactory *types,bool allowNonzero) const
 
 {
