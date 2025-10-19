@@ -330,6 +330,8 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
   if (opc == CPUI_FLOAT_FLOOR) return false;
   if (opc == CPUI_FLOAT_ROUND) return false;
 
+  if (opc == CPUI_PIECE) return false;
+
   return getOut()->isStaticCastOutput(data);
 }
 
