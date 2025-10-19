@@ -199,6 +199,8 @@ StringSequence::StringSequence(Funcdata &fdata,Datatype *ct,SymbolEntry *ent,Pco
   Datatype *parentType = entry->getSymbol()->getType();
   int8 lastOff = 0;
   Datatype *arrayType = findCharArrayDatatype(parentType,off,lastOff);
+  if (arrayType == (Datatype *)0)
+    return;
   Datatype *baseType = arrayType->getSubType(lastOff, &off);
 
   if (baseType != ct || arrayType == (Datatype *)0 || arrayType->getMetatype() != TYPE_ARRAY)
