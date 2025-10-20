@@ -4264,8 +4264,8 @@ bool ActionMarkImplied::isConstantMember(PcodeOp *op)
   if (fld == (const TypeField*)0) return false;
   if (newoff != 0) return false;
   string fieldname = fld->name;
-  if (fieldname == "_vfptr") return true;
-  if (fieldname == "_vbptr") return true;
+  if (fieldname == Funcdata::FIELD_VFPTR) return true;
+  if (fieldname == Funcdata::FIELD_VBPTR) return true;
   return false;
 }
 
