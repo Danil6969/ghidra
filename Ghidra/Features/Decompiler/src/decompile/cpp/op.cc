@@ -556,16 +556,24 @@ bool PcodeOp::isVarargPtrsub(bool firstOnly) const
   return true;
 }
 
-bool PcodeOp::isIndirectSelfCopy(void) const
+bool PcodeOp::isIndirectSelfCopy(const Funcdata &data) const
 
 {
   if (code() != CPUI_COPY) return false;
   PcodeOp *op1 = getOut()->loneDescend();
   if (op1 == (PcodeOp *)0) return false;
   if (op1->code() != CPUI_INDIRECT) return false;
-  const PcodeOp *op2 = getIn(0)->getDef();
-  if (op2 != (PcodeOp *)0 && op2->code() == CPUI_CAST)
-    op2 = op2->getIn(0)->getDef();
+  Varnode *vn1 = op1->getOut();
+  const Varnode *vn2 = getIn(0);
+  const PcodeOp *op2 = vn2->getDef();
+  if (op2 != (PcodeOp *)0) {
+    if (op2->code() == CPUI_CAST) {
+      vn2 = op2->getIn(0);
+    }
+  }
+  AddrSpace *spc = data.getScopeLocal()->getSpaceId();
+  if (vn1->getSpace() != spc) return false;
+  if (vn2->getSpace() != spc) return false;
   return true;
 }
 
