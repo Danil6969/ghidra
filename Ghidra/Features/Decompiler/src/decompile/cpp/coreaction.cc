@@ -4800,7 +4800,6 @@ void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata 
     PcodeOp *op = vn->getDef();
     if (!testSpacebase(op)) continue;
     pushConsumed(~((uintb)0),vn,worklist);
-    //vn->setAutoLiveHold();
   }
 }
 
@@ -4830,6 +4829,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
   TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
   if (sb->getMetatype() != TYPE_SPACEBASE) return;
   AddrSpace *space = sb->getSpace();
+  if (space != data.getScopeLocal()->getSpaceId()) return;
   Scope *scope = sb->getMap();
 
   Varnode *cvn = addop->getIn(1);
