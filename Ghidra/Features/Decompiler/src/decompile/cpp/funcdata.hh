@@ -142,10 +142,10 @@ public:
   static const string addrof;
   static const string extractind;
   static const string insertind;
-  static const string vfptr;
-  static const string vbptr;
-  static const string vftable;
-  static const string vtable;
+  static const string FIELD_VFPTR;
+  static const string FIELD_VBPTR;
+  static const string LABEL_VFTABLE;
+  static const string DATATYPE_VTABLE;
   Funcdata(const string &nm,const string &disp,Scope *conf,const Address &addr,FunctionSymbol *sym,int4 sz=0);	///< Constructor
   ~Funcdata(void);							///< Destructor
   const string &getName(void) const { return name; }			///< Get the function's local symbol name
