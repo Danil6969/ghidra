@@ -607,7 +607,7 @@ Datatype *PcodeOp::recoverVftableDatatype(TypeFactory *types,bool allowNonzero) 
   Symbol *symbol = entry->getSymbol();
   if (symbol == (Symbol *)0) return (Datatype *)0;
   string symbolName = symbol->getName();
-  if (symbolName != "vftable") return (Datatype *)0;
+  if (symbolName != Funcdata::LABEL_VFTABLE) return (Datatype *)0;
   Scope *scope = symbol->getScope();
   string scopeName = scope->getName();
   if (scopeName == "") return (Datatype *)0;
