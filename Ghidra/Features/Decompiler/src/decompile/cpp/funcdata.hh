@@ -142,6 +142,10 @@ public:
   static const string addrof;
   static const string extractind;
   static const string insertind;
+  static const string vfptr;
+  static const string vbptr;
+  static const string vftable;
+  static const string vtable;
   Funcdata(const string &nm,const string &disp,Scope *conf,const Address &addr,FunctionSymbol *sym,int4 sz=0);	///< Constructor
   ~Funcdata(void);							///< Destructor
   const string &getName(void) const { return name; }			///< Get the function's local symbol name
