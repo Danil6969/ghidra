@@ -29,6 +29,10 @@ const string Funcdata::vastart = "va_start";
 const string Funcdata::addrof = "addrof";
 const string Funcdata::extractind = "extractind";
 const string Funcdata::insertind = "insertind";
+const string Funcdata::FIELD_VFPTR = "_vfptr";
+const string Funcdata::FIELD_VBPTR = "_vbptr";
+const string Funcdata::LABEL_VFTABLE = "vftable";
+const string Funcdata::DATATYPE_VTABLE = "vtable";
 
 /// \param nm is the (base) name of the function, as a formal symbol
 /// \param disp is the name used when displaying the function name in output
