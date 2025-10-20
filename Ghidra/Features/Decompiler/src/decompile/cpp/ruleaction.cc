@@ -13704,7 +13704,7 @@ int4 RuleInferVbptr::applyOp(PcodeOp *op,Funcdata &data)
     if (vbptrfield == (TypeField *)0) return 0;
   }
   if (newoffset != 0) return 0;
-  if (vbptrfield->name != "_vbptr") return 0;
+  if (vbptrfield->name != Funcdata::FIELD_VBPTR) return 0;
 
   // Fill "super::..." fields
   vector<const TypeField *> superFields;
