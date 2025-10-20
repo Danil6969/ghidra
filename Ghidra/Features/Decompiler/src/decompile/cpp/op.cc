@@ -574,6 +574,7 @@ bool PcodeOp::isIndirectSelfCopy(const Funcdata &data) const
   AddrSpace *spc = data.getScopeLocal()->getSpaceId();
   if (vn1->getSpace() != spc) return false;
   if (vn2->getSpace() != spc) return false;
+  if (vn1->getOffset() != vn2->getOffset()) return false;
   return true;
 }
 
