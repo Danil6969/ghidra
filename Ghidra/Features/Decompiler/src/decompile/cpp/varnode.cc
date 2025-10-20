@@ -1233,33 +1233,55 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
 
   list<PcodeOp *>::const_iterator iter;
   for (iter=beginDescend();iter!=endDescend();++iter) {
-    PcodeOp *op = *iter;
-    OpCode opc = op->code();
+    PcodeOp *op1 = *iter;
+    OpCode opc = op1->code();
 
     if (opc == CPUI_COPY) {
-      if (op->getOut()->isStaticCastOutputRecurse(visitedVarnodes,data))
+      if (op1->getOut()->isStaticCastOutputRecurse(visitedVarnodes,data))
 	return true;
       continue;
     }
     if (opc == CPUI_INT_ADD) {
-      Varnode *out = op->getOut();
-      int4 slot = op->getSlot(this);
-      PcodeOp *otherop = op->getIn(1-slot)->getDef();
-      if (otherop != (PcodeOp *)0) {
-	if (otherop->code() == CPUI_INT_MULT) {
+      Varnode *out = op1->getOut();
+      int4 slot = op1->getSlot(this);
+      PcodeOp *op2 = op1->getIn(1-slot)->getDef();
+      if (op2 != (PcodeOp *)0) {
+	if (op2->code() == CPUI_INT_MULT) {
 	  return false;
 	}
       }
       if (out->hasPointerUsages()) return true;
       if (!data.hasTypeRecoveryStarted()) return true;
       if (out->getTypeDefFacing()->getMetatype() == TYPE_PTR) return true;
-      if (getTypeReadFacing(op)->getMetatype() == TYPE_PTR) return true;
+      if (getTypeReadFacing(op1)->getMetatype() == TYPE_PTR) return true;
       return false;
     }
     if (opc == CPUI_MULTIEQUAL) {
-      if (op->getOut()->isStaticCastOutputRecurse(visitedVarnodes,data))
+      if (op1->getOut()->isStaticCastOutputRecurse(visitedVarnodes,data))
 	return true;
       continue;
+    }
+    if (opc == CPUI_PTRSUB) {
+      Datatype *ct = getTypeReadFacing(op1);
+      if (ct->getMetatype() != TYPE_PTR) return true;
+      TypePointer *pt = (TypePointer *)ct;
+      Datatype *ptrto = pt->getPtrTo();
+      PcodeOp *op2 = op1->getOut()->loneDescend();
+      if (op2 != (PcodeOp *)0 && op2->code() == CPUI_LOAD) {
+	PcodeOp *op3 = op2->getOut()->loneDescend();
+	if (op3 != (PcodeOp *)0 && op3->code() == CPUI_CALLIND) {
+	  if (ptrto->getMetatype() == TYPE_STRUCT) {
+	    string nm = ptrto->getName();
+	    uint8 found = nm.find(Funcdata::DATATYPE_VTABLE);
+	    if (found != string::npos) {
+	      uint8 diff = nm.length() - found - Funcdata::DATATYPE_VTABLE.length();
+	      if (diff == 0)
+		return false;
+	    }
+	  }
+	}
+      }
+      return true;
     }
 
     if (opc == CPUI_LOAD) continue;
@@ -1283,7 +1305,6 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
     if (opc == CPUI_SUBPIECE) return false;
 
     if (opc == CPUI_PTRADD) return true;
-    if (opc == CPUI_PTRSUB) return true;
     return true;
   }
   return false;
