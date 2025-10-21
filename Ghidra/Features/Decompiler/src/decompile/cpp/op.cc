@@ -127,9 +127,8 @@ bool PcodeOp::isPureCall(void) const
 
 {
   string nm = getOpcode()->getOperatorName(this);
-  if (nm == Funcdata::addrof) return true;
-  if (nm == Funcdata::extractind) return true;
-  if (nm == Funcdata::insertind) return true;
+  if (nm == Funcdata::FUNCTION_EXTRACTIND) return true;
+  if (nm == Funcdata::FUNCTION_INSERTIND) return true;
   Architecture *glb = getFuncdata()->getArch();
   int4 index = getIn(0)->getOffset();
   PureOp *userop = dynamic_cast<PureOp *>(glb->userops.getOp(index));
