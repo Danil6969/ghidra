@@ -13878,11 +13878,11 @@ bool RuleByteLoop::initExtractInsertListsMultiplier(LoopData &loopData)
     }
     if (curop->code() == CPUI_CALLOTHER) {
       string nm = curop->getOpcode()->getOperatorName(curop);
-      if (nm == Funcdata::extractind && curop->getOut() != (Varnode *)0) {
+      if (nm == Funcdata::FUNCTION_EXTRACTIND && curop->getOut() != (Varnode *)0) {
 	if (curop->numInput() != 3) return false;
 	loopData.extractlist.push_back(curop);
       }
-      else if (nm == Funcdata::insertind && loopData.insertlist.empty()) // Don't add another insertind to the list if already have one, take another rule pass instead
+      else if (nm == Funcdata::FUNCTION_INSERTIND && loopData.insertlist.empty()) // Don't add another insertind to the list if already have one, take another rule pass instead
 	loopData.insertlist.push_back(curop);
     }
   }
@@ -14030,7 +14030,7 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,LoopData &loopData,Funcda
     PcodeOp *op = *iter;
     OpCode opc = op->code();
     Varnode *out = op->getOut();
-    if (opc == CPUI_CALLOTHER && op->getOpcode()->getOperatorName(op) == Funcdata::insertind) {
+    if (opc == CPUI_CALLOTHER && op->getOpcode()->getOperatorName(op) == Funcdata::FUNCTION_INSERTIND) {
       if (!loopData.result.empty()) {
 	uintb in3 = loopData.values.getValue(op->getIn(3),false);
 	if (loopData.values.dynamicInsert != (PcodeOp *)0) {
@@ -14076,7 +14076,7 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,LoopData &loopData,Funcda
       case CPUI_CALLOTHER:
       {
 	nm = op->getOpcode()->getOperatorName(op);
-	if (nm == Funcdata::extractind) {
+	if (nm == Funcdata::FUNCTION_EXTRACTIND) {
 	  if (!loopData.values.contains(op->getIn(2))) return (BlockBasic *)0;
 	  if (out == (Varnode *)0) continue;
 	  uintb in2 = loopData.values.getValue(op->getIn(2),false);
