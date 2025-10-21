@@ -3833,9 +3833,8 @@ bool ActionMarkExplicit::isArrFunc(PcodeOp *op)
   if (opc == CPUI_SUBPIECE) return true;
   if (opc == CPUI_CALLOTHER) {
     string nm = op->getOpcode()->getOperatorName(op);
-    if (nm == Funcdata::extractind) return true;
-    if (nm == Funcdata::insertind) return true;
-    if (nm == Funcdata::addrof) return true;
+    if (nm == Funcdata::FUNCTION_EXTRACTIND) return true;
+    if (nm == Funcdata::FUNCTION_INSERTIND) return true;
   }
   return false;
 }
@@ -3931,9 +3930,9 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
     string nm = "";
     if (opc == CPUI_CALLOTHER) {
       nm = useOp->getOpcode()->getOperatorName(useOp);
-      if (nm == Funcdata::extractind)
+      if (nm == Funcdata::FUNCTION_EXTRACTIND)
 	isIndexVn = (vn == useOp->getIn(2));
-      else if (nm == Funcdata::insertind)
+      else if (nm == Funcdata::FUNCTION_INSERTIND)
 	isIndexVn = (vn == useOp->getIn(3));
     }
     if (isArrFunc(useOp) && !isIndexVn) return -1;
