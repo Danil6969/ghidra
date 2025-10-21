@@ -419,20 +419,16 @@ void UserOpManage::initialize(Architecture *g)
     UserPcodeOp *userop = new UnspecializedPcodeOp(basicops[i],glb,i);
     registerOp(userop);
   }
-  if (getOp(Funcdata::vastart) == (UserPcodeOp *)0) {
-    UserPcodeOp *vastartOp = new UnspecializedPcodeOp(Funcdata::vastart,glb,useroplist.size());
+  if (getOp(Funcdata::FUNCTION_VASTART) == (UserPcodeOp *)0) {
+    UserPcodeOp *vastartOp = new UnspecializedPcodeOp(Funcdata::FUNCTION_VASTART,glb,useroplist.size());
     registerOp(vastartOp);
   }
-  if (getOp(Funcdata::addrof) == (UserPcodeOp *)0) {
-    UserPcodeOp *addrOp = new UnspecializedPcodeOp(Funcdata::addrof,glb,useroplist.size());
-    registerOp(addrOp);
-  }
-  if (getOp(Funcdata::extractind) == (UserPcodeOp *)0) {
-    UserPcodeOp *extractindOp = new UnspecializedPcodeOp(Funcdata::extractind,glb,useroplist.size());
+  if (getOp(Funcdata::FUNCTION_EXTRACTIND) == (UserPcodeOp *)0) {
+    UserPcodeOp *extractindOp = new UnspecializedPcodeOp(Funcdata::FUNCTION_EXTRACTIND,glb,useroplist.size());
     registerOp(extractindOp);
   }
-  if (getOp(Funcdata::insertind) == (UserPcodeOp *)0) {
-    UserPcodeOp *insertindOp = new UnspecializedPcodeOp(Funcdata::insertind,glb,useroplist.size());
+  if (getOp(Funcdata::FUNCTION_INSERTIND) == (UserPcodeOp *)0) {
+    UserPcodeOp *insertindOp = new UnspecializedPcodeOp(Funcdata::FUNCTION_INSERTIND,glb,useroplist.size());
     registerOp(insertindOp);
   }
 }
