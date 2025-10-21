@@ -1037,12 +1037,6 @@ Datatype *TypeOpCallother::getOutputLocal(const PcodeOp *op) const
       return res;
   }
 
-  if (TypeOpCallother::getOperatorName(op) == Funcdata::addrof) {
-    Datatype *ct = tlst->getBase(1,TYPE_UNKNOWN);
-    AddrSpace *spc = tlst->getArch()->getDefaultDataSpace();
-    return tlst->getTypePointer(op->getOut()->getSize(),ct,spc->getWordSize());
-  }
-
   UserPcodeOp *userOp = tlst->getArch()->userops.getOp(op->getIn(0)->getOffset());
   Datatype *res = userOp->getOutputLocal(op);
   if (res != (Datatype *)0)
