@@ -1088,11 +1088,11 @@ void PrintC::opCallother(const PcodeOp *op)
 
 {
   string nm = op->getOpcode()->getOperatorName(op);
-  if (nm == Funcdata::extractind) {
+  if (nm == Funcdata::FUNCTION_EXTRACTIND) {
     opExtractInd(op);
     return;
   }
-  if (nm == Funcdata::insertind) {
+  if (nm == Funcdata::FUNCTION_INSERTIND) {
     opInsertInd(op);
     return;
   }
