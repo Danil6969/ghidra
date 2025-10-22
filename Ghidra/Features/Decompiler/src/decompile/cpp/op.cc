@@ -305,6 +305,7 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
   if (opc == CPUI_INT_SLESSEQUAL) return false;
   if (opc == CPUI_INT_LESS) return false;
   if (opc == CPUI_INT_LESSEQUAL) return false;
+  if (opc == CPUI_INT_LEFT) return false;
 
   if (opc == CPUI_BOOL_NEGATE) return false;
   if (opc == CPUI_BOOL_XOR) return false;
