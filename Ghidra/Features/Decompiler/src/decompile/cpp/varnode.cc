@@ -1284,6 +1284,8 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
       return true;
     }
 
+    if (opc == CPUI_PTRADD) return true;
+
     if (opc == CPUI_LOAD) continue;
     if (opc == CPUI_STORE) continue;
     if (opc == CPUI_CALL) continue;
@@ -1298,13 +1300,13 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
 
     if (opc == CPUI_CBRANCH) return false;
     if (opc == CPUI_CALLIND) return false;
+    if (opc == CPUI_INT_ZEXT) return false;
+    if (opc == CPUI_INT_SEXT) return false;
     if (opc == CPUI_BOOL_NEGATE) return false;
     if (opc == CPUI_BOOL_XOR) return false;
     if (opc == CPUI_BOOL_AND) return false;
     if (opc == CPUI_BOOL_OR) return false;
     if (opc == CPUI_SUBPIECE) return false;
-
-    if (opc == CPUI_PTRADD) return true;
     return true;
   }
   return false;
