@@ -1283,7 +1283,6 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
       }
       return true;
     }
-
     if (opc == CPUI_PTRADD) return true;
 
     if (opc == CPUI_LOAD) continue;
