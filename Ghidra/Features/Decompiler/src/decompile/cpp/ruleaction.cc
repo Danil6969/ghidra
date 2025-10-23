@@ -8130,7 +8130,7 @@ bool RulePtraddUndo::canProcessOp(PcodeOp *op,int4 size,int4 slot,Funcdata &data
     // Must use parent datatype
     pt = ((TypePointerRel *)tp)->getParent();
   }
-  // of the correct size
+  // A pointer is of the correct size
   if (pt->getAlignSize()!=AddrSpace::addressToByteInt(size,tp->getWordSize())) return true;
   Varnode *indVn = op->getIn(1-slot);
   // and that index isn't zero
