@@ -1241,6 +1241,13 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
 	return true;
       continue;
     }
+
+    if (opc == CPUI_MULTIEQUAL) {
+      if (op1->getOut()->isStaticCastOutputRecurse(visitedVarnodes,data))
+	return true;
+      continue;
+    }
+
     if (opc == CPUI_INT_ADD) {
       Varnode *out = op1->getOut();
       int4 slot = op1->getSlot(this);
@@ -1256,11 +1263,7 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
       if (getTypeReadFacing(op1)->getMetatype() == TYPE_PTR) return true;
       return false;
     }
-    if (opc == CPUI_MULTIEQUAL) {
-      if (op1->getOut()->isStaticCastOutputRecurse(visitedVarnodes,data))
-	return true;
-      continue;
-    }
+
     if (opc == CPUI_PTRSUB) {
       Datatype *ct = getTypeReadFacing(op1);
       if (ct->getMetatype() != TYPE_PTR) return true;
@@ -1283,7 +1286,12 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
       }
       return true;
     }
-    if (opc == CPUI_PTRADD) return true;
+
+    if (opc == CPUI_PTRADD) {
+      int4 slot = op1->getSlot(this);
+      if (slot == 1) return false;
+      return true;
+    }
 
     if (opc == CPUI_LOAD) continue;
     if (opc == CPUI_STORE) continue;
@@ -1294,13 +1302,15 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
     if (opc == CPUI_INT_LESSEQUAL) continue;
     if (opc == CPUI_INT_AND) continue;
     if (opc == CPUI_INT_OR) continue;
-    if (opc == CPUI_INT_RIGHT) continue;
     if (opc == CPUI_INT_MULT) continue;
 
     if (opc == CPUI_CBRANCH) return false;
     if (opc == CPUI_CALLIND) return false;
     if (opc == CPUI_INT_ZEXT) return false;
     if (opc == CPUI_INT_SEXT) return false;
+    if (opc == CPUI_INT_LEFT) return false;
+    if (opc == CPUI_INT_RIGHT) return false;
+    if (opc == CPUI_INT_SRIGHT) return false;
     if (opc == CPUI_BOOL_NEGATE) return false;
     if (opc == CPUI_BOOL_XOR) return false;
     if (opc == CPUI_BOOL_AND) return false;
