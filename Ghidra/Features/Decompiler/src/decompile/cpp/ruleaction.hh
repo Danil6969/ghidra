@@ -1079,7 +1079,8 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RuleAllocaPushParams : public Rule {
-  static PcodeOp *getCorrespondingLoadOp(PcodeOp *storeop);
+  static bool extractVarnodesFromAddOp(PcodeOp *addop,Varnode *&basevn,Varnode *&offvn,Varnode *&sizeVn);
+  static PcodeOp *getCorrespondingLoadOp(PcodeOp *storeop,bool isStackNegative);
 public:
   RuleAllocaPushParams(const string &g) : Rule(g, 0 , "allocapushparams") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
