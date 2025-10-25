@@ -4934,6 +4934,7 @@ void ActionDeadCode::markConsumedParameters(FuncCallSpecs *fc,Funcdata &data,vec
     if (bytesConsumed != 0)
       consumeVal &= calc_mask(bytesConsumed);
     pushConsumed(consumeVal,vn,worklist);
+    markConsumedAddOp(callOp,i,data,worklist);
   }
 }
 
