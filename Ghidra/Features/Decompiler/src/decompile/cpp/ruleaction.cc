@@ -6633,6 +6633,9 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
       case CPUI_INT_MULT:
       case CPUI_INDIRECT:
 	continue;
+      case CPUI_CALL:
+      case CPUI_CALLIND:
+	break;
       default:
 	break;
     }
@@ -6669,6 +6672,14 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
   if (loadop == (PcodeOp *)0) return 0;
   Varnode *loadout = loadop->getOut();
   if (loadout->hasNoDescend()) return 0;
+  list<PcodeOp *>::const_iterator iter = loadout->beginDescend();
+  PcodeOp *callop = *iter;
+  if (callop->code() != CPUI_CALL && callop->code() != CPUI_CALLIND) return 0;
+  iter++;
+  while (iter != loadout->endDescend()) {
+    if (*iter != callop) return 0; //Make sure we are reusing for the same call op
+    iter++;
+  }
 
   Varnode *valvn = op->getIn(2);
   Varnode *ptrvn = op->getIn(1);
@@ -6697,15 +6708,6 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
   }
   else {
     if (!ptrop->isAllocaShift(data)) return 0;
-  }
-
-  list<PcodeOp *>::const_iterator iter = loadout->beginDescend();
-  PcodeOp *callop = *iter;
-  if (callop->code() != CPUI_CALL && callop->code() != CPUI_CALLIND) return 0;
-  iter++;
-  while (iter != loadout->endDescend()) {
-    if (*iter != callop) return 0; //Make sure we are reusing for the same call op
-    iter++;
   }
 
   // Simplify load
