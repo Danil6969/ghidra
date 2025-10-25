@@ -6586,12 +6586,13 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
   BlockBasic *curblock = storeop->getParent();
   list<PcodeOp *>::iterator begiter = curblock->beginOp();
   list<PcodeOp *>::iterator enditer = curblock->endOp();
-  // Shift right to given store op
+  // Jump right to the given store op
   for(;;) {
     if (begiter == enditer) return (PcodeOp *)0;
     if (storeop == *begiter) break;
     begiter++;
   }
+
   list<PcodeOp *>::iterator iter = begiter;
   for(;;) {
     iter++;
@@ -6615,20 +6616,6 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
 	return op;
       }
       case CPUI_STORE:
-      {
-	if (op->getIn(0)->getOffset() != storeop->getIn(0)->getOffset()) continue;
-	PcodeOp *addop = op->getIn(1)->getDef();
-	if (addop == (PcodeOp *)0) continue;
-	if (addop->code() != CPUI_INT_ADD) continue;
-
-	Varnode *addBaseVn,*addOffVn,*addSizeVn;
-	if (!extractVarnodesFromAddOp(addop,addBaseVn,addOffVn,addSizeVn)) continue;
-	if (addSizeVn != sizeVn) continue;
-	if (addBaseVn != baseVn) continue;
-	if (!addOffVn->isConstant()) continue;
-	if (addOffVn->getOffset() != offVn->getOffset()) continue;
-	break;
-      }
       case CPUI_INT_ADD:
       case CPUI_INT_MULT:
       case CPUI_INDIRECT:
@@ -6641,6 +6628,63 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
     }
   }
   return (PcodeOp *)0;
+}
+
+void RuleAllocaPushParams::gatherSimilarStoreOps(PcodeOp *storeop,vector<PcodeOp *> &ops)
+
+{
+  ops.clear();
+  PcodeOp *ptrop = storeop->getIn(1)->getDef();
+  if (ptrop == (PcodeOp *)0) return;
+  if (ptrop->code() != CPUI_INT_ADD) return;
+  Varnode *baseVn,*offVn,*sizeVn;
+  if (!extractVarnodesFromAddOp(ptrop,baseVn,offVn,sizeVn)) return;
+
+  BlockBasic *curblock = storeop->getParent();
+  list<PcodeOp *>::iterator begiter = curblock->beginOp();
+  list<PcodeOp *>::iterator enditer = curblock->endOp();
+  // Jump right to the given store op
+  for(;;) {
+    if (begiter == enditer) return;
+    if (storeop == *begiter) break;
+    begiter++;
+  }
+  ops.push_back(storeop);
+
+  list<PcodeOp *>::iterator iter = begiter;
+  for(;;) {
+    iter++;
+    if (iter == enditer) break;
+    PcodeOp *op = *iter;
+    OpCode opc = op->code();
+    switch (opc) {
+      case CPUI_STORE:
+      {
+	if (op->getIn(0)->getOffset() != storeop->getIn(0)->getOffset()) continue;
+	PcodeOp *addop = op->getIn(1)->getDef();
+	if (addop == (PcodeOp *)0) continue;
+	if (addop->code() != CPUI_INT_ADD) continue;
+
+	Varnode *addBaseVn,*addOffVn,*addSizeVn;
+	if (!extractVarnodesFromAddOp(addop,addBaseVn,addOffVn,addSizeVn)) continue;
+	if (addSizeVn != sizeVn) continue;
+	if (addBaseVn != baseVn) continue;
+	if (!addOffVn->isConstant()) continue;
+	if (addOffVn->getOffset() != offVn->getOffset()) continue;
+	ops.push_back(op);
+      }
+      case CPUI_LOAD:
+      case CPUI_INT_ADD:
+      case CPUI_INT_MULT:
+      case CPUI_INDIRECT:
+	continue;
+      case CPUI_CALL:
+      case CPUI_CALLIND:
+	break;
+      default:
+	break;
+    }
+  }
 }
 
 void RuleAllocaPushParams::getOpList(vector<uint4> &oplist) const
@@ -6677,11 +6721,17 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
   if (callop->code() != CPUI_CALL && callop->code() != CPUI_CALLIND) return 0;
   iter++;
   while (iter != loadout->endDescend()) {
-    if (*iter != callop) return 0; //Make sure we are reusing for the same call op
+    if (*iter != callop) return 0; // Make sure we are reusing for the same call op
     iter++;
   }
 
-  Varnode *valvn = op->getIn(2);
+  vector<PcodeOp *> stores;
+  gatherSimilarStoreOps(op,stores);
+  if (stores.empty()) return 0;
+
+  vector<PcodeOp *>::iterator last = stores.end();
+  last--;
+  Varnode *valvn = (*last)->getIn(2);
   Varnode *ptrvn = op->getIn(1);
   if (!ptrvn->isStackPointerLocated(data)) return 0;
   PcodeOp *ptrop = ptrvn->getDef();
@@ -6712,22 +6762,26 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
 
   int4 loadsz = loadop->getOut()->getSize();
   int4 valsz = valvn->getSize();
-  // Simplify load
+  // Simplify load and get rid of stack stores
   if (loadsz == valsz) {
-    data.opRemoveInput(loadop, 1);
-    data.opSetOpcode(loadop, CPUI_COPY);
-    data.opSetInput(loadop, valvn, 0);
-    // Now get rid of stack store
-    data.opDestroy(op);
+    data.opRemoveInput(loadop,1);
+    data.opSetOpcode(loadop,CPUI_COPY);
+    data.opSetInput(loadop,valvn,0);
+    vector<PcodeOp *>::iterator iter;
+    for (iter=stores.begin();iter!=stores.end();++iter) {
+      data.opDestroy(*iter);
+    }
     return 1;
   }
   if (loadsz < valsz) {
     Varnode *cvn = data.newConstant(4,0);
-    data.opSetOpcode(loadop, CPUI_SUBPIECE);
-    data.opSetInput(loadop, valvn, 0);
-    data.opSetInput(loadop, cvn, 1);
-    // Now get rid of stack store
-    data.opDestroy(op);
+    data.opSetOpcode(loadop,CPUI_SUBPIECE);
+    data.opSetInput(loadop,valvn,0);
+    data.opSetInput(loadop,cvn,1);
+    vector<PcodeOp *>::iterator iter;
+    for (iter=stores.begin();iter!=stores.end();++iter) {
+      data.opDestroy(*iter);
+    }
     return 1;
   }
   return 0;
