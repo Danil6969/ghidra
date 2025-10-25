@@ -6553,6 +6553,15 @@ bool RuleAllocaPushParams::extractVarnodesFromAddOp(PcodeOp *addop,Varnode *&bas
     offvn = addop->getIn(1);
     return true;
   }
+  PcodeOp *otherop = addop->getIn(1)->getDef();
+  if (otherop == (PcodeOp *)0) return false;
+  if (otherop->code() != CPUI_INT_ADD) return false;
+  if (otherop->getIn(1)->isConstant()) {
+    basevn = otherop->getIn(0);
+    offvn = otherop->getIn(1);
+    sizeVn = addop->getIn(0);
+    return true;
+  }
   return false;
 }
 
@@ -6562,16 +6571,18 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
   PcodeOp *ptrop = storeop->getIn(1)->getDef();
   if (ptrop == (PcodeOp *)0) return (PcodeOp *)0;
   if (ptrop->code() != CPUI_INT_ADD) return (PcodeOp *)0;
-  Varnode *basevn,*offvn,*sizeVn;
-  if (!extractVarnodesFromAddOp(ptrop,basevn,offvn,sizeVn)) return (PcodeOp *)0;
+  Varnode *baseVn,*offVn,*sizeVn;
+  if (!extractVarnodesFromAddOp(ptrop,baseVn,offVn,sizeVn)) return (PcodeOp *)0;
 
-  intb off = sign_extend(offvn->getOffset(),8*offvn->getSize()-1);
-  if (isStackNegative)
+  intb off = sign_extend(offVn->getOffset(),8*offVn->getSize()-1);
+  if (isStackNegative) {
     //Must be pushed to a negative constant
     if (off >= 0) return (PcodeOp *)0;
-  else
+  }
+  else {
     //Must be pushed to a positive constant
     if (off <= 0) return (PcodeOp *)0;
+  }
   BlockBasic *curblock = storeop->getParent();
   list<PcodeOp *>::iterator begiter = curblock->beginOp();
   list<PcodeOp *>::iterator enditer = curblock->endOp();
@@ -6595,11 +6606,12 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
 	if (addop == (PcodeOp *)0) continue;
 	if (addop->code() != CPUI_INT_ADD) continue;
 
-	Varnode *addbasevn,*addoffvn,*addsizevn;
-	if (!extractVarnodesFromAddOp(ptrop,basevn,offvn,sizeVn)) return (PcodeOp *)0;
-	if (addbasevn != basevn) continue;
-	if (!addoffvn->isConstant()) continue;
-	if (addoffvn->getOffset() != offvn->getOffset()) continue;
+	Varnode *addBaseVn,*addOffVn,*addSizeVn;
+	if (!extractVarnodesFromAddOp(addop,addBaseVn,addOffVn,addSizeVn)) continue;
+	if (addSizeVn != sizeVn) continue;
+	if (addBaseVn != baseVn) continue;
+	if (!addOffVn->isConstant()) continue;
+	if (addOffVn->getOffset() != offVn->getOffset()) continue;
 	return op;
       }
       case CPUI_STORE:
@@ -6609,14 +6621,17 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
 	if (addop == (PcodeOp *)0) continue;
 	if (addop->code() != CPUI_INT_ADD) continue;
 
-	Varnode *addbasevn,*addoffvn,*addsizevn;
-	if (!extractVarnodesFromAddOp(ptrop,basevn,offvn,sizeVn)) return (PcodeOp *)0;
-	if (addbasevn != basevn) continue;
-	if (!addoffvn->isConstant()) continue;
-	if (addoffvn->getOffset() != offvn->getOffset()) continue;
+	Varnode *addBaseVn,*addOffVn,*addSizeVn;
+	if (!extractVarnodesFromAddOp(addop,addBaseVn,addOffVn,addSizeVn)) continue;
+	if (addSizeVn != sizeVn) continue;
+	if (addBaseVn != baseVn) continue;
+	if (!addOffVn->isConstant()) continue;
+	if (addOffVn->getOffset() != offVn->getOffset()) continue;
 	break;
       }
       case CPUI_INT_ADD:
+      case CPUI_INT_MULT:
+      case CPUI_INDIRECT:
 	continue;
       default:
 	break;
@@ -6662,21 +6677,27 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
   if (ptrop == (PcodeOp *) 0) return 0;
   if (ptrop->code() != CPUI_INT_ADD) return 0;
 
-  Varnode *basevn = ptrop->getIn(0);
-  if (!basevn->isStackPointerLocated(data)) return 0;
-  PcodeOp *baseop = basevn->getDef();
-  if (baseop == (PcodeOp *)0) return 0;
-  if (baseop->code() == CPUI_MULTIEQUAL) {
-    // There may be extra pop not fully identified
-    // Ignore that and skip to the first definition
-    basevn = baseop->getIn(0);
+  Varnode *vn1,*vn2,*vn3;
+  extractVarnodesFromAddOp(ptrop,vn1,vn2,vn3);
+  if (vn3 == (Varnode *)0) {
+    Varnode *basevn = ptrop->getIn(0);
     if (!basevn->isStackPointerLocated(data)) return 0;
-    baseop = basevn->getDef();
+    PcodeOp *baseop = basevn->getDef();
     if (baseop == (PcodeOp *)0) return 0;
-    // TODO check that addition is negative
+    if (baseop->code() == CPUI_MULTIEQUAL) {
+      // There may be extra pop not fully identified
+      // Ignore that and skip to the first definition
+      basevn = baseop->getIn(0);
+      if (!basevn->isStackPointerLocated(data)) return 0;
+      baseop = basevn->getDef();
+      if (baseop == (PcodeOp *)0) return 0;
+      // TODO check that addition is negative
+    }
+    if (!baseop->isAllocaShift(data)) return 0;
   }
-
-  if (!baseop->isAllocaShift(data)) return 0;
+  else {
+    if (!ptrop->isAllocaShift(data)) return 0;
+  }
 
   list<PcodeOp *>::const_iterator iter = loadout->beginDescend();
   PcodeOp *callop = *iter;
