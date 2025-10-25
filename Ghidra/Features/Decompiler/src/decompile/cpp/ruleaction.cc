@@ -6710,13 +6710,27 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
     if (!ptrop->isAllocaShift(data)) return 0;
   }
 
+  int4 loadsz = loadop->getOut()->getSize();
+  int4 valsz = valvn->getSize();
   // Simplify load
-  data.opRemoveInput(loadop,1);
-  data.opSetOpcode(loadop,CPUI_COPY);
-  data.opSetInput(loadop,valvn,0);
-  // Now get rid of stack store
-  data.opDestroy(op);
-  return 1;
+  if (loadsz == valsz) {
+    data.opRemoveInput(loadop, 1);
+    data.opSetOpcode(loadop, CPUI_COPY);
+    data.opSetInput(loadop, valvn, 0);
+    // Now get rid of stack store
+    data.opDestroy(op);
+    return 1;
+  }
+  if (loadsz < valsz) {
+    Varnode *cvn = data.newConstant(4,0);
+    data.opSetOpcode(loadop, CPUI_SUBPIECE);
+    data.opSetInput(loadop, valvn, 0);
+    data.opSetInput(loadop, cvn, 1);
+    // Now get rid of stack store
+    data.opDestroy(op);
+    return 1;
+  }
+  return 0;
 }
 
 bool RuleCancelOutPtrAdd::checkPointerUsages(PcodeOp *op)
