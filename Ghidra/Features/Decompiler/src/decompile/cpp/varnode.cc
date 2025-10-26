@@ -1505,12 +1505,21 @@ bool Varnode::isStaticCastOutput(Funcdata &data) const
   return res;
 }
 
+/// Given pointer which is passed into the user code
+/// find corresponding alloca shift op (&attach_variable +- alloca_length)
 const PcodeOp *Varnode::getAllocaShiftOp(const Funcdata &data) const
 
 {
   // Negative stack growth
   if (data.isStackGrowsNegative()) {
     const PcodeOp *op = getDef();
+    while (op != (PcodeOp *)0) {
+      OpCode opc = op->code();
+      if (opc != CPUI_COPY && opc != CPUI_CAST)
+	break;
+      const Varnode *invn = op->getIn(0);
+      op = invn->getDef();
+    }
     if (op == (PcodeOp *)0) return (PcodeOp *)0;
     if (!op->isAllocaShift(data)) return (PcodeOp *)0;
     return op;
