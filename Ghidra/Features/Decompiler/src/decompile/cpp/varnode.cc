@@ -1583,6 +1583,13 @@ bool Varnode::isAllocaLength(const Funcdata &data) const
   return true;
 }
 
+bool Varnode::isLengthAllAllocaUsed(const Funcdata &data) const
+
+{
+  if (!isAllocaLength(data)) return false;
+  return true;
+}
+
 /// Does this varnode has location of stack pointer register
 /// 1) Full spacebase
 /// 2) Truncated spacebase
