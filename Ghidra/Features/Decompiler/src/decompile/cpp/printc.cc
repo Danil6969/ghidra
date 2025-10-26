@@ -3224,8 +3224,17 @@ void PrintC::emitExpression(const PcodeOp *op)
 {
   const Funcdata *fd = op->getFuncdata();
   const Varnode *outvn = op->getOut();
-  if (outvn != (Varnode *)0 && outvn->isAllocaAddress(*(Funcdata *)fd)) {
-    Comment label(Comment::user1,fd->getAddress(),fd->getAddress(),0,"Alloca");
+  if (outvn != (Varnode *)0 && outvn->isAllocaAddress(*fd)) {
+    int4 slot = op->getAllocaAttachSlot(*fd);
+    ostringstream s;
+    if (slot == -1) {
+      s << "Alloca attachment is unknown";
+    }
+    else {
+      s << "Alloca is attached to ";
+      s << slot;
+    }
+    Comment label(Comment::user1,fd->getAddress(),fd->getAddress(),0,s.str());
     emitLineComment(0,&label,false);
     emit->tagLine();
   }
