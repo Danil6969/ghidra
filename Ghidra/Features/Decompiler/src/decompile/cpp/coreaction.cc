@@ -3809,20 +3809,6 @@ int4 ActionNameVars::apply(Funcdata &data)
   return 0;
 }
 
-bool ActionMarkExplicit::isAllocaTree(Varnode *vn,Funcdata &data)
-
-{
-  list<PcodeOp *>::const_iterator iter;
-  iter = vn->beginDescend();
-  while (iter != vn->endDescend()) {
-    PcodeOp *op = *iter;
-    if (!op->isAllocaShift(data)) return true;
-    if (isAllocaTree(op->getOut(),data)) return true;
-    iter++;
-  }
-  return false;
-}
-
 bool ActionMarkExplicit::isArrFunc(PcodeOp *op)
 
 {
@@ -3848,10 +3834,15 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
 
 {
   list<PcodeOp *>::const_iterator iter;
+  bool isUnlimited = false;
 
   PcodeOp *def = vn->getDef();
   if (def == (PcodeOp *)0) return -1;
   Funcdata *fd = def->getFuncdata();
+  if (vn->isLengthAllAllocaUsed(*fd)) {
+    // Should always be implicit, so remove limit on max references
+    isUnlimited = true;
+  }
   if (def->isStaticCastCopy(*fd)) return -1;
   if (vn->isAllocaAddress(*fd)) return -1;
   if (def->isMarker()) return -1;
@@ -3891,10 +3882,10 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
       return -1;
     }
   }
+  // If NOT addrtied but is still mapped, there must be either a first use (register) mapping
+  // or a dynamic mapping causing the bit to be set. In either case, it should probably be explicit
   else if (vn->isMapped()) {
-    // If NOT addrtied but is still mapped, there must be either a first use (register) mapping
-    // or a dynamic mapping causing the bit to be set. In either case, it should probably be explicit
-    // if not PTRSUB of course (see "maxref = 1000000" comment)
+    // If not PTRSUB of course which should always be implicit
     if (def->code() != CPUI_PTRSUB) return -1;
   }
   else if (vn->isProtoPartial()) {
@@ -3911,8 +3902,10 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
   if (def->code() == CPUI_PTRSUB) { // A dereference
     Varnode *basevn = def->getIn(0);
     if (basevn->isSpacebase()) { // of a spacebase
-      if (basevn->isConstant() || basevn->isInput())
-	maxref = 1000000;	// Should always be implicit, so remove limit on max references
+      if (basevn->isConstant() || basevn->isInput()) {
+	// Should always be implicit, so remove limit on max references
+	isUnlimited = true;
+      }
     }
   }
   int4 desccount = 0;
@@ -3920,7 +3913,7 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
     PcodeOp *op = *iter;
     if (op->isMarker()) return -1;
     desccount += 1;
-    if (desccount > maxref) return -1; // Must not exceed max descendants
+    if (desccount > maxref && !isUnlimited) return -1; // Must not exceed max descendants
   }
 
   for(iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
