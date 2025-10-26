@@ -430,8 +430,11 @@ int4 PcodeOp::getAllocaAttachSlot(const Funcdata &data) const
     }
   }
 
-  if (inop->numInput() != 2) {
-    if (inop->code() != CPUI_PTRADD) return -1;
+  if (inop->code() == CPUI_PTRADD) {
+    if (inop->numInput() != 3) return -1;
+  }
+  else {
+    if (inop->numInput() != 2) return -1;
   }
   invn0 = inop->getIn(0);
   invn1 = inop->getIn(1);
@@ -497,10 +500,15 @@ bool PcodeOp::isAllocaShift(const Funcdata &data) const
     if (inop0 == (PcodeOp *)0) return false;
     return inop0->isAllocaShift(data);
   }
-  if (opc != CPUI_INT_SUB && opc != CPUI_INT_ADD && opc != CPUI_PTRADD) return false;
+
   if (opc == CPUI_PTRADD) {
+    if (numInput() != 3) return false;
     if (!getIn(2)->isConstant()) return false;
     if (getIn(2)->getOffset() != 1) return false;
+  }
+  else {
+    if (opc != CPUI_INT_SUB && opc != CPUI_INT_ADD) return false;
+    if (numInput() != 2) return false;
   }
 
   if (getIn(0)->isConstant()) return false;
