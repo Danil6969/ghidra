@@ -454,7 +454,6 @@ class ActionMarkExplicit : public Action {
     OpStackElement(Varnode *v);	///< Constructor
   };
   static bool isArrFunc(PcodeOp *op);
-  static bool isAllocaTree(Varnode *vn,Funcdata &data);
   static int4 baseExplicit(Varnode *vn,int4 maxref);	///< Make initial determination if a Varnode should be \e explicit
   static int4 multipleInteraction(vector<Varnode *> &multlist);	///< Find multiple descendant chains
   static void processMultiplier(Varnode *vn,int4 max);	///< For a given multi-descendant Varnode, decide if it should be explicit
