@@ -416,18 +416,12 @@ int4 PcodeOp::getAllocaAttachSlot(const Funcdata &data) const
 
 {
   const PcodeOp *inop = this;
-  const Varnode *invn0 = (const Varnode *)0;
-  const Varnode *invn1 = (const Varnode *)0;
-
-  if (numInput() == 1) {
-    while (inop != (PcodeOp *)0) {
-      OpCode inopc = inop->code();
-      if (inopc != CPUI_COPY)
-	if (inopc != CPUI_CAST)
-	  break;
-      invn0 = inop->getIn(0);
-      inop = invn0->getDef();
-    }
+  while (inop != (PcodeOp *)0) {
+    OpCode inopc = inop->code();
+    if (inopc != CPUI_COPY && inopc != CPUI_CAST)
+      break;
+    const Varnode *invn = inop->getIn(0);
+    inop = invn->getDef();
   }
 
   if (inop->code() == CPUI_PTRADD) {
@@ -436,8 +430,8 @@ int4 PcodeOp::getAllocaAttachSlot(const Funcdata &data) const
   else {
     if (inop->numInput() != 2) return -1;
   }
-  invn0 = inop->getIn(0);
-  invn1 = inop->getIn(1);
+  const Varnode *invn0 = inop->getIn(0);
+  const Varnode *invn1 = inop->getIn(1);
 
   inop = invn0->getDef();
   while (inop != (PcodeOp *)0) {
