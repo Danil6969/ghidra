@@ -1587,6 +1587,13 @@ bool Varnode::isLengthAllAllocaUsed(const Funcdata &data) const
 
 {
   if (!isAllocaLength(data)) return false;
+
+  list<PcodeOp *>::const_iterator iter;
+  for(iter=beginDescend();iter!=endDescend();++iter) {
+    PcodeOp *op = *iter;
+    if (!op->isAllocaShift(data)) return false;
+  }
+
   return true;
 }
 
