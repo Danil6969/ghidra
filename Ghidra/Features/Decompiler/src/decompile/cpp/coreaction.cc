@@ -4044,9 +4044,15 @@ void ActionMarkExplicit::processMultiplier(Varnode *vn,int4 max)
     else {
       PcodeOp *op = vncur->getDef();
       Varnode *newvn = op->getIn(opstack.back().slot++);
-      if (newvn->isMark()) {	// If an ancestor is marked(also possible implied with multiple descendants)
-	vn->setExplicit();	// then automatically consider this to be explicit
-	vn->clearImplied();
+      // If an ancestor is marked(also possible implied with multiple descendants)
+      if (newvn->isMark()) {
+	Funcdata *fd = op->getFuncdata();
+	// except alloca ops used length varnode
+	if (!vn->isLengthAllAllocaUsed(*fd)) {
+	  // then automatically consider this to be explicit
+	  vn->setExplicit();
+	  vn->clearImplied();
+	}
       }
       opstack.push_back(newvn);
     }
