@@ -430,7 +430,9 @@ int4 PcodeOp::getAllocaAttachSlot(const Funcdata &data) const
     }
   }
 
-  if (inop->numInput() != 2) return -1;
+  if (inop->numInput() != 2) {
+    if (inop->code() != CPUI_PTRADD) return -1;
+  }
   invn0 = inop->getIn(0);
   invn1 = inop->getIn(1);
 
@@ -495,7 +497,12 @@ bool PcodeOp::isAllocaShift(const Funcdata &data) const
     if (inop0 == (PcodeOp *)0) return false;
     return inop0->isAllocaShift(data);
   }
-  if (opc != CPUI_INT_ADD && opc != CPUI_INT_SUB) return false;
+  if (opc != CPUI_INT_SUB && opc != CPUI_INT_ADD && opc != CPUI_PTRADD) return false;
+  if (opc == CPUI_PTRADD) {
+    if (!getIn(2)->isConstant()) return false;
+    if (getIn(2)->getOffset() != 1) return false;
+  }
+
   if (getIn(0)->isConstant()) return false;
   if (getIn(1)->isConstant()) return false;
   int4 attachSlot = getAllocaAttachSlot(data); // Slot for the stack variable allocated right before alloca
@@ -507,7 +514,7 @@ bool PcodeOp::isAllocaShift(const Funcdata &data) const
     if (!data.isStackGrowsNegative()) return false;
     return true;
   }
-  if (opc != CPUI_INT_ADD) return false;
+  if (opc != CPUI_INT_ADD && opc != CPUI_PTRADD) return false;
   if (!lengthvn->isAllocaLength(data)) return false;
   return true;
 }
