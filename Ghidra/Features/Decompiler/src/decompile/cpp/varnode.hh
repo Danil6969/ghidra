@@ -363,6 +363,7 @@ public:
   const PcodeOp *getAllocaShiftOp(const Funcdata &data) const;
   bool isAllocaAddress(const Funcdata &data) const { return getAllocaShiftOp(data) != (PcodeOp *)0; }	///< Does \b this varnode have corresponding alloca shift op
   bool isAllocaLength(const Funcdata &data) const;
+  bool isLengthAllAllocaUsed(const Funcdata &data) const;
   bool isStackPointerLocated(const Funcdata &data) const;
   bool isStackVariableAddress(const Funcdata &data,bool allocaAllowed,bool recursive=false) const;
   bool isPtrdiffOperand(Funcdata &data) const;
