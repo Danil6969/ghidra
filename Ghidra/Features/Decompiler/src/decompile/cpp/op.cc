@@ -412,7 +412,7 @@ bool PcodeOp::isReturnAddressConstant(Funcdata &data) const
   return false;
 }
 
-int4 PcodeOp::getAllocaAttachSlot(Funcdata &data) const
+int4 PcodeOp::getAllocaAttachSlot(const Funcdata &data) const
 
 {
   if (numInput() != 2) return -1;
@@ -451,7 +451,7 @@ int4 PcodeOp::getAllocaAttachSlot(Funcdata &data) const
   return -1;
 }
 
-bool PcodeOp::isFirstAllocaDefinition(Funcdata &data) const
+bool PcodeOp::isFirstAllocaDefinition(const Funcdata &data) const
 
 {
   int4 attachSlot = getAllocaAttachSlot(data);
@@ -468,7 +468,7 @@ bool PcodeOp::isFirstAllocaDefinition(Funcdata &data) const
 /// Is this alloca shift op in one of these forms:
 /// 1) &attach_variable + alloca_length
 /// 2) &attach_variable - alloca_length
-bool PcodeOp::isAllocaShift(Funcdata &data) const
+bool PcodeOp::isAllocaShift(const Funcdata &data) const
 
 {
   OpCode opc = code();
