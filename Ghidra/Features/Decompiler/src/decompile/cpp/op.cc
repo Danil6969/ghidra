@@ -467,6 +467,8 @@ int4 PcodeOp::getAllocaAttachSlot(const Funcdata &data) const
   return -1;
 }
 
+/// Does this alloca op use its attach varnode before another such
+/// alloca op with just the same attach varnode but with another seqnum
 bool PcodeOp::isFirstAllocaDefinition(const Funcdata &data) const
 
 {
