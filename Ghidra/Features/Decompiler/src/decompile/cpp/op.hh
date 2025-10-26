@@ -149,7 +149,6 @@ private:
   bool isMultNonCollapsible(void) const; ///< Return \b true if this multiplication shouldn't be collapsed
   bool isPieceNonCollapsible(void) const; ///< Return \b true if this piece shouldn't be collapsed
   bool isSubpieceNonCollapsible(void) const; ///< Return \b true if this subpiece shouldn't be collapsed
-  bool isFirstAllocaDefinition(Funcdata &data) const;
 
 public:
   PcodeOp(int4 s,const SeqNum &sq); ///< Construct an unattached PcodeOp
@@ -226,8 +225,9 @@ public:
   bool isCollapsible(void) const; ///< Return \b true if this can be collapsed to a COPY of a constant
   bool isStaticCastCopy(Funcdata &data) const;
   bool isReturnAddressConstant(Funcdata &data) const;
-  int4 getAllocaAttachSlot(Funcdata &data) const;
-  bool isAllocaShift(Funcdata &data) const;
+  int4 getAllocaAttachSlot(const Funcdata &data) const;
+  bool isFirstAllocaDefinition(const Funcdata &data) const;
+  bool isAllocaShift(const Funcdata &data) const;
   bool isAllocaShift(void) const;
   bool isVarargPtrsub(bool firstOnly) const;
   bool isIndirectSelfCopy(const Funcdata &data) const;
