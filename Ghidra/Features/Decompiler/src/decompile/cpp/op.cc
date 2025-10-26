@@ -415,10 +415,24 @@ bool PcodeOp::isReturnAddressConstant(Funcdata &data) const
 int4 PcodeOp::getAllocaAttachSlot(const Funcdata &data) const
 
 {
-  if (numInput() != 2) return -1;
-  const Varnode *invn0 = getIn(0);
-  const Varnode *invn1 = getIn(1);
-  const PcodeOp *inop;
+  const PcodeOp *inop = this;
+  const Varnode *invn0 = (const Varnode *)0;
+  const Varnode *invn1 = (const Varnode *)0;
+
+  if (numInput() == 1) {
+    while (inop != (PcodeOp *)0) {
+      OpCode inopc = inop->code();
+      if (inopc != CPUI_COPY)
+	if (inopc != CPUI_CAST)
+	  break;
+      invn0 = inop->getIn(0);
+      inop = invn0->getDef();
+    }
+  }
+
+  if (inop->numInput() != 2) return -1;
+  invn0 = inop->getIn(0);
+  invn1 = inop->getIn(1);
 
   inop = invn0->getDef();
   while (inop != (PcodeOp *)0) {
@@ -441,7 +455,9 @@ int4 PcodeOp::getAllocaAttachSlot(const Funcdata &data) const
   }
 
   // Usually alloca requires some stack variable
-  // so there should be always something it can be attached to
+  // so there should be always something it can be attached to.
+  // But it can also be the stack input varnode
+  // as well so it should be picked up anyway
   if (invn0->isStackVariableAddress(data,true)) {
     if (!invn1->isStackVariableAddress(data,true)) return 0;
   }
