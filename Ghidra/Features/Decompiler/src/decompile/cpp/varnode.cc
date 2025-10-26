@@ -1505,7 +1505,7 @@ bool Varnode::isStaticCastOutput(Funcdata &data) const
   return res;
 }
 
-const PcodeOp *Varnode::getAllocaShiftOp(Funcdata &data) const
+const PcodeOp *Varnode::getAllocaShiftOp(const Funcdata &data) const
 
 {
   // Negative stack growth
@@ -1535,7 +1535,7 @@ const PcodeOp *Varnode::getAllocaShiftOp(Funcdata &data) const
 /// 2) Negative stack growth:
 /// 2.1) non_const_varnode * -1
 /// 2.2) -non_const_varnode
-bool Varnode::isAllocaLength(Funcdata &data) const
+bool Varnode::isAllocaLength(const Funcdata &data) const
 
 {
   const PcodeOp *op = getDef();
@@ -1586,7 +1586,7 @@ bool Varnode::isAllocaLength(Funcdata &data) const
 /// Does this varnode has location of stack pointer register
 /// 1) Full spacebase
 /// 2) Truncated spacebase
-bool Varnode::isStackPointerLocated(Funcdata &data) const
+bool Varnode::isStackPointerLocated(const Funcdata &data) const
 
 {
   Architecture *glb = data.getArch();
@@ -1609,7 +1609,7 @@ bool Varnode::isStackPointerLocated(Funcdata &data) const
 /// 4) spacebase + constant
 /// 5) constant + spacebase
 /// spacebase must be stack pointer register itself or stack variable address by recursion (only if recursive is true)
-bool Varnode::isStackVariableAddress(Funcdata &data,bool allocaAllowed,bool recursive) const
+bool Varnode::isStackVariableAddress(const Funcdata &data,bool allocaAllowed,bool recursive) const
 
 {
   const PcodeOp *op = getDef();
