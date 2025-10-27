@@ -1243,9 +1243,15 @@ void PrintC::opIntSub(const PcodeOp *op)
 
 {
   AddrSpace *stackspc = glb->getStackSpace();
-  if (stackspc->stackGrowsNegative()) {
-    if (op->isAllocaShift()) {
-      opBinary(&binary_minus,op);
+  if (checkPrintAlloca(op)) {
+    const Funcdata *fd = op->getFuncdata();
+    int4 slot = op->getAllocaAttachSlot(*fd);
+    if (slot != -1) {
+      const PcodeOp *allocaop = op->getOut()->getAllocaShiftOp(*fd);
+      const Varnode *vn = allocaop->getIn(1-slot);
+      pushOp(&function_call,op);
+      pushAtom(Atom("STACKALLOC",optoken,EmitMarkup::funcname_color,op));
+      pushVn(vn,op,mods);
       return;
     }
   }
@@ -3089,6 +3095,10 @@ bool PrintC::checkPrintNegation(const Varnode *vn)
 bool PrintC::checkPrintAlloca(const PcodeOp *op)
 
 {
+  if (op->code() == CPUI_INT_SUB) {
+    AddrSpace *stackspc = glb->getStackSpace();
+    if (!stackspc->stackGrowsNegative()) return false;
+  }
   const Varnode *outvn = op->getOut();
   if (outvn == (const Varnode *)0) return false;
   const Funcdata *fd = op->getFuncdata();
@@ -3238,13 +3248,13 @@ void PrintC::emitExpression(const PcodeOp *op)
   const Varnode *outvn = op->getOut();
   if (checkPrintAlloca(op)) {
     const Funcdata *fd = op->getFuncdata();
-    const PcodeOp *allocaop = outvn->getAllocaShiftOp(*fd);
     int4 slot = op->getAllocaAttachSlot(*fd);
     ostringstream s;
     if (slot == -1) {
       s << "Alloca attachment is unknown";
     }
     else {
+      const PcodeOp *allocaop = outvn->getAllocaShiftOp(*fd);
       const Varnode *vn = allocaop->getIn(slot);
       s << "Alloca is attached to ";
       s << printedSymbolName(vn);
