@@ -3086,6 +3086,19 @@ bool PrintC::checkPrintNegation(const Varnode *vn)
   return true;
 }
 
+bool PrintC::checkPrintAlloca(const PcodeOp *op)
+
+{
+  const Varnode *outvn = op->getOut();
+  if (outvn == (const Varnode *)0) return false;
+  const Funcdata *fd = op->getFuncdata();
+  if (!outvn->isAllocaAddress(*fd)) return false;
+  if (op->code() == CPUI_COPY) {
+    if (outvn->isExplicit()) return false;
+  }
+  return true;
+}
+
 /// \brief Push a token indicating a PTRSUB (a -> operator) is acting at an offset from the original pointer
 ///
 /// When a variable has TypePointerRel as its data-type, PTRSUB acts relative to the \e parent
@@ -3222,9 +3235,9 @@ bool PrintC::emitArrCopy(const PcodeOp *op)
 void PrintC::emitExpression(const PcodeOp *op)
    
 {
-  const Funcdata *fd = op->getFuncdata();
   const Varnode *outvn = op->getOut();
-  if (outvn != (Varnode *)0 && outvn->isAllocaAddress(*fd)) {
+  if (checkPrintAlloca(op)) {
+    const Funcdata *fd = op->getFuncdata();
     const PcodeOp *allocaop = outvn->getAllocaShiftOp(*fd);
     int4 slot = op->getAllocaAttachSlot(*fd);
     ostringstream s;
