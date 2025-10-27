@@ -3225,14 +3225,16 @@ void PrintC::emitExpression(const PcodeOp *op)
   const Funcdata *fd = op->getFuncdata();
   const Varnode *outvn = op->getOut();
   if (outvn != (Varnode *)0 && outvn->isAllocaAddress(*fd)) {
+    const PcodeOp *allocaop = outvn->getAllocaShiftOp(*fd);
     int4 slot = op->getAllocaAttachSlot(*fd);
     ostringstream s;
     if (slot == -1) {
       s << "Alloca attachment is unknown";
     }
     else {
+      const Varnode *vn = allocaop->getIn(slot);
       s << "Alloca is attached to ";
-      s << slot;
+      s << printedSymbolName(vn);
     }
     Comment label(Comment::user1,fd->getAddress(),fd->getAddress(),0,s.str());
     emitLineComment(0,&label,false);
@@ -4198,7 +4200,7 @@ string PrintC::printedPrototypeInputs(const FuncProto *proto)
   return s.str();
 }
 
-string PrintC::printedTypeName(const ghidra::Datatype *ct)
+string PrintC::printedTypeName(const Datatype *ct)
 
 {
   ostringstream s;
@@ -4239,6 +4241,39 @@ string PrintC::printedTypeName(const ghidra::Datatype *ct)
       return "";
   }
   return s.str();
+}
+
+string PrintC::printedSymbolName(const Varnode *vn)
+
+{
+  ostringstream s;
+  const Varnode *invn = vn;
+  const PcodeOp *op = invn->getDef();
+  OpCode opc;
+  while (op != (PcodeOp *)0) {
+    opc = op->code();
+    if (opc != CPUI_COPY && opc != CPUI_CAST)
+      break;
+    invn = op->getIn(0);
+    op = invn->getDef();
+  }
+
+  HighVariable *high = invn->getHigh();
+  if (high->getSymbol() != (Symbol *)0) {
+    s << high->getSymbol()->getDisplayName();
+    return s.str();
+  }
+
+  if (op == (const PcodeOp *)0) return "";
+  if (opc == CPUI_PTRSUB) {
+    high = op->getIn(1)->getHigh();
+    if (high->getSymbol() == (Symbol *)0) return "";
+    s << "&";
+    s << high->getSymbol()->getDisplayName();
+    return s.str();
+  }
+
+  return "";
 }
 
 } // End namespace ghidra
