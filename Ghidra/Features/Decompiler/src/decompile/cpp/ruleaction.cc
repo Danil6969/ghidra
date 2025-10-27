@@ -6622,9 +6622,9 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
 	continue;
       case CPUI_CALL:
       case CPUI_CALLIND:
-	break;
+	return (PcodeOp *)0;
       default:
-	break;
+	return (PcodeOp *)0;
     }
   }
   return (PcodeOp *)0;
@@ -6680,9 +6680,9 @@ void RuleAllocaPushParams::gatherSimilarStoreOps(PcodeOp *storeop,vector<PcodeOp
 	continue;
       case CPUI_CALL:
       case CPUI_CALLIND:
-	break;
+	return;
       default:
-	break;
+	return;
     }
   }
 }
