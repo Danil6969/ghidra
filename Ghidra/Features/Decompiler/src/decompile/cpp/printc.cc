@@ -4268,7 +4268,9 @@ string PrintC::printedSymbolName(const Varnode *vn)
   if (opc == CPUI_PTRSUB) {
     high = op->getIn(1)->getHigh();
     if (high->getSymbol() == (Symbol *)0) return "";
-    s << "&";
+    if (high->getSymbol()->getType()->getMetatype() != TYPE_ARRAY) {
+      s << "&";
+    }
     s << high->getSymbol()->getDisplayName();
     return s.str();
   }
