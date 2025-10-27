@@ -242,6 +242,7 @@ protected:
   virtual string genericTypeName(const Datatype *ct);
   virtual string printedPrototypeInputs(const FuncProto *proto);
   virtual string printedTypeName(const Datatype *ct);
+  virtual string printedSymbolName(const Varnode *vn);
 
   virtual void emitExpression(const PcodeOp *op);
   virtual void emitVarDecl(const Symbol *sym);
