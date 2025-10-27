@@ -1865,10 +1865,11 @@ SymbolEntry *ScopeInternal::addMapInternal(Symbol *sym,uint4 exfl,const Address 
     msg << ":";
     intb offset = sign_extend(addr.getOffset(),8*addr.getAddrSize()-1);
     if (offset < 0) {
-      msg << "-";
+      msg << "-0x";
       msg << std::hex << -offset;
     }
     else {
+      msg << "0x";
       msg << std::hex << offset;
     }
     msg << " with size ";
