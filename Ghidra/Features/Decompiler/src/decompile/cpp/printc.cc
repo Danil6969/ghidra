@@ -1607,7 +1607,7 @@ void PrintC::opPtrsub(const PcodeOp *op)
     clear();
     ostringstream s;
     s << "PTRSUB off of non structured pointer type\n";
-    s << "Op address: ";
+    s << "Op address: 0x";
     s << std::hex << op->getAddr().getOffset();
     throw LowlevelError(s.str());
   }
@@ -4279,8 +4279,21 @@ string PrintC::printedSymbolName(const Varnode *vn)
 
   if (op == (const PcodeOp *)0) return "";
   if (opc == CPUI_PTRSUB) {
-    high = op->getIn(1)->getHigh();
-    if (high->getSymbol() == (Symbol *)0) return "";
+    const Varnode *invn1 = op->getIn(1);
+    high = invn1->getHigh();
+    if (high->getSymbol() == (Symbol *)0) {
+      const Varnode *invn0 = op->getIn(0);
+      TypePointer *ptype = (TypePointer *)invn0->getType();
+      if (ptype->getMetatype() != TYPE_PTR) return "";
+      TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
+      if (sb->getMetatype() != TYPE_SPACEBASE) return "";
+      if (!invn1->isConstant()) return "";
+      s << "&";
+      s << sb->getSpace()->getName();
+      s << "0x";
+      s << std::hex << invn1->getOffset();
+      return s.str();
+    }
     if (high->getSymbol()->getType()->getMetatype() != TYPE_ARRAY) {
       s << "&";
     }
