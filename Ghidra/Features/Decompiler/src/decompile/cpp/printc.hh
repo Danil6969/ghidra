@@ -251,6 +251,7 @@ protected:
   virtual void emitFunctionDeclaration(const Funcdata *fd);
   virtual void emitTypeDefinition(const Datatype *ct);
   virtual bool checkPrintNegation(const Varnode *vn);
+  virtual bool checkPrintAlloca(const PcodeOp *op);
   void pushTypePointerRel(const PcodeOp *op,const Varnode *vn,uint4 m);
   void pushToArrVarnode(const PcodeOp *op,const Varnode *vn,uint4 m);
   void pushToArrInteger(const PcodeOp *op,const Varnode *vn,uintb val,const Datatype *ct,tagtype tag);
