@@ -311,7 +311,7 @@ public:
   virtual void opIntLessEqual(const PcodeOp *op) { opBinary(&less_equal,op); }
   virtual void opIntZext(const PcodeOp *op,const PcodeOp *readOp);
   virtual void opIntSext(const PcodeOp *op,const PcodeOp *readOp);
-  virtual void opIntAdd(const PcodeOp *op) { opBinary(&binary_plus,op); }
+  virtual void opIntAdd(const PcodeOp *op);
   virtual void opIntSub(const PcodeOp *op);
   virtual void opIntCarry(const PcodeOp *op) { opFunc(op); }
   virtual void opIntScarry(const PcodeOp *op) { opFunc(op); }
