@@ -1242,19 +1242,7 @@ void PrintC::opIntSext(const PcodeOp *op,const PcodeOp *readOp)
 void PrintC::opIntSub(const PcodeOp *op)
 
 {
-  AddrSpace *stackspc = glb->getStackSpace();
-  if (checkPrintAlloca(op)) {
-    const Funcdata *fd = op->getFuncdata();
-    int4 slot = op->getAllocaAttachSlot(*fd);
-    if (slot != -1) {
-      const PcodeOp *allocaop = op->getOut()->getAllocaShiftOp(*fd);
-      const Varnode *vn = allocaop->getIn(1-slot);
-      pushOp(&function_call,op);
-      pushAtom(Atom("STACKALLOC",optoken,EmitMarkup::funcname_color,op));
-      pushVn(vn,op,mods);
-      return;
-    }
-  }
+  if (emitAlloca(op)) return;
   opBinary(&binary_minus,op);
 }
 
@@ -3242,6 +3230,26 @@ bool PrintC::emitArrCopy(const PcodeOp *op)
   return true;
 }
 
+bool PrintC::emitAlloca(const PcodeOp *op)
+
+{
+  OpCode opc = op->code();
+  if (opc == CPUI_INT_SUB) {
+    if (!checkPrintAlloca(op)) return false;
+    const Funcdata *fd = op->getFuncdata();
+    int4 slot = op->getAllocaAttachSlot(*fd);
+    if (slot == -1) return false;
+    const PcodeOp *allocaop = op->getOut()->getAllocaShiftOp(*fd);
+    if (printedSymbolName(allocaop->getIn(slot)).empty()) return false;
+    const Varnode *vn = allocaop->getIn(1 - slot);
+    pushOp(&function_call, op);
+    pushAtom(Atom("STACKALLOC", optoken, EmitMarkup::funcname_color, op));
+    pushVn(vn, op, mods);
+    return true;
+  }
+  return false;
+}
+
 void PrintC::emitExpression(const PcodeOp *op)
    
 {
@@ -3256,8 +3264,14 @@ void PrintC::emitExpression(const PcodeOp *op)
     else {
       const PcodeOp *allocaop = outvn->getAllocaShiftOp(*fd);
       const Varnode *vn = allocaop->getIn(slot);
-      s << "Alloca is attached to ";
-      s << printedSymbolName(vn);
+      string nm = printedSymbolName(vn);
+      if (nm.empty()) {
+	s << "Alloca attachment is empty";
+      }
+      else {
+	s << "Alloca is attached to ";
+	s << nm;
+      }
     }
     Comment label(Comment::user1,fd->getAddress(),fd->getAddress(),0,s.str());
     emitLineComment(0,&label,false);
