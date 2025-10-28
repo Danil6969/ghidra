@@ -1239,6 +1239,13 @@ void PrintC::opIntSext(const PcodeOp *op,const PcodeOp *readOp)
     opArrFunc(op);
 }
 
+void PrintC::opIntAdd(const PcodeOp *op)
+
+{
+  if (emitAlloca(op)) return;
+  opBinary(&binary_plus,op);
+}
+
 void PrintC::opIntSub(const PcodeOp *op)
 
 {
@@ -1318,6 +1325,7 @@ void PrintC::opSubpiece(const PcodeOp *op)
 void PrintC::opPtradd(const PcodeOp *op)
 
 {
+  if (emitAlloca(op)) return;
   bool printval = isSet(print_load_value|print_store_value);
   uint4 m = mods & ~(print_load_value|print_store_value);
   if (printval)			// Use array notation if we need value
@@ -3234,20 +3242,47 @@ bool PrintC::emitAlloca(const PcodeOp *op)
 
 {
   OpCode opc = op->code();
-  if (opc == CPUI_INT_SUB) {
-    if (!checkPrintAlloca(op)) return false;
-    const Funcdata *fd = op->getFuncdata();
-    int4 slot = op->getAllocaAttachSlot(*fd);
-    if (slot == -1) return false;
-    const PcodeOp *allocaop = op->getOut()->getAllocaShiftOp(*fd);
-    if (printedSymbolName(allocaop->getIn(slot)).empty()) return false;
-    const Varnode *vn = allocaop->getIn(1 - slot);
-    pushOp(&function_call, op);
-    pushAtom(Atom("STACKALLOC", optoken, EmitMarkup::funcname_color, op));
-    pushVn(vn, op, mods);
-    return true;
+  if (!checkPrintAlloca(op)) return false;
+  const Funcdata *fd = op->getFuncdata();
+  int4 slot = op->getAllocaAttachSlot(*fd);
+  if (slot == -1) return false;
+  const PcodeOp *allocaop = op->getOut()->getAllocaShiftOp(*fd);
+  if (printedSymbolName(allocaop->getIn(slot)).empty()) return false;
+  const Varnode *vn = (const Varnode *)0;
+  if (opc == CPUI_INT_SUB)
+    vn = allocaop->getIn(1-slot);
+  if (opc == CPUI_INT_ADD) {
+    const Varnode *invn = allocaop->getIn(1-slot);
+    AddrSpace *stackspc = glb->getStackSpace();
+    if (stackspc->stackGrowsNegative()) {
+      const PcodeOp *inop = invn->getDef();
+      if (inop == (const PcodeOp *)0) return false;
+      if (inop->code() != CPUI_INT_2COMP) return false;
+      vn = inop->getIn(0);
+    }
+    else
+      vn = invn;
   }
-  return false;
+  if (opc == CPUI_PTRADD) {
+    const Varnode *cvn = op->getIn(2);
+    if (!cvn->isConstant()) return false;
+    if (cvn->getOffset() != 1) return false;
+    const Varnode *invn = allocaop->getIn(1-slot);
+    AddrSpace *stackspc = glb->getStackSpace();
+    if (stackspc->stackGrowsNegative()) {
+      const PcodeOp *inop = invn->getDef();
+      if (inop == (const PcodeOp *)0) return false;
+      if (inop->code() != CPUI_INT_2COMP) return false;
+      vn = inop->getIn(0);
+    }
+    else
+      vn = invn;
+  }
+  if (vn == (const Varnode *)0) return false;
+  pushOp(&function_call,op);
+  pushAtom(Atom("STACKALLOC",optoken,EmitMarkup::funcname_color,op));
+  pushVn(vn,op,mods);
+  return true;
 }
 
 void PrintC::emitExpression(const PcodeOp *op)
