@@ -414,7 +414,7 @@ protected:
   /// 0 for parameters, -1 for everything.
   /// \param symScope is the given Scope
   /// \param cat is the category of variable to declare
-  virtual bool emitScopeVarDecls(const Scope *symScope,int4 cat)=0;
+  virtual bool emitScopeVarDecls(const Scope *symScope,int4 cat,const Funcdata *fd)=0;
 
   /// \brief Emit a full expression
   ///
