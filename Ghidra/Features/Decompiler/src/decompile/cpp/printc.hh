@@ -248,11 +248,12 @@ protected:
   virtual void emitExpression(const PcodeOp *op);
   virtual void emitVarDecl(const Symbol *sym);
   virtual void emitVarDeclStatement(const Symbol *sym);
-  virtual bool emitScopeVarDecls(const Scope *symScope,int4 cat);
+  virtual bool emitScopeVarDecls(const Scope *symScope,int4 cat,const Funcdata *fd);
   virtual void emitFunctionDeclaration(const Funcdata *fd);
   virtual void emitTypeDefinition(const Datatype *ct);
   virtual bool checkPrintNegation(const Varnode *vn);
   virtual bool checkPrintAlloca(const PcodeOp *op);
+  virtual bool checkPrintZeroInitializer(const Symbol *sym);
   void pushTypePointerRel(const PcodeOp *op,const Varnode *vn,uint4 m);
   void pushToArrVarnode(const PcodeOp *op,const Varnode *vn,uint4 m);
   void pushToArrInteger(const PcodeOp *op,const Varnode *vn,uintb val,const Datatype *ct,tagtype tag);
