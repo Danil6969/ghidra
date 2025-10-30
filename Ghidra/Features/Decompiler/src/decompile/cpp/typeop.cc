@@ -707,6 +707,15 @@ bool TypeOpCall::conflictsDefinitionDatatype(const PcodeOp *op,int4 slot,FuncCal
 
     return pt->getName() != outpt->getName();
   }
+  if (opc == CPUI_MULTIEQUAL) {
+    for (int4 i=0;i<def->numInput();++i) {
+      Datatype *indt = def->getIn(i)->getTypeReadFacing(def);
+      if (indt->getMetatype() != TYPE_PTR) continue;
+      TypePointer *intp = (TypePointer *)indt;
+      Datatype *inpt = intp->getPtrTo();
+      if (pt->getName() != inpt->getName()) return true;
+    }
+  }
   return false;
 }
 
