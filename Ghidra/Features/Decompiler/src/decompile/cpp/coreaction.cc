@@ -4784,12 +4784,6 @@ void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata 
 
 {
   intb off = sign_extend(offset,8*space->getAddrSize()-1);
-  if (space->stackGrowsNegative()) {
-    if (off > 0) return;
-  }
-  else {
-    if (off < 0) return;
-  }
 
   Address addr(space,offset);
   VarnodeLocSet::const_iterator viter;
