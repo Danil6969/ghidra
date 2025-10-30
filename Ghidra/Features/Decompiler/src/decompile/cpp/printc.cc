@@ -2949,14 +2949,14 @@ void PrintC::emitLocalVarDecls(const Funcdata *fd)
 {
   bool notempty = false;
 
-  if (emitScopeVarDecls(fd->getScopeLocal(),Symbol::no_category))
+  if (emitScopeVarDecls(fd->getScopeLocal(),Symbol::no_category,fd))
     notempty = true;
   ScopeMap::const_iterator iter,enditer;
   iter = fd->getScopeLocal()->childrenBegin();
   enditer = fd->getScopeLocal()->childrenEnd();
   while(iter!=enditer) {
     Scope *l1 = (*iter).second;
-    if (emitScopeVarDecls(l1,Symbol::no_category))
+    if (emitScopeVarDecls(l1,Symbol::no_category,fd))
       notempty = true;
     ++iter;
   }
@@ -3102,6 +3102,16 @@ bool PrintC::checkPrintAlloca(const PcodeOp *op)
   if (op->code() == CPUI_COPY) {
     if (outvn->isExplicit()) return false;
   }
+  return true;
+}
+
+bool PrintC::checkPrintZeroInitializer(const Symbol *sym)
+
+{
+  if (sym->numEntries() == 0) return false;
+  SymbolEntry *entry = sym->getMapEntry(0);
+  Address usepoint = entry->getFirstUseAddress();
+  if (usepoint.isInvalid()) return false;
   return true;
 }
 
@@ -3356,10 +3366,13 @@ void PrintC::emitVarDeclStatement(const Symbol *sym)
 {
   emit->tagLine();
   emitVarDecl(sym);
+  if (checkPrintZeroInitializer(sym)) {
+    ;
+  }
   emit->print(SEMICOLON);
 }
 
-bool PrintC::emitScopeVarDecls(const Scope *symScope,int4 cat)
+bool PrintC::emitScopeVarDecls(const Scope *symScope,int4 cat,const Funcdata *fd)
 
 {
   bool notempty = false;
@@ -3453,7 +3466,7 @@ void PrintC::emitGlobalVarDeclsRecursive(Scope *symScope)
 
 {
   if (!symScope->isGlobal()) return;
-  emitScopeVarDecls(symScope,Symbol::no_category);
+  emitScopeVarDecls(symScope,Symbol::no_category,(const Funcdata *)0);
   ScopeMap::const_iterator iter,enditer;
   iter = symScope->childrenBegin();
   enditer = symScope->childrenEnd();
