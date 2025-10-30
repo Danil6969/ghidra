@@ -1378,11 +1378,41 @@ Datatype *Varnode::recoverConstantDatatype(void) const
     if (cbranchop == (PcodeOp *)0) return (Datatype *)0;
     if (cbranchop->code() != CPUI_CBRANCH) return (Datatype *)0;
 
+    Varnode *addressvn = cbranchop->getIn(0);
+    uintb addressoff = addressvn->getOffset();
     Varnode *conditionvn = cbranchop->getIn(1);
     conditionvn = conditionvn->getCopyChainInput();
     PcodeOp *conditionop = conditionvn->getDef();
     OpCode conditionopc = conditionop->code();
-    if (conditionopc == CPUI_INT_NOTEQUAL || conditionopc == CPUI_INT_EQUAL) {
+
+    uintb parentoff = parent->firstOp()->getAddr().getOffset();
+    if (conditionopc == CPUI_INT_EQUAL) {
+      Varnode *cvn = conditionop->getIn(1);
+      if (!cvn->isConstant()) return (Datatype *)0;
+      if (cvn->getOffset() != off) return (Datatype *)0;
+      if (bl->sizeOut() == 2) {
+	const FlowBlock *another = (const FlowBlock *)0;
+	if (bl->getOut(0) == (FlowBlock *)parent)
+	  another = bl->getOut(1);
+	if (bl->getOut(1) == (FlowBlock *)parent)
+	  another = bl->getOut(0);
+
+	if (another != (const FlowBlock *)0) {
+	  PcodeOp *retOp = another->lastOp();
+	  if (retOp->code() == CPUI_RETURN && retOp->numInput() > 1) {
+	    Varnode *invn = retOp->getIn(1);
+	    invn = invn->getCopyChainInput();
+	    if (invn->isConstant()) return (Datatype *)0;
+	  }
+	}
+      }
+
+      Varnode *ptrvn = conditionop->getIn(0);
+      Datatype *ct = ptrvn->getTypeReadFacing(conditionop);
+      return ct;
+    }
+    if (conditionopc == CPUI_INT_NOTEQUAL) {
+      if (parentoff != addressoff) return (Datatype *)0;
       Varnode *cvn = conditionop->getIn(1);
       if (!cvn->isConstant()) return (Datatype *)0;
       if (cvn->getOffset() != off) return (Datatype *)0;
