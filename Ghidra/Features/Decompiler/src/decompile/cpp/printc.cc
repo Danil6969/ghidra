@@ -3108,11 +3108,18 @@ bool PrintC::checkPrintAlloca(const PcodeOp *op)
 bool PrintC::checkPrintZeroInitializer(const Symbol *sym,const Funcdata *fd)
 
 {
+  if (fd == (const Funcdata *)0)
   if (sym->numEntries() == 0) return false;
-  SymbolEntry *entry = sym->getMapEntry(0);
-  Address usepoint = entry->getFirstUseAddress();
-  if (usepoint.isInvalid()) return false;
-  return true;
+  Address addr = sym->getMapEntry(0)->getAddr();
+  VarnodeLocSet::const_iterator iter = fd->beginLoc(addr);
+  if (iter == fd->endLoc(addr)) return false;
+  uint4 flags = (*iter)->getFlags();
+  if ((flags & Varnode::unaffected)!=0) return true;
+  if ((flags & Varnode::input)!=0) {
+    if (sym->getCategory()==Symbol::function_parameter) return false;
+    return true;
+  }
+  return false;
 }
 
 /// \brief Push a token indicating a PTRSUB (a -> operator) is acting at an offset from the original pointer
@@ -3366,10 +3373,18 @@ void PrintC::emitVarDeclStatement(const Symbol *sym,const Funcdata *fd)
 {
   emit->tagLine();
   emitVarDecl(sym);
-  if (checkPrintZeroInitializer(sym,fd)) {
-    ;
-  }
   emit->print(SEMICOLON);
+  if (checkPrintZeroInitializer(sym,fd)) {
+    emit->tagLine();
+    pushOp(&function_call,(const PcodeOp *)0);
+    pushAtom(Atom("builtin_memset",optoken,EmitMarkup::no_color,(const PcodeOp *)0));
+    pushOp(&comma,(const PcodeOp *)0);
+    pushOp(&comma,(const PcodeOp *)0);
+    pushSymbol(sym,(Varnode *)0,(PcodeOp *)0);
+    push_integer(0,1,false,syntax,(Varnode *)0,(const PcodeOp *)0);
+    push_integer(sym->getType()->getSize(),1,false,syntax,(Varnode *)0,(const PcodeOp *)0);
+    emit->print(SEMICOLON);
+  }
 }
 
 bool PrintC::emitScopeVarDecls(const Scope *symScope,int4 cat,const Funcdata *fd)
