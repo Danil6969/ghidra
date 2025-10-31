@@ -3105,7 +3105,7 @@ bool PrintC::checkPrintAlloca(const PcodeOp *op)
   return true;
 }
 
-bool PrintC::checkPrintZeroInitializer(const Symbol *sym)
+bool PrintC::checkPrintZeroInitializer(const Symbol *sym,const Funcdata *fd)
 
 {
   if (sym->numEntries() == 0) return false;
@@ -3361,12 +3361,12 @@ void PrintC::emitVarDecl(const Symbol *sym)
   emit->endVarDecl(id);
 }
 
-void PrintC::emitVarDeclStatement(const Symbol *sym)
+void PrintC::emitVarDeclStatement(const Symbol *sym,const Funcdata *fd)
 
 {
   emit->tagLine();
   emitVarDecl(sym);
-  if (checkPrintZeroInitializer(sym)) {
+  if (checkPrintZeroInitializer(sym,fd)) {
     ;
   }
   emit->print(SEMICOLON);
@@ -3385,7 +3385,7 @@ bool PrintC::emitScopeVarDecls(const Scope *symScope,int4 cat,const Funcdata *fd
       if (sym->getName().size() == 0) continue;
       if (sym->isNameUndefined()) continue;
       notempty = true;
-      emitVarDeclStatement(sym);
+      emitVarDeclStatement(sym,fd);
     }
     return notempty;
   }
@@ -3406,7 +3406,7 @@ bool PrintC::emitScopeVarDecls(const Scope *symScope,int4 cat,const Funcdata *fd
 	continue;		// Only emit the first SymbolEntry for declaration of multi-entry Symbol
     }
     notempty = true;
-    emitVarDeclStatement(sym);
+    emitVarDeclStatement(sym,fd);
   }
   list<SymbolEntry>::const_iterator iter_d = symScope->beginDynamic();
   list<SymbolEntry>::const_iterator enditer_d = symScope->endDynamic();
@@ -3425,7 +3425,7 @@ bool PrintC::emitScopeVarDecls(const Scope *symScope,int4 cat,const Funcdata *fd
 	continue;
     }
     notempty = true;
-    emitVarDeclStatement(sym);
+    emitVarDeclStatement(sym,fd);
   }
 
   return notempty;
@@ -3489,7 +3489,7 @@ void PrintC::docSingleGlobal(const Symbol *sym)
 
 {
   int4 id = emit->beginDocument();
-  emitVarDeclStatement(sym);
+  emitVarDeclStatement(sym,(const Funcdata *)0);
   emit->tagLine();		// Extra line
   emit->endDocument(id);
   emit->flush();
