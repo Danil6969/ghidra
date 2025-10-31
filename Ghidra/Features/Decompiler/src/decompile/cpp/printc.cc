@@ -3111,12 +3111,21 @@ bool PrintC::checkPrintZeroInitializer(const Symbol *sym,const Funcdata *fd)
   if (fd == (const Funcdata *)0)
   if (sym->numEntries() == 0) return false;
   Address addr = sym->getMapEntry(0)->getAddr();
-  VarnodeLocSet::const_iterator iter = fd->beginLoc(addr);
-  if (iter == fd->endLoc(addr)) return false;
-  uint4 flags = (*iter)->getFlags();
+  Varnode *vn = (Varnode *)0;
+  VarnodeLocSet::const_iterator iter;
+  for (iter=fd->beginLoc(addr);iter!=fd->endLoc(addr);++iter) {
+    HighVariable *high = (*iter)->getHigh();
+    Symbol *symbol = high->getSymbol();
+    if (symbol != sym) continue;
+    vn = *iter;
+    break;
+  }
+  if (vn == (Varnode *)0) return false;
+  uint4 flags = vn->getFlags();
   if ((flags & Varnode::unaffected)!=0) return true;
   if ((flags & Varnode::input)!=0) {
     if (sym->getCategory()==Symbol::function_parameter) return false;
+    if ((flags & Varnode::indirectonly)!=0) return false;
     return true;
   }
   return false;
