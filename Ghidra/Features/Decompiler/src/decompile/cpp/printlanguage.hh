@@ -406,7 +406,7 @@ protected:
   /// \brief Emit a variable declaration statement
   ///
   /// \param sym is the Symbol to be declared
-  virtual void emitVarDeclStatement(const Symbol *sym)=0;
+  virtual void emitVarDeclStatement(const Symbol *sym,const Funcdata *fd)=0;
 
   /// \brief Emit all the variable declarations for a given scope
   ///
