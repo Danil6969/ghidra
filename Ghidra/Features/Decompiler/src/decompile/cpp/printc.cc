@@ -3375,14 +3375,17 @@ void PrintC::emitVarDeclStatement(const Symbol *sym,const Funcdata *fd)
   emitVarDecl(sym);
   emit->print(SEMICOLON);
   if (checkPrintZeroInitializer(sym,fd)) {
+    Datatype *ct = sym->getType();
     emit->tagLine();
     pushOp(&function_call,(const PcodeOp *)0);
     pushAtom(Atom("builtin_memset",optoken,EmitMarkup::no_color,(const PcodeOp *)0));
     pushOp(&comma,(const PcodeOp *)0);
     pushOp(&comma,(const PcodeOp *)0);
+    if (ct->getMetatype() != TYPE_ARRAY)
+      pushOp(&addressof,(const PcodeOp *)0);
     pushSymbol(sym,(Varnode *)0,(PcodeOp *)0);
     push_integer(0,1,false,syntax,(Varnode *)0,(const PcodeOp *)0);
-    push_integer(sym->getType()->getSize(),1,false,syntax,(Varnode *)0,(const PcodeOp *)0);
+    push_integer(ct->getSize(),1,false,syntax,(Varnode *)0,(const PcodeOp *)0);
     emit->print(SEMICOLON);
   }
 }
