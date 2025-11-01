@@ -290,12 +290,13 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
 
 {
   if (code() != CPUI_COPY) return false;
-  const Varnode *in = getIn(0);
-  // TODO recursive or non-recursive?
-  if (in->isStackVariableAddress(data,false,true)) return false;
-  const PcodeOp *op1 = in->getDef();
+  const Varnode *in1 = getIn(0);
+  Datatype *ct1 = in1->getTypeReadFacing(this);
+  if (ct1->getSubMeta() == SUB_PTRREL) return false;
+  if (in1->isStackVariableAddress(data,false,true)) return false;
+  const PcodeOp *op1 = in1->getDef();
   if (op1 == (PcodeOp *)0) {
-    if (in->isConstant()) return false;
+    if (in1->isConstant()) return false;
     return getOut()->isStaticCastOutput(data);
   }
   OpCode opc = op1->code();
@@ -309,6 +310,12 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
   if (opc == CPUI_INT_RIGHT) return false;
   if (opc == CPUI_INT_SRIGHT) return false;
   if (opc == CPUI_INT_ADD) {
+    Datatype *ct2 = op1->getIn(0)->getTypeReadFacing(op1);
+    if (ct2->getSubMeta() == SUB_PTRREL) {
+      const Varnode *cvn = op1->getIn(1);
+      if (cvn->isConstant())
+	return false;
+    }
     PcodeOp *op2 = getOut()->loneDescend();
     if (op2 != (PcodeOp *)0 && op2->code() == CPUI_INT_ADD) {
       return false;
