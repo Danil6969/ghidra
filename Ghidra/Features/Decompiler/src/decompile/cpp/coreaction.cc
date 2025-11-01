@@ -2775,8 +2775,7 @@ bool ActionRepairPtradd::updateOutputType(PcodeOp *op,Funcdata &data,CastStrateg
   if (tokenct->getMetatype() != TYPE_PTR) return false;
   if (outHighType->getMetatype() != TYPE_PTR) return false;
   if (tokenct->getPtrTo()->getSize() == outHighType->getPtrTo()->getSize()) return false;
-  outvn->updateType(tokenct,false,false);
-  return true;
+  return outvn->updateType(tokenct,false,false);
 }
 
 bool ActionRepairPtradd::placePtrsubZero(PcodeOp *op,Funcdata &data,CastStrategy *castStrategy,TypeFactory *tlst)
