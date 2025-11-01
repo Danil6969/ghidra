@@ -1125,7 +1125,7 @@ public:
   static int4 evaluatePointerExpression(PcodeOp *op,int4 slot);
 };
 class RuleStructOffset0 : public Rule {
-  static int4 getMaxMoveSize(PcodeOp *op);
+  static int4 getMaxMoveSize(PcodeOp *op,set<PcodeOp *> visitedOps);
   static bool isRepeated(Varnode *vn,Datatype *baseType,Datatype *subType);
 public:
   RuleStructOffset0(const string &g) : Rule(g, 0, "structoffset0") {}	///< Constructor
