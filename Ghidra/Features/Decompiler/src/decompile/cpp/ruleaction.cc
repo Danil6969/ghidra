@@ -7922,9 +7922,54 @@ bool RulePtrArith::canApply(PcodeOp *op,Funcdata &data)
   return false;
 }
 
-int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op)
+int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> visitedOps)
 
 {
+  visitedOps.insert(op);
+
+  int4 movesize = 0;
+  Varnode *outvn = (Varnode *)0;
+  Varnode *invn = (Varnode *)0;
+  OpCode opc = op->code();
+  if (opc == CPUI_MULTIEQUAL) {
+    int4 maxsize = 0;
+    list<PcodeOp *>::const_iterator iter;
+    outvn = op->getOut();
+    for (iter=outvn->beginDescend();iter!=outvn->endDescend();++iter) {
+      PcodeOp *otherop = *iter;
+      if (visitedOps.find(otherop) != visitedOps.end()) continue;
+      movesize = getMaxMoveSize(otherop,visitedOps);
+      if (movesize == 0) return 0;
+      if (movesize <= maxsize) continue;
+      maxsize = movesize;
+    }
+    return maxsize;
+  }
+  if (opc == CPUI_LOAD) {
+    outvn = op->getOut();
+    return outvn->getSize();
+  }
+  if (opc == CPUI_STORE) {
+    invn = op->getIn(2);
+    return invn->getSize();
+  }
+  if (opc == CPUI_INT_ADD) {
+    invn = op->getIn(0);
+    if (invn->isConstant())
+      movesize = sign_extend(invn->getOffset(),8*invn->getSize()-1);
+    invn = op->getIn(1);
+    if (invn->isConstant())
+      movesize = sign_extend(invn->getOffset(),8*invn->getSize()-1);
+    if (movesize < 0) return 0;
+    return movesize;
+  }
+  if (opc == CPUI_PTRSUB) {
+    Varnode *invn = op->getIn(1);
+    if (!invn->isConstant()) return 0;
+    movesize = sign_extend(invn->getOffset(),8*invn->getSize()-1);
+    if (movesize < 0) return 0;
+    return movesize;
+  }
   return 0;
 }
 
@@ -7990,16 +8035,18 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
 
   if (!data.hasTypeRecoveryStarted()) return 0;
   if (op->code()==CPUI_LOAD) {
-    movesize = op->getOut()->getSize();
     slot = 1;
+    movesize = op->getOut()->getSize();
   }
   else if (op->code()==CPUI_STORE) {
-    movesize = op->getIn(2)->getSize();
     slot = 1;
+    movesize = op->getIn(2)->getSize();
   }
   else if (op->code()==CPUI_MULTIEQUAL) {
-    movesize = getMaxMoveSize(op);
     slot = 0;
+    set<PcodeOp *> visitedOps;
+    movesize = getMaxMoveSize(op,visitedOps);
+    visitedOps.clear();
   }
   else
     return 0;
