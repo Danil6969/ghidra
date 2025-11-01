@@ -2805,11 +2805,11 @@ Datatype *TypeOpPtrsub::getOutputLocal(const PcodeOp *op) const
   TypePointer *unusedParent;
 
   TypePointer *rettype = ptype->downChain(offset,unusedParent,unusedOffset,false,*tlst);
-  if (offset != 0) return dt;
   if (rettype == (TypePointer *)0) return dt;
+  if (offset == 0) return rettype;
+  if (rettype->getMetatype() != TYPE_PTR) return dt;
 
-  // Output is ptr to type of subfield
-  return rettype;
+  return tlst->getTypePointerRel(rettype,ptype->getPtrTo(),offset);
 }
 
 Datatype *TypeOpPtrsub::getInputLocal(const PcodeOp *op,int4 slot) const
@@ -2857,7 +2857,12 @@ Datatype *TypeOpPtrsub::getOutputToken(const PcodeOp *op,CastStrategy *castStrat
     vector<Datatype *> datatypes = tlst->findAll("va_list");
     if (datatypes.size() == 1) return datatypes[0];
   }
-  TypePointer *ptype = (TypePointer *)op->getIn(0)->getHighTypeReadFacing(op);
+  const Varnode *ptrvn = op->getIn(0);
+  TypePointer *ptype = (TypePointer *)ptrvn->getHighTypeReadFacing(op);
+  if (ptype->getSubMeta() != SUB_PTRREL) {
+    if (ptrvn->getTypeReadFacing(op)->getSubMeta() == SUB_PTRREL)
+      ptype = (TypePointer *)ptrvn->getTypeReadFacing(op);
+  }
   if (ptype->getMetatype() != TYPE_PTR)
     return TypeOp::getOutputToken(op,castStrategy);
 
