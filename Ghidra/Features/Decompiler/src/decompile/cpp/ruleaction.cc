@@ -7922,30 +7922,34 @@ bool RulePtrArith::canApply(PcodeOp *op,Funcdata &data)
   return false;
 }
 
+int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op)
+
+{
+  return 0;
+}
+
 /// \brief Prevents infinite loop in cases when struct contains pointers to the same type as itself
 ///
 /// \param op is main op
 /// \param baseType is type retrieved from main op by input 1
 /// \param subType is type at zeroth offset of baseType fetched from database
 /// \return true if repeats to itself or similar
-bool RuleStructOffset0::isRepeated(PcodeOp *op,Datatype *baseType,Datatype *subType)
+bool RuleStructOffset0::isRepeated(Varnode *vn,Datatype *baseType,Datatype *subType)
 
 {
   // Checks that this is another PTRSUB
-  PcodeOp *def = op->getIn(1)->getDef();
+  PcodeOp *def = vn->getDef();
   if (def == (PcodeOp *)0) return false;
   OpCode opc = def->code();
   if (opc != CPUI_PTRSUB) return false;
   // Checks that this is a zero-offset PTRSUB
-  Varnode *in1Vn = def->getIn(1);
-  if (!in1Vn->isConstant()) return false;
-  if (in1Vn->getOffset() != 0) return false;
-  Varnode *in0Vn = def->getIn(0);
-  Varnode *outVn = def->getOut();
-  Datatype *in0Type = in0Vn->getTypeReadFacing(def);
-  Datatype *outType = outVn->getTypeDefFacing();
+  Varnode *cvn = def->getIn(1);
+  if (!cvn->isConstant()) return false;
+  if (cvn->getOffset() != 0) return false;
+  Datatype *intype = def->getIn(0)->getTypeReadFacing(def);
+  Datatype *outtype = def->getOut()->getTypeDefFacing();
   // Already has one PTRSUB, why need more if datatype is the same?
-  if (in0Type == outType) {
+  if (intype == outtype) {
     return true;
   }
   if (subType == (Datatype *)0) return false;
@@ -7972,28 +7976,36 @@ bool RuleStructOffset0::isRepeated(PcodeOp *op,Datatype *baseType,Datatype *subT
 void RuleStructOffset0::getOpList(vector<uint4> &oplist) const
 
 {
-  uint4 list[]={ CPUI_LOAD, CPUI_STORE };
-  oplist.insert(oplist.end(),list,list+2);
+  uint4 list[]={ CPUI_LOAD, CPUI_STORE, CPUI_MULTIEQUAL };
+  oplist.insert(oplist.end(),list,list+3);
 }
   
 int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
 
 {
   int4 movesize;			// Number of bytes being moved by load or store
+  int4 slot;				// Pointer slot
   Datatype *baseType = (Datatype *)0;
   int8 offset = 0;
 
   if (!data.hasTypeRecoveryStarted()) return 0;
   if (op->code()==CPUI_LOAD) {
     movesize = op->getOut()->getSize();
+    slot = 1;
   }
   else if (op->code()==CPUI_STORE) {
     movesize = op->getIn(2)->getSize();
+    slot = 1;
+  }
+  else if (op->code()==CPUI_MULTIEQUAL) {
+    movesize = getMaxMoveSize(op);
+    slot = 0;
   }
   else
     return 0;
+  if (movesize == 0) return 0;
 
-  Varnode *ptrVn = op->getIn(1);
+  Varnode *ptrVn = op->getIn(slot);
   Datatype *ct = ptrVn->getTypeReadFacing(op);
   if (ct->getMetatype() != TYPE_PTR) return 0;
 
@@ -8017,12 +8029,12 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
       Datatype *subType = baseType->getSubType(offset,&offset); // Get field at pointer's offset
       if (subType==(Datatype *)0) return 0;
       if (subType->getSize() < movesize) return 0;		// Subtype is too small to handle LOAD/STORE
-      if (isRepeated(op,baseType,subType)) return 0;		// Does not contain anything within
+      if (isRepeated(ptrVn,baseType,subType)) return 0;		// Does not contain anything within
       								// In fact this will lead to repeated datatypes
 								// between both input0 and output of newly created PTRSUB
     }
     else {
-      if (isRepeated(op,baseType,(Datatype *)0)) return 0;
+      if (isRepeated(ptrVn,baseType,(Datatype *)0)) return 0;
     }
   }
   else if (baseType->getMetatype() == TYPE_ARRAY) {
@@ -8039,9 +8051,9 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
 
   PcodeOp *newop = data.newOpBefore(op,CPUI_PTRSUB,ptrVn,data.newConstant(ptrVn->getSize(),0));
   if (ptrVn->getType()->needsResolution())
-    data.inheritResolution(ptrVn->getType(),newop, 0, op, 1);
+    data.inheritResolution(ptrVn->getType(),newop, 0, op, slot);
   newop->setStopTypePropagation();
-  data.opSetInput(op,newop->getOut(),1);
+  data.opSetInput(op,newop->getOut(),slot);
   return 1;
 }
 
