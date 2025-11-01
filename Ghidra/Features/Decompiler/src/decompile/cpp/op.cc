@@ -313,8 +313,12 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
     Datatype *ct2 = op1->getIn(0)->getTypeReadFacing(op1);
     if (ct2->getSubMeta() == SUB_PTRREL) {
       const Varnode *cvn = op1->getIn(1);
-      if (cvn->isConstant())
-	return false;
+      if (cvn->isConstant()) {
+	int4 ptroff = -((TypePointerRel *)ct2)->getPointerOffset();
+	intb off = sign_extend(cvn->getOffset(),8*cvn->getSize()-1);
+	if (ptroff <= off && off < 0)
+	  return false;
+      }
     }
     PcodeOp *op2 = getOut()->loneDescend();
     if (op2 != (PcodeOp *)0 && op2->code() == CPUI_INT_ADD) {
