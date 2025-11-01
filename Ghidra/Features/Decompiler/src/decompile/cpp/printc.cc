@@ -3111,6 +3111,7 @@ bool PrintC::checkPrintZeroInitializer(const Symbol *sym,const Funcdata *fd)
   if (fd == (const Funcdata *)0)
   if (sym->numEntries() == 0) return false;
   Address addr = sym->getMapEntry(0)->getAddr();
+  if (addr.isInvalid()) return false;
   Varnode *vn = (Varnode *)0;
   VarnodeLocSet::const_iterator iter;
   for (iter=fd->beginLoc(addr);iter!=fd->endLoc(addr);++iter) {
