@@ -7927,12 +7927,12 @@ int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> visitedOps)
 {
   visitedOps.insert(op);
 
+  int4 maxsize = 0;
   int4 movesize = 0;
   Varnode *outvn = (Varnode *)0;
   Varnode *invn = (Varnode *)0;
   OpCode opc = op->code();
   if (opc == CPUI_MULTIEQUAL) {
-    int4 maxsize = 0;
     list<PcodeOp *>::const_iterator iter;
     outvn = op->getOut();
     for (iter=outvn->beginDescend();iter!=outvn->endDescend();++iter) {
@@ -7960,15 +7960,22 @@ int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> visitedOps)
     invn = op->getIn(1);
     if (invn->isConstant())
       movesize = sign_extend(invn->getOffset(),8*invn->getSize()-1);
-    if (movesize < 0) return 0;
+    if (movesize < 0)
+      movesize = -movesize;
     return movesize;
   }
   if (opc == CPUI_PTRSUB) {
-    Varnode *invn = op->getIn(1);
-    if (!invn->isConstant()) return 0;
-    movesize = sign_extend(invn->getOffset(),8*invn->getSize()-1);
-    if (movesize < 0) return 0;
-    return movesize;
+    list<PcodeOp *>::const_iterator iter;
+    outvn = op->getOut();
+    for (iter=outvn->beginDescend();iter!=outvn->endDescend();++iter) {
+      PcodeOp *otherop = *iter;
+      if (visitedOps.find(otherop) != visitedOps.end()) continue;
+      movesize = getMaxMoveSize(otherop,visitedOps);
+      if (movesize == 0) return 0;
+      if (movesize <= maxsize) continue;
+      maxsize = movesize;
+    }
+    return maxsize;
   }
   return 0;
 }
@@ -8029,27 +8036,24 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
 
 {
   int4 movesize;			// Number of bytes being moved by load or store
-  int4 slot;				// Pointer slot
+  int4 slot = -1;			// Pointer slot
   Datatype *baseType = (Datatype *)0;
   int8 offset = 0;
 
   if (!data.hasTypeRecoveryStarted()) return 0;
   if (op->code()==CPUI_LOAD) {
     slot = 1;
-    movesize = op->getOut()->getSize();
   }
-  else if (op->code()==CPUI_STORE) {
+  if (op->code()==CPUI_STORE) {
     slot = 1;
-    movesize = op->getIn(2)->getSize();
   }
-  else if (op->code()==CPUI_MULTIEQUAL) {
+  if (op->code()==CPUI_MULTIEQUAL) {
     slot = 0;
-    set<PcodeOp *> visitedOps;
-    movesize = getMaxMoveSize(op,visitedOps);
-    visitedOps.clear();
   }
-  else
-    return 0;
+  if (slot == -1) return 0;
+  set<PcodeOp *> visitedOps;
+  movesize = getMaxMoveSize(op,visitedOps);
+  visitedOps.clear();
   if (movesize == 0) return 0;
 
   Varnode *ptrVn = op->getIn(slot);
