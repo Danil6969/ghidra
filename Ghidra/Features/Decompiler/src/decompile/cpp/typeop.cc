@@ -709,7 +709,8 @@ bool TypeOpCall::conflictsDefinitionDatatype(const PcodeOp *op,int4 slot,FuncCal
     break;
   }
   if (ct->getMetatype() == TYPE_PTR) {
-    return true;
+    Datatype *ptrto = ((TypePointer *)ct)->getPtrTo();
+    return pt->getName() != ptrto->getName();
   }
   if (def == (const PcodeOp *)0) return false;
   opc = def->code();
@@ -719,17 +720,14 @@ bool TypeOpCall::conflictsDefinitionDatatype(const PcodeOp *op,int4 slot,FuncCal
     if (outparam == (ProtoParameter*)0) return false;
     Datatype *outdt = outparam->getType();
     if (outdt->getMetatype() != TYPE_PTR) return false;
-    TypePointer *outtp = (TypePointer *)outdt;
-    Datatype *outpt = outtp->getPtrTo();
-
+    Datatype *outpt = ((TypePointer *)outdt)->getPtrTo();
     return pt->getName() != outpt->getName();
   }
   if (opc == CPUI_MULTIEQUAL) {
     for (int4 i=0;i<def->numInput();++i) {
       Datatype *indt = def->getIn(i)->getTypeReadFacing(def);
       if (indt->getMetatype() != TYPE_PTR) continue;
-      TypePointer *intp = (TypePointer *)indt;
-      Datatype *inpt = intp->getPtrTo();
+      Datatype *inpt = ((TypePointer *)indt)->getPtrTo();
       if (pt->getName() != inpt->getName()) return true;
     }
   }
