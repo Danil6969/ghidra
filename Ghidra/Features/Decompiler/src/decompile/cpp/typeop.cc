@@ -2387,10 +2387,18 @@ Datatype *TypeOpMulti::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn
   if (invn->isSpacebase()) {
     AddrSpace *spc = tlst->getArch()->getDefaultDataSpace();
     newtype = tlst->getTypePointer(alttype->getSize(),tlst->getBase(1,TYPE_UNKNOWN),spc->getWordSize());
+    return newtype;
   }
-  else
-    newtype = alttype;
-  return newtype;
+  if (inslot == -1) return alttype;
+  PcodeOp *inop = op->getIn(inslot)->getDef();
+  if (inop == (PcodeOp *)0) return alttype;
+  if (inop->code() == CPUI_PTRSUB) {
+    if (alttype->getMetatype() != TYPE_PTR) return (Datatype *)0;
+    Datatype *ct = op->getIn(inslot)->getTypeDefFacing();
+    if (ct->getMetatype() != TYPE_PTR) return (Datatype *)0;
+    return (Datatype *)0;
+  }
+  return alttype;
 }
 
 void TypeOpMulti::printRaw(ostream &s,const PcodeOp *op)
