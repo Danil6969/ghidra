@@ -301,15 +301,6 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
     return getOut()->isStaticCastOutput(data);
   }
   OpCode opc = op1->code();
-  if (opc == CPUI_INT_EQUAL) return false;
-  if (opc == CPUI_INT_NOTEQUAL) return false;
-  if (opc == CPUI_INT_SLESS) return false;
-  if (opc == CPUI_INT_SLESSEQUAL) return false;
-  if (opc == CPUI_INT_LESS) return false;
-  if (opc == CPUI_INT_LESSEQUAL) return false;
-  if (opc == CPUI_INT_LEFT) return false;
-  if (opc == CPUI_INT_RIGHT) return false;
-  if (opc == CPUI_INT_SRIGHT) return false;
   if (opc == CPUI_INT_ADD) {
     Datatype *ct2 = op1->getIn(0)->getTypeReadFacing(op1);
     if (ct2->getSubMeta() == SUB_PTRREL) {
@@ -326,6 +317,33 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
       return false;
     }
   }
+
+  if (opc == CPUI_LOAD) {
+    if (ct1->getMetatype() == TYPE_PTR) {
+      TypePointer *pt = (TypePointer *)ct1;
+      Datatype *ptrto = pt->getPtrTo();
+      if (ptrto->getMetatype() == TYPE_STRUCT) {
+	string nm = ptrto->getName();
+	uint8 found = nm.find(Funcdata::DATATYPE_VTABLE);
+	if (found != string::npos) {
+	  uint8 diff = nm.length() - found - Funcdata::DATATYPE_VTABLE.length();
+	  if (diff == 0)
+	    return false;
+	}
+      }
+      return false;
+    }
+  }
+
+  if (opc == CPUI_INT_EQUAL) return false;
+  if (opc == CPUI_INT_NOTEQUAL) return false;
+  if (opc == CPUI_INT_SLESS) return false;
+  if (opc == CPUI_INT_SLESSEQUAL) return false;
+  if (opc == CPUI_INT_LESS) return false;
+  if (opc == CPUI_INT_LESSEQUAL) return false;
+  if (opc == CPUI_INT_LEFT) return false;
+  if (opc == CPUI_INT_RIGHT) return false;
+  if (opc == CPUI_INT_SRIGHT) return false;
 
   if (opc == CPUI_BOOL_NEGATE) return false;
   if (opc == CPUI_BOOL_XOR) return false;
