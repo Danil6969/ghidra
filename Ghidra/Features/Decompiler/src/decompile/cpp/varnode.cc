@@ -1269,19 +1269,13 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
       if (ct->getMetatype() != TYPE_PTR) return true;
       TypePointer *pt = (TypePointer *)ct;
       Datatype *ptrto = pt->getPtrTo();
-      PcodeOp *op2 = op1->getOut()->loneDescend();
-      if (op2 != (PcodeOp *)0 && op2->code() == CPUI_LOAD) {
-	PcodeOp *op3 = op2->getOut()->loneDescend();
-	if (op3 != (PcodeOp *)0 && op3->code() == CPUI_CALLIND) {
-	  if (ptrto->getMetatype() == TYPE_STRUCT) {
-	    string nm = ptrto->getName();
-	    uint8 found = nm.find(Funcdata::DATATYPE_VTABLE);
-	    if (found != string::npos) {
-	      uint8 diff = nm.length() - found - Funcdata::DATATYPE_VTABLE.length();
-	      if (diff == 0)
-		return false;
-	    }
-	  }
+      if (ptrto->getMetatype() == TYPE_STRUCT) {
+	string nm = ptrto->getName();
+	uint8 found = nm.find(Funcdata::DATATYPE_VTABLE);
+	if (found != string::npos) {
+	  uint8 diff = nm.length() - found - Funcdata::DATATYPE_VTABLE.length();
+	  if (diff == 0)
+	    return false;
 	}
       }
       return true;
