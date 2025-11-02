@@ -692,10 +692,27 @@ bool TypeOpCall::conflictsDefinitionDatatype(const PcodeOp *op,int4 slot,FuncCal
   TypePointer *tp = (TypePointer *)dt;
   Datatype *pt = tp->getPtrTo();
 
+  OpCode opc;
+  const PcodeOp *def = (const PcodeOp *)0;
   const Varnode *vn = op->getIn(slot);
-  const PcodeOp *def = vn->getDef();
-  if (def == (PcodeOp *)0) return false;
-  OpCode opc = def->code();
+  Datatype *ct = vn->getTypeReadFacing(op);
+  while (true) {
+    def = vn->getDef();
+    if (ct->getMetatype() == TYPE_PTR) break;
+    if (def == (const PcodeOp *)0) break;
+    opc = def->code();
+    if (opc == CPUI_COPY) {
+      vn = def->getIn(0);
+      ct = vn->getTypeReadFacing(def);
+      continue;
+    }
+    break;
+  }
+  if (ct->getMetatype() == TYPE_PTR) {
+    return true;
+  }
+  if (def == (const PcodeOp *)0) return false;
+  opc = def->code();
   if (opc == CPUI_CALL) {
     FuncCallSpecs *defspec = FuncCallSpecs::getFspecFromConst(def->getIn(0)->getAddr());
     ProtoParameter *outparam = defspec->getOutput();
