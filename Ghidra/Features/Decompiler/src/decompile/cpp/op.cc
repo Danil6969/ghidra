@@ -319,20 +319,7 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
   }
 
   if (opc == CPUI_LOAD) {
-    if (ct1->getMetatype() == TYPE_PTR) {
-      TypePointer *pt = (TypePointer *)ct1;
-      Datatype *ptrto = pt->getPtrTo();
-      if (ptrto->getMetatype() == TYPE_STRUCT) {
-	string nm = ptrto->getName();
-	uint8 found = nm.find(Funcdata::DATATYPE_VTABLE);
-	if (found != string::npos) {
-	  uint8 diff = nm.length() - found - Funcdata::DATATYPE_VTABLE.length();
-	  if (diff == 0)
-	    return false;
-	}
-      }
-      return false;
-    }
+    if (ct1->isVtablePointer()) return false;
   }
 
   if (opc == CPUI_INT_EQUAL) return false;
