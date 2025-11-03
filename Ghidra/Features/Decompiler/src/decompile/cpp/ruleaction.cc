@@ -8035,19 +8035,20 @@ void RuleStructOffset0::getOpList(vector<uint4> &oplist) const
 int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
 
 {
+  if (!data.hasTypeRecoveryStarted()) return 0;
   int4 movesize;			// Number of bytes being moved by load or store
   int4 slot = -1;			// Pointer slot
   Datatype *baseType = (Datatype *)0;
   int8 offset = 0;
+  OpCode opc = op->code();
 
-  if (!data.hasTypeRecoveryStarted()) return 0;
-  if (op->code()==CPUI_LOAD) {
+  if (opc == CPUI_LOAD) {
     slot = 1;
   }
-  if (op->code()==CPUI_STORE) {
+  if (opc == CPUI_STORE) {
     slot = 1;
   }
-  if (op->code()==CPUI_MULTIEQUAL) {
+  if (opc == CPUI_MULTIEQUAL) {
     slot = 0;
   }
   if (slot == -1) return 0;
@@ -8074,11 +8075,16 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
   }
 
   if (baseType->getMetatype() == TYPE_STRUCT) {
+    Datatype *subType = baseType->getSubType(offset,&offset);	// Get field at pointer's offset
+    if (opc == CPUI_MULTIEQUAL) {
+      if (subType != (Datatype *)0) {
+	if (subType->isVtablePointer()) return 0;
+      }
+    }
     if (baseType->getSize() < movesize) return 0;		// Moving something bigger than entire structure
     if (offset == 0) {						// Only check if offset is 0.
 								// Otherwise there will be always an extra ptrsub
-      Datatype *subType = baseType->getSubType(offset,&offset); // Get field at pointer's offset
-      if (subType==(Datatype *)0) return 0;
+      if (subType == (Datatype *)0) return 0;
       if (subType->getSize() < movesize) return 0;		// Subtype is too small to handle LOAD/STORE
       if (isRepeated(ptrVn,baseType,subType)) return 0;		// Does not contain anything within
       								// In fact this will lead to repeated datatypes
