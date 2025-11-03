@@ -715,8 +715,8 @@ bool TypeOpCall::conflictsDefinitionDatatype(const PcodeOp *op,int4 slot,FuncCal
   if (def == (const PcodeOp *)0) return false;
   opc = def->code();
   if (opc == CPUI_CALL) {
-    FuncCallSpecs *defspec = FuncCallSpecs::getFspecFromConst(def->getIn(0)->getAddr());
-    ProtoParameter *outparam = defspec->getOutput();
+    FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(def->getIn(0)->getAddr());
+    ProtoParameter *outparam = fc->getOutput();
     if (outparam == (ProtoParameter*)0) return false;
     Datatype *outdt = outparam->getType();
     if (outdt->getMetatype() != TYPE_PTR) return false;
