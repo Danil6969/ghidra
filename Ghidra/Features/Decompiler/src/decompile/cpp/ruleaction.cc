@@ -7977,7 +7977,16 @@ int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> visitedOps)
     }
     return maxsize;
   }
-  return 0;
+  if (opc == CPUI_COPY) {
+    outvn = op->getOut();
+    Datatype *ct = outvn->recoverGlobalDatatype();
+    if (ct != (Datatype *)0 && ct->getMetatype() == TYPE_PTR) {
+      TypePointer *pt = (TypePointer *)ct;
+      return pt->getPtrTo()->getSize();
+    }
+  }
+  // TODO more testing required
+  return 1;
 }
 
 /// \brief Prevents infinite loop in cases when struct contains pointers to the same type as itself
