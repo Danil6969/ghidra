@@ -1266,18 +1266,7 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
 
     if (opc == CPUI_PTRSUB) {
       Datatype *ct = getTypeReadFacing(op1);
-      if (ct->getMetatype() != TYPE_PTR) return true;
-      TypePointer *pt = (TypePointer *)ct;
-      Datatype *ptrto = pt->getPtrTo();
-      if (ptrto->getMetatype() == TYPE_STRUCT) {
-	string nm = ptrto->getName();
-	uint8 found = nm.find(Funcdata::DATATYPE_VTABLE);
-	if (found != string::npos) {
-	  uint8 diff = nm.length() - found - Funcdata::DATATYPE_VTABLE.length();
-	  if (diff == 0)
-	    return false;
-	}
-      }
+      if (ct->isVtablePointer()) return false;
       return true;
     }
 
