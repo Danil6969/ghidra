@@ -285,6 +285,7 @@ public:
   void encodeRef(Encoder &encoder) const;	///< Encode a reference of \b this to a stream
   bool isPieceStructured(void) const;		///< Does \b this data-type consist of separate pieces?
   bool isPrimitiveWhole(void) const;		///< Is \b this made up of a single primitive
+  bool isVtablePointer(void) const;
   static uint4 encodeIntegerFormat(const string &val);
   static string decodeIntegerFormat(uint4 val);
 };
