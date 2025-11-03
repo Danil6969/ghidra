@@ -2840,6 +2840,13 @@ bool ActionRepairPtradd::distributePtraddPtrsub(PcodeOp *op,Funcdata &data,CastS
   TypePointer *pt = (TypePointer *)ptrvn->getTypeReadFacing(op);
   if (pt->getMetatype() != TYPE_PTR) return false;
   if (!pt->isPtrsubMatching(0,0,0)) return false;
+
+  int8 offset = 0;
+  int8 unusedOffset;
+  TypePointer *unusedParent;
+  TypePointer *ct = pt->downChain(offset,unusedParent,unusedOffset,false,*tlst);
+  if (ct == (TypePointer *)0) return false;
+  if (ct->getPtrTo()->isVtablePointer()) return false;
   if (pt->getPtrTo()->getSize() % pt->getWordSize() != 0) return false;
   int8 sz = AddrSpace::byteToAddressInt(pt->getPtrTo()->getSize(),pt->getWordSize());
   intb num = off / sz;
@@ -2858,10 +2865,6 @@ bool ActionRepairPtradd::distributePtraddPtrsub(PcodeOp *op,Funcdata &data,CastS
   data.opSetInput(op,indexVn,1);
   indexVn->updateType(dt,false,false);
 
-  int8 offset = 0;
-  int8 unusedOffset;
-  TypePointer *unusedParent;
-  TypePointer *ct = pt->downChain(offset,unusedParent,unusedOffset,false,*tlst);
   ActionSetCasts::insertPtrsubZero(op,0,ct,data);
   ptrsubop = op->getIn(0)->getDef();
   PcodeOp *ptraddop = ActionSetCasts::insertPtraddNum(ptrsubop,0,num,pt,data);
