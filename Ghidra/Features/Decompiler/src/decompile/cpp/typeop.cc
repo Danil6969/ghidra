@@ -730,6 +730,7 @@ bool TypeOpCall::conflictsDefinitionDatatype(const PcodeOp *op,int4 slot,FuncCal
       Datatype *inpt = ((TypePointer *)indt)->getPtrTo();
       if (pt->getName() != inpt->getName()) return true;
     }
+    return false;
   }
   return false;
 }
