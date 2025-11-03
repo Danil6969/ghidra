@@ -1555,15 +1555,18 @@ Datatype *ActionDeindirect::getOffsetStrippedDatatype(Datatype *pt,int8 offset,T
 Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,set<PcodeOp *> visitedOps)
 
 {
-  const FuncProto *fp = (const FuncProto *)0; // The function prototype
+  FuncCallSpecs *fc = (FuncCallSpecs *)0;		// The function prototype (direct call case)
+  const FuncProto *fp = (const FuncProto *)0;		// The function prototype (indirect call case)
+  ProtoParameter *outparam = (ProtoParameter*)0;	// The output parameter
 
-  TypePointer *ptr = (TypePointer *)0; // The pointer datatype
-  TypeCode *tc = (TypeCode *)0; // The code datatype
-  Datatype *ct = (Datatype *)0; // The source datatype
-  Datatype *ptrto = (Datatype *)0; // The pointed-to datatype
-  Datatype *subdt = (Datatype *)0; // The stripped datatype
-  Datatype *dt = (Datatype *)0; // The resulting datatype
+  TypePointer *ptr = (TypePointer *)0;	// The pointer datatype
+  TypeCode *tc = (TypeCode *)0;		// The code datatype
+  Datatype *ct = (Datatype *)0;		// The source datatype
+  Datatype *ptrto = (Datatype *)0;	// The pointed-to datatype
+  Datatype *subdt = (Datatype *)0;	// The stripped datatype
+  Datatype *dt = (Datatype *)0;		// The resulting datatype
 
+  // Input varnodes
   Varnode *invn0 = (Varnode *)0;
   Varnode *invn1 = (Varnode *)0;
   Varnode *invn2 = (Varnode *)0;
@@ -1605,6 +1608,13 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,se
       ptr = (TypePointer *)subdt;
       dt = ptr->getPtrTo();
       return dt;
+    case CPUI_CALL:
+      invn0 = def->getIn(0);
+      fc = FuncCallSpecs::getFspecFromConst(invn0->getAddr());
+      outparam = fc->getOutput();
+      if (outparam == (ProtoParameter*)0) return (Datatype *)0;
+      dt = outparam->getType();
+      return dt;
     case CPUI_CALLIND:
       invn0 = def->getIn(0);
       ct = invn0->getTypeReadFacing(def);
@@ -1615,7 +1625,9 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,se
       tc = (TypeCode *)ptrto;
       fp = tc->getPrototype();
       if (fp == (const FuncProto *)0) return (Datatype *)0;
-      dt = fp->getOutput()->getType();
+      outparam = fp->getOutput();
+      if (outparam == (ProtoParameter *)0) return (Datatype *)0;
+      dt = outparam->getType();
       return dt;
     case CPUI_INT_ADD:
       invn1 = def->getIn(1);
