@@ -1555,9 +1555,13 @@ Datatype *ActionDeindirect::getOffsetStrippedDatatype(Datatype *pt,int8 offset,T
 Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,set<PcodeOp *> visitedOps)
 
 {
+  const FuncProto *fp = (const FuncProto *)0; // The function prototype
+
   TypePointer *ptr = (TypePointer *)0; // The pointer datatype
+  TypeCode *tc = (TypeCode *)0; // The code datatype
   Datatype *ct = (Datatype *)0; // The source datatype
   Datatype *ptrto = (Datatype *)0; // The pointed-to datatype
+  Datatype *subdt = (Datatype *)0; // The stripped datatype
   Datatype *dt = (Datatype *)0; // The resulting datatype
 
   Varnode *invn0 = (Varnode *)0;
@@ -1585,6 +1589,9 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,se
 
   OpCode opc = def->code();
   switch (opc) {
+    case CPUI_COPY:
+      dt = getOutDatatype(def,0,offset,visitedOps);
+      return dt;
     case CPUI_LOAD:
       ct = getOutDatatype(def,1,off,visitedOps);
       dt = ct;
@@ -1592,11 +1599,23 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,se
 	dt = getOffsetStrippedDatatype(ct,off,types);
       }
       loadsize = def->getOut()->getSize();
-      dt = getSizeStrippedDatatype(dt,loadsize,types);
-      if (dt == (Datatype *)0) return (TypePointer *)0;
-      if (dt->getMetatype() != TYPE_PTR) return (TypePointer *)0;
-      ptr = (TypePointer *)dt;
+      subdt = getSizeStrippedDatatype(dt,loadsize,types);
+      if (subdt == (Datatype *)0) return (Datatype *)0;
+      if (subdt->getMetatype() != TYPE_PTR) return (Datatype *)0;
+      ptr = (TypePointer *)subdt;
       dt = ptr->getPtrTo();
+      return dt;
+    case CPUI_CALLIND:
+      invn0 = def->getIn(0);
+      ct = invn0->getTypeReadFacing(def);
+      if (ct->getMetatype() != TYPE_PTR) return (Datatype *)0;
+      ptr = (TypePointer *)ct;
+      ptrto = ptr->getPtrTo();
+      if (ptrto->getMetatype() != TYPE_CODE) return (Datatype *)0;
+      tc = (TypeCode *)ptrto;
+      fp = tc->getPrototype();
+      if (fp == (const FuncProto *)0) return (Datatype *)0;
+      dt = fp->getOutput()->getType();
       return dt;
     case CPUI_INT_ADD:
       invn1 = def->getIn(1);
@@ -1608,7 +1627,6 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,se
       dt = getOutDatatype(def,0,offset,visitedOps);
       return dt;
     case CPUI_MULTIEQUAL:
-      invn0 = def->getIn(0);
       dt = getOutDatatype(def,0,offset,visitedOps);
       return dt;
     case CPUI_PTRADD:
@@ -1634,7 +1652,7 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,se
       dt = getOutDatatype(def,0,offset,visitedOps);
       return dt;
   }
-  return dt;
+  return (Datatype *)0;
 }
 
 int4 ActionDeindirect::apply(Funcdata &data)
