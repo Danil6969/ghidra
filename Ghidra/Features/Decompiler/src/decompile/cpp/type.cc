@@ -552,6 +552,14 @@ bool Datatype::isPrimitiveWhole(void) const
 bool Datatype::isVtablePointer(void) const
 
 {
+  if (metatype != TYPE_PTR) return false;
+  Datatype *ptrto = ((TypePointer *)this)->getPtrTo();
+  if (ptrto->getMetatype() != TYPE_STRUCT) return false;
+  string nm = ptrto->getName();
+  uint8 found = nm.find(Funcdata::DATATYPE_VTABLE);
+  if (found == string::npos) return false;
+  uint8 diff = nm.length() - found - Funcdata::DATATYPE_VTABLE.length();
+  if (diff != 0) return false;
   return true;
 }
 
