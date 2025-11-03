@@ -3127,6 +3127,7 @@ bool PrintC::checkPrintZeroInitializer(const Symbol *sym,const Funcdata *fd)
   if ((flags & Varnode::input)!=0) {
     if (sym->getCategory()==Symbol::function_parameter) return false;
     if ((flags & Varnode::indirectonly)!=0) return false;
+    if ((flags & Varnode::coverdirty)!=0) return false;
     return true;
   }
   return false;
