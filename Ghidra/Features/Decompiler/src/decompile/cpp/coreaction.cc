@@ -4888,8 +4888,25 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
     }
     case CPUI_CALL:
     {
-      FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(op->getIn(0)->getAddr());
+      Varnode *invn = op->getIn(0);
+      FuncCallSpecs *fc = FuncCallSpecs::getFspecFromConst(invn->getAddr());
       ProtoParameter *param = fc->getParam(slot-1);
+      if (param == (ProtoParameter *)0) break;
+      tp = (TypePointer *)param->getType();
+      break;
+    }
+    case CPUI_CALLIND:
+    {
+      Varnode *invn = op->getIn(0);
+      Datatype *ct = invn->getTypeReadFacing(op);
+      if (ct->getMetatype() != TYPE_PTR) break;
+      Datatype *ptrto = ((TypePointer *)ct)->getPtrTo();
+      if (ptrto->getMetatype() != TYPE_CODE) break;
+      TypeCode *tc = (TypeCode *)ptrto;
+      const FuncProto *fp = tc->getPrototype();
+      if (fp == (const FuncProto *)0) break;
+      ProtoParameter *param = fp->getParam(slot-1);
+      if (param == (ProtoParameter *)0) break;
       tp = (TypePointer *)param->getType();
       break;
     }
