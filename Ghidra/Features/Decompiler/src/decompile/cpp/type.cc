@@ -549,6 +549,12 @@ bool Datatype::isPrimitiveWhole(void) const
   return false;
 }
 
+bool Datatype::isVtablePointer(void) const
+
+{
+  return true;
+}
+
 /// Called only if the \b typedefImm field is non-null.  Encode the data-type to the
 /// stream as a simple \<typedef> element including only the names and ids of \b this and
 /// the data-type it typedefs.
