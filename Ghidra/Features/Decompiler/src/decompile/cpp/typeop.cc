@@ -710,7 +710,9 @@ bool TypeOpCall::conflictsDefinitionDatatype(const PcodeOp *op,int4 slot,FuncCal
   }
   if (ct->getMetatype() == TYPE_PTR) {
     Datatype *ptrto = ((TypePointer *)ct)->getPtrTo();
-    return pt->getName() != ptrto->getName();
+    if (!pt->isStructuredType()) return false;
+    if (!ptrto->isStructuredType()) return false;
+    return true;
   }
   if (def == (const PcodeOp *)0) return false;
   opc = def->code();
@@ -720,15 +722,19 @@ bool TypeOpCall::conflictsDefinitionDatatype(const PcodeOp *op,int4 slot,FuncCal
     if (outparam == (ProtoParameter*)0) return false;
     Datatype *outdt = outparam->getType();
     if (outdt->getMetatype() != TYPE_PTR) return false;
-    Datatype *outpt = ((TypePointer *)outdt)->getPtrTo();
-    return pt->getName() != outpt->getName();
+    Datatype *ptrto = ((TypePointer *)outdt)->getPtrTo();
+    if (!pt->isStructuredType()) return false;
+    if (!ptrto->isStructuredType()) return false;
+    return true;
   }
   if (opc == CPUI_MULTIEQUAL) {
     for (int4 i=0;i<def->numInput();++i) {
       Datatype *indt = def->getIn(i)->getTypeReadFacing(def);
       if (indt->getMetatype() != TYPE_PTR) continue;
-      Datatype *inpt = ((TypePointer *)indt)->getPtrTo();
-      if (pt->getName() != inpt->getName()) return true;
+      Datatype *ptrto = ((TypePointer *)indt)->getPtrTo();
+      if (!pt->isStructuredType()) return false;
+      if (!ptrto->isStructuredType()) return false;
+      return true;
     }
     return false;
   }
@@ -1105,9 +1111,6 @@ Datatype *TypeOpReturn::getInputLocal(const PcodeOp *op,int4 slot) const
     return TypeOp::getInputLocal(op,slot);
 
   const Varnode *invn = op->getIn(slot);
-  ct = invn->recoverConstantDatatype();
-  if (ct != (Datatype *)0)
-    return ct;
   // Get data-types of return input parameters
   const BlockBasic *bb = op->getParent();
   if (bb == (BlockBasic *)0)
@@ -1117,6 +1120,17 @@ Datatype *TypeOpReturn::getInputLocal(const PcodeOp *op,int4 slot) const
 
   //  if (!fp->isOutputLocked()) return TypeOp::getInputLocal(op,slot);
   ct = fp->getOutputType();
+  Datatype *dt = invn->recoverConstantDatatype();
+  if (dt != (Datatype *)0) {
+    if (dt->getMetatype() == TYPE_PTR && ct->getMetatype() == TYPE_PTR) {
+      Datatype *pt = ((TypePointer *)ct)->getPtrTo();
+      Datatype *ptrto = ((TypePointer *)dt)->getPtrTo();
+      if (!pt->isStructuredType()) return dt;
+      if (!ptrto->isStructuredType()) return dt;
+      return ct;
+    }
+    return dt;
+  }
   if (ct->getMetatype() == TYPE_VOID || (ct->getSize() != op->getIn(slot)->getSize()))
     return TypeOp::getInputLocal(op,slot);
   return ct;
