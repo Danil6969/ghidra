@@ -93,7 +93,7 @@ task saveSleighArgs {
 	def sleighArgsFile = file("build/data/sleighArgs.txt")
 	def sleighArgsDevFile = file("build/tmp/sleighArgs.txt")
 	outputs.files sleighArgsFile, sleighArgsDevFile
-	outputs.upToDateWhen { false }
+	//outputs.upToDateWhen { false }
 	doLast {
 		checkSleighCompileOptions()
 		sleighArgsFile.withWriter { out->
