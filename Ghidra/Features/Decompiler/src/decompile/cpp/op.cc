@@ -302,6 +302,11 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
   }
   OpCode opc = op1->code();
   if (opc == CPUI_INT_ADD) {
+    PcodeOp *op2 = getOut()->loneDescend();
+    if (op2 != (PcodeOp *)0) {
+      if (op2->code() == CPUI_INT_ADD)
+	return false;
+    }
     Datatype *ct2 = op1->getIn(0)->getTypeReadFacing(op1);
     if (ct2->getSubMeta() == SUB_PTRREL) {
       const Varnode *cvn = op1->getIn(1);
@@ -311,10 +316,6 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
 	if (ptroff <= off && off < 0)
 	  return false;
       }
-    }
-    PcodeOp *op2 = getOut()->loneDescend();
-    if (op2 != (PcodeOp *)0 && op2->code() == CPUI_INT_ADD) {
-      return false;
     }
   }
 
