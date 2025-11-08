@@ -1259,7 +1259,9 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
 	  PcodeOp *op3 = op2->getIn(0)->getDef();
 	  if (op3 != (PcodeOp *)0) {
 	    if (op3->code() == CPUI_INT_MULT) {
-	      return false;
+	      Varnode *cvn = op3->getIn(1);
+	      if (cvn->isConstant() && cvn->getOffset() == calc_mask(cvn->getSize()))
+		return false;
 	    }
 	  }
 	}
