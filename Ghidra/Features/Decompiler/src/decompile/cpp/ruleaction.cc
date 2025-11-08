@@ -12830,6 +12830,7 @@ int4 RulePtrsubAdjust::applyOp(PcodeOp *op,Funcdata &data)
   if (!c[0]->isConstant()) return 0;
   if (!c[1]->isConstant()) return 0;
 
+  int4 sz = c[0]->getSize();
   val[0] = c[0]->getOffset();
   val[1] = c[1]->getOffset();
 
@@ -12849,7 +12850,15 @@ int4 RulePtrsubAdjust::applyOp(PcodeOp *op,Funcdata &data)
   uintb diff = off - val[1];
   addr = sb->getAddress(val[0] + off,basevn->getSize(),op->getAddr());
   SymbolEntry *entry2 = scope->queryContainer(addr,1,Address());
-  if (entry2 == (SymbolEntry *)0) return 0;
+  if (entry2 == (SymbolEntry *)0) {
+    newvn[0] = data.newConstant(sz,val[0] & calc_mask(sz));
+    newvn[1] = data.newConstant(sz,val[1] & calc_mask(sz));
+    PcodeOp *newptrsubop1 = data.newOpBefore(op,CPUI_PTRSUB,basevn,newvn[0]);
+    PcodeOp *newptrsubop2 = data.newOpBefore(op,CPUI_PTRSUB,newptrsubop1->getOut(),newvn[1]);
+    data.opSetInput(op,newptrsubop2->getOut(),0);
+    data.opSetInput(op,invn,1);
+    return 1;
+  }
   Datatype *dt = entry2->getSymbol()->getType();
   if (dt->getMetatype() != TYPE_ARRAY) return 0;
   while (dt->getMetatype() == TYPE_ARRAY) {
@@ -12857,7 +12866,6 @@ int4 RulePtrsubAdjust::applyOp(PcodeOp *op,Funcdata &data)
   }
   if (diff > dt->getSize()) return 0;
 
-  int4 sz = c[0]->getSize();
   newvn[0] = data.newConstant(sz,(val[0] + off) & calc_mask(sz));
   newvn[1] = data.newConstant(sz,(val[1] - off) & calc_mask(sz));
   PcodeOp *newptrsubop = data.newOpBefore(op,CPUI_PTRSUB,basevn,newvn[0]);
