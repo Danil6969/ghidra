@@ -1234,29 +1234,37 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
   list<PcodeOp *>::const_iterator iter;
   for (iter=beginDescend();iter!=endDescend();++iter) {
     PcodeOp *op1 = *iter;
-    OpCode opc = op1->code();
+    OpCode opc1 = op1->code();
 
-    if (opc == CPUI_COPY) {
+    if (opc1 == CPUI_COPY) {
       if (op1->getOut()->isStaticCastOutputRecurse(visitedVarnodes,data))
 	return true;
       continue;
     }
 
-    if (opc == CPUI_MULTIEQUAL) {
+    if (opc1 == CPUI_MULTIEQUAL) {
       if (op1->getOut()->isStaticCastOutputRecurse(visitedVarnodes,data))
 	return true;
       continue;
     }
 
-    if (opc == CPUI_INT_ADD) {
-      Varnode *out = op1->getOut();
+    if (opc1 == CPUI_INT_ADD) {
       int4 slot = op1->getSlot(this);
       PcodeOp *op2 = op1->getIn(1-slot)->getDef();
       if (op2 != (PcodeOp *)0) {
 	if (op2->code() == CPUI_INT_MULT) {
 	  return false;
 	}
+	if (op2->code() == CPUI_INT_ADD) {
+	  PcodeOp *op3 = op2->getIn(0)->getDef();
+	  if (op3 != (PcodeOp *)0) {
+	    if (op3->code() == CPUI_INT_MULT) {
+	      return false;
+	    }
+	  }
+	}
       }
+      Varnode *out = op1->getOut();
       if (out->hasPointerUsages()) return true;
       if (!data.hasTypeRecoveryStarted()) return true;
       if (out->getTypeDefFacing()->getMetatype() == TYPE_PTR) return true;
@@ -1264,19 +1272,19 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
       return false;
     }
 
-    if (opc == CPUI_PTRSUB) {
+    if (opc1 == CPUI_PTRSUB) {
       Datatype *ct = getTypeReadFacing(op1);
       if (ct->isVtablePointer()) return false;
       return true;
     }
 
-    if (opc == CPUI_PTRADD) {
+    if (opc1 == CPUI_PTRADD) {
       int4 slot = op1->getSlot(this);
       if (slot == 1) return false;
       return true;
     }
 
-    if (opc == CPUI_CALL) {
+    if (opc1 == CPUI_CALL) {
       if (!data.hasTypeRecoveryStarted()) return true;
       Datatype *ct = getTypeReadFacing(op1);
       if (ct->getMetatype() == TYPE_UNKNOWN) return true;
@@ -1284,7 +1292,7 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
       continue;
     }
 
-    if (opc == CPUI_CALLIND) {
+    if (opc1 == CPUI_CALLIND) {
       if (!data.hasTypeRecoveryStarted()) return true;
       Datatype *ct = getTypeReadFacing(op1);
       if (ct->getMetatype() == TYPE_UNKNOWN) return true;
@@ -1292,27 +1300,27 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
       continue;
     }
 
-    if (opc == CPUI_LOAD) continue;
-    if (opc == CPUI_STORE) continue;
-    if (opc == CPUI_RETURN) continue;
-    if (opc == CPUI_INT_EQUAL) continue;
-    if (opc == CPUI_INT_NOTEQUAL) continue;
-    if (opc == CPUI_INT_LESSEQUAL) continue;
-    if (opc == CPUI_INT_AND) continue;
-    if (opc == CPUI_INT_OR) continue;
-    if (opc == CPUI_INT_MULT) continue;
+    if (opc1 == CPUI_LOAD) continue;
+    if (opc1 == CPUI_STORE) continue;
+    if (opc1 == CPUI_RETURN) continue;
+    if (opc1 == CPUI_INT_EQUAL) continue;
+    if (opc1 == CPUI_INT_NOTEQUAL) continue;
+    if (opc1 == CPUI_INT_LESSEQUAL) continue;
+    if (opc1 == CPUI_INT_AND) continue;
+    if (opc1 == CPUI_INT_OR) continue;
+    if (opc1 == CPUI_INT_MULT) continue;
 
-    if (opc == CPUI_CBRANCH) return false;
-    if (opc == CPUI_INT_ZEXT) return false;
-    if (opc == CPUI_INT_SEXT) return false;
-    if (opc == CPUI_INT_LEFT) return false;
-    if (opc == CPUI_INT_RIGHT) return false;
-    if (opc == CPUI_INT_SRIGHT) return false;
-    if (opc == CPUI_BOOL_NEGATE) return false;
-    if (opc == CPUI_BOOL_XOR) return false;
-    if (opc == CPUI_BOOL_AND) return false;
-    if (opc == CPUI_BOOL_OR) return false;
-    if (opc == CPUI_SUBPIECE) return false;
+    if (opc1 == CPUI_CBRANCH) return false;
+    if (opc1 == CPUI_INT_ZEXT) return false;
+    if (opc1 == CPUI_INT_SEXT) return false;
+    if (opc1 == CPUI_INT_LEFT) return false;
+    if (opc1 == CPUI_INT_RIGHT) return false;
+    if (opc1 == CPUI_INT_SRIGHT) return false;
+    if (opc1 == CPUI_BOOL_NEGATE) return false;
+    if (opc1 == CPUI_BOOL_XOR) return false;
+    if (opc1 == CPUI_BOOL_AND) return false;
+    if (opc1 == CPUI_BOOL_OR) return false;
+    if (opc1 == CPUI_SUBPIECE) return false;
     continue;
   }
   return false;
