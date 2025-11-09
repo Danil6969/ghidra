@@ -7622,6 +7622,10 @@ void AddTreeState::buildTree(void)
       newop->setStopTypePropagation();
     multNode = newop->getOut();
   }
+  else if (offset != 0) {
+    newop = data.newOpBefore(baseOp,CPUI_INT_ADD,multNode,data.newConstant(ptrsize,offset));
+    multNode = newop->getOut();
+  }
 
   // Add back in any remaining terms
   if (extraNode != (Varnode *)0)
