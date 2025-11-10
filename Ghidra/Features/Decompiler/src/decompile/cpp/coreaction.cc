@@ -3875,7 +3875,7 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
     // Should always be implicit, so remove limit on max references
     isUnlimited = true;
   }
-  if (def->isStaticCastCopy(*fd)) return -1;
+  if (def->isProtectedCopy(*fd)) return -1;
   if (vn->isAllocaAddress(*fd)) return -1;
   if (def->isMarker()) return -1;
   if (def->isCall()) {
