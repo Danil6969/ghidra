@@ -270,7 +270,7 @@ bool Merge::mergeTestBasic(Varnode *vn)
   PcodeOp *op = vn->getDef();
   if (op != (PcodeOp *)0) {
     Funcdata *fd = op->getFuncdata();
-    if (op->isStaticCastCopy(*fd)) return false;
+    if (op->isProtectedCopy(*fd)) return false;
   }
   return true;
 }
