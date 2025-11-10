@@ -2940,6 +2940,8 @@ int4 RuleBoolZext::applyOp(PcodeOp *op,Funcdata &data)
   data.opSetInput(newop, boolVn1, 0);
   data.opSetInput(newop, boolVn2, 1);
   data.opInsertBefore(newop,actionop);
+  Datatype *ct = data.getArch()->types->getBase(1,TYPE_BOOL);
+  newres->updateType(ct,false,false);
 
   PcodeOp *newzext = data.newOp(1,actionop->getAddr());
   Varnode *newzout = data.newUniqueOut(size,newzext);
@@ -2993,6 +2995,8 @@ int4 RuleLogic2Bool::applyOp(PcodeOp *op,Funcdata &data)
   default:
     return 0;
   }
+  Datatype *ct = data.getArch()->types->getBase(1,TYPE_BOOL);
+  op->getOut()->updateType(ct,false,false);
   return 1;
 }
 
@@ -12750,6 +12754,8 @@ int4 RuleOrCompare::applyOp(PcodeOp *op,Funcdata &data)
     data.opSetOpcode(equalOp, opc == CPUI_INT_EQUAL ? CPUI_BOOL_AND : CPUI_BOOL_OR);
     data.opSetInput(equalOp, eq_V_out, 0);
     data.opSetInput(equalOp, eq_W_out, 1);
+    Datatype *ct = data.getArch()->types->getBase(1,TYPE_BOOL);
+    equalOp->getOut()->updateType(ct,false,false);
   }
 
   return 1;
