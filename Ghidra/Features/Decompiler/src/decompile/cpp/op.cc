@@ -287,6 +287,40 @@ bool PcodeOp::isCollapsible(void) const
   return true;
 }
 
+bool PcodeOp::isProtectedCopy(Funcdata &data) const
+
+{
+  if (isUnionParamCopy(data)) return true;
+  //if (isStaticCastCopy(data)) return true;
+  return false;
+}
+
+bool PcodeOp::isUnionParamCopy(Funcdata &data) const
+
+{
+  const Varnode *out = getOut();
+  list<PcodeOp *>::const_iterator iter;
+  for (iter=out->beginDescend();iter!=out->endDescend();++iter) {
+    PcodeOp *op = *iter;
+    if (op->code() == CPUI_CALL) {
+      if (!data.hasTypeRecoveryStarted()) return true;
+      Datatype *ct = out->getTypeReadFacing(op);
+      if (ct->getMetatype() == TYPE_UNKNOWN) return true;
+      if (ct->getMetatype() == TYPE_UNION) return true;
+      continue;
+    }
+
+    if (op->code() == CPUI_CALLIND) {
+      if (!data.hasTypeRecoveryStarted()) return true;
+      Datatype *ct = out->getTypeReadFacing(op);
+      if (ct->getMetatype() == TYPE_UNKNOWN) return true;
+      if (ct->getMetatype() == TYPE_UNION) return true;
+      continue;
+    }
+  }
+  return false;
+}
+
 bool PcodeOp::isStaticCastCopy(Funcdata &data) const
 
 {
