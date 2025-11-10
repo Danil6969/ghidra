@@ -1286,24 +1286,10 @@ bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Fun
       return true;
     }
 
-    if (opc1 == CPUI_CALL) {
-      if (!data.hasTypeRecoveryStarted()) return true;
-      Datatype *ct = getTypeReadFacing(op1);
-      if (ct->getMetatype() == TYPE_UNKNOWN) return true;
-      if (ct->getMetatype() == TYPE_UNION) return true;
-      continue;
-    }
-
-    if (opc1 == CPUI_CALLIND) {
-      if (!data.hasTypeRecoveryStarted()) return true;
-      Datatype *ct = getTypeReadFacing(op1);
-      if (ct->getMetatype() == TYPE_UNKNOWN) return true;
-      if (ct->getMetatype() == TYPE_UNION) return true;
-      continue;
-    }
-
     if (opc1 == CPUI_LOAD) continue;
     if (opc1 == CPUI_STORE) continue;
+    if (opc1 == CPUI_CALL) continue;
+    if (opc1 == CPUI_CALLIND) continue;
     if (opc1 == CPUI_RETURN) continue;
     if (opc1 == CPUI_INT_EQUAL) continue;
     if (opc1 == CPUI_INT_NOTEQUAL) continue;
