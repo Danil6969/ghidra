@@ -287,14 +287,6 @@ bool PcodeOp::isCollapsible(void) const
   return true;
 }
 
-bool PcodeOp::isProtectedCopy(Funcdata &data) const
-
-{
-  if (isUnionParamCopy(data)) return true;
-  //if (isStaticCastCopy(data)) return true;
-  return false;
-}
-
 bool PcodeOp::isUnionParamCopy(Funcdata &data) const
 
 {
@@ -393,6 +385,14 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
   if (opc == CPUI_PIECE) return false;
 
   return getOut()->isStaticCastOutput(data);
+}
+
+bool PcodeOp::isProtectedCopy(Funcdata &data) const
+
+{
+  if (isUnionParamCopy(data)) return true;
+  //if (isStaticCastCopy(data)) return true;
+  return false;
 }
 
 bool PcodeOp::isReturnAddressConstant(Funcdata &data) const
