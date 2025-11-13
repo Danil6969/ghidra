@@ -1308,13 +1308,23 @@ void PrintC::opSubpiece(const PcodeOp *op)
 	return;
       }
     }
-    if (vn->isExplicit() && vn->getHigh()->getSymbolOffset() == -1) {	// An explicit, entire, structured object
+    if (vn->isExplicit()) {	// An explicit, entire, structured object
       Symbol *sym = vn->getHigh()->getSymbol();
       if (sym != (Symbol *)0) {
-	int4 off = (int4)op->getIn(1)->getOffset();
-	off = vn->getSpace()->isBigEndian() ? vn->getSize() - (sz + off) : off;
-	pushPartialSymbol(sym, off, sz, vn, op, -1);
-	return;
+	int4 symboloff = vn->getHigh()->getSymbolOffset();
+	if (symboloff == -1) {
+	  int4 off = (int4)op->getIn(1)->getOffset();
+	  off = vn->getSpace()->isBigEndian() ? vn->getSize() - (sz + off) : off;
+	  pushPartialSymbol(sym, off, sz, vn, op, -1);
+	  return;
+	}
+	else {
+	  int4 off = (int4)op->getIn(1)->getOffset();
+	  off = vn->getSpace()->isBigEndian() ? vn->getSize() - (sz + off) : off;
+	  off = off + symboloff;
+	  pushPartialSymbol(sym, off, sz, vn, op, -1);
+	  return;
+	}
       }
     }
     // Fall thru to functional printing
