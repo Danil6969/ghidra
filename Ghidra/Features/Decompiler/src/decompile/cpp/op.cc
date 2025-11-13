@@ -239,6 +239,14 @@ bool PcodeOp::isPieceNonCollapsible(void) const
   TypeFactory *types = data->getArch()->types;
   int4 sz = getOut()->getSize();
   if (!types->isPresent(sz)) return true;
+  const Varnode *rootVn = getOut();
+  while (true) {
+    PcodeOp *lone = rootVn->loneDescend();
+    if (lone == (PcodeOp *)0) break;
+    if (lone->code() != CPUI_PIECE) break;
+    rootVn = lone->getOut();
+  }
+  if (rootVn->getSize() > sizeof(uintb)) return true;
   return false;
 }
 
