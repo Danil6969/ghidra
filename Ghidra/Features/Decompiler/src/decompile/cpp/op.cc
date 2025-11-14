@@ -219,10 +219,23 @@ bool PcodeOp::isMultNonCollapsible(void) const
   if (code() != CPUI_INT_MULT) return false;
   const Varnode *out = getOut();
   if (out->hasNoDescend()) return false;
-  PcodeOp *lone = out->loneDescend();
+  PcodeOp *lone1 = out->loneDescend();
 
-  // Always collapse loop counters
-  if (lone->isLoopedIncrement()) return false;
+  if (lone1 != (PcodeOp *)0) {
+    // Always collapse loop counters
+    if (lone1->isLoopedIncrement()) return false;
+    if (lone1->code() == CPUI_INT_ADD) {
+      PcodeOp *lone2 = lone1->getOut()->loneDescend();
+      if (lone2 != (PcodeOp *)0) {
+	if (lone2->code() == CPUI_CALLOTHER) {
+	  string nm = lone2->getOpcode()->getOperatorName(lone2);
+	  if (nm == Funcdata::FUNCTION_EXTRACTIND) return false;
+	  if (nm == Funcdata::FUNCTION_INSERTIND) return false;
+	}
+      }
+    }
+  }
+
 
   // Check if it is ptrdiff subtrahend
   const Varnode *invn0 = getIn(0);
