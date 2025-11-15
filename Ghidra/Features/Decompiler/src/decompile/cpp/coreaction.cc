@@ -3925,8 +3925,9 @@ int4 ActionMarkExplicit::baseExplicit(Varnode *vn,int4 maxref)
     // Internal PIECE operations will be hidden.
     return -1;
   }
-  else if (def->code() == CPUI_PIECE && def->getIn(0)->isProtoPartial()) {
-    // The base of PIECE operations building a structure should be explicit.
+  else if (def->code() == CPUI_PIECE) {
+    // TODO check out: The base of PIECE operations building a structure should be explicit.
+    // if (def->getIn(0)->isProtoPartial()) return -1;
     return -1;
   }
   if (vn->hasNoDescend()) return -1;	// Must have at least one descendant
@@ -6782,6 +6783,7 @@ void ActionDatabase::universalAction(Architecture *conf)
     actfullloop->addAction( new ActionActiveReturn("protorecovery") );
     {
       actprop3 = new ActionPool(Action::rule_repeatapply, "oppool3");
+      actprop3->addRule( new RuleCollapseInsertIndexed("analysis") );
       actprop3->addRule( new RuleByteLoop("analysis") );
       actprop3->addRule( new RulePointerComparison("analysis") );
       actprop3->addRule( new RuleSpacebaseAdd("analysis") );
