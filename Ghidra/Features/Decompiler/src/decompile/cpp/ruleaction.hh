@@ -1867,6 +1867,17 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 
+class RuleCollapseInsertIndexed : public Rule {
+public:
+  RuleCollapseInsertIndexed(const string &g) : Rule(g,0,"collapseinsertindexed") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleCollapseInsertIndexed(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
 class RuleByteLoop : public Rule {
   class VarnodeValues {
     map<Varnode *,uintb> vals;
