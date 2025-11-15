@@ -13937,6 +13937,20 @@ int4 RuleInferVbptr::applyOp(PcodeOp *op,Funcdata &data)
   return 1;
 }
 
+void RuleCollapseInsertIndexed::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_CALLOTHER);
+}
+
+int4 RuleCollapseInsertIndexed::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  string nm = op->getOpcode()->getOperatorName(op);
+  if (nm != Funcdata::FUNCTION_INSERTIND) return 0;
+  return 0;
+}
+
 map<Varnode *,uintb>::iterator RuleByteLoop::VarnodeValues::getEntry(Varnode *key)
 
 {
@@ -14517,7 +14531,7 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
       Varnode *input = data.newConstant(indexsz,loopData.multiplier*i);
       data.opSetInput(curop,input,1);
       data.newUniqueOut(loopData.multiplier,curop);
-      loopData.result[i] = curop; // and put in result instead of null
+      loopData.result[i] = curop; // and replace null with subpiece in the result
     }
     data.opInsertBefore(curop,loopData.endOp);
   }
@@ -14525,10 +14539,10 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   // Link results into piece op
   AddrSpace *space = data.getArch()->getDefaultDataSpace();
   PcodeOp *prevop = (PcodeOp *)0;
-  for (int4 i = 0; i < loopData.result.size(); ++i) {
+  for (int4 i=0;i<loopData.result.size();++i) {
     curop = loopData.result[i];
-    if (curop == (PcodeOp *) 0) continue;
-    if (prevop == (PcodeOp *) 0) {
+    if (curop == (PcodeOp *)0) continue;
+    if (prevop == (PcodeOp *)0) {
       prevop = curop;
       continue;
     }
