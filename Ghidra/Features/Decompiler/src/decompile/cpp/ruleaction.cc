@@ -5447,6 +5447,9 @@ int4 RuleConcatLeftShift::applyOp(PcodeOp *op,Funcdata &data)
   if (vn1->isFree()) return 0;
   sa /= 8;			// bits to bytes
   if (sa + b->getSize() != tmpvn->getSize()) return 0; // Must shift to most sig boundary
+  if (vn1->isWritten()) {
+    if (vn1->getDef()->code() == CPUI_INT_LEFT) return 0;
+  }
 
   PcodeOp *newop = data.newOp(2,op->getAddr());
   data.opSetOpcode(newop,CPUI_PIECE);
@@ -8885,9 +8888,11 @@ int4 RuleExtensionPush::applyOp(PcodeOp *op,Funcdata &data)
 Datatype *RulePieceStructure::determineDatatype(Varnode *vn,int4 &baseOffset)
 
 {
-  Datatype *ct = vn->getStructuredType();
-  if (ct == (Datatype *)0)
-    return ct;
+  Datatype *ct = (Datatype *)0;
+  if (vn->getSymbolEntry() != (SymbolEntry *)0)
+    ct = vn->getSymbolEntry()->getSymbol()->getType();
+  else
+    ct = vn->getType();
 
   if (ct->getSize() != vn->getSize()) {			// vn is a partial
     SymbolEntry *entry = vn->getSymbolEntry();
