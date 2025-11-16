@@ -14309,37 +14309,27 @@ BlockBasic *RuleByteLoop::getNonFallthru(PcodeOp *op)
   return (BlockBasic *)(op->isFallthruTrue() ? op->getParent()->getFalseOut() : op->getParent()->getTrueOut());
 }
 
-Varnode *RuleByteLoop::reconstructDynamicInput(Varnode *oldInput,Funcdata &data)
+Varnode *RuleByteLoop::reconstructDynamicInput(Varnode *oldvn,LoopData &loopData,Funcdata &data)
 
 {
-  PcodeOp *oldOp = oldInput->getDef();
-  if (oldOp == (PcodeOp *)0) return oldInput;
-  OpCode opc = oldOp->code();
+  PcodeOp *op = oldvn->getDef();
+  if (op == (PcodeOp *)0) return oldvn;
+  OpCode opc = op->code();
   if (opc == CPUI_PIECE) {
-    Varnode *invn0 = reconstructDynamicInput(oldOp->getIn(0),data);
-    Varnode *invn1 = reconstructDynamicInput(oldOp->getIn(1),data);
-    PcodeOp *inop0 = invn0->getDef();
-    PcodeOp *inop1 = invn1->getDef();
-    PcodeOp *op = (PcodeOp *)0;
-    if (inop0 != (PcodeOp *)0 && inop1 == (PcodeOp *)0)
-      op = inop0;
-    if (inop0 == (PcodeOp *)0 && inop1 != (PcodeOp *)0)
-      op = inop1;
-    if (inop0 != (PcodeOp *)0 && inop1 != (PcodeOp *)0) {
-      int4 compare = inop0->compareOrder(inop1);
-      op = compare < 0 ? inop1 : inop0;
-    }
-    if (op == (PcodeOp *)0) return oldInput;
-    if (oldInput->getSpace()->getType() != IPTR_INTERNAL) return oldInput;
-    PcodeOp *newop = data.newOp(2,op->getAddr());
+    Varnode *invn0 = reconstructDynamicInput(op->getIn(0),loopData,data);
+    Varnode *invn1 = reconstructDynamicInput(op->getIn(1),loopData,data);
+    PcodeOp *newop = data.newOp(2,loopData.endOp->getAddr());
     data.opSetOpcode(newop,CPUI_PIECE);
     data.opSetInput(newop,invn0,0);
     data.opSetInput(newop,invn1,1);
-    Varnode *newvn = data.newUniqueOut(oldInput->getSize(), newop);
-    data.opInsertBefore(newop,op);
-    return newvn;
+    if (oldvn->getSpace()->getType() == IPTR_INTERNAL)
+      data.newUniqueOut(oldvn->getSize(),newop);
+    else
+      data.newVarnodeOut(oldvn->getSize(),oldvn->getAddr(),newop);
+    data.opInsertBefore(newop,loopData.endOp);
+    return newop->getOut();
   }
-  return oldInput;
+  return oldvn;
 }
 
 BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,LoopData &loopData,Funcdata &data)
@@ -14423,7 +14413,7 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,LoopData &loopData,Funcda
 	    if (!loopData.result.empty()) {
 	      PcodeOp *newOp = data.newOp(2,loopData.endOp->getAddr());
 	      data.opSetOpcode(newOp,CPUI_SUBPIECE);
-	      Varnode *input1 = reconstructDynamicInput(op->getIn(1),data);
+	      Varnode *input1 = reconstructDynamicInput(op->getIn(1),loopData,data);
 	      data.opSetInput(newOp,input1,0);
 	      Varnode *input2 = data.newConstant(op->getIn(2)->getSize(),in2);
 	      data.opSetInput(newOp,input2,1);
