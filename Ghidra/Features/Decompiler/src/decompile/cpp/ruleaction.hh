@@ -1920,6 +1920,7 @@ class RuleByteLoop : public Rule {
   void collectLargeVarnodeValues(LoopData &loopData);
   BlockBasic *getFallthru(PcodeOp *op);
   BlockBasic *getNonFallthru(PcodeOp *op);
+  Varnode *reconstructDynamicInput(Varnode *oldInput,Funcdata &data);
   BlockBasic *evaluateBlock(BlockBasic *bl,LoopData &loopData,Funcdata &data);
 public:
   RuleByteLoop(const string &g) : Rule(g,0,"byteloop") {}	///< Constructor
