@@ -13953,7 +13953,68 @@ int4 RuleCollapseInsertIndexed::applyOp(PcodeOp *op,Funcdata &data)
 {
   string nm = op->getOpcode()->getOperatorName(op);
   if (nm != Funcdata::FUNCTION_INSERTIND) return 0;
-  return 0;
+  if (op->numInput() < 4) return 0;
+  Varnode *invn = op->getIn(1);
+  if (invn->getSize() != op->getOut()->getSize()) return 0;
+  Varnode *valvn = op->getIn(2);
+  if (invn->getSize() <= valvn->getSize()) return 0;
+  Varnode *cvn = op->getIn(3);
+  if (!cvn->isConstant()) return 0;
+  uintb off = cvn->getOffset();
+  if (off + valvn->getSize() > invn->getSize()) return 0;
+
+  Varnode *constvn1 = (Varnode *)0;
+  Varnode *constvn2 = (Varnode *)0;
+  PcodeOp *newop1 = (PcodeOp *)0;
+  PcodeOp *newop2 = (PcodeOp *)0;
+  PcodeOp *newop3 = (PcodeOp *)0;
+
+  if (off + valvn->getSize() == invn->getSize()) {
+    constvn1 = data.newConstant(4,0);
+    newop1 = data.newOp(2,op->getAddr());
+    data.newUniqueOut(off,newop1);
+    data.opSetOpcode(newop1,CPUI_SUBPIECE);
+    data.opSetInput(newop1,invn,0);
+    data.opSetInput(newop1,constvn1,1);
+    data.opInsertBefore(newop1,op);
+
+    data.opSetOpcode(op,CPUI_PIECE);
+    data.opSetInput(op,valvn,0);
+    data.opSetInput(op,newop1->getOut(),1);
+    data.opRemoveInput(op,3);
+    data.opRemoveInput(op,2);
+    return 1;
+  }
+
+  constvn1 = data.newConstant(4,0);
+  newop1 = data.newOp(2,op->getAddr());
+  data.newUniqueOut(off,newop1);
+  data.opSetOpcode(newop1,CPUI_SUBPIECE);
+  data.opSetInput(newop1,invn,0);
+  data.opSetInput(newop1,constvn1,1);
+  data.opInsertBefore(newop1,op);
+
+  constvn2 = data.newConstant(4,off + valvn->getSize());
+  newop2 = data.newOp(2,op->getAddr());
+  data.newUniqueOut(invn->getSize() - (off + valvn->getSize()),newop2);
+  data.opSetOpcode(newop2,CPUI_SUBPIECE);
+  data.opSetInput(newop2,invn,0);
+  data.opSetInput(newop2,constvn2,1);
+  data.opInsertBefore(newop2,op);
+
+  newop3 = data.newOp(2,op->getAddr());
+  data.newUniqueOut(off + valvn->getSize(),newop3);
+  data.opSetOpcode(newop3,CPUI_PIECE);
+  data.opSetInput(newop3,valvn,0);
+  data.opSetInput(newop3,newop1->getOut(),1);
+  data.opInsertBefore(newop3,op);
+
+  data.opSetOpcode(op,CPUI_PIECE);
+  data.opSetInput(op,newop2->getOut(),0);
+  data.opSetInput(op,newop3->getOut(),1);
+  data.opRemoveInput(op,3);
+  data.opRemoveInput(op,2);
+  return 1;
 }
 
 map<Varnode *,uintb>::iterator RuleByteLoop::VarnodeValues::getEntry(Varnode *key)
