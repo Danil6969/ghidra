@@ -14178,6 +14178,7 @@ bool RuleByteLoop::initExtractInsertListsMultiplier(LoopData &loopData)
   if (loopData.insertlist[0]->getOut() == (Varnode *)0) return false;
   if (loopData.insertlist[0]->getOut()->loneDescend() == (PcodeOp *)0) return false;
   if (loopData.insertlist[0]->getOut()->loneDescend()->code() != CPUI_MULTIEQUAL) return false;
+  if (loopData.insertlist[0]->getOut()->loneDescend()->numInput() != 2) return false;
   // The multiplier is number of bytes of each array element
   // The counts are number of performed operations
   if (loopData.insertlist[0]->getIn(2)->getSize() != loopData.multiplier) return false;
@@ -14308,6 +14309,39 @@ BlockBasic *RuleByteLoop::getNonFallthru(PcodeOp *op)
   return (BlockBasic *)(op->isFallthruTrue() ? op->getParent()->getFalseOut() : op->getParent()->getTrueOut());
 }
 
+Varnode *RuleByteLoop::reconstructDynamicInput(Varnode *oldInput,Funcdata &data)
+
+{
+  PcodeOp *oldOp = oldInput->getDef();
+  if (oldOp == (PcodeOp *)0) return oldInput;
+  OpCode opc = oldOp->code();
+  if (opc == CPUI_PIECE) {
+    Varnode *invn0 = reconstructDynamicInput(oldOp->getIn(0),data);
+    Varnode *invn1 = reconstructDynamicInput(oldOp->getIn(1),data);
+    PcodeOp *inop0 = invn0->getDef();
+    PcodeOp *inop1 = invn1->getDef();
+    PcodeOp *op = (PcodeOp *)0;
+    if (inop0 != (PcodeOp *)0 && inop1 == (PcodeOp *)0)
+      op = inop0;
+    if (inop0 == (PcodeOp *)0 && inop1 != (PcodeOp *)0)
+      op = inop1;
+    if (inop0 != (PcodeOp *)0 && inop1 != (PcodeOp *)0) {
+      int4 compare = inop0->compareOrder(inop1);
+      op = compare < 0 ? inop1 : inop0;
+    }
+    if (op == (PcodeOp *)0) return oldInput;
+    if (oldInput->getSpace()->getType() != IPTR_INTERNAL) return oldInput;
+    PcodeOp *newop = data.newOp(2,op->getAddr());
+    data.opSetOpcode(newop,CPUI_PIECE);
+    data.opSetInput(newop,invn0,0);
+    data.opSetInput(newop,invn1,1);
+    Varnode *newvn = data.newUniqueOut(oldInput->getSize(), newop);
+    data.opInsertBefore(newop,op);
+    return newvn;
+  }
+  return oldInput;
+}
+
 BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,LoopData &loopData,Funcdata &data)
 
 {
@@ -14389,10 +14423,10 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,LoopData &loopData,Funcda
 	    if (!loopData.result.empty()) {
 	      PcodeOp *newOp = data.newOp(2,loopData.endOp->getAddr());
 	      data.opSetOpcode(newOp,CPUI_SUBPIECE);
-	      Varnode *input = op->getIn(1);
-	      data.opSetInput(newOp,input,0);
-	      input = data.newConstant(op->getIn(2)->getSize(),in2);
-	      data.opSetInput(newOp,input,1);
+	      Varnode *input1 = reconstructDynamicInput(op->getIn(1),data);
+	      data.opSetInput(newOp,input1,0);
+	      Varnode *input2 = data.newConstant(op->getIn(2)->getSize(),in2);
+	      data.opSetInput(newOp,input2,1);
 	      data.newUniqueOut(loopData.multiplier,newOp);
 	      loopData.values.dynamicInsert = newOp;
 	    }
@@ -14589,7 +14623,7 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   PcodeOp *curop = (PcodeOp *)0;
   for (int4 i=0;i<loopData.counts;++i) {
     curop = loopData.result[i];
-    if (curop == (PcodeOp *) 0) {
+    if (curop == (PcodeOp *)0) {
       curop = data.newOp(2,loopData.endOp->getAddr()); // create subpiece of itself at this index
       data.opSetOpcode(curop,CPUI_SUBPIECE);
       data.opSetInput(curop,objinitval,0);
@@ -14626,9 +14660,9 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
 
   // Commit final piece op
   curop = loopData.insertlist[0]->getOut()->loneDescend();
-  data.opSetInput(curop,prevop->getOut(),0);
-  data.opSetInput(curop,prevop->getOut(),1);
+  data.opSetOutput(prevop,curop->getOut());
   data.opDestroy(loopData.insertlist[0]);
+  data.opDestroy(curop);
   return 1;
 }
 
