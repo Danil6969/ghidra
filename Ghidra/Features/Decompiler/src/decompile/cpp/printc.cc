@@ -3268,16 +3268,21 @@ bool PrintC::emitInplaceOp(const PcodeOp *op)
 bool PrintC::emitArrCopy(const PcodeOp *op)
 
 {
-  if (op->getOut()->getHigh()->getType()->getMetatype() != TYPE_ARRAY) return false;
+  const Varnode *outVn = op->getOut();
+  Datatype *outType = outVn->getHigh()->getType();
+  if (op->code() == CPUI_CAST) {
+    outType = outVn->getHighTypeDefFacing();
+  }
+  if (outType->getMetatype() != TYPE_ARRAY) return false;
   ostringstream s;
   pushOp(&function_call,op);
   pushAtom(Atom("builtin_memcpy",optoken,EmitMarkup::no_color,op));
   pushOp(&comma,op);
   pushOp(&comma,op);
-  pushSymbolDetail(op->getOut(),op,false);
+  pushSymbolDetail(outVn,op,false);
   op->getOpcode()->push(this,op,(PcodeOp *)0);
   recurse();
-  push_integer(op->getOut()->getSize(),4,false,syntax,(Varnode *)0,op);
+  push_integer(outVn->getSize(),4,false,syntax,(Varnode *)0,op);
   return true;
 }
 
