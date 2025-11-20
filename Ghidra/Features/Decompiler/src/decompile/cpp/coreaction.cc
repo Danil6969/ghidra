@@ -6664,6 +6664,9 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop->addRule( new RuleSubCommute("analysis") );
 	//actprop->addRule( new RuleConcatCommute("analysis") );
 	//actprop->addRule( new RuleConcatZext("analysis") );
+	actprop->addRule( new RulePointerComparison("analysis") );
+	actprop->addRule( new RuleCollapseInsertIndexed("analysis") );
+	actprop->addRule( new RuleByteLoop("analysis") );
 	actprop->addRule( new RuleZextCommute("analysis") );
 	actprop->addRule( new RuleZextShiftZext("analysis") );
 	actprop->addRule( new RuleShiftAnd("analysis") );
@@ -6781,14 +6784,6 @@ void ActionDatabase::universalAction(Architecture *conf)
     actfullloop->addAction( new ActionUnjustifiedParams("protorecovery") );
     actfullloop->addAction( new ActionStartTypes("typerecovery") );
     actfullloop->addAction( new ActionActiveReturn("protorecovery") );
-    {
-      actprop3 = new ActionPool(Action::rule_repeatapply, "oppool3");
-      actprop3->addRule( new RuleCollapseInsertIndexed("analysis") );
-      actprop3->addRule( new RuleByteLoop("analysis") );
-      actprop3->addRule( new RulePointerComparison("analysis") );
-      actprop3->addRule( new RuleSpacebaseAdd("analysis") );
-    }
-    actfullloop->addAction(actprop3);
   }
   act->addAction( actfullloop );
   act->addAction( new ActionMappedLocalSync("localrecovery") );
@@ -6802,6 +6797,7 @@ void ActionDatabase::universalAction(Architecture *conf)
     actcleanup->addRule( new RuleSubRight("cleanup") );
     actcleanup->addRule( new RuleFloatSignCleanup("cleanup") );
     actcleanup->addRule( new RulePtrsubCharConstant("cleanup") );
+    actcleanup->addRule( new RuleSpacebaseAdd("cleanup") );
     actcleanup->addRule( new RuleExtensionPush("cleanup") );
     actcleanup->addRule( new RulePieceStructure("cleanup") );
     actcleanup->addRule( new RuleSplitCopy("splitcopy") );
