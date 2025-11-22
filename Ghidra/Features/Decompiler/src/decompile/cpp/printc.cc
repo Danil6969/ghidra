@@ -3600,7 +3600,6 @@ void PrintC::emitBlockBasic(const BlockBasic *bb)
     for(iter=bb->beginOp();iter!=bb->endOp();++iter) {
       inst = *iter;
       if (inst->notPrinted()) continue;
-      if (inst->isIndirectSelfCopy(*bb->getFuncdata())) continue;
       if (inst->isBranch()) {
 	if (isSet(no_branch)) continue;
 	// A straight branch is always printed by
