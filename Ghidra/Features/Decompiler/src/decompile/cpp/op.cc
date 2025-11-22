@@ -668,21 +668,47 @@ bool PcodeOp::isIndirectSelfCopy(const Funcdata &data) const
 
 {
   if (code() != CPUI_COPY) return false;
-  PcodeOp *op1 = getOut()->loneDescend();
-  if (op1 == (PcodeOp *)0) return false;
-  if (op1->code() != CPUI_INDIRECT) return false;
-  Varnode *vn1 = op1->getOut();
-  const Varnode *vn2 = getIn(0);
-  const PcodeOp *op2 = vn2->getDef();
-  if (op2 != (PcodeOp *)0) {
-    if (op2->code() == CPUI_CAST) {
-      vn2 = op2->getIn(0);
+  AddrSpace *spcid = data.getScopeLocal()->getSpaceId();
+
+  const Varnode *out = getOut();
+  while (true) {
+    AddrSpace *spc = out->getSpace();
+    if (spc == spcid) break;
+    if (spc->getType() != IPTR_INTERNAL) break;
+    const PcodeOp *lone = out->loneDescend();
+    if (lone == (PcodeOp *)0) break;
+    if (lone->code() == CPUI_COPY) {
+      out = lone->getOut();
+      continue;
     }
+    break;
   }
-  AddrSpace *spc = data.getScopeLocal()->getSpaceId();
-  if (vn1->getSpace() != spc) return false;
-  if (vn2->getSpace() != spc) return false;
-  if (vn1->getOffset() != vn2->getOffset()) return false;
+
+  const PcodeOp *indop = out->loneDescend();
+  if (indop == (PcodeOp *)0) return false;
+  if (indop->code() != CPUI_INDIRECT) return false;
+  out = indop->getOut();
+
+  const Varnode *invn = getIn(0);
+  while (true) {
+    AddrSpace *spc = invn->getSpace();
+    if (spc == spcid) break;
+    if (spc->getType() != IPTR_INTERNAL) break;
+    const PcodeOp *def = invn->getDef();
+    if (def == (PcodeOp *)0) break;
+    if (def->code() == CPUI_CAST) {
+      invn = def->getIn(0);
+      continue;
+    }
+    if (def->code() == CPUI_COPY) {
+      invn = def->getIn(0);
+      continue;
+    }
+    break;
+  }
+  if (out->getSpace() != spcid) return false;
+  if (invn->getSpace() != spcid) return false;
+  if (out->getOffset() != invn->getOffset()) return false;
   return true;
 }
 
