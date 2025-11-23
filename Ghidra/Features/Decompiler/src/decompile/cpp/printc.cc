@@ -1372,6 +1372,8 @@ void PrintC::opPtradd(const PcodeOp *op)
 void PrintC::opPtrsub(const PcodeOp *op)
 
 {
+  if (emitAlloca(op)) return;
+
   bool valueon = false;
   bool flex = false;
   bool arrayvalue = false;
@@ -3113,6 +3115,8 @@ bool PrintC::checkPrintAlloca(const PcodeOp *op)
   const Varnode *outvn = op->getOut();
   if (outvn == (const Varnode *)0) return false;
   const Funcdata *fd = op->getFuncdata();
+  // Must write to stack pointer so the stack space is expanded
+  if (!outvn->isStackPointerLocated(*fd)) return (PcodeOp *)0;
   if (!outvn->isAllocaAddress(*fd)) return false;
   if (op->code() == CPUI_COPY) {
     if (outvn->isExplicit()) return false;
@@ -3289,7 +3293,6 @@ bool PrintC::emitArrCopy(const PcodeOp *op)
 bool PrintC::emitAlloca(const PcodeOp *op)
 
 {
-  OpCode opc = op->code();
   if (!checkPrintAlloca(op)) return false;
   const Funcdata *fd = op->getFuncdata();
   int4 slot = op->getAllocaAttachSlot(*fd);
@@ -3297,6 +3300,8 @@ bool PrintC::emitAlloca(const PcodeOp *op)
   const PcodeOp *allocaop = op->getOut()->getAllocaShiftOp(*fd);
   if (printedSymbolName(allocaop->getIn(slot)).empty()) return false;
   const Varnode *vn = (const Varnode *)0;
+
+  OpCode opc = allocaop->code();
   if (opc == CPUI_INT_SUB)
     vn = allocaop->getIn(1-slot);
   if (opc == CPUI_INT_ADD) {
@@ -4383,6 +4388,7 @@ string PrintC::printedSymbolName(const Varnode *vn)
   const Varnode *invn = vn;
   const PcodeOp *op = invn->getDef();
   OpCode opc;
+
   while (op != (PcodeOp *)0) {
     opc = op->code();
     if (opc != CPUI_COPY && opc != CPUI_CAST)
@@ -4394,34 +4400,35 @@ string PrintC::printedSymbolName(const Varnode *vn)
   HighVariable *high = invn->getHigh();
   if (high->getSymbol() != (Symbol *)0) {
     s << high->getSymbol()->getDisplayName();
-    return s.str();
   }
 
-  if (op == (const PcodeOp *)0) return "";
+  if (op == (const PcodeOp *)0) return s.str();
   if (opc == CPUI_PTRSUB) {
     const Varnode *invn1 = op->getIn(1);
     high = invn1->getHigh();
-    if (high->getSymbol() == (Symbol *)0) {
-      const Varnode *invn0 = op->getIn(0);
-      TypePointer *ptype = (TypePointer *)invn0->getType();
-      if (ptype->getMetatype() != TYPE_PTR) return "";
-      TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
-      if (sb->getMetatype() != TYPE_SPACEBASE) return "";
-      if (!invn1->isConstant()) return "";
-      s << "&";
-      s << sb->getSpace()->getName();
-      s << "0x";
-      s << std::hex << invn1->getOffset();
+    if (high->getSymbol() != (Symbol *)0) {
+      s.str("");
+      if (high->getSymbol()->getType()->getMetatype() != TYPE_ARRAY) {
+	s << "&";
+      }
+      s << high->getSymbol()->getDisplayName();
       return s.str();
     }
-    if (high->getSymbol()->getType()->getMetatype() != TYPE_ARRAY) {
-      s << "&";
-    }
-    s << high->getSymbol()->getDisplayName();
+    const Varnode *invn0 = op->getIn(0);
+    TypePointer *ptype = (TypePointer *)invn0->getType();
+    if (ptype->getMetatype() != TYPE_PTR) return s.str();
+    TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
+    if (sb->getMetatype() != TYPE_SPACEBASE) return s.str();
+    if (!invn1->isConstant()) return s.str();
+    s.str("");
+    s << "&";
+    s << sb->getSpace()->getName();
+    s << "0x";
+    s << std::hex << invn1->getOffset();
     return s.str();
   }
 
-  return "";
+  return s.str();
 }
 
 } // End namespace ghidra
