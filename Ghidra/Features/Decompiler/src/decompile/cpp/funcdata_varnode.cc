@@ -888,8 +888,11 @@ void Funcdata::calcNZMask(void)
       node.slot += 1; // Advance to next input
       // Determine if we want to traverse this edge
       if (node.op->code() == CPUI_MULTIEQUAL) {
-	if (node.op->getParent()->isLoopIn(oldslot)) // Clip looping edges
-	  continue;
+	BlockBasic *parent = node.op->getParent();
+	// Clip looping edges
+	if (parent->sizeIn() > oldslot)
+	  if (node.op->getParent()->isLoopIn(oldslot))
+	    continue;
       }
       // Traverse edge indicated by slot
       Varnode *vn = node.op->getIn(oldslot);
