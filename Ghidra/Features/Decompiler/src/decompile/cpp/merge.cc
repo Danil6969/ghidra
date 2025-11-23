@@ -717,9 +717,10 @@ void Merge::trimOpInput(PcodeOp *op,int4 slot)
   PcodeOp *copyop;
   Varnode *vn;
   Address pc;
-  
-  if (op->code() == CPUI_MULTIEQUAL) {
-    BlockBasic *bb = (BlockBasic *)op->getParent()->getIn(slot);
+
+  BlockBasic *parent = op->getParent();
+  if (op->code() == CPUI_MULTIEQUAL && parent->sizeIn() > slot) {
+    BlockBasic *bb = (BlockBasic *)parent->getIn(slot);
     pc = bb->getStop();
   }
   else
@@ -743,8 +744,8 @@ void Merge::trimOpInput(PcodeOp *op,int4 slot)
 
   copyop = allocateCopyTrim(invn, pc, op);
   data.opSetInput(op,copyop->getOut(),slot);
-  if (op->code() == CPUI_MULTIEQUAL)
-    data.opInsertEnd(copyop,(BlockBasic *)op->getParent()->getIn(slot));
+  if (op->code() == CPUI_MULTIEQUAL && parent->sizeIn() > slot)
+    data.opInsertEnd(copyop,(BlockBasic *)parent->getIn(slot));
   else
     data.opInsertBefore(copyop,op);
   if (def != (PcodeOp *)0) {
