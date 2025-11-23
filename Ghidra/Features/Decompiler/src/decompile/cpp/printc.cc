@@ -490,7 +490,7 @@ bool PrintC::isClassUpcast(Datatype *inType,Datatype *outType,TypeFactory *types
   if (inpt->getMetatype() != TYPE_STRUCT) return false;
   TypeStruct *innerpt = (TypeStruct *)inpt;
   while (true) {
-    TypeField field = *innerpt->beginField();
+    const TypeField &field(*innerpt->beginField());
     if (field.type->getMetatype() != TYPE_STRUCT) break;
     innerpt = (TypeStruct *)field.type;
     if (innerpt == outpt) return true;
