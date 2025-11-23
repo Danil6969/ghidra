@@ -602,7 +602,7 @@ void Cover::addRefPoint(const PcodeOp *ref,const Varnode *vn)
   }
   //  if (bl->InSize()==0)
   //    throw LowlevelError("Ref point is not in flow of defpoint");
-  if (ref->code() == CPUI_MULTIEQUAL) {
+  if (ref->code() == CPUI_MULTIEQUAL && bl->sizeIn() >= ref->numInput()) {
     for(j=0;j<ref->numInput();++j)
       if (ref->getIn(j)==vn)
 	addRefRecurse(bl->getIn(j));
