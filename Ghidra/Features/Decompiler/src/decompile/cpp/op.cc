@@ -1355,7 +1355,9 @@ uintb PcodeOp::getNZMaskLocal(bool cliploop) const
       resmask = 0;
       if (cliploop) {
 	for(;i<inrefs.size();++i) {
-	  if (parent->isLoopIn(i)) continue;
+	  if (parent->sizeIn() > i)
+	    if (parent->isLoopIn(i))
+	      continue;
 	  resmask |= getIn(i)->getNZMask();
 	}
       }
