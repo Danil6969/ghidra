@@ -6998,7 +6998,6 @@ bool RuleCancelOutPtrAdd::canProcessOp(PcodeOp *op,PcodeOp *negateOp,PcodeOp *mu
   if (vn->isConstant() && vn->getOffset() == 0) return false;
   if (multi == (PcodeOp *)0) return false;
   if (multi->code() != CPUI_MULTIEQUAL) return false;
-
   Varnode *in0 = multi->getIn(0);
   Varnode *in1 = multi->getIn(1);
   PcodeOp *inOp0 = in0->getDef();
@@ -12851,43 +12850,79 @@ int4 RulePtrsubAdjust::applyOp(PcodeOp *op,Funcdata &data)
 
   TypePointer *ptype = (TypePointer *)basevn->getType();
   if (ptype->getMetatype() != TYPE_PTR) return 0;
-  TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
-  if (sb->getMetatype() != TYPE_SPACEBASE) return 0;
-  Scope *scope = sb->getMap();
+  type_metatype meta = ptype->getPtrTo()->getMetatype();
+  if (meta == TYPE_SPACEBASE) {
+    TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
+    Scope *scope = sb->getMap();
 
-  Address addr = sb->getAddress(val[0],basevn->getSize(),op->getAddr());
-  if (addr.isInvalid()) return 0;
-  SymbolEntry *entry1 = scope->queryContainer(addr,1,Address());
-  if (entry1 == (SymbolEntry *)0) return 0;
+    Address addr = sb->getAddress(val[0],basevn->getSize(),op->getAddr());
+    if (addr.isInvalid()) return 0;
+    SymbolEntry *entry1 = scope->queryContainer(addr,1,Address());
+    if (entry1 == (SymbolEntry *)0) return 0;
 
-  uintb off = (intb)entry1->getSize();
-  if (off <= val[1]) return 0;
-  uintb diff = off - val[1];
-  addr = sb->getAddress(val[0] + off,basevn->getSize(),op->getAddr());
-  SymbolEntry *entry2 = scope->queryContainer(addr,1,Address());
-  if (entry2 == (SymbolEntry *)0) {
-    newvn[0] = data.newConstant(sz,val[0] & calc_mask(sz));
-    newvn[1] = data.newConstant(sz,val[1] & calc_mask(sz));
-    PcodeOp *newptrsubop1 = data.newOpBefore(op,CPUI_PTRSUB,basevn,newvn[0]);
-    PcodeOp *newptrsubop2 = data.newOpBefore(op,CPUI_PTRSUB,newptrsubop1->getOut(),newvn[1]);
-    data.opSetInput(op,newptrsubop2->getOut(),0);
-    data.opSetInput(op,invn,1);
+    uintb off = (intb)entry1->getSize();
+    if (off <= val[1]) return 0;
+    addr = sb->getAddress(val[0] + off,basevn->getSize(),op->getAddr());
+    SymbolEntry *entry2 = scope->queryContainer(addr,1,Address());
+    if (entry2 == (SymbolEntry *)0) {
+      newvn[0] = data.newConstant(sz,val[0] & calc_mask(sz));
+      newvn[1] = data.newConstant(sz,val[1] & calc_mask(sz));
+      PcodeOp *newptrsubop1 = data.newOpBefore(op,CPUI_PTRSUB,basevn,newvn[0]);
+      PcodeOp *newptrsubop2 = data.newOpBefore(op,CPUI_PTRSUB,newptrsubop1->getOut(),newvn[1]);
+      data.opSetInput(op,newptrsubop2->getOut(),0);
+      data.opSetInput(op,invn,1);
+      return 1;
+    }
+
+    Datatype *dt = entry2->getSymbol()->getType();
+    if (dt->getMetatype() != TYPE_ARRAY) return 0;
+    dt = ((TypeArray *)dt)->getBase();
+    uintb diff = off - val[1];
+    if (diff < dt->getSize()) return 0;
+
+    newvn[0] = data.newConstant(sz,(val[0] + off) & calc_mask(sz));
+    newvn[1] = data.newConstant(sz,(val[1] - off) & calc_mask(sz));
+    PcodeOp *newptrsubop = data.newOpBefore(op,CPUI_PTRSUB,basevn,newvn[0]);
+    PcodeOp *newaddop = data.newOpBefore(op,CPUI_INT_ADD,invn,newvn[1]);
+    data.opSetInput(op,newptrsubop->getOut(),0);
+    data.opSetInput(op,newaddop->getOut(),1);
     return 1;
   }
-  Datatype *dt = entry2->getSymbol()->getType();
-  if (dt->getMetatype() != TYPE_ARRAY) return 0;
-  while (dt->getMetatype() == TYPE_ARRAY) {
-    dt = ((TypeArray *)dt)->getBase();
-  }
-  if (diff > dt->getSize()) return 0;
+  if (meta == TYPE_STRUCT) {
+    TypeStruct *ts = (TypeStruct *)ptype->getPtrTo();
+    vector<TypeField>::const_iterator iter;
+    const TypeField *field1 = (TypeField *)0;
+    const TypeField *field2 = (TypeField *)0;
+    for (iter=ts->beginField();iter!=ts->endField();++iter) {
+      const TypeField &field(*iter);
+      if (field.offset == val[0]) {
+	field1 = &(*iter);
+	iter++;
+	if (iter==ts->endField()) return 0;
+	field2 = &(*iter);
+	break;
+      }
+      if (field.offset > val[0]) return 0;
+    }
 
-  newvn[0] = data.newConstant(sz,(val[0] + off) & calc_mask(sz));
-  newvn[1] = data.newConstant(sz,(val[1] - off) & calc_mask(sz));
-  PcodeOp *newptrsubop = data.newOpBefore(op,CPUI_PTRSUB,basevn,newvn[0]);
-  PcodeOp *newaddop = data.newOpBefore(op,CPUI_INT_ADD,invn,newvn[1]);
-  data.opSetInput(op,newptrsubop->getOut(),0);
-  data.opSetInput(op,newaddop->getOut(),1);
-  return 1;
+    uintb off = field2->offset - val[0];
+    if (off <= val[1]) return 0;
+    uintb diff = off - val[1];
+
+    Datatype *dt = field2->type;
+    if (dt->getMetatype() != TYPE_ARRAY) return 0;
+    dt = ((TypeArray *)dt)->getBase();
+    if (diff < dt->getSize()) return 0;
+
+    newvn[0] = data.newConstant(sz,(val[0] + off) & calc_mask(sz));
+    newvn[1] = data.newConstant(sz,(val[1] - off) & calc_mask(sz));
+    PcodeOp *newptrsubop = data.newOpBefore(op,CPUI_PTRSUB,basevn,newvn[0]);
+    PcodeOp *newaddop = data.newOpBefore(op,CPUI_INT_ADD,invn,newvn[1]);
+    data.opSetInput(op,newptrsubop->getOut(),0);
+    data.opSetInput(op,newaddop->getOut(),1);
+    return 1;
+  }
+  return 0;
 }
 
 PcodeOp *RuleInferPointerMult::getCounterInitOp(PcodeOp *multiop,int4 &slot)
