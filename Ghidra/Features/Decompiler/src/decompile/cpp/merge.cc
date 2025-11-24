@@ -807,8 +807,8 @@ void Merge::mergeOp(PcodeOp *op)
       throw LowlevelError("Non-cover related merge restriction violated, despite trims");
     if (!merge(op->getOut()->getHigh(),op->getIn(i)->getHigh(),false)) {
       ostringstream errstr;
-      errstr << "Unable to force merge of op at " << op->getSeqNum();
-      throw LowlevelError(errstr.str());
+      errstr << "Assertion failed: Unable to force merge of op at " << op->getSeqNum();
+      data.warningHeader(errstr.str());
     }
   }
 }
