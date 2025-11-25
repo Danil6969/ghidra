@@ -7995,6 +7995,9 @@ int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> visitedOps)
       return pt->getPtrTo()->getSize();
     }
   }
+  if (opc == CPUI_INDIRECT) {
+    return 0;
+  }
   // TODO more testing required
   return 1;
 }
@@ -8055,7 +8058,6 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
 
 {
   if (!data.hasTypeRecoveryStarted()) return 0;
-  int4 movesize;			// Number of bytes being moved by load or store
   int4 slot = -1;			// Pointer slot
   Datatype *baseType = (Datatype *)0;
   int8 offset = 0;
@@ -8071,11 +8073,6 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
     slot = 0;
   }
   if (slot == -1) return 0;
-  set<PcodeOp *> visitedOps;
-  movesize = getMaxMoveSize(op,visitedOps);
-  visitedOps.clear();
-  if (movesize == 0) return 0;
-
   Varnode *ptrVn = op->getIn(slot);
   Datatype *ct = ptrVn->getTypeReadFacing(op);
   if (ct->getMetatype() != TYPE_PTR) return 0;
@@ -8093,7 +8090,16 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
     baseType = ((TypePointer *)ct)->getPtrTo();
   }
 
-  if (baseType->getMetatype() == TYPE_STRUCT) {
+  type_metatype meta = baseType->getMetatype();
+  if (meta != TYPE_STRUCT && meta != TYPE_ARRAY) return 0;
+
+  set<PcodeOp *> visitedOps;
+  // Number of bytes being moved by load or store
+  int4 movesize = getMaxMoveSize(op,visitedOps);
+  visitedOps.clear();
+  if (movesize == 0) return 0;
+
+  if (meta == TYPE_STRUCT) {
     Datatype *subType = baseType->getSubType(offset,&offset);	// Get field at pointer's offset
     if (opc == CPUI_MULTIEQUAL) {
       if (subType != (Datatype *)0) {
@@ -8113,7 +8119,7 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
       if (isRepeated(ptrVn,baseType,(Datatype *)0)) return 0;
     }
   }
-  else if (baseType->getMetatype() == TYPE_ARRAY) {
+  if (meta == TYPE_ARRAY) {
     if (baseType->getSize() < movesize)
       return 0;				// Moving something bigger than entire array
     if (baseType->getSize() == movesize) {	// Moving something the size of entire array
@@ -8122,8 +8128,6 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
       // If we reach here, moving something size of single element. Assume this is normal access.
     }
   }
-  else
-    return 0;
 
   PcodeOp *newop = data.newOpBefore(op,CPUI_PTRSUB,ptrVn,data.newConstant(ptrVn->getSize(),0));
   if (ptrVn->getType()->needsResolution())
