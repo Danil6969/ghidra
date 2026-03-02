@@ -158,16 +158,29 @@ PcodeOp *FlowInfo::findRelTarget(PcodeOp *op,Address &res) const
 
   // Now we check if the relative branch is really to the next instruction
   SeqNum seqnum1(op->getAddr(),id-1);
-  retop = obank.findOp(seqnum1); // We go back one sequence number
-  if (retop != (PcodeOp *)0) {
+  PcodeOp *retop1 = obank.findOp(seqnum1); // We go back one sequence number
+  if (retop1 != (PcodeOp *)0) {
     // If the PcodeOp exists here then branch was indeed to next instruction
     map<Address,VisitStat>::const_iterator miter;
-    miter = visited.upper_bound(retop->getAddr());
+    miter = visited.upper_bound(retop1->getAddr());
     if (miter != visited.begin()) {
       --miter;
       res = (*miter).first + (*miter).second.size;
       if (op->getAddr() < res)
 	return (PcodeOp *)0;	// Indicate that res has the fallthru address
+    }
+  }
+  SeqNum seqnum2(op->getAddr(),id-2);
+  PcodeOp *retop2 = obank.findOp(seqnum2);
+  if (retop2 != (PcodeOp *)0 && retop2->code() == CPUI_CALL) {
+    list<PcodeOp *>::const_iterator iter = retop2->getInsertIter();
+    iter++;
+    if (iter != obank.endDead()) {
+      PcodeOp *resop = *iter;
+      if (resop->code() == CPUI_RETURN) {
+	data.warning("Additional instructions from another branch could be discarded",op->getAddr());
+	return *iter;
+      }
     }
   }
   ostringstream errmsg;
