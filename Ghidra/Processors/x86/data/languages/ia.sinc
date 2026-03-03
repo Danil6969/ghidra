@@ -2217,6 +2217,7 @@ define pcodeop on;
 	<lab_try>
 	goto exceptRel;
 	<lab_skip>
+	goto inst_next;
 }
 
 # catch clauses
@@ -2242,6 +2243,7 @@ define pcodeop on;
 	setupCatchPointers();
 	goto exceptRel;
 	<lab_skip>
+	goto inst_next;
 }
 
 # unwind clauses
@@ -2265,6 +2267,7 @@ define pcodeop on;
 	<lab_catch>
 	goto exceptRel;
 	<lab_skip>
+	goto inst_next;
 }
 
 # except clauses
@@ -2288,6 +2291,7 @@ define pcodeop on;
 	<lab_catch>
 	goto exceptRel;
 	<lab_skip>
+	goto inst_next;
 }
 
 # on clauses
@@ -2313,6 +2317,7 @@ define pcodeop on;
 	<lab_catch>
 	goto exceptRel;
 	<lab_skip>
+	goto inst_next;
 }
 
 # finally clauses
