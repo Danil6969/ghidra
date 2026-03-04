@@ -1076,6 +1076,17 @@ int4 RulePullsubIndirect::applyOp(PcodeOp *op,Funcdata &data)
   consume = ~consume;
   if ((consume & indir->getIn(0)->getConsume())!=0) return 0;
 
+  Varnode *small1 = (Varnode *)0;
+  Varnode *basevn = indir->getIn(0);
+  if (!indir->isIndirectCreation()) {
+    small1 = RulePullsubMulti::findSubpiece(basevn,newSize,op->getIn(1)->getOffset());
+    if (small1 == (Varnode *)0) {
+      if (!basevn->isWritten()) {
+	if (!basevn->isInput()) return 0;
+      }
+    }
+  }
+
   Varnode *small2;
   Address smalladdr2;
   PcodeOp *new_ind;
@@ -1086,13 +1097,11 @@ int4 RulePullsubIndirect::applyOp(PcodeOp *op,Funcdata &data)
     smalladdr2 = vn->getAddr()+(vn->getSize()-maxByte-1);
 
   if (indir->isIndirectCreation()) {
-    bool possibleout = !indir->getIn(0)->isIndirectZero();
+    bool possibleout = !basevn->isIndirectZero();
     new_ind = data.newIndirectCreation(targ_op,smalladdr2,newSize,possibleout);
     small2 = new_ind->getOut();
   }
   else {
-    Varnode *basevn = indir->getIn(0);
-    Varnode *small1 = RulePullsubMulti::findSubpiece(basevn,newSize,op->getIn(1)->getOffset());
     if (small1 == (Varnode *)0)
       small1 = RulePullsubMulti::buildSubpiece(basevn,newSize,op->getIn(1)->getOffset(),data);
     // Create new indirect near original indirect
