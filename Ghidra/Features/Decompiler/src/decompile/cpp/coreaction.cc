@@ -1395,14 +1395,15 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
       Varnode *othervn = op->getIn(1 - slot);
       Datatype *dt = (Datatype *)0;
       if (othervn->getDef() == (PcodeOp *)0) {
-        dt = othervn->getType();
+	dt = othervn->getType();
       }
       else {
-        dt = othervn->getTypeDefFacing();
+	dt = othervn->getTypeDefFacing();
       }
       type_metatype meta = dt->getMetatype();
       if (meta != TYPE_PTR) { // Only infer if another varnode is a pointer
-	return (SymbolEntry *) 0;
+	if (!glb->infer_pointers)
+	  return (SymbolEntry *)0;
       }
       needexacthit = false;
       break;
