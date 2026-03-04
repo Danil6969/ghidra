@@ -1362,6 +1362,7 @@ Datatype *Varnode::recoverConstantDatatype(void) const
     Varnode *conditionvn = cbranchop->getIn(1);
     conditionvn = conditionvn->getCopyChainInput();
     PcodeOp *conditionop = conditionvn->getDef();
+    if (conditionop == (PcodeOp *)0) return (Datatype *)0;
     OpCode conditionopc = conditionop->code();
 
     uintb parentoff = parent->firstOp()->getAddr().getOffset();
