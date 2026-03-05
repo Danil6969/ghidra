@@ -1072,20 +1072,10 @@ int4 RulePullsubIndirect::applyOp(PcodeOp *op,Funcdata &data)
   Varnode *outvn = op->getOut();
   if (outvn->isPrecisLo()||outvn->isPrecisHi()) return 0; // Don't pull apart double precision object
 
+  Varnode *basevn = indir->getIn(0);
   uintb consume = calc_mask(newSize) << 8 * minByte;
   consume = ~consume;
-  if ((consume & indir->getIn(0)->getConsume())!=0) return 0;
-
-  Varnode *small1 = (Varnode *)0;
-  Varnode *basevn = indir->getIn(0);
-  if (!indir->isIndirectCreation()) {
-    small1 = RulePullsubMulti::findSubpiece(basevn,newSize,op->getIn(1)->getOffset());
-    if (small1 == (Varnode *)0) {
-      if (!basevn->isWritten()) {
-	if (!basevn->isInput()) return 0;
-      }
-    }
-  }
+  if ((consume & basevn->getConsume())!=0) return 0;
 
   Varnode *small2;
   Address smalladdr2;
@@ -1102,8 +1092,11 @@ int4 RulePullsubIndirect::applyOp(PcodeOp *op,Funcdata &data)
     small2 = new_ind->getOut();
   }
   else {
-    if (small1 == (Varnode *)0)
+    Varnode *small1 = RulePullsubMulti::findSubpiece(basevn,newSize,op->getIn(1)->getOffset());
+    if (small1 == (Varnode *)0) {
+      if (!basevn->isWritten() && !basevn->isInput()) return 0;
       small1 = RulePullsubMulti::buildSubpiece(basevn,newSize,op->getIn(1)->getOffset(),data);
+    }
     // Create new indirect near original indirect
     new_ind = data.newOp(2,indir->getAddr());
     data.opSetOpcode(new_ind,CPUI_INDIRECT);
@@ -8966,7 +8959,15 @@ bool RulePieceStructure::convertZextToPiece(PcodeOp *zext,Datatype *ct,int4 offs
 {
   Varnode *outvn = zext->getOut();
   Varnode *invn = zext->getIn(0);
+  Datatype *dt = invn->getType();
+  if (dt->getMetatype() == TYPE_BOOL) {
+    // We prefer native zext in case boolean is converted into any integer
+    if (ct->getMetatype() == TYPE_INT) return false;
+    if (ct->getMetatype() == TYPE_UINT) return false;
+    if (ct->getMetatype() == TYPE_PTR) return false;
+  }
   if (invn->isConstant()) return false;
+
   int4 sz = outvn->getSize() - invn->getSize();
   TypeFactory *types = data.getArch()->types;
   offset += outvn->getSpace()->isBigEndian() ? 0 : invn->getSize();
@@ -8993,8 +8994,8 @@ bool RulePieceStructure::convertZextToPiece(PcodeOp *zext,Datatype *ct,int4 offs
     zerovn->updateType(ct, false, false);
   data.opSetOpcode(zext, CPUI_PIECE);
   data.opInsertInput(zext, zerovn, 0);
-  if (invn->getType()->needsResolution())
-    data.inheritResolution(invn->getType(), zext, 1, zext, 0);	// Transfer invn's resolution to slot 1
+  if (dt->needsResolution())
+    data.inheritResolution(dt, zext, 1, zext, 0);	// Transfer invn's resolution to slot 1
   return true;
 }
 
