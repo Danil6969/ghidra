@@ -373,15 +373,54 @@ define register offset=0x1a00 size=64  [ zmmOut zmmRes zmmTmp1 zmmTmp2 ];
 define register offset=0x2000 size=12  contextreg;
 
 # AVX-512 opmask registers
-define register offset=2100 size=8  [
-	K0  K1  K2  K3  K4  K5  K6  K7
-];
+define register offset=0x2100 size=8  [ K0  K1  K2  K3  K4  K5  K6  K7 ];
+
+define register offset=0x2200 size=2  [ rm8ext ];
+define register offset=0x2200 size=4  [ rm16ext ];
+define register offset=0x2200 size=8  [ rm32ext ];
 
 # dummy registers for managing broadcast data for AVX512
-define register offset=2200 size=8 [ BCST8 ];
-define register offset=2200 size=16 [ BCST16 ];
-define register offset=2200 size=32 [ BCST32 ];
-define register offset=2200 size=64 [ BCST64 ];
+define register offset=0x2300 size=8 [ BCST8 ];
+define register offset=0x2300 size=16 [ BCST16 ];
+define register offset=0x2300 size=32 [ BCST32 ];
+define register offset=0x2300 size=64 [ BCST64 ];
+
+# Define special registers for debugger
+@ifdef IA64
+define register offset=0x2400 size=4   [ IDTR_Limit ];
+define register offset=0x2400 size=12   [ IDTR   ];
+define register offset=0x2404 size=8   [ IDTR_Address ];
+
+define register offset=0x2420 size=4   [ GDTR_Limit ];
+define register offset=0x2420 size=12   [ GDTR   ];
+define register offset=0x2424 size=8   [ GDTR_Address ];
+
+define register offset=0x2440 size=4   [ LDTR_Limit ];
+define register offset=0x2440 size=14  [ LDTR   ];
+define register offset=0x2444 size=8   [ LDTR_Address ];
+define register offset=0x2448 size=2   [ LDTR_Attributes ];
+
+define register offset=0x2460 size=4   [ TR_Limit ];
+define register offset=0x2460 size=14  [ TR   ];
+define register offset=0x2464 size=8   [ TR_Address ];
+define register offset=0x2468 size=2   [ TR_Attributes ];
+@else
+define register offset=0x2400 size=6   [ IDTR         ];
+define register offset=0x2400 size=2   [ IDTR_Limit   ];
+define register offset=0x2402 size=4   [ IDTR_Address ];
+
+define register offset=0x2410 size=6   [ GDTR         ];
+define register offset=0x2410 size=2   [ GDTR_Limit   ];
+define register offset=0x2412 size=4   [ GDTR_Address ];
+
+define register offset=0x2420 size=6   [ LDTR         ];
+define register offset=0x2420 size=2   [ LDTR_Limit   ];
+define register offset=0x2422 size=4   [ LDTR_Address ];
+
+define register offset=0x2430 size=6   [ TR           ];
+define register offset=0x2430 size=2   [ TR_Limit     ];
+define register offset=0x2432 size=4   [ TR_Address   ];
+@endif
 
 #
 #
@@ -491,43 +530,6 @@ define context contextreg
 @define PRE_F2		"prefix_f2=1"
 
 
-
-# Define special registers for debugger
-@ifdef IA64
-define register offset=0x2200 size=4   [ IDTR_Limit ];
-define register offset=0x2200 size=12   [ IDTR   ];
-define register offset=0x2204 size=8   [ IDTR_Address ];
-
-define register offset=0x2220 size=4   [ GDTR_Limit ];
-define register offset=0x2220 size=12   [ GDTR   ];
-define register offset=0x2224 size=8   [ GDTR_Address ];
-
-define register offset=0x2240 size=4   [ LDTR_Limit ];
-define register offset=0x2240 size=14  [ LDTR   ];
-define register offset=0x2244 size=8   [ LDTR_Address ];
-define register offset=0x2248 size=2   [ LDTR_Attributes ];
-
-define register offset=0x2260 size=4   [ TR_Limit ];
-define register offset=0x2260 size=14  [ TR   ];
-define register offset=0x2264 size=8   [ TR_Address ];
-define register offset=0x2268 size=2   [ TR_Attributes ];
-@else
-define register offset=0x2200 size=6   [ IDTR         ];
-define register offset=0x2200 size=2   [ IDTR_Limit   ];
-define register offset=0x2202 size=4   [ IDTR_Address ];
-
-define register offset=0x2210 size=6   [ GDTR         ];
-define register offset=0x2210 size=2   [ GDTR_Limit   ];
-define register offset=0x2212 size=4   [ GDTR_Address ];
-
-define register offset=0x2220 size=6   [ LDTR         ];
-define register offset=0x2220 size=2   [ LDTR_Limit   ];
-define register offset=0x2222 size=4   [ LDTR_Address ];
-
-define register offset=0x2230 size=6   [ TR           ];
-define register offset=0x2230 size=2   [ TR_Limit     ];
-define register offset=0x2232 size=4   [ TR_Address   ];
-@endif
 
 define token opbyte (8)
   byte=(0,7)
@@ -3092,18 +3094,18 @@ define pcodeop cpuid_brand_part3_info;
 :DEC Rmr16     is $(LONGMODE_OFF) & vexMode=0 & opsize=0 & row=4 & page=1 & Rmr16  { OF = sborrow(Rmr16,1);   Rmr16 =  Rmr16 - 1; resultflags( Rmr16); }
 :DEC Rmr32     is $(LONGMODE_OFF) & vexMode=0 & opsize=1 & row=4 & page=1 & Rmr32 & check_Rmr32_dest  { OF = sborrow(Rmr32,1);   Rmr32 =  Rmr32 - 1; build check_Rmr32_dest; resultflags( Rmr32); }
 
-:DIV rm8        is vexMode=0 & byte=0xf6; rm8 & reg_opcode=6 ...            { rm8ext:2 = zext(rm8);
+:DIV rm8        is vexMode=0 & byte=0xf6; rm8 & reg_opcode=6 ...            { rm8ext = zext(rm8);
                                                   local quotient = AX / rm8ext;  # DE exception if quotient doesn't fit in AL
                                                   local rem      = AX % rm8ext;
                                                   AL = quotient:1;
                                                   AH = rem:1; }
-:DIV rm16       is vexMode=0 & opsize=0 & byte=0xf7; rm16 & reg_opcode=6 ...    { rm16ext:4 = zext(rm16);
+:DIV rm16       is vexMode=0 & opsize=0 & byte=0xf7; rm16 & reg_opcode=6 ...    { rm16ext = zext(rm16);
                                                   tmp:4 = (zext(DX) << 16) | zext(AX);   # DE exception if quotient doesn't fit in AX
                                                   local quotient = tmp / rm16ext;
                                                   AX = quotient:2;
                                                   local rem = tmp % rm16ext;
                                                   DX = rem:2; }
-:DIV rm32       is vexMode=0 & opsize=1 & byte=0xf7; rm32 & check_EDX_dest ... & check_EAX_dest ... & reg_opcode=6 ...    { rm32ext:8 = zext(rm32);
+:DIV rm32       is vexMode=0 & opsize=1 & byte=0xf7; rm32 & check_EDX_dest ... & check_EAX_dest ... & reg_opcode=6 ...    { rm32ext = zext(rm32);
                                                   tmp:8 = (zext(EDX) << 32) | zext(EAX); # DE exception if quotient doesn't fit in EAX
                                                   local quotient = tmp / rm32ext;
                                                   EAX = quotient:4;
@@ -3347,18 +3349,18 @@ enterFrames: low5 is low5 { tmp:1 = low5; export tmp; }
 
 :HLT            is vexMode=0 & byte=0xf4                        { goto inst_start; }
 
-:IDIV rm8       is vexMode=0 & byte=0xf6;  rm8 & reg_opcode=7 ...           { rm8ext:2 = sext(rm8);
+:IDIV rm8       is vexMode=0 & byte=0xf6;  rm8 & reg_opcode=7 ...           { rm8ext = sext(rm8);
                                                   local quotient = AX s/ rm8ext;  # DE exception if quotient doesn't fit in AL
                                                   local rem = AX s% rm8ext;
                                                   AL = quotient:1;
                                                   AH = rem:1; }
-:IDIV rm16      is vexMode=0 & opsize=0 & byte=0xf7; rm16 & reg_opcode=7 ...    { rm16ext:4 = sext(rm16);
+:IDIV rm16      is vexMode=0 & opsize=0 & byte=0xf7; rm16 & reg_opcode=7 ...    { rm16ext = sext(rm16);
                                                   tmp:4 = (zext(DX) << 16) | zext(AX);   # DE exception if quotient doesn't fit in AX
                                                   local quotient = tmp s/ rm16ext;
                                                   AX = quotient:2;
                                                   local rem = tmp s% rm16ext;
                                                   DX = rem:2; }
-:IDIV rm32      is vexMode=0 & opsize=1 & byte=0xf7; rm32 & check_EAX_dest ... & check_EDX_dest ... & reg_opcode=7 ...    { rm32ext:8 = sext(rm32);
+:IDIV rm32      is vexMode=0 & opsize=1 & byte=0xf7; rm32 & check_EAX_dest ... & check_EDX_dest ... & reg_opcode=7 ...    { rm32ext = sext(rm32);
                                                   tmp:8 = (zext(EDX) << 32) | zext(EAX); # DE exception if quotient doesn't fit in EAX
                                                   local quotient = tmp s/ rm32ext;
                                                   EAX = quotient:4;
