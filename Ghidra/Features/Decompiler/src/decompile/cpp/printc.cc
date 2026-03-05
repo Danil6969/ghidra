@@ -2685,37 +2685,46 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
       }
     }
     if (!succeeded) {		// Subtype was not good
+      // First we branch based on out varnode presence
       const Varnode *outVn = op->getOut();
-      if ((outVn == (Varnode *)0) || (op->code() == CPUI_CAST))
+      if (outVn == (Varnode *)0)
 	casttype = vn->getHigh()->getType();
       else
 	casttype = outVn->getHigh()->getType();
-      if (casttype->needsResolution())
-	casttype = casttype->findResolve(op, inslot);
-      int4 size = vn->getSize();
+
+      // Second we fix datatype size based on op code
       if (op->code() == CPUI_COPY) {
 	if (casttype == (Datatype *)0) {
 	  casttype = op->getIn(0)->getType();
-	  size = op->getIn(0)->getSize();
 	}
 	else {
 	  // If sizes don't match this can mean
 	  // that wrong datatype is used
 	  if (casttype->getSize() != sz) {
+            type_metatype castmeta = casttype->getMetatype();
 	    // Try to use another datatype instead
-	    casttype = vn->getType();
+	    if (vn->getType()->getSize() == sz)
+	      casttype = vn->getType();
+            // for some cases we just pick desired size with the same meta
+            // (indirect subpiece slices on spacebase varnodes for example)
+            else if (castmeta == TYPE_UNKNOWN)
+              casttype = glb->types->getBase(sz,TYPE_UNKNOWN);
 	  }
 	}
       }
+      if (op->code() == CPUI_CAST)
+        casttype = vn->getHigh()->getType();
 
-      if (casttype != (Datatype *)0) {
+      // Third we postprocess up metatypes
+      if (casttype->needsResolution())
+        casttype = casttype->findResolve(op, inslot);
+      if (casttype != (Datatype *)0)
 	outArr = casttype->getMetatype() == TYPE_ARRAY;
-	size = casttype->getSize();
-      }
+
       if (!outArr) {
 	pushOp(&function_call,op);
 	ostringstream s;
-	s << "CASTARR" << size;
+	s << "CASTARR" << sz;
 	// cast with dereference
 	pushAtom(Atom(s.str(),optoken,EmitMarkup::no_color,op));
 	pushOp(&comma,op);
