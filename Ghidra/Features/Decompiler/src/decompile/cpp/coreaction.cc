@@ -4279,16 +4279,16 @@ bool ActionMarkImplied::isConstantMember(PcodeOp *op)
   TypePointer *ptype = (TypePointer *)in0->getHighTypeReadFacing(ptrsubop);
   if (ptype->getMetatype() != TYPE_PTR) return false;
 
-  TypePointerRel *ptrel;
   Datatype *ct;
   if (ptype->isFormalPointerRel()) {
-    ptrel = (TypePointerRel *)ptype;
+    TypePointerRel *ptrel = (TypePointerRel *)ptype;
     ct = ptrel->getParent();
+    // Must take ptrrel offset into account
+    in1const += ptrel->getPointerOffset();
+    in1const &= calc_mask(ptype->getSize());
   }
-  else {
-    ptrel = (TypePointerRel *)0;
+  else
     ct = ptype->getPtrTo();
-  }
 
   if (ct->getMetatype() != TYPE_STRUCT) return false;
   int8 newoff;
@@ -4296,6 +4296,7 @@ bool ActionMarkImplied::isConstantMember(PcodeOp *op)
   if (fld == (const TypeField*)0) return false;
   if (newoff != 0) return false;
   string fieldname = fld->name;
+  if (fieldname == Funcdata::FIELD_NOVFPTR) return true;
   if (fieldname == Funcdata::FIELD_VFPTR) return true;
   if (fieldname == Funcdata::FIELD_VBPTR) return true;
   return false;
