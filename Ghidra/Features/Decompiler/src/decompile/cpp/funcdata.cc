@@ -28,6 +28,7 @@ ElementId ELEM_VARNODES = ElementId("varnodes",119);
 const string Funcdata::FUNCTION_VASTART = "va_start";
 const string Funcdata::FUNCTION_EXTRACTIND = "extractind";
 const string Funcdata::FUNCTION_INSERTIND = "insertind";
+const string Funcdata::FIELD_NOVFPTR = "_novfptr";
 const string Funcdata::FIELD_VFPTR = "_vfptr";
 const string Funcdata::FIELD_VBPTR = "_vbptr";
 const string Funcdata::LABEL_VFTABLE = "vftable";
