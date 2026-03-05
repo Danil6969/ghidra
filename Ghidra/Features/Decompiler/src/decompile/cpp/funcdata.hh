@@ -141,6 +141,7 @@ public:
   static const string FUNCTION_VASTART;
   static const string FUNCTION_EXTRACTIND;
   static const string FUNCTION_INSERTIND;
+  static const string FIELD_NOVFPTR;
   static const string FIELD_VFPTR;
   static const string FIELD_VBPTR;
   static const string LABEL_VFTABLE;
