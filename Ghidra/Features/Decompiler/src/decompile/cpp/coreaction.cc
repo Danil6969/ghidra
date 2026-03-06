@@ -1553,7 +1553,7 @@ Datatype *ActionDeindirect::getOffsetStrippedDatatype(Datatype *pt,int8 offset,T
   return dt;
 }
 
-Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,set<PcodeOp *> visitedOps)
+Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,set<PcodeOp *> &visitedOps)
 
 {
   FuncCallSpecs *fc = (FuncCallSpecs *)0;		// The function prototype (direct call case)
