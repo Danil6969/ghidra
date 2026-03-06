@@ -1125,7 +1125,7 @@ public:
   static int4 evaluatePointerExpression(PcodeOp *op,int4 slot);
 };
 class RuleStructOffset0 : public Rule {
-  static int4 getMaxMoveSize(PcodeOp *op,set<PcodeOp *> visitedOps);
+  static int4 getMaxMoveSize(PcodeOp *op,set<PcodeOp *> &visitedOps);
   static bool isRepeated(Varnode *vn,Datatype *baseType,Datatype *subType);
 public:
   RuleStructOffset0(const string &g) : Rule(g, 0, "structoffset0") {}	///< Constructor
@@ -1815,7 +1815,7 @@ public:
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
   static bool canApply(PcodeOp *op,Funcdata &data);
-  static bool checkPointerUsages(Varnode *vn,set<Varnode *> visitedVarnodes,Funcdata &data);
+  static bool checkPointerUsages(Varnode *vn,set<Varnode *> &visitedVarnodes,Funcdata &data);
   static bool testMainOp(PcodeOp *mainop,PcodeOp *otherop,bool &isMain);
 };
 
