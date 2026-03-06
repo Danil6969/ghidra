@@ -2862,6 +2862,7 @@ bool ActionRepairPtradd::distributePtraddPtrsub(PcodeOp *op,Funcdata &data,CastS
   if (ct->getPtrTo()->isVtablePointer()) return false;
   if (pt->getPtrTo()->getSize() % pt->getWordSize() != 0) return false;
   int8 sz = AddrSpace::byteToAddressInt(pt->getPtrTo()->getSize(),pt->getWordSize());
+  if (sz == 0) return false;
   intb num = off / sz;
   intb rem = off - num * sz;
   if (off < 0 && rem != 0) {
