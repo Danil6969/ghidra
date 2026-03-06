@@ -1201,7 +1201,7 @@ void Varnode::printRaw(ostream &s,const Varnode *vn)
   vn->printRaw(s);
 }
 
-bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) const
+bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> &visitedVarnodes) const
 
 {
   if (visitedVarnodes.find(this) != visitedVarnodes.end()) return false;
@@ -1225,7 +1225,7 @@ bool Varnode::hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) cons
   return false;
 }
 
-bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Funcdata &data) const
+bool Varnode::isStaticCastOutputRecurse(set<const Varnode *> &visitedVarnodes,Funcdata &data) const
 
 {
   if (visitedVarnodes.find(this) != visitedVarnodes.end()) return (Varnode *)0;
