@@ -102,7 +102,7 @@ Datatype *ScoreUnionFields::getTypeStripComposite(Datatype *compositeType,int4 s
   return compositeType;
 }
 
-PcodeOp *ScoreUnionFields::getCallAddressUse(set<BlockBasic *> visitedBlocks,PcodeOp *op,Varnode *vn,int4 &slot)
+PcodeOp *ScoreUnionFields::getCallAddressUse(set<BlockBasic *> &visitedBlocks,PcodeOp *op,Varnode *vn,int4 &slot)
 
 {
   BlockBasic *bl = op->getParent();
@@ -263,6 +263,7 @@ int4 ScoreUnionFields::scoreAddrTied(Varnode *vn,int4 scoreIndex,PcodeOp *op)
   set<BlockBasic *> visitedVarnodes;
   int4 slot;
   PcodeOp *useop = getCallAddressUse(visitedVarnodes,op,vn,slot);
+  visitedVarnodes.clear();
   if (useop != (PcodeOp *)0) {
     FuncCallSpecs *fc = useop->getFuncdata()->getCallSpecs(useop);
     ProtoParameter *param = fc->getParam(slot - 1);
