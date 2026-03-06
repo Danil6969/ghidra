@@ -7934,7 +7934,7 @@ bool RulePtrArith::canApply(PcodeOp *op,Funcdata &data)
   return false;
 }
 
-int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> visitedOps)
+int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> &visitedOps)
 
 {
   visitedOps.insert(op);
@@ -13206,7 +13206,7 @@ bool RuleInferPointerMult::canApply(PcodeOp *op,Funcdata &data)
   return true;
 }
 
-bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,set<Varnode *> visitedVarnodes,Funcdata &data)
+bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,set<Varnode *> &visitedVarnodes,Funcdata &data)
 
 {
   if (visitedVarnodes.find(vn) != visitedVarnodes.end()) return false;
