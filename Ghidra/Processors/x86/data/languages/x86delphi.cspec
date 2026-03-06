@@ -40,6 +40,8 @@
       <killedbycall>
         <register name="ECX"/>
         <register name="EDX"/>
+        <register name="ST0"/>
+        <register name="ST1"/>
       </killedbycall>
     </prototype>
   </default_proto>
@@ -79,6 +81,7 @@
     <killedbycall>
       <register name="EAX"/>
       <register name="ST0"/>
+      <register name="ST1"/>
     </killedbycall>
   </prototype>
   <!--there is also a "pascal" calling convention, which is the same as stdcall except that arguments are pushed left-to-right-->
@@ -107,7 +110,9 @@
     </unaffected>
     <killedbycall>
       <register name="ECX"/>
-  	<register name="EDX"/>
+      <register name="EDX"/>
+      <register name="ST0"/>
+      <register name="ST1"/>
     </killedbycall>
     <likelytrash>
       <register name="ECX"/>
@@ -139,6 +144,8 @@
     <killedbycall>
       <register name="ECX"/>
       <register name="EDX"/>
+      <register name="ST0"/>
+      <register name="ST1"/>
     </killedbycall>
     <likelytrash>
       <register name="ECX"/>
