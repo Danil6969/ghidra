@@ -173,8 +173,8 @@ private:
   void addDescend(PcodeOp *op);	///< Add a descendant (reading) PcodeOp to this Varnode's list
   void eraseDescend(PcodeOp *op); ///< Erase a descendant (reading) PcodeOp from this Varnode's list
   void destroyDescend(void);	///< Clear all descendant (reading) PcodeOps
-  bool hasPointerUsagesRecurse(set<const Varnode *> visitedVarnodes) const;
-  bool isStaticCastOutputRecurse(set<const Varnode *> visitedVarnodes,Funcdata &data) const;
+  bool hasPointerUsagesRecurse(set<const Varnode *> &visitedVarnodes) const;
+  bool isStaticCastOutputRecurse(set<const Varnode *> &visitedVarnodes,Funcdata &data) const;
 public:
   // only to be used by HighVariable
   void setHigh(HighVariable *tv,int2 mg) { high = tv; mergegroup = mg; } ///< Set the HighVariable owning this Varnode
