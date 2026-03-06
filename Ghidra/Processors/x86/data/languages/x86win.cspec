@@ -81,7 +81,7 @@
       </likelytrash>
     </prototype>
   </default_proto>
-  <prototype name="__internal" extrapop="unknown" stackshift="4">
+  <prototype name="__usercall_out_EDX_preserved_EAX_ECX" extrapop="unknown" stackshift="4">
     <input>
       <pentry minsize="1" maxsize="500" align="4">
         <addr offset="4" space="stack"/>
@@ -100,9 +100,43 @@
       <register name="EBX"/>
       <register name="EAX"/>
       <register name="ECX"/>
+      <register name="ST0"/>
+      <register name="ST1"/>
     </unaffected>
     <killedbycall>
       <register name="EDX"/>
+    </killedbycall>
+  </prototype>
+  <prototype name="__usercall_in_ECX_EAX_out_EAX_preserved_EDX" extrapop="unknown" stackshift="4">
+    <input>
+      <pentry minsize="1" maxsize="4">
+        <register name="ECX"/>
+      </pentry>
+      <pentry minsize="1" maxsize="4">
+        <register name="EAX"/>
+      </pentry>
+      <pentry minsize="1" maxsize="500" align="4">
+        <addr offset="4" space="stack"/>
+      </pentry>
+    </input>
+    <output killedbycall="true">
+      <pentry minsize="1" maxsize="4">
+        <register name="EAX"/>
+      </pentry>
+    </output>
+    <unaffected>
+      <register name="ESP"/>
+      <register name="EBP"/>
+      <register name="ESI"/>
+      <register name="EDI"/>
+      <register name="EBX"/>
+      <register name="EDX"/>
+      <register name="ST0"/>
+      <register name="ST1"/>
+    </unaffected>
+    <killedbycall>
+      <register name="EAX"/>
+      <register name="ECX"/>
     </killedbycall>
   </prototype>
   <prototype name="__cdecl" extrapop="4" stackshift="4">
