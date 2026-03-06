@@ -100,11 +100,13 @@
       <register name="EBX"/>
       <register name="EAX"/>
       <register name="ECX"/>
-      <register name="ST0"/>
-      <register name="ST1"/>
+      <register name="DF"/>
+      <register name="FS_OFFSET"/>
     </unaffected>
     <killedbycall>
       <register name="EDX"/>
+      <register name="ST0"/>
+      <register name="ST1"/>
     </killedbycall>
   </prototype>
   <prototype name="__usercall_in_ECX_EAX_out_EAX_preserved_EDX" extrapop="unknown" stackshift="4">
@@ -131,12 +133,14 @@
       <register name="EDI"/>
       <register name="EBX"/>
       <register name="EDX"/>
-      <register name="ST0"/>
-      <register name="ST1"/>
+      <register name="DF"/>
+      <register name="FS_OFFSET"/>
     </unaffected>
     <killedbycall>
       <register name="EAX"/>
       <register name="ECX"/>
+      <register name="ST0"/>
+      <register name="ST1"/>
     </killedbycall>
   </prototype>
   <prototype name="__cdecl" extrapop="4" stackshift="4">
