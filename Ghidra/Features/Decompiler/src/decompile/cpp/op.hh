@@ -149,6 +149,7 @@ private:
   bool isMultNonCollapsible(void) const; ///< Return \b true if this multiplication shouldn't be collapsed
   bool isPieceNonCollapsible(void) const; ///< Return \b true if this piece shouldn't be collapsed
   bool isSubpieceNonCollapsible(void) const; ///< Return \b true if this subpiece shouldn't be collapsed
+  bool isEventualFormalPointerRelRecurse(set<PcodeOp *> &visitedOps) const;
 
 public:
   PcodeOp(int4 s,const SeqNum &sq); ///< Construct an unattached PcodeOp
