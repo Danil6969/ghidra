@@ -293,7 +293,7 @@ bool PcodeOp::isEventualFormalPointerRelRecurse(set<const PcodeOp *> &visitedOps
   const PcodeOp *def = ptrVn->getDef();
   if (def == (PcodeOp *)0) return false;
   OpCode opc = def->code();
-  if (def->isEventualFormalPointerRel()) return true;
+  if (def->isEventualFormalPointerRelRecurse(visitedOps)) return true;
   return false;
 }
 
