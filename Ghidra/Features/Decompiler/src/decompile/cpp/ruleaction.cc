@@ -13059,8 +13059,9 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
   Varnode *out = multiop->getOut();
   if (out->isFree()) return false;
   set<Varnode *> visitedVarnodes;
-  if (!checkPointerUsages(out,visitedVarnodes,data)) return false;
+  bool res = checkPointerUsages(out,visitedVarnodes,data);
   visitedVarnodes.clear();
+  if (!res) return false;
 
   // Collect descends
   vector<PcodeOp *> descends;
@@ -13123,8 +13124,9 @@ bool RuleInferPointerMult::formAssignment(PcodeOp *op,Funcdata &data)
   Varnode *out = multiop->getOut();
   if (out->isFree()) return false;
   set<Varnode *> visitedVarnodes;
-  if (!checkPointerUsages(out,visitedVarnodes,data)) return false;
+  bool res = checkPointerUsages(out,visitedVarnodes,data);
   visitedVarnodes.clear();
+  if (!res) return false;
 
   // Collect descends
   vector<PcodeOp *> descends;
@@ -13438,8 +13440,9 @@ bool RuleInferPointerAdd::formConstant(PcodeOp *op,Funcdata &data)
   if (multiOut->isFree()) return false;
   if (multiOut->getSize() != size) return false;
   set<Varnode *> visitedVarnodes;
-  if (!RuleInferPointerMult::checkPointerUsages(multiOut,visitedVarnodes,data)) return false;
+  bool res = RuleInferPointerMult::checkPointerUsages(multiOut,visitedVarnodes,data);
   visitedVarnodes.clear();
+  if (!res) return false;
 
   // Collect descends
   vector<PcodeOp *> descends;
@@ -13498,8 +13501,9 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
   if (multiOut->isFree()) return false;
   if (multiOut->getSize() != size) return false;
   set<Varnode *> visitedVarnodes;
-  if (!RuleInferPointerMult::checkPointerUsages(multiOut,visitedVarnodes,data)) return false;
+  bool res = RuleInferPointerMult::checkPointerUsages(multiOut,visitedVarnodes,data);
   visitedVarnodes.clear();
+  if (!res) return false;
 
   // Collect descends
   vector<PcodeOp *> descends;
