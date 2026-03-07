@@ -146,18 +146,10 @@ Funcdata *PcodeOp::getFuncdata(void) const
 bool PcodeOp::isEventualFormalPointerRel(void) const
 
 {
-  int4 slot = getPointerSlot();
-  if (slot < 0) return false;
-  const Varnode *ptrVn = getIn(slot);
-  Datatype *ct = ptrVn->getTypeReadFacing(this);
-  if (ct->getSubMeta() != SUB_PTRREL) return false;
-  TypePointerRel *ptRel = (TypePointerRel *)ct;
-  if (ptRel->isFormalPointerRel() && ptRel->evaluateThruParent(0)) return true;
-  const PcodeOp *def = ptrVn->getDef();
-  if (def == (PcodeOp *)0) return false;
-  OpCode opc = def->code();
-  if (def->isEventualFormalPointerRel()) return true;
-  return false;
+  set<const PcodeOp *> visitedOps;
+  bool res = isEventualFormalPointerRelRecurse(visitedOps);
+  visitedOps.clear();
+  return res;
 }
 
 bool PcodeOp::isCompare(void) const
@@ -282,6 +274,26 @@ bool PcodeOp::isSubpieceNonCollapsible(void) const
     if (op->code() != CPUI_INT_ADD) continue;
     return true;
   }
+  return false;
+}
+
+bool PcodeOp::isEventualFormalPointerRelRecurse(set<const PcodeOp *> &visitedOps) const
+
+{
+  if (visitedOps.find(this) != visitedOps.end()) return false;
+  visitedOps.insert(this);
+
+  int4 slot = getPointerSlot();
+  if (slot < 0) return false;
+  const Varnode *ptrVn = getIn(slot);
+  Datatype *ct = ptrVn->getTypeReadFacing(this);
+  if (ct->getSubMeta() != SUB_PTRREL) return false;
+  TypePointerRel *ptRel = (TypePointerRel *)ct;
+  if (ptRel->isFormalPointerRel() && ptRel->evaluateThruParent(0)) return true;
+  const PcodeOp *def = ptrVn->getDef();
+  if (def == (PcodeOp *)0) return false;
+  OpCode opc = def->code();
+  if (def->isEventualFormalPointerRel()) return true;
   return false;
 }
 
