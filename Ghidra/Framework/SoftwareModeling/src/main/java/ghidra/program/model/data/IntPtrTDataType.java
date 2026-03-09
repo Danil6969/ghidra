@@ -15,18 +15,18 @@
  */
 package ghidra.program.model.data;
 
-public class INTPTR_TDataType extends AbstractSignedIntegerDataType {
+public class IntPtrTDataType extends AbstractSignedIntegerDataType {
 
 	private static final long serialVersionUID = 1L;
 
-	/** A statically defined INTPTR_TDataType instance.*/
-	public final static INTPTR_TDataType dataType = new INTPTR_TDataType();
+	/** A statically defined IntPtrTDataType instance.*/
+	public final static IntPtrTDataType dataType = new IntPtrTDataType();
 
-	public INTPTR_TDataType() {
+	public IntPtrTDataType() {
 		this(null);
 	}
 
-	public INTPTR_TDataType(DataTypeManager dtm) {
+	public IntPtrTDataType(DataTypeManager dtm) {
 		super("intptr_t", dtm);
 	}
 
@@ -41,16 +41,16 @@ public class INTPTR_TDataType extends AbstractSignedIntegerDataType {
 	}
 
 	@Override
-	public UINTPTR_TDataType getOppositeSignednessDataType() {
-		return UINTPTR_TDataType.dataType.clone(getDataTypeManager());
+	public UIntPtrTDataType getOppositeSignednessDataType() {
+		return UIntPtrTDataType.dataType.clone(getDataTypeManager());
 	}
 
 	@Override
-	public INTPTR_TDataType clone(DataTypeManager dtm) {
+	public IntPtrTDataType clone(DataTypeManager dtm) {
 		if (dtm == getDataTypeManager()) {
 			return this;
 		}
-		return new INTPTR_TDataType(dtm);
+		return new IntPtrTDataType(dtm);
 	}
 
 }
