@@ -32,7 +32,7 @@ public class DataTypeComponentImpl implements InternalDataTypeComponent, Seriali
 	private final static long serialVersionUID = 1;
 
 	private DataType dataType;
-	private DataType parent; // parent prototype containing us
+	private CompositeDataTypeImpl parent; // parent prototype containing us
 	private int offset; // offset in parent
 	private int ordinal; // position in parent
 	private SettingsImpl defaultSettings;
@@ -51,7 +51,7 @@ public class DataTypeComponentImpl implements InternalDataTypeComponent, Seriali
 	 * @param fieldName the name associated with this component
 	 * @param comment the comment associated with this component
 	 */
-	public DataTypeComponentImpl(DataType dataType, DataType parent, int length,
+	public DataTypeComponentImpl(DataType dataType, CompositeDataTypeImpl parent, int length,
 			int ordinal, int offset, String fieldName, String comment) {
 
 		this.parent = parent;
@@ -71,7 +71,7 @@ public class DataTypeComponentImpl implements InternalDataTypeComponent, Seriali
 	 * @param ordinal the index of this component within its parent.
 	 * @param offset the byte offset within the parent
 	 */
-	public DataTypeComponentImpl(DataType dataType, DataType parent, int length,
+	public DataTypeComponentImpl(DataType dataType, CompositeDataTypeImpl parent, int length,
 			int ordinal, int offset) {
 		this(dataType, parent, length, ordinal, offset, null, null);
 	}
@@ -138,12 +138,9 @@ public class DataTypeComponentImpl implements InternalDataTypeComponent, Seriali
 		if (parent == null) {
 			return; // Bad situation
 		}
-		if (parent instanceof Composite) {
-			Composite composite = (Composite) parent;
-			for (DataTypeComponent comp : composite.getDefinedComponents()) {
-				if (comp != this && name.equals(comp.getFieldName())) {
-					throw new DuplicateNameException("Duplicate field name: " + name);
-				}
+		for (DataTypeComponent comp : parent.getDefinedComponents()) {
+			if (comp != this && name.equals(comp.getFieldName())) {
+				throw new DuplicateNameException("Duplicate field name: " + name);
 			}
 		}
 	}
