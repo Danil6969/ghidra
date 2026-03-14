@@ -2578,6 +2578,7 @@ void Heritage::renameRecurse(BlockBasic *bl,VariableStack &varstack)
 	vnin = op->getIn(slot);
 	if (vnin->isHeritageKnown()) continue; // not free
 	if (!vnin->isActiveHeritage()) continue; // Not being heritaged this round
+	if (!isValidInput(vnin)) continue;
 	vnin->clearActiveHeritage();
 	vector<Varnode *> &stack( varstack[ vnin->getAddr() ] );
 	if (stack.empty()) {
@@ -2619,19 +2620,19 @@ void Heritage::renameRecurse(BlockBasic *bl,VariableStack &varstack)
       multiop = *suboiter;
       if (multiop->code()!=CPUI_MULTIEQUAL) break; // For each MULTIEQUAL
       vnin = multiop->getIn(slot);
-      if (!vnin->isHeritageKnown()) {
-	vector<Varnode *> &stack( varstack[ vnin->getAddr() ] );
-	if (stack.empty()) {
-	  vnnew = fd->newVarnode(vnin->getSize(),vnin->getAddr());
-	  vnnew = fd->setInputVarnode(vnnew);
-	  stack.push_back(vnnew);
-	}
-	else
-	  vnnew = stack.back();
-	fd->opSetInput(multiop,vnnew,slot);
-	if (vnin->hasNoDescend())
-	  fd->deleteVarnode(vnin);
+      if (vnin->isHeritageKnown()) continue;
+      if (!isValidInput(vnin)) continue;
+      vector<Varnode *> &stack( varstack[ vnin->getAddr() ] );
+      if (stack.empty()) {
+	vnnew = fd->newVarnode(vnin->getSize(),vnin->getAddr());
+	vnnew = fd->setInputVarnode(vnnew);
+	stack.push_back(vnnew);
       }
+      else
+	vnnew = stack.back();
+      fd->opSetInput(multiop,vnnew,slot);
+      if (vnin->hasNoDescend())
+	fd->deleteVarnode(vnin);
     }
   }
 				// Now we recurse to subtrees
