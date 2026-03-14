@@ -310,6 +310,7 @@ class Heritage {
 				const vector<Varnode *> &writevars,const vector<Varnode *> &inputvars);
   void visitIncr(FlowBlock *qnode,FlowBlock *vnode);
   void calcMultiequals(const vector<Varnode *> &write);
+  bool isValidInput(Varnode *vn);
   void renameRecurse(BlockBasic *bl,VariableStack &varstack);
   void bumpDeadcodeDelay(AddrSpace *spc);
   void placeMultiequals(void);
