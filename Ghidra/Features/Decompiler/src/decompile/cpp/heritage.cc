@@ -2532,6 +2532,23 @@ void Heritage::calcMultiequals(const vector<Varnode *> &write)
     flags[i] &= ~(mark_node|merged_node); // Clear marks from nodes
 }
 
+bool Heritage::isValidInput(Varnode *vn)
+
+{
+  VarnodeDefSet::const_iterator iter = fd->beginDef(Varnode::input,vn->getAddr()+vn->getSize());
+  if (iter != fd->beginDef()) {
+    --iter;
+    Varnode *invn = *iter;
+    if (invn->isInput()) {
+      if ((-1 != vn->overlap(*invn))||(-1 != invn->overlap(*vn))) {
+        if ((vn->getSize() == invn->getSize())&&(vn->getAddr() == invn->getAddr())) {}
+        else return false;
+      }
+    }
+  }
+  return true;
+}
+
 /// \brief The heart of the renaming algorithm.
 ///
 /// From the given block, recursively walk the dominance tree. At each
