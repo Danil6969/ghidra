@@ -1072,10 +1072,9 @@ int4 RulePullsubIndirect::applyOp(PcodeOp *op,Funcdata &data)
   Varnode *outvn = op->getOut();
   if (outvn->isPrecisLo()||outvn->isPrecisHi()) return 0; // Don't pull apart double precision object
 
-  Varnode *basevn = indir->getIn(0);
   uintb consume = calc_mask(newSize) << 8 * minByte;
   consume = ~consume;
-  if ((consume & basevn->getConsume())!=0) return 0;
+  if ((consume & indir->getIn(0)->getConsume())!=0) return 0;
 
   Varnode *small2;
   Address smalladdr2;
@@ -1087,11 +1086,12 @@ int4 RulePullsubIndirect::applyOp(PcodeOp *op,Funcdata &data)
     smalladdr2 = vn->getAddr()+(vn->getSize()-maxByte-1);
 
   if (indir->isIndirectCreation()) {
-    bool possibleout = !basevn->isIndirectZero();
+    bool possibleout = !indir->getIn(0)->isIndirectZero();
     new_ind = data.newIndirectCreation(targ_op,smalladdr2,newSize,possibleout);
     small2 = new_ind->getOut();
   }
   else {
+    Varnode *basevn = indir->getIn(0);
     Varnode *small1 = RulePullsubMulti::findSubpiece(basevn,newSize,op->getIn(1)->getOffset());
     if (small1 == (Varnode *)0) {
       Varnode *invn = basevn;
