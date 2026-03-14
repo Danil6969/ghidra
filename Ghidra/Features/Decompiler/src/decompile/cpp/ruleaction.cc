@@ -1094,8 +1094,15 @@ int4 RulePullsubIndirect::applyOp(PcodeOp *op,Funcdata &data)
   else {
     Varnode *small1 = RulePullsubMulti::findSubpiece(basevn,newSize,op->getIn(1)->getOffset());
     if (small1 == (Varnode *)0) {
-      if (!basevn->isWritten() && !basevn->isInput()) return 0;
-      small1 = RulePullsubMulti::buildSubpiece(basevn,newSize,op->getIn(1)->getOffset(),data);
+      Varnode *invn = basevn;
+      if (!basevn->isWritten() && !basevn->isInput()) {
+	PcodeOp *new_copy = data.newOp(1,indir->getAddr());
+	data.opSetOpcode(new_copy,CPUI_COPY);
+	invn = data.newUniqueOut(basevn->getSize(),new_copy);
+	data.opSetInput(new_copy,basevn,0);
+	data.opInsertBefore(new_copy,indir);
+      }
+      small1 = RulePullsubMulti::buildSubpiece(invn,newSize,op->getIn(1)->getOffset(),data);
     }
     // Create new indirect near original indirect
     new_ind = data.newOp(2,indir->getAddr());
