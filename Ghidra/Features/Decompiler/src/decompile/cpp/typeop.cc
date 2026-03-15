@@ -2433,6 +2433,7 @@ Datatype *TypeOpMulti::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn
     if (ct->getMetatype() != TYPE_PTR) return (Datatype *)0;
     return (Datatype *)0;
   }
+  if (alttype->getSize() != outvn->getSize()) return (Datatype *)0;
   return alttype;
 }
 
@@ -2484,7 +2485,8 @@ Datatype *TypeOpIndirect::propagateType(Datatype *alttype,PcodeOp *op,Varnode *i
   Datatype *newtype;
   if (invn->isSpacebase()) {
     AddrSpace *spc = tlst->getArch()->getDefaultDataSpace();
-    newtype = tlst->getTypePointer(alttype->getSize(),tlst->getBase(1,TYPE_UNKNOWN),spc->getWordSize());
+    if (spc->getAddrSize() != outvn->getSize()) return (Datatype *)0;
+    newtype = tlst->getTypePointer(tlst->getSizeOfPointer(),tlst->getBase(1,TYPE_UNKNOWN),spc->getWordSize());
   }
   else
     newtype = (Datatype *)0; // Don't propagate anything
