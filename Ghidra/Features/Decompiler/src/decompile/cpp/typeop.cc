@@ -2419,7 +2419,12 @@ Datatype *TypeOpMulti::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn
     newtype = tlst->getTypePointer(alttype->getSize(),tlst->getBase(1,TYPE_UNKNOWN),spc->getWordSize());
     return newtype;
   }
-  if (inslot == -1) return alttype;
+  if (inslot == -1) {
+    if (alttype->getSize() == outvn->getSize())
+      return alttype;
+    else
+      return (Datatype *)0;
+  }
   PcodeOp *inop = op->getIn(inslot)->getDef();
   if (inop == (PcodeOp *)0) return alttype;
   if (inop->code() == CPUI_PTRSUB) {
