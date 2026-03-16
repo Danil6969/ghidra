@@ -696,11 +696,6 @@ bool PcodeOp::isIndirectSelfCopy(const Funcdata &data) const
     break;
   }
 
-  const PcodeOp *indop = out->loneDescend();
-  if (indop == (PcodeOp *)0) return false;
-  if (indop->code() != CPUI_INDIRECT) return false;
-  out = indop->getOut();
-
   const Varnode *invn = getIn(0);
   while (true) {
     AddrSpace *spc = invn->getSpace();
@@ -718,9 +713,22 @@ bool PcodeOp::isIndirectSelfCopy(const Funcdata &data) const
     }
     break;
   }
-  if (out->getSpace() != spcid) return false;
   if (invn->getSpace() != spcid) return false;
-  if (out->getOffset() != invn->getOffset()) return false;
+
+  list<PcodeOp *>::const_iterator iter;
+  for (iter=out->beginDescend();iter!=out->endDescend();++iter) {
+    const PcodeOp *op = *iter;
+    if (op == (PcodeOp *)0) return false;
+    if (op->code() == CPUI_INDIRECT) {
+      const Varnode *outvn = op->getOut();
+      if (outvn->getSpace() != spcid) return false;
+      if (outvn->getOffset() != invn->getOffset()) return false;
+    }
+    else if (op->code() == CPUI_MULTIEQUAL) {
+      const Varnode *outvn = op->getOut();
+    }
+    else return false;
+  }
   return true;
 }
 
