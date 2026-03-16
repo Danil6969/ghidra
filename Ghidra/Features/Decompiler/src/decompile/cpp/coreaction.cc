@@ -4356,7 +4356,6 @@ int4 ActionMarkImplied::apply(Funcdata &data)
   VarnodeLocSet::const_iterator viter;
   list<PcodeOp *>::const_iterator oiter;
   Varnode *vn,*vncur,*outvn;
-  PcodeOp *def;
   vector<DescTreeElement> varstack; // Depth first varnode traversal stack
 
   for(viter=data.beginLoc();viter!=data.endLoc();++viter) {
