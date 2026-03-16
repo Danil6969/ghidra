@@ -695,6 +695,7 @@ bool PcodeOp::isIndirectSelfCopy(const Funcdata &data) const
     }
     break;
   }
+  if (out->hasNoDescend()) return false;
 
   const Varnode *invn = getIn(0);
   while (true) {
@@ -726,6 +727,8 @@ bool PcodeOp::isIndirectSelfCopy(const Funcdata &data) const
     }
     else if (op->code() == CPUI_MULTIEQUAL) {
       const Varnode *outvn = op->getOut();
+      if (outvn->getSpace() != spcid) return false;
+      if (outvn->getOffset() != invn->getOffset()) return false;
     }
     else return false;
   }
