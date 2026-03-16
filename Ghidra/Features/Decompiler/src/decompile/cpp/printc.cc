@@ -2701,14 +2701,9 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
 	  // If sizes don't match this can mean
 	  // that wrong datatype is used
 	  if (casttype->getSize() != sz) {
-            type_metatype castmeta = casttype->getMetatype();
 	    // Try to use another datatype instead
 	    if (vn->getType()->getSize() == sz)
 	      casttype = vn->getType();
-            // for some cases we just pick desired size with the same meta
-            // (indirect subpiece slices on spacebase varnodes for example)
-            else if (castmeta == TYPE_UNKNOWN)
-              casttype = glb->types->getBase(sz,TYPE_UNKNOWN);
 	  }
 	}
       }
@@ -3621,8 +3616,11 @@ void PrintC::emitBlockBasic(const BlockBasic *bb)
 	if (inst->code() == CPUI_BRANCH) continue;
       }
       const Varnode *vn = inst->getOut();
-      if ((vn!=(const Varnode *)0)&&(vn->isImplied()))
-	continue;
+      if (vn != (const Varnode *)0) {
+	if (vn->isImplied()) continue;
+	Funcdata *fd = inst->getFuncdata();
+	if (inst->isIndirectSelfCopy(*fd)) continue;
+      }
       if (separator) {
 	if (isSet(comma_separate)) {
 	  emit->print(COMMA);
