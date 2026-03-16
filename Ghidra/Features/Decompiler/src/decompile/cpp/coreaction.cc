@@ -4389,14 +4389,6 @@ int4 ActionMarkImplied::apply(Funcdata &data)
     } while(!varstack.empty());
   }
 
-  for(viter=data.beginLoc();viter!=data.endLoc();++viter) {
-    vn = *viter;
-    if (!vn->isExplicit()) continue;
-    def = vn->getDef();
-    if (def == (PcodeOp *)0) continue;
-    if (!def->isIndirectSelfCopy(data)) continue;
-    data.opMarkNonPrinting(def);
-  }
   return 0;
 }
 
