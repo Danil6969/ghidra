@@ -1102,6 +1102,29 @@ bool ActionMultiCse::processBlock(Funcdata &data,BlockBasic *bl)
   if (targetop != (PcodeOp *)0) {
     Varnode *out1 = pairop->getOut();
     Varnode *out2 = targetop->getOut();
+    if (out1->getSize() != out2->getSize()) {
+      if (preferredOutput(out1,out2)) {
+	// Swap variables
+	out2 = pairop->getOut();
+	out1 = targetop->getOut();
+      }
+      Varnode *out3 = (Varnode *)0;
+      // We adjust size of out1 to not break logic
+      // which is induced by type size checks
+      if (out1->getSpace()->isBigEndian()) {
+	throw LowlevelError("Big endian case is unsupported");
+      }
+      else {
+        PcodeOp *multiop = out1->getDef();
+	out3 = data.newVarnode(out2->getSize(),out1->getAddr());
+	data.opSetOutput(multiop,out3);
+	data.totalReplace(out1,out3);
+	data.deleteVarnode(out1);
+      }
+      // Update out variables
+      out1 = pairop->getOut();
+      out2 = targetop->getOut();
+    }
     if (preferredOutput(out1,out2)) {
       data.totalReplace(out1,out2);	// Replace pairop and out1 in favor of targetop and out2
       data.opDestroy(pairop);
