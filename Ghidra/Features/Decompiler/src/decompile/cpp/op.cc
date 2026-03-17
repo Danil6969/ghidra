@@ -719,14 +719,12 @@ bool PcodeOp::isIndirectSelfCopy(const Funcdata &data) const
   list<PcodeOp *>::const_iterator iter;
   for (iter=out->beginDescend();iter!=out->endDescend();++iter) {
     const PcodeOp *op = *iter;
-    if (op == (PcodeOp *)0) return false;
+    const Varnode *outvn = op->getOut();
     if (op->code() == CPUI_INDIRECT) {
-      const Varnode *outvn = op->getOut();
       if (outvn->getSpace() != spcid) return false;
       if (outvn->getOffset() != invn->getOffset()) return false;
     }
     else if (op->code() == CPUI_MULTIEQUAL) {
-      const Varnode *outvn = op->getOut();
       if (outvn->getSpace() != spcid) return false;
       if (outvn->getOffset() != invn->getOffset()) return false;
     }
