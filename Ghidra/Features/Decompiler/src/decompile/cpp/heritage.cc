@@ -2578,10 +2578,11 @@ void Heritage::renameRecurse(BlockBasic *bl,VariableStack &varstack)
 	vnin = op->getIn(slot);
 	if (vnin->isHeritageKnown()) continue; // not free
 	if (!vnin->isActiveHeritage()) continue; // Not being heritaged this round
-	if (!isValidInput(vnin)) continue;
 	vnin->clearActiveHeritage();
 	vector<Varnode *> &stack( varstack[ vnin->getAddr() ] );
 	if (stack.empty()) {
+	  // Do not even try make any inputs in case it is invalid
+	  if (!isValidInput(vnin)) continue;
 	  vnnew = fd->newVarnode(vnin->getSize(),vnin->getAddr());
 	  vnnew = fd->setInputVarnode(vnnew);
 	  stack.push_back(vnnew);
@@ -2621,9 +2622,10 @@ void Heritage::renameRecurse(BlockBasic *bl,VariableStack &varstack)
       if (multiop->code()!=CPUI_MULTIEQUAL) break; // For each MULTIEQUAL
       vnin = multiop->getIn(slot);
       if (vnin->isHeritageKnown()) continue;
-      if (!isValidInput(vnin)) continue;
       vector<Varnode *> &stack( varstack[ vnin->getAddr() ] );
       if (stack.empty()) {
+	// Do not even try make any inputs in case it is invalid
+	if (!isValidInput(vnin)) continue;
 	vnnew = fd->newVarnode(vnin->getSize(),vnin->getAddr());
 	vnnew = fd->setInputVarnode(vnnew);
 	stack.push_back(vnnew);
