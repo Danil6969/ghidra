@@ -1867,6 +1867,17 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 
+class RuleSpacebaseAdd : public Rule {
+public:
+  RuleSpacebaseAdd(const string &g) : Rule(g,0,"spacebaseadd") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleSpacebaseAdd(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
 class RuleCollapseInsertIndexed : public Rule {
 public:
   RuleCollapseInsertIndexed(const string &g) : Rule(g,0,"collapseinsertindexed") {}	///< Constructor
@@ -1927,17 +1938,6 @@ public:
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
     return new RuleByteLoop(getGroup());
-  }
-  virtual void getOpList(vector<uint4> &oplist) const;
-  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
-};
-
-class RuleSpacebaseAdd : public Rule {
-public:
-  RuleSpacebaseAdd(const string &g) : Rule(g,0,"spacebaseadd") {}	///< Constructor
-  virtual Rule *clone(const ActionGroupList &grouplist) const {
-    if (!grouplist.contains(getGroup())) return (Rule *)0;
-    return new RuleSpacebaseAdd(getGroup());
   }
   virtual void getOpList(vector<uint4> &oplist) const;
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
