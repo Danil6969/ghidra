@@ -14660,6 +14660,54 @@ BlockBasic *RuleByteLoop::evaluateBlock(BlockBasic *bl,LoopData &loopData,Funcda
   return getFallthru(bl->lastOp());
 }
 
+// Fix up result list by turning missing (null) entries into subpieces
+void RuleByteLoop::buildSubpieces(LoopData &loopData,Funcdata &data)
+
+{
+  Varnode *objinitval = loopData.insertlist[0]->getIn(1);
+  while (objinitval->getDef()->code() == CPUI_MULTIEQUAL) {
+    objinitval = objinitval->getDef()->getIn(0);
+  }
+
+  for (int4 i=0;i<loopData.counts;++i) {
+    PcodeOp *curop = loopData.result[i];
+    if (curop == (PcodeOp *)0) {
+      curop = data.newOp(2,loopData.endOp->getAddr()); // create subpiece of itself at this index
+      data.opSetOpcode(curop,CPUI_SUBPIECE);
+      data.opSetInput(curop,objinitval,0);
+      int4 indexsz = loopData.insertlist[0]->getIn(3)->getSize(); // use index size from insertind
+      Varnode *input = data.newConstant(indexsz,loopData.multiplier*i);
+      data.opSetInput(curop,input,1);
+      data.newUniqueOut(loopData.multiplier,curop);
+      loopData.result[i] = curop; // and replace null with subpiece in the result
+    }
+    data.opInsertBefore(curop,loopData.endOp);
+  }
+}
+
+// Link results into piece op
+PcodeOp *RuleByteLoop::buildPiece(LoopData &loopData,Funcdata &data)
+
+{
+  PcodeOp *prevop = (PcodeOp *)0;
+  for (int4 i=0;i<loopData.result.size();++i) {
+    if (prevop == (PcodeOp *)0) {
+      prevop = loopData.result[i];
+      continue;
+    }
+    PcodeOp *newop = data.newOp(2,loopData.endOp->getAddr());
+    data.opSetOpcode(newop,CPUI_PIECE);
+    Varnode *input0 = loopData.result[i]->getOut();
+    data.opSetInput(newop,input0,0);
+    Varnode *input1 = prevop->getOut();
+    data.opSetInput(newop,input1,1);
+    data.newUniqueOut(input0->getSize()+input1->getSize(),newop);
+    data.opInsertBefore(newop,loopData.endOp);
+    prevop = newop;
+  }
+  return prevop;
+}
+
 /// \class RuleByteLoop
 /// \brief Simplify loop with insertind
 ///
@@ -14673,15 +14721,15 @@ void RuleByteLoop::getOpList(vector<uint4> &oplist) const
 int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  PcodeOp *branchOp = op;
-  FlowBlock *condBlock = branchOp->getParent();
+  FlowBlock *condBlock = op->getParent();
   if (!condBlock->hasLoopIn()) return 0;
 
   // Initialize loop data
   LoopData loopData;
   loopData.cachereadonly = data.getArch()->readonlypropagate;
-  loopData.condOp = branchOp->getIn(1)->getDef();
-  loopData.endOp = branchOp->getIn(1)->getDef();
+  loopData.branchOp = op;
+  loopData.condOp = op->getIn(1)->getDef();
+  loopData.endOp = op->getIn(1)->getDef();
 
   if (!setCountsCountervn(loopData)) return 0;
   if (!setInitOp(loopData)) return 0;
@@ -14690,7 +14738,7 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
 
   loopData.values.putValue(loopData.counterVn,0);
   BlockBasic *curbl = (BlockBasic *)condBlock;
-  BlockBasic *endbl = getNonFallthru(branchOp);
+  BlockBasic *endbl = getNonFallthru(op);
   loopData.endOp = *(endbl->beginOp());
   while (curbl != endbl) {
     if (curbl == (BlockBasic *)0)
@@ -14708,55 +14756,15 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
     curbl = evaluateBlock(curbl,loopData,data);
   }
 
-  Varnode *objinitval = loopData.insertlist[0]->getIn(1);
-  while (objinitval->getDef()->code() == CPUI_MULTIEQUAL) {
-    objinitval = objinitval->getDef()->getIn(0);
-  }
-
-  // Prepare results
-  PcodeOp *curop = (PcodeOp *)0;
-  for (int4 i=0;i<loopData.counts;++i) {
-    curop = loopData.result[i];
-    if (curop == (PcodeOp *)0) {
-      curop = data.newOp(2,loopData.endOp->getAddr()); // create subpiece of itself at this index
-      data.opSetOpcode(curop,CPUI_SUBPIECE);
-      data.opSetInput(curop,objinitval,0);
-      int4 indexsz = loopData.insertlist[0]->getIn(3)->getSize(); // use index size from insertind
-      Varnode *input = data.newConstant(indexsz,loopData.multiplier*i);
-      data.opSetInput(curop,input,1);
-      data.newUniqueOut(loopData.multiplier,curop);
-      loopData.result[i] = curop; // and replace null with subpiece in the result
-    }
-    data.opInsertBefore(curop,loopData.endOp);
-  }
-
-  // Link results into piece op
-  AddrSpace *space = data.getArch()->getDefaultDataSpace();
-  PcodeOp *prevop = (PcodeOp *)0;
-  for (int4 i=0;i<loopData.result.size();++i) {
-    curop = loopData.result[i];
-    if (curop == (PcodeOp *)0) continue;
-    if (prevop == (PcodeOp *)0) {
-      prevop = curop;
-      continue;
-    }
-    PcodeOp *newop = data.newOp(2,loopData.endOp->getAddr());
-    data.opSetOpcode(newop,CPUI_PIECE);
-    Varnode *input0 = curop->getOut();
-    data.opSetInput(newop,input0,0);
-    Varnode *input1 = prevop->getOut();
-    data.opSetInput(newop,input1,1);
-    data.newUniqueOut(input0->getSize()+input1->getSize(),newop);
-    data.opInsertBefore(newop,loopData.endOp);
-    prevop = newop;
-  }
+  buildSubpieces(loopData,data);
+  PcodeOp *prevop = buildPiece(loopData,data);
   if (prevop == (PcodeOp *)0) return 0;
 
   // Commit final piece op
-  curop = loopData.insertlist[0]->getOut()->loneDescend();
-  data.opSetOutput(prevop,curop->getOut());
+  PcodeOp *lastmulti = loopData.insertlist[0]->getOut()->loneDescend();
+  data.opSetOutput(prevop,lastmulti->getOut());
   data.opDestroy(loopData.insertlist[0]);
-  data.opDestroy(curop);
+  data.opDestroy(lastmulti);
   return 1;
 }
 
