@@ -1920,6 +1920,7 @@ class RuleByteLoop : public Rule {
     intb multiplier = 0;
     uintb counts = 0;
     bool cachereadonly = false;
+    PcodeOp *branchOp = (PcodeOp *)0;
     PcodeOp *condOp = (PcodeOp *)0;
     PcodeOp *endOp = (PcodeOp *)0;
     PcodeOp *initOp = (PcodeOp *)0;
@@ -1933,6 +1934,8 @@ class RuleByteLoop : public Rule {
   BlockBasic *getNonFallthru(PcodeOp *op);
   Varnode *reconstructDynamicInput(Varnode *oldvn,LoopData &loopData,Funcdata &data);
   BlockBasic *evaluateBlock(BlockBasic *bl,LoopData &loopData,Funcdata &data);
+  void buildSubpieces(LoopData &loopData,Funcdata &data);
+  PcodeOp *buildPiece(LoopData &loopData,Funcdata &data);
 public:
   RuleByteLoop(const string &g) : Rule(g,0,"byteloop") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
