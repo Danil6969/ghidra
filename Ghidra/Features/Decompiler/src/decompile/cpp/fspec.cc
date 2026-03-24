@@ -1341,8 +1341,10 @@ void ParamListStandard::parsePentry(Decoder &decoder,vector<EffectRecord> &effec
     }
   }
   AddrSpace *spc = entry.back().getSpace();
-  if (spc->getType() == IPTR_SPACEBASE)
+  if (spc->getType() == IPTR_SPACEBASE) {
     spacebase = spc;
+    spacebaseAlign = entry.back().getAlign();
+  }
   else if (autokill)	// If a register parameter AND we automatically generate killedbycall
     effectlist.push_back(EffectRecord(entry.back(),EffectRecord::killedbycall));
 
@@ -4030,6 +4032,21 @@ bool FuncProto::setReturnBytesConsumed(int4 val)
     return true;
   }
   return false;
+}
+
+int4 FuncProto::getParamsPurge(void) const
+
+{
+  int4 purge = 0;
+  int4 numparams = numParams();
+  int4 alignment = model->getSpacebaseAlignment();
+  for(int4 i=0;i<numparams;++i) {
+    ProtoParameter *param = getParam(i);
+    AddrSpace *space = model->getSpacebase();
+    if (param->getAddress().getSpace() != space) continue;
+    param = param;
+  }
+  return 0;
 }
 
 /// \brief Assuming \b this prototype is locked, calculate the \e extrapop
