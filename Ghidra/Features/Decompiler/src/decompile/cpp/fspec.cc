@@ -608,6 +608,7 @@ ParamListStandard::ParamListStandard(const ParamListStandard &op2)
   numgroup = op2.numgroup;
   entry = op2.entry;
   spacebase = op2.spacebase;
+  spacebaseAlign = op2.spacebaseAlign;
   maxdelay = op2.maxdelay;
   thisbeforeret = op2.thisbeforeret;
   resourceStart = op2.resourceStart;
@@ -1556,6 +1557,7 @@ void ParamListStandard::decode(Decoder &decoder,vector<EffectRecord> &effectlist
 {
   numgroup = 0;
   spacebase = (AddrSpace *)0;
+  spacebaseAlign = 0;
   int4 pointermax = 0;
   thisbeforeret = false;
   bool splitFloat = true;		// True if we should split FLOAT entries into their own resource section
