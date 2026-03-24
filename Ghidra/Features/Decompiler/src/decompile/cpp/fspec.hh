@@ -536,6 +536,11 @@ public:
   /// \return the stack address space, if \b this models parameters passed on the stack, NULL otherwise
   virtual AddrSpace *getSpacebase(void) const=0;
 
+  /// \brief Get alignment which corresponds to first stack parameter
+  ///
+  /// \return alignment of the last parameter found which belongs to the stack address space
+  virtual int4 getSpacebaseAlignment(void) const=0;
+
   /// \brief Return \b true if \b this pointer occurs before an indirect return pointer
   ///
   /// The \e automatic parameters: \b this parameter and the \e hidden return value pointer both
@@ -593,6 +598,7 @@ protected:
   vector<ParamEntryResolver *> resolverMap;	///< Map from space id to resolver
   list<ModelRule> modelRules;		///< Rules to apply when assigning addresses
   AddrSpace *spacebase;			///< Address space containing relative offset parameters
+  int4 spacebaseAlign;			///< Alignment of the last entry from the stack address space
   const ParamEntry *findEntry(const Address &loc,int4 size,bool just) const;	///< Given storage location find matching ParamEntry
   vector<Varnode> collectUsedVarnodes(vector<int4> &status) const;
   bool overlapsTakenUpVarnodes(const vector<Varnode> &takenUpVarnodes,Address &loc,int4 size) const;
@@ -636,6 +642,7 @@ public:
   virtual bool unjustifiedContainer(const Address &loc,int4 size,VarnodeData &res) const;
   virtual OpCode assumedExtension(const Address &addr,int4 size,VarnodeData &res) const;
   virtual AddrSpace *getSpacebase(void) const { return spacebase; }
+  virtual int4 getSpacebaseAlignment(void) const { return spacebaseAlign; };
   virtual bool isThisBeforeRetPointer(void) const { return thisbeforeret; }
   virtual void getRangeList(AddrSpace *spc,RangeList &res) const;
   virtual int4 getMaxDelay(void) const { return maxdelay; }
@@ -975,6 +982,7 @@ public:
   }
 
   AddrSpace *getSpacebase(void) const { return input->getSpacebase(); }	///< Get the stack space associated with \b this model
+  int4 getSpacebaseAlignment(void) const { return input->getSpacebaseAlignment(); }
   bool isStackGrowsNegative(void) const { return stackgrowsnegative; }	///< Return \b true if the stack \e grows toward smaller addresses
   bool hasThisPointer(void) const { return hasThis; }			///< Is \b this a model for (non-static) class methods
   bool isConstructor(void) const { return isConstruct; }		///< Is \b this model for class constructors
@@ -1477,6 +1485,7 @@ public:
   void setExtraPop(int4 ep) { extrapop = ep; }			///< Set the general \e extrapop for \b this prototype
   int4 getInjectUponEntry(void) const { return model->getInjectUponEntry(); }	///< Get any \e upon-entry injection id (or -1)
   int4 getInjectUponReturn(void) const { return model->getInjectUponReturn(); }	///< Get any \e upon-return injection id (or -1)
+  int4 getParamsPurge(void) const;
   void resolveExtraPop(void);
 
   void clearUnlockedInput(void);		///< Clear input parameters that have not been locked
