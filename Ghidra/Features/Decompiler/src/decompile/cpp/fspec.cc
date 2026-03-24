@@ -4040,16 +4040,26 @@ bool FuncProto::setReturnBytesConsumed(int4 val)
 int4 FuncProto::getParamsPurge(void) const
 
 {
-  int4 purge = 0;
   int4 numparams = numParams();
   int4 alignment = model->getSpacebaseAlignment();
+  if (alignment == 0) return 0;
+  int4 purge = 0;
   for(int4 i=0;i<numparams;++i) {
     ProtoParameter *param = getParam(i);
     AddrSpace *space = model->getSpacebase();
     if (param->getAddress().getSpace() != space) continue;
-    param = param;
+    int4 sz = param->getSize();
+    int4 aligned = sz;
+    int4 misalign = sz % alignment;
+    if (misalign != 0) {
+      aligned = aligned - misalign + alignment;
+    }
+    purge = purge + aligned;
   }
-  return 0;
+  if (!model->isStackGrowsNegative()) {
+    purge = -purge;
+  }
+  return purge;
 }
 
 /// \brief Assuming \b this prototype is locked, calculate the \e extrapop
