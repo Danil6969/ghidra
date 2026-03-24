@@ -546,6 +546,18 @@ void Funcdata::deleteCallSpecs(PcodeOp *op)
   }
 }
 
+int4 Funcdata::getReturnAddressPop(void) const
+
+{
+  AddrSpace *space = localmap->getSpaceId();
+  if (getArch()->defaultReturnAddr.space != space) return 0;
+  int4 pop = getArch()->defaultReturnAddr.size;
+  if (!space->stackGrowsNegative()) {
+    pop = -pop;
+  }
+  return pop;
+}
+
 /// If \e extrapop is unknown, recover it from what we know about this function
 /// and set the value permanently for \b this Funcdata object.
 /// If there is no function body it may be impossible to know the value, in which case
