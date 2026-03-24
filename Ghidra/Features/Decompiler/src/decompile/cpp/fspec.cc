@@ -1897,6 +1897,7 @@ void ParamListMerged::foldIn(const ParamListStandard &op2)
 {
   if (entry.empty()) {
     spacebase = op2.getSpacebase();
+    spacebaseAlign = op2.getSpacebaseAlignment();
     entry = op2.getEntry();
     return;
   }
