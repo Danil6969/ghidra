@@ -1944,9 +1944,10 @@ int4 ActionExtraPopSetup::apply(Funcdata &data)
     data.newVarnodeOut(sb_size,sb_addr,op);
     data.opSetInput(op,data.newVarnode(sb_size,sb_addr),0);
     int4 pop = data.getReturnAddressPop() + fc->getParamsPurge();
+    uintb mask = calc_mask(sb_size);
     fc->setEffectiveExtraPop(pop);
     data.opSetOpcode(op,CPUI_INT_ADD);
-    data.opSetInput(op,data.newConstant(sb_size,pop),1);
+    data.opSetInput(op,data.newConstant(sb_size,pop&mask),1);
     data.opInsertAfter(op,fc->getOp());
     /*if (fc->getExtraPop() != ProtoModel::extrapop_unknown) { // We know exactly how stack pointer is changed
       fc->setEffectiveExtraPop(fc->getExtraPop());
