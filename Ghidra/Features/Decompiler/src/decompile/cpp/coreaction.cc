@@ -1535,70 +1535,32 @@ int4 ActionConstantPtr::apply(Funcdata &data)
   return 0;
 }
 
-Datatype *ActionDeindirect::getSizeStrippedDatatype(Datatype *pt,int4 size,TypeFactory *types)
-
-{
-  if (pt == (Datatype *)0) return (Datatype *)0;
-  if (pt->getMetatype() != TYPE_PTR) return pt;
-  TypePointer *ptr = (TypePointer *)pt;
-  Datatype *ct = ptr->getPtrTo();
-  int4 typesize = ct->getSize();
-  int8 newoff = 0;
-  while (true) {
-    if (ct->getMetatype() == TYPE_PTR) break;
-    ct = ct->getSubType(0,&newoff);
-    if (newoff != 0) break;
-    if (ct == (Datatype *)0) break;
-  }
-  if (ct == (Datatype *)0) return ct;
-  Datatype *dt = types->getTypePointer(ptr->getSize(),ct,ptr->getWordSize());
-  return dt;
-}
-
-Datatype *ActionDeindirect::getOffsetStrippedDatatype(Datatype *pt,int8 offset,TypeFactory *types)
-
-{
-  if (pt == (Datatype *)0) return (Datatype *)0;
-  if (pt->getMetatype() != TYPE_PTR) return pt;
-  TypePointer *ptr = (TypePointer *)pt;
-  int8 off = AddrSpace::addressToByteInt(offset,ptr->getWordSize());
-  Datatype *ct = ptr->getPtrTo();
-  int8 newoff = 0;
-  while (true) {
-    if (off == 0) break;
-    ct = ct->getSubType(off,&newoff);
-    if (newoff == 0) break;
-    off = newoff;
-    if (ct == (Datatype *)0) break;
-  }
-  if (ct == (Datatype *)0) return (Datatype *)0;
-  Datatype *dt = types->getTypePointer(ptr->getSize(),ct,ptr->getWordSize());
-  return dt;
-}
-
 Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,set<PcodeOp *> &visitedOps)
 
 {
-  FuncCallSpecs *fc = (FuncCallSpecs *)0;		// The function prototype (direct call case)
+  FuncCallSpecs *fc = (FuncCallSpecs *)0;			// The function prototype (direct call case)
   const FuncProto *fp = (const FuncProto *)0;		// The function prototype (indirect call case)
   ProtoParameter *outparam = (ProtoParameter*)0;	// The output parameter
 
+  // Datatypes
   TypePointer *ptr = (TypePointer *)0;	// The pointer datatype
-  TypeCode *tc = (TypeCode *)0;		// The code datatype
-  Datatype *ct = (Datatype *)0;		// The source datatype
-  Datatype *ptrto = (Datatype *)0;	// The pointed-to datatype
-  Datatype *subdt = (Datatype *)0;	// The stripped datatype
-  Datatype *dt = (Datatype *)0;		// The resulting datatype
+  TypeCode *tc = (TypeCode *)0;			// The code datatype
+  Datatype *ct = (Datatype *)0;			// The source datatype
+  Datatype *ptrto = (Datatype *)0;		// The pointed-to datatype
+  Datatype *subdt = (Datatype *)0;		// The stripped datatype
+  Datatype *dt = (Datatype *)0;			// The resulting datatype
 
   // Input varnodes
   Varnode *invn0 = (Varnode *)0;
   Varnode *invn1 = (Varnode *)0;
   Varnode *invn2 = (Varnode *)0;
 
+  // Offsets
   int8 off1 = 0;
   int8 off2 = 0;
   int8 off = 0;
 
+  // Sizes
   int4 loadsize = 0;
   int4 typesize = 0;
 
@@ -1689,6 +1651,47 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,se
       return dt;
   }
   return (Datatype *)0;
+}
+
+Datatype *ActionDeindirect::getSizeStrippedDatatype(Datatype *pt,int4 size,TypeFactory *types)
+
+{
+  if (pt == (Datatype *)0) return (Datatype *)0;
+  if (pt->getMetatype() != TYPE_PTR) return pt;
+  TypePointer *ptr = (TypePointer *)pt;
+  Datatype *ct = ptr->getPtrTo();
+  int4 typesize = ct->getSize();
+  int8 newoff = 0;
+  while (true) {
+    if (ct->getMetatype() == TYPE_PTR) break;
+    ct = ct->getSubType(0,&newoff);
+    if (newoff != 0) break;
+    if (ct == (Datatype *)0) break;
+  }
+  if (ct == (Datatype *)0) return ct;
+  Datatype *dt = types->getTypePointer(ptr->getSize(),ct,ptr->getWordSize());
+  return dt;
+}
+
+Datatype *ActionDeindirect::getOffsetStrippedDatatype(Datatype *pt,int8 offset,TypeFactory *types)
+
+{
+  if (pt == (Datatype *)0) return (Datatype *)0;
+  if (pt->getMetatype() != TYPE_PTR) return pt;
+  TypePointer *ptr = (TypePointer *)pt;
+  int8 off = AddrSpace::addressToByteInt(offset,ptr->getWordSize());
+  Datatype *ct = ptr->getPtrTo();
+  int8 newoff = 0;
+  while (true) {
+    if (off == 0) break;
+    ct = ct->getSubType(off,&newoff);
+    if (newoff == 0) break;
+    off = newoff;
+    if (ct == (Datatype *)0) break;
+  }
+  if (ct == (Datatype *)0) return (Datatype *)0;
+  Datatype *dt = types->getTypePointer(ptr->getSize(),ct,ptr->getWordSize());
+  return dt;
 }
 
 int4 ActionDeindirect::apply(Funcdata &data)
