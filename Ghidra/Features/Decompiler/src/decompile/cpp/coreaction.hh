@@ -204,10 +204,10 @@ public:
 
 /// \brief Eliminate locally constant indirect calls or at least resolve prototype
 class ActionDeindirect : public Action {
-  static Datatype *getSizeStrippedDatatype(Datatype *pt,int4 size,TypeFactory *types);
-  static Datatype *getOffsetStrippedDatatype(Datatype *pt,int8 offset,TypeFactory *types);
   static Datatype *getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,set<PcodeOp *> &visitedOps);
 public:
+  static Datatype *getSizeStrippedDatatype(Datatype *pt,int4 size,TypeFactory *types);
+  static Datatype *getOffsetStrippedDatatype(Datatype *pt,int8 offset,TypeFactory *types);
   ActionDeindirect(const string &g) : Action(0,"deindirect",g) {}	///< Constructor
   virtual Action *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Action *)0;
@@ -687,6 +687,10 @@ public:
 /// filled in by ActionStackPtrFlow.
 class ActionExtraPopSetup : public Action {
   AddrSpace *stackspace;		///< The stack space to analyze
+  static PcodeOp *getDefinitionRecurse(PcodeOp *op,Varnode *vn,set<BlockBasic *> &visitedBlocks);
+  static PcodeOp *getDefinition(PcodeOp *op,Varnode *vn);
+  static Datatype *getOutDatatypeRecurse(PcodeOp *op,int4 slot,int8 &offset,set<PcodeOp *> &visitedOps);
+  static Datatype *getOutDatatype(PcodeOp *op,int4 slot);
 public:
   ActionExtraPopSetup(const string &g,AddrSpace *ss) : Action(rule_onceperfunc,"extrapopsetup",g) { stackspace = ss; }	///< Constructor
   virtual Action *clone(const ActionGroupList &grouplist) const {
