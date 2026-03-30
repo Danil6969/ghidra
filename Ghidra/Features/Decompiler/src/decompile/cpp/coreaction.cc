@@ -1926,6 +1926,117 @@ int4 ActionDirectWrite::apply(Funcdata &data)
   return 0;
 }
 
+PcodeOp *ActionExtraPopSetup::getDefinitionRecurse(PcodeOp *op,Varnode *vn,set<BlockBasic *> &visitedBlocks)
+
+{
+  BlockBasic *curblock = op->getParent();
+  if (curblock == (BlockBasic *)0) return (PcodeOp *)0;
+
+  if (visitedBlocks.find(curblock) != visitedBlocks.end()) return (PcodeOp *)0;
+  visitedBlocks.insert(curblock);
+
+  list<PcodeOp *>::iterator begiter = curblock->beginOp();
+  list<PcodeOp *>::iterator iter = op->getBasicIter();
+  while (iter != begiter) {
+    --iter;
+    PcodeOp *curop = *iter;
+    Varnode *outvn = curop->getOut();
+    if (outvn == (Varnode *)0) continue;
+    if (outvn->getAddr().getSpace() != vn->getAddr().getSpace()) continue;
+    if (outvn->getAddr().getOffset() != vn->getAddr().getOffset()) continue;
+    if (outvn->getSize() != vn->getSize()) continue;
+    return curop;
+  }
+  if (curblock->sizeIn() == 0) return (PcodeOp *)0;
+  return getDefinition(curblock->getIn(0)->lastOp(),vn);
+}
+
+PcodeOp *ActionExtraPopSetup::getDefinition(PcodeOp *op,Varnode *vn)
+
+{
+  set<BlockBasic *> visitedBlocks;
+  PcodeOp *res = getDefinitionRecurse(op,vn,visitedBlocks);
+  visitedBlocks.clear();
+  return res;
+}
+
+Datatype *ActionExtraPopSetup::getOutDatatypeRecurse(PcodeOp *op,int4 slot,int8 &offset,set<PcodeOp *> &visitedOps)
+
+{
+  // Datatypes
+  TypePointer *ptr = (TypePointer *)0;	// The pointer datatype
+  TypeCode *tc = (TypeCode *)0;			// The code datatype
+  Datatype *ct = (Datatype *)0;			// The source datatype
+  Datatype *ptrto = (Datatype *)0;		// The pointed-to datatype
+  Datatype *subdt = (Datatype *)0;		// The stripped datatype
+  Datatype *dt = (Datatype *)0;			// The resulting datatype
+
+  // Input varnodes
+  Varnode *invn0 = (Varnode *)0;
+  Varnode *invn1 = (Varnode *)0;
+  Varnode *invn2 = (Varnode *)0;
+
+  // Offsets
+  int8 off1 = 0;
+  int8 off2 = 0;
+  int8 off = 0;
+
+  // Sizes
+  int4 loadsize = 0;
+  int4 typesize = 0;
+
+  if (visitedOps.find(op) != visitedOps.end()) return (Datatype *)0;
+  visitedOps.insert(op);
+
+  Funcdata *fd = op->getFuncdata();
+  TypeFactory *types = fd->getArch()->types;
+  Varnode *vn = op->getIn(slot);
+  PcodeOp *def = getDefinition(op,vn);
+  if (def == (PcodeOp *)0) {
+    dt = vn->getTypeReadFacing(op);
+    return dt;
+  }
+  OpCode opc = def->code();
+  switch (opc) {
+    case CPUI_COPY:
+      dt = getOutDatatypeRecurse(def,0,offset,visitedOps);
+      return dt;
+    case CPUI_LOAD:
+      ct = getOutDatatypeRecurse(def,1,off,visitedOps);
+      dt = ct;
+      if (off != 0) {
+	dt = ActionDeindirect::getOffsetStrippedDatatype(ct,off,types);
+      }
+      loadsize = def->getOut()->getSize();
+      subdt = ActionDeindirect::getSizeStrippedDatatype(dt,loadsize,types);
+      if (subdt == (Datatype *)0) return (Datatype *)0;
+      if (subdt->getMetatype() != TYPE_PTR) return (Datatype *)0;
+      ptr = (TypePointer *)subdt;
+      dt = ptr->getPtrTo();
+      return dt;
+    case CPUI_INT_ADD:
+      invn1 = def->getIn(1);
+      if (!invn1->isConstant()) return ct;
+
+      off = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
+      offset += off;
+
+      dt = getOutDatatypeRecurse(def,0,offset,visitedOps);
+      return dt;
+  }
+  return (Datatype *)0;
+}
+
+Datatype *ActionExtraPopSetup::getOutDatatype(PcodeOp *op,int4 slot)
+
+{
+  intb offset = 0;
+  set<PcodeOp *> visitedOps;
+  Datatype *res = getOutDatatypeRecurse(op,slot,offset,visitedOps);
+  visitedOps.clear();
+  return res;
+}
+
 int4 ActionExtraPopSetup::apply(Funcdata &data)
 
 {
@@ -1940,15 +2051,28 @@ int4 ActionExtraPopSetup::apply(Funcdata &data)
   for(int4 i=0;i<data.numCalls();++i) {
     fc = data.getCallSpecs(i);
     if (fc->getExtraPop() == 0) continue; // Stack pointer is undisturbed
-    op = data.newOp(2,fc->getOp()->getAddr());
+    PcodeOp *callop = fc->getOp();
+    const FuncProto *fp = fc;
+    if (callop->code() == CPUI_CALLIND) {
+      // We may have to parse all the ops tree by recursion
+      // so we can find the real prototype
+      Datatype *ct = getOutDatatype(callop, 0);
+      if (ct != (Datatype *)0 && ct->getMetatype() == TYPE_PTR) {
+	if (((TypePointer *)ct)->getPtrTo()->getMetatype()==TYPE_CODE) {
+          TypeCode *tc = (TypeCode *)((TypePointer *)ct)->getPtrTo();
+          fp = tc->getPrototype();
+	}
+      }
+    }
+    op = data.newOp(2,callop->getAddr());
     data.newVarnodeOut(sb_size,sb_addr,op);
     data.opSetInput(op,data.newVarnode(sb_size,sb_addr),0);
-    int4 pop = data.getReturnAddressPop() + fc->getParamsPurge();
+    int4 pop = data.getReturnAddressPop() + fp->getParamsPurge();
     uintb mask = calc_mask(sb_size);
     fc->setEffectiveExtraPop(pop);
     data.opSetOpcode(op,CPUI_INT_ADD);
     data.opSetInput(op,data.newConstant(sb_size,pop&mask),1);
-    data.opInsertAfter(op,fc->getOp());
+    data.opInsertAfter(op,callop);
     /*if (fc->getExtraPop() != ProtoModel::extrapop_unknown) { // We know exactly how stack pointer is changed
       fc->setEffectiveExtraPop(fc->getExtraPop());
       data.opSetOpcode(op,CPUI_INT_ADD);
