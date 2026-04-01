@@ -3321,7 +3321,7 @@ bool PrintC::emitAlloca(const PcodeOp *op)
       vn = invn;
   }
   if (opc == CPUI_PTRADD) {
-    const Varnode *cvn = op->getIn(2);
+    const Varnode *cvn = allocaop->getIn(2);
     if (!cvn->isConstant()) return false;
     if (cvn->getOffset() != 1) return false;
     const Varnode *invn = allocaop->getIn(1-slot);
