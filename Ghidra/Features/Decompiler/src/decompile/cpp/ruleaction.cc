@@ -6564,35 +6564,47 @@ bool RuleAllocaPushParams::extractVarnodesFromAddOp(PcodeOp *addop,Varnode *&bas
   sizeVn = (Varnode *)0;
   off = 0;
 
+  Varnode *offVn = (Varnode *)0;
+  int4 sz = addop->getOut()->getSize();
   if (isStackNegative) {
-    if (addop->getIn(1)->isConstant()) {
+    offVn = addop->getIn(1);
+    if (offVn->isConstant()) {
+      intb offset = sign_extend(offVn->getOffset(),8*sz-1);
+      //Must be pushed to a negative constant
+      if (offset >= 0) return false;
       basevn = addop->getIn(0);
-      off = addop->getIn(1)->getOffset();
+      off = offVn->getOffset();
       return true;
     }
     PcodeOp *otherop = addop->getIn(1)->getDef();
     if (otherop == (PcodeOp *)0) return false;
     if (otherop->code() != CPUI_INT_ADD) return false;
-    if (otherop->getIn(1)->isConstant()) {
+    offVn = otherop->getIn(1);
+    if (offVn->isConstant()) {
+      intb offset = sign_extend(offVn->getOffset(),8*sz-1);
+      //Must be pushed to a negative constant
+      if (offset >= 0) return false;
       basevn = otherop->getIn(0);
       sizeVn = addop->getIn(0);
-      off = otherop->getIn(1)->getOffset();
+      off = offVn->getOffset();
       return true;
     }
     return false;
   }
 
-  if (addop->getIn(1)->isConstant()) {
+  offVn = addop->getIn(1);
+  if (offVn->isConstant()) {
+    intb offset = sign_extend(offVn->getOffset(),8*sz-1);
+    //Must be pushed to a positive constant
+    if (offset <= 0) return false;
     basevn = addop->getIn(0);
-    off = addop->getIn(1)->getOffset();
+    off = offVn->getOffset();
     return true;
   }
-  if (!addop->getIn(0)->isConstant()) {
-    basevn = addop->getOut();
-    off = 0;
-    return true;
-  }
-  return false;
+  if (addop->getIn(0)->isConstant()) return false;
+  basevn = addop->getOut();
+  off = 0;
+  return true;
 }
 
 PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isStackNegative)
@@ -6605,15 +6617,6 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
   uintb off;
   if (!extractVarnodesFromAddOp(ptrop,baseVn,sizeVn,off,isStackNegative)) return (PcodeOp *)0;
 
-  intb offset = sign_extend(off,8*baseVn->getSize()-1);
-  if (isStackNegative) {
-    //Must be pushed to a negative constant
-    if (offset >= 0) return (PcodeOp *)0;
-  }
-  else {
-    //Must be pushed to a positive constant
-    if (offset < 0) return (PcodeOp *)0;
-  }
   BlockBasic *curblock = storeop->getParent();
   list<PcodeOp *>::iterator begiter = curblock->beginOp();
   list<PcodeOp *>::iterator enditer = curblock->endOp();
