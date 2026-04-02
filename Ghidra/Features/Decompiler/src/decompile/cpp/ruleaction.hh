@@ -1079,9 +1079,9 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 class RuleAllocaPushParams : public Rule {
-  static bool extractVarnodesFromAddOp(PcodeOp *addop,Varnode *&basevn,Varnode *&offvn,Varnode *&sizeVn);
+  static bool extractVarnodesFromAddOp(PcodeOp *addop,Varnode *&basevn,Varnode *&sizeVn,uintb &off,bool isStackNegative);
   static PcodeOp *getCorrespondingLoadOp(PcodeOp *storeop,bool isStackNegative);
-  static void gatherSimilarStoreOps(PcodeOp *storeop,vector<PcodeOp *> &ops);
+  static void gatherSimilarStoreOps(PcodeOp *storeop,vector<PcodeOp *> &ops,bool isStackNegative);
 public:
   RuleAllocaPushParams(const string &g) : Rule(g, 0 , "allocapushparams") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
