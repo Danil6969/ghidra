@@ -6557,25 +6557,39 @@ int4 RuleUnlinkPtrAdd::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
-bool RuleAllocaPushParams::extractVarnodesFromAddOp(PcodeOp *addop,Varnode *&basevn,Varnode *&offvn,Varnode *&sizeVn)
+bool RuleAllocaPushParams::extractVarnodesFromAddOp(PcodeOp *addop,Varnode *&basevn,Varnode *&sizeVn,uintb &off,bool isStackNegative)
 
 {
   basevn = (Varnode *)0;
-  offvn = (Varnode *)0;
   sizeVn = (Varnode *)0;
+  off = 0;
+
+  if (isStackNegative) {
+    if (addop->getIn(1)->isConstant()) {
+      basevn = addop->getIn(0);
+      off = addop->getIn(1)->getOffset();
+      return true;
+    }
+    PcodeOp *otherop = addop->getIn(1)->getDef();
+    if (otherop == (PcodeOp *)0) return false;
+    if (otherop->code() != CPUI_INT_ADD) return false;
+    if (otherop->getIn(1)->isConstant()) {
+      basevn = otherop->getIn(0);
+      sizeVn = addop->getIn(0);
+      off = otherop->getIn(1)->getOffset();
+      return true;
+    }
+    return false;
+  }
 
   if (addop->getIn(1)->isConstant()) {
     basevn = addop->getIn(0);
-    offvn = addop->getIn(1);
+    off = addop->getIn(1)->getOffset();
     return true;
   }
-  PcodeOp *otherop = addop->getIn(1)->getDef();
-  if (otherop == (PcodeOp *)0) return false;
-  if (otherop->code() != CPUI_INT_ADD) return false;
-  if (otherop->getIn(1)->isConstant()) {
-    basevn = otherop->getIn(0);
-    offvn = otherop->getIn(1);
-    sizeVn = addop->getIn(0);
+  if (!addop->getIn(0)->isConstant()) {
+    basevn = addop->getOut();
+    off = 0;
     return true;
   }
   return false;
@@ -6587,17 +6601,18 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
   PcodeOp *ptrop = storeop->getIn(1)->getDef();
   if (ptrop == (PcodeOp *)0) return (PcodeOp *)0;
   if (ptrop->code() != CPUI_INT_ADD) return (PcodeOp *)0;
-  Varnode *baseVn,*offVn,*sizeVn;
-  if (!extractVarnodesFromAddOp(ptrop,baseVn,offVn,sizeVn)) return (PcodeOp *)0;
+  Varnode *baseVn,*sizeVn;
+  uintb off;
+  if (!extractVarnodesFromAddOp(ptrop,baseVn,sizeVn,off,isStackNegative)) return (PcodeOp *)0;
 
-  intb off = sign_extend(offVn->getOffset(),8*offVn->getSize()-1);
+  intb offset = sign_extend(off,8*baseVn->getSize()-1);
   if (isStackNegative) {
     //Must be pushed to a negative constant
-    if (off >= 0) return (PcodeOp *)0;
+    if (offset >= 0) return (PcodeOp *)0;
   }
   else {
     //Must be pushed to a positive constant
-    if (off <= 0) return (PcodeOp *)0;
+    if (offset < 0) return (PcodeOp *)0;
   }
   BlockBasic *curblock = storeop->getParent();
   list<PcodeOp *>::iterator begiter = curblock->beginOp();
@@ -6623,12 +6638,12 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
 	if (addop == (PcodeOp *)0) continue;
 	if (addop->code() != CPUI_INT_ADD) continue;
 
-	Varnode *addBaseVn,*addOffVn,*addSizeVn;
-	if (!extractVarnodesFromAddOp(addop,addBaseVn,addOffVn,addSizeVn)) continue;
+	Varnode *addBaseVn,*addSizeVn;
+        uintb addOff;
+	if (!extractVarnodesFromAddOp(addop,addBaseVn,addSizeVn,addOff,isStackNegative)) continue;
 	if (addSizeVn != sizeVn) continue;
 	if (addBaseVn != baseVn) continue;
-	if (!addOffVn->isConstant()) continue;
-	if (addOffVn->getOffset() != offVn->getOffset()) continue;
+	if (addOff != off) continue;
 	return op;
       }
       case CPUI_STORE:
@@ -6646,15 +6661,16 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
   return (PcodeOp *)0;
 }
 
-void RuleAllocaPushParams::gatherSimilarStoreOps(PcodeOp *storeop,vector<PcodeOp *> &ops)
+void RuleAllocaPushParams::gatherSimilarStoreOps(PcodeOp *storeop,vector<PcodeOp *> &ops,bool isStackNegative)
 
 {
   ops.clear();
   PcodeOp *ptrop = storeop->getIn(1)->getDef();
   if (ptrop == (PcodeOp *)0) return;
   if (ptrop->code() != CPUI_INT_ADD) return;
-  Varnode *baseVn,*offVn,*sizeVn;
-  if (!extractVarnodesFromAddOp(ptrop,baseVn,offVn,sizeVn)) return;
+  Varnode *baseVn,*sizeVn;
+  uintb off;
+  if (!extractVarnodesFromAddOp(ptrop,baseVn,sizeVn,off,isStackNegative)) return;
 
   BlockBasic *curblock = storeop->getParent();
   list<PcodeOp *>::iterator begiter = curblock->beginOp();
@@ -6681,12 +6697,12 @@ void RuleAllocaPushParams::gatherSimilarStoreOps(PcodeOp *storeop,vector<PcodeOp
 	if (addop == (PcodeOp *)0) continue;
 	if (addop->code() != CPUI_INT_ADD) continue;
 
-	Varnode *addBaseVn,*addOffVn,*addSizeVn;
-	if (!extractVarnodesFromAddOp(addop,addBaseVn,addOffVn,addSizeVn)) continue;
+	Varnode *addBaseVn,*addSizeVn;
+        uintb addOff;
+	if (!extractVarnodesFromAddOp(addop,addBaseVn,addSizeVn,addOff,isStackNegative)) continue;
 	if (addSizeVn != sizeVn) continue;
 	if (addBaseVn != baseVn) continue;
-	if (!addOffVn->isConstant()) continue;
-	if (addOffVn->getOffset() != offVn->getOffset()) continue;
+	if (addOff != off) continue;
 	ops.push_back(op);
       }
       case CPUI_LOAD:
@@ -6712,7 +6728,8 @@ void RuleAllocaPushParams::getOpList(vector<uint4> &oplist) const
 int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
 
 {
-  PcodeOp *loadop = getCorrespondingLoadOp(op,data.isStackGrowsNegative());
+  bool isStackNegative = data.isStackGrowsNegative();
+  PcodeOp *loadop = getCorrespondingLoadOp(op,isStackNegative);
   if (op->isReturnAddressConstant(data)) {
     if (loadop != (PcodeOp *)0) {
       Varnode *loadout = loadop->getOut();
@@ -6742,7 +6759,7 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
   }
 
   vector<PcodeOp *> stores;
-  gatherSimilarStoreOps(op,stores);
+  gatherSimilarStoreOps(op,stores,isStackNegative);
   if (stores.empty()) return 0;
 
   vector<PcodeOp *>::iterator last = stores.end();
@@ -6754,8 +6771,9 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
   if (ptrop == (PcodeOp *) 0) return 0;
   if (ptrop->code() != CPUI_INT_ADD) return 0;
 
-  Varnode *vn1,*vn2,*vn3;
-  extractVarnodesFromAddOp(ptrop,vn1,vn2,vn3);
+  Varnode *vn1,*vn3;
+  uintb off;
+  extractVarnodesFromAddOp(ptrop,vn1,vn3,off,isStackNegative);
   if (vn3 == (Varnode *)0) {
     Varnode *basevn = ptrop->getIn(0);
     if (!basevn->isStackPointerLocated(data)) return 0;
