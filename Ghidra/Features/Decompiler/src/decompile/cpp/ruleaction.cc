@@ -6607,6 +6607,30 @@ bool RuleAllocaPushParams::extractVarnodesFromAddOp(PcodeOp *addop,Varnode *&bas
   return true;
 }
 
+bool RuleAllocaPushParams::verifyEquivalence(Varnode *vn1,Varnode *vn2)
+
+{
+  if (vn1 == vn2) return true;
+  PcodeOp *op1 = vn1->getDef();
+  PcodeOp *op2 = vn2->getDef();
+  if (op1 == (PcodeOp *)0 || op2 == (PcodeOp *)0) {
+    if (op1 != (PcodeOp *)0) return false;
+    if (op2 != (PcodeOp *)0) return false;
+    if (vn1->getSpace() != vn2->getSpace()) return false;
+    if (vn1->getOffset() != vn2->getOffset()) return false;
+    return true;
+  }
+  if (op1->code() != op2->code()) return false;
+  OpCode opc = op1->code();
+  switch (opc) {
+    case CPUI_INT_ADD:
+      if (!verifyEquivalence(op1->getIn(0),op2->getIn(0))) return false;
+      if (!verifyEquivalence(op1->getIn(1),op2->getIn(1))) return false;
+      return true;
+  }
+  return false;
+}
+
 PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isStackNegative)
 
 {
@@ -6636,17 +6660,13 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
     switch (opc) {
       case CPUI_LOAD:
       {
+        // Must use the same space to load/store
 	if (op->getIn(0)->getOffset() != storeop->getIn(0)->getOffset()) continue;
 	PcodeOp *addop = op->getIn(1)->getDef();
 	if (addop == (PcodeOp *)0) continue;
 	if (addop->code() != CPUI_INT_ADD) continue;
 
-	Varnode *addBaseVn,*addSizeVn;
-        uintb addOff;
-	if (!extractVarnodesFromAddOp(addop,addBaseVn,addSizeVn,addOff,isStackNegative)) continue;
-	if (addSizeVn != sizeVn) continue;
-	if (addBaseVn != baseVn) continue;
-	if (addOff != off) continue;
+	if (!verifyEquivalence(ptrop->getOut(),addop->getOut())) continue;
 	return op;
       }
       case CPUI_STORE:
@@ -6695,17 +6715,13 @@ void RuleAllocaPushParams::gatherSimilarStoreOps(PcodeOp *storeop,vector<PcodeOp
     switch (opc) {
       case CPUI_STORE:
       {
-	if (op->getIn(0)->getOffset() != storeop->getIn(0)->getOffset()) continue;
+        // Must use the same space to load/store
+        if (op->getIn(0)->getOffset() != storeop->getIn(0)->getOffset()) continue;
 	PcodeOp *addop = op->getIn(1)->getDef();
 	if (addop == (PcodeOp *)0) continue;
 	if (addop->code() != CPUI_INT_ADD) continue;
 
-	Varnode *addBaseVn,*addSizeVn;
-        uintb addOff;
-	if (!extractVarnodesFromAddOp(addop,addBaseVn,addSizeVn,addOff,isStackNegative)) continue;
-	if (addSizeVn != sizeVn) continue;
-	if (addBaseVn != baseVn) continue;
-	if (addOff != off) continue;
+	if (!verifyEquivalence(ptrop->getOut(),addop->getOut())) continue;
 	ops.push_back(op);
       }
       case CPUI_LOAD:
@@ -6769,17 +6785,16 @@ int4 RuleAllocaPushParams::applyOp(PcodeOp *op,Funcdata &data)
   last--;
   Varnode *valvn = (*last)->getIn(2);
   Varnode *ptrvn = op->getIn(1);
-  if (!ptrvn->isStackPointerLocated(data)) return 0;
   PcodeOp *ptrop = ptrvn->getDef();
   if (ptrop == (PcodeOp *) 0) return 0;
   if (ptrop->code() != CPUI_INT_ADD) return 0;
 
-  Varnode *vn1,*vn3;
+  Varnode *vn1,*vn2;
   uintb off;
-  extractVarnodesFromAddOp(ptrop,vn1,vn3,off,isStackNegative);
-  if (vn3 == (Varnode *)0) {
-    Varnode *basevn = ptrop->getIn(0);
-    if (!basevn->isStackPointerLocated(data)) return 0;
+  extractVarnodesFromAddOp(ptrop,vn1,vn2,off,isStackNegative);
+  if (vn2 == (Varnode *)0) {
+    Varnode *basevn = vn1;
+    if (!ptrvn->isStackVariableAddress(data,true,true)) return 0;
     PcodeOp *baseop = basevn->getDef();
     if (baseop == (PcodeOp *)0) return 0;
     if (baseop->code() == CPUI_MULTIEQUAL) {
