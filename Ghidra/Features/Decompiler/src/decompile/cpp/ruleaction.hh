@@ -1080,6 +1080,7 @@ public:
 };
 class RuleAllocaPushParams : public Rule {
   static bool extractVarnodesFromAddOp(PcodeOp *addop,Varnode *&basevn,Varnode *&sizeVn,uintb &off,bool isStackNegative);
+  static bool verifyEquivalence(Varnode *vn1,Varnode *vn2);
   static PcodeOp *getCorrespondingLoadOp(PcodeOp *storeop,bool isStackNegative);
   static void gatherSimilarStoreOps(PcodeOp *storeop,vector<PcodeOp *> &ops,bool isStackNegative);
 public:
