@@ -349,7 +349,6 @@ bool PcodeOp::isUnionParamCopy(Funcdata &data) const
 bool PcodeOp::isStaticCastCopy(Funcdata &data) const
 
 {
-  if (code() != CPUI_COPY) return false;
   const Varnode *in1 = getIn(0);
   Datatype *ct1 = in1->getTypeReadFacing(this);
   if (ct1->getSubMeta() == SUB_PTRREL) return false;
@@ -423,6 +422,9 @@ bool PcodeOp::isStaticCastCopy(Funcdata &data) const
 bool PcodeOp::isProtectedCopy(Funcdata &data) const
 
 {
+  if (code() != CPUI_COPY) false;
+  const Varnode *invn = getIn(0);
+  if (invn->isAllocaAddress(data)) return true;
   if (isUnionParamCopy(data)) return true;
   //if (isStaticCastCopy(data)) return true;
   return false;
