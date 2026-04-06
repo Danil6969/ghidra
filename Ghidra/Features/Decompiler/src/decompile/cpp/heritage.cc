@@ -2572,6 +2572,7 @@ void Heritage::renameRecurse(BlockBasic *bl,VariableStack &varstack)
 
   for(oiter=bl->beginOp();oiter!=bl->endOp();++oiter) {
     op = *oiter;
+    vnout = op->getOut();
     if (op->code() != CPUI_MULTIEQUAL) {
 				// First replace reads with top of stack
       for(slot=0;slot<op->numInput();++slot) {
@@ -2602,12 +2603,17 @@ void Heritage::renameRecurse(BlockBasic *bl,VariableStack &varstack)
 	  }
 	}
 	fd->opSetInput(op,vnnew,slot);
+	if (op->code() == CPUI_SUBPIECE && slot == 0) {
+	  if (vnout->getSize() == vnnew->getSize()) {
+	    fd->opSetOpcode(op,CPUI_COPY);
+	    fd->opRemoveInput(op,1);
+	  }
+	}
 	if (vnin->hasNoDescend())
 	  fd->deleteVarnode(vnin);
       }
     }
 				// Then push writes onto stack
-    vnout = op->getOut();
     if (vnout == (Varnode *)0) continue;
     if (!vnout->isActiveHeritage()) continue; // Not a normalized write
     vnout->clearActiveHeritage();
