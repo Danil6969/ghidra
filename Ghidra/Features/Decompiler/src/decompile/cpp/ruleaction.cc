@@ -3159,7 +3159,20 @@ int4 RuleIndirectCollapse::applyOp(PcodeOp *op,Funcdata &data)
       return 0;	
   }
 
-  data.totalReplace(op->getOut(),op->getIn(0));
+  Varnode *vn = op->getOut();
+  Varnode *newvn = op->getIn(0);
+  list<PcodeOp *>::const_iterator iter;
+  iter = vn->beginDescend();
+  while (iter!=vn->endDescend()) {
+    PcodeOp *dop = *iter++;
+    int4 i = dop->getSlot(vn);
+    data.opSetInput(dop,newvn,i);
+    OpCode opc = dop->code();
+    if (opc == CPUI_SUBPIECE) {
+      opc = opc;
+    }
+  }
+  //data.totalReplace(op->getOut(),op->getIn(0));
   data.opDestroy(op);		// Get rid of the INDIRECT
   return 1;
 }
@@ -13110,14 +13123,14 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
   vector<PcodeOp *> descends;
   vector<PcodeOp *> mainops;
   for(list<PcodeOp *>::const_iterator iter=out->beginDescend();iter!=out->endDescend();++iter) {
-    PcodeOp *descend = *iter;
+    PcodeOp *dop = *iter;
     bool isMain;
-    if (!testMainOp(op,descend,isMain)) return false;
+    if (!testMainOp(op,dop,isMain)) return false;
     // Main op is processed separately
     if (isMain)
-      mainops.push_back(descend);
+      mainops.push_back(dop);
     else
-      descends.push_back(descend);
+      descends.push_back(dop);
   }
 
   intb val = isnegative ? -1 : 1;
@@ -13175,14 +13188,14 @@ bool RuleInferPointerMult::formAssignment(PcodeOp *op,Funcdata &data)
   vector<PcodeOp *> descends;
   vector<PcodeOp *> mainops;
   for(list<PcodeOp *>::const_iterator iter=out->beginDescend();iter!=out->endDescend();++iter) {
-    PcodeOp *descend = *iter;
+    PcodeOp *dop = *iter;
     bool isMain;
-    if (!testMainOp(op,descend,isMain)) return false;
+    if (!testMainOp(op,dop,isMain)) return false;
     // Main op is processed separately
     if (isMain)
-      mainops.push_back(descend);
+      mainops.push_back(dop);
     else
-      descends.push_back(descend);
+      descends.push_back(dop);
   }
 
   // Should not have any usage of main op
@@ -13490,19 +13503,19 @@ bool RuleInferPointerAdd::formConstant(PcodeOp *op,Funcdata &data)
   // Collect descends
   vector<PcodeOp *> descends;
   for(list<PcodeOp *>::const_iterator iter=multiOut->beginDescend();iter!=multiOut->endDescend();++iter) {
-    PcodeOp *descend = *iter;
+    PcodeOp *dop = *iter;
 
     // Check slot repetition
-    int4 firstSlot = descend->getSlot(multiOut);
+    int4 firstSlot = dop->getSlot(multiOut);
     list<PcodeOp *>::const_iterator endIter = multiOut->endDescend();
-    int4 repeatSlot = descend->getRepeatSlot(multiOut,firstSlot,endIter);
+    int4 repeatSlot = dop->getRepeatSlot(multiOut,firstSlot,endIter);
     if (repeatSlot != -1) return false; // Don't know how to handle this case yet
 
     bool isMain;
-    if (!RuleInferPointerMult::testMainOp(op,descend,isMain)) return false;
+    if (!RuleInferPointerMult::testMainOp(op,dop,isMain)) return false;
     // Main op isn't processed
     if (isMain) continue;
-    descends.push_back(descend);
+    descends.push_back(dop);
   }
 
   for(vector<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
@@ -13551,19 +13564,19 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
   // Collect descends
   vector<PcodeOp *> descends;
   for(list<PcodeOp *>::const_iterator iter=multiOut->beginDescend();iter!=multiOut->endDescend();++iter) {
-    PcodeOp *descend = *iter;
+    PcodeOp *dop = *iter;
 
     // Check slot repetition
-    int4 firstSlot = descend->getSlot(multiOut);
+    int4 firstSlot = dop->getSlot(multiOut);
     list<PcodeOp *>::const_iterator endIter = multiOut->endDescend();
-    int4 repeatSlot = descend->getRepeatSlot(multiOut,firstSlot,endIter);
+    int4 repeatSlot = dop->getRepeatSlot(multiOut,firstSlot,endIter);
     if (repeatSlot != -1) return false; // Don't know how to handle this case yet
 
     bool isMain;
-    if (!RuleInferPointerMult::testMainOp(op,descend,isMain)) return false;
+    if (!RuleInferPointerMult::testMainOp(op,dop,isMain)) return false;
     // Main op isn't processed
     if (isMain) continue;
-    descends.push_back(descend);
+    descends.push_back(dop);
   }
 
   if (descends.empty()) return false;
@@ -14278,38 +14291,38 @@ bool RuleByteLoop::initExtractInsertListsMultiplier(LoopData &loopData)
 {
   list<PcodeOp *>::const_iterator iter;
   for(iter=loopData.counterVn->beginDescend();iter!=loopData.counterVn->endDescend();++iter) {
-    PcodeOp *curop = *iter;
-    if (curop->code() == CPUI_INT_MULT) {
-      int4 slot = 1 - curop->getSlot(loopData.counterVn);
-      Varnode *multVn = curop->getIn(slot);
+    PcodeOp *dop = *iter;
+    if (dop->code() == CPUI_INT_MULT) {
+      int4 slot = 1 - dop->getSlot(loopData.counterVn);
+      Varnode *multVn = dop->getIn(slot);
       if (multVn->isConstant()) {
 	intb off = multVn->getOffset();
 	off = sign_extend(off,8*multVn->getSize()-1);
 	if (off < 0) {
 	  loopData.multiplier = -off;
-	  curop = curop->getOut()->loneDescend();
-	  if (curop == (PcodeOp *)0) return false;
-	  if (curop->code() != CPUI_INT_ADD) return false;
-	  curop = curop->getOut()->loneDescend();
-	  if (curop == (PcodeOp *)0) return false;
+	  dop = dop->getOut()->loneDescend();
+	  if (dop == (PcodeOp *)0) return false;
+	  if (dop->code() != CPUI_INT_ADD) return false;
+	  dop = dop->getOut()->loneDescend();
+	  if (dop == (PcodeOp *)0) return false;
 	}
 	else if (off > 0) {
 	  loopData.multiplier = off;
-	  curop = curop->getOut()->loneDescend();
-	  if (curop == (PcodeOp *)0) return false;
+	  dop = dop->getOut()->loneDescend();
+	  if (dop == (PcodeOp *)0) return false;
 	}
 	else
 	  return false;
       }
     }
-    if (curop->code() == CPUI_CALLOTHER) {
-      string nm = curop->getOpcode()->getOperatorName(curop);
-      if (nm == Funcdata::FUNCTION_EXTRACTIND && curop->getOut() != (Varnode *)0) {
-	if (curop->numInput() != 3) return false;
-	loopData.extractlist.push_back(curop);
+    if (dop->code() == CPUI_CALLOTHER) {
+      string nm = dop->getOpcode()->getOperatorName(dop);
+      if (nm == Funcdata::FUNCTION_EXTRACTIND && dop->getOut() != (Varnode *)0) {
+	if (dop->numInput() != 3) return false;
+	loopData.extractlist.push_back(dop);
       }
       else if (nm == Funcdata::FUNCTION_INSERTIND && loopData.insertlist.empty()) // Don't add another insertind to the list if already have one, take another rule pass instead
-	loopData.insertlist.push_back(curop);
+	loopData.insertlist.push_back(dop);
     }
   }
 
