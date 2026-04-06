@@ -2071,7 +2071,7 @@ int4 ActionExtraPopSetup::apply(Funcdata &data)
     data.newVarnodeOut(sb_size,sb_addr,op);
     data.opSetInput(op,data.newVarnode(sb_size,sb_addr),0);
     int4 pop = data.getReturnAddressPop();
-    if (fc->getExtraPop() == ProtoModel::extrapop_unknown) {
+    if (fc->getModelExtraPop() == ProtoModel::extrapop_unknown) {
       pop = pop + fp->getParamsPurge();
     }
     uintb mask = calc_mask(sb_size);
