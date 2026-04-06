@@ -3168,8 +3168,12 @@ int4 RuleIndirectCollapse::applyOp(PcodeOp *op,Funcdata &data)
     int4 i = dop->getSlot(vn);
     data.opSetInput(dop,newvn,i);
     OpCode opc = dop->code();
-    if (opc == CPUI_SUBPIECE) {
-      opc = opc;
+    if (opc == CPUI_SUBPIECE && i == 0) {
+      Varnode *outvn = dop->getOut();
+      if (outvn->getSize() == newvn->getSize()) {
+	data.opSetOpcode(dop,CPUI_COPY);
+	data.opRemoveInput(dop,1);
+      }
     }
   }
   //data.totalReplace(op->getOut(),op->getIn(0));
