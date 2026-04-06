@@ -152,6 +152,12 @@ void StackSolver::solve(void)
   } while(count > 0);
 }
 
+/// \brief Calculate extra pop in case of call purges
+///
+/// \param op
+/// \param change
+/// \param data
+/// \return true if \b change is exact (not a guess)
 bool StackSolver::resolveExtraPop(PcodeOp *op,int4 &change,const Funcdata &data)
 
 {
