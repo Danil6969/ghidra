@@ -16,6 +16,7 @@
 #include "jumptable.hh"
 #include "emulate.hh"
 #include "flow.hh"
+#include "coreaction.hh"
 
 namespace ghidra {
 
@@ -528,6 +529,32 @@ uintb JumpBasic::backup2Switch(Funcdata *fd,uintb output,Varnode *outvn,Varnode 
   return output;
 }
 
+uintb JumpBasic::getGlobalArraySize(Varnode *vn)
+
+{
+  uintb multiplier = 1;
+  int4 slot = -1;
+  PcodeOp *addop = vn->loneDescend();
+  if (addop == (PcodeOp *)0) return 0;
+  if (addop->code() == CPUI_INT_MULT) {
+    PcodeOp *multop = addop;
+    slot = multop->getSlot(vn);
+    multiplier = multop->getIn(1-slot)->getOffset();
+    addop = multop->getOut()->loneDescend();
+    if (addop == (PcodeOp *)0) return 0;
+  }
+  if (addop->code() != CPUI_INT_ADD) return 0;
+  Funcdata *fd = addop->getFuncdata();
+  AddrSpace *spc = ActionConstantPtr::selectInferSpace(vn,addop,fd->getArch()->inferPtrSpaces);
+  if (spc == (AddrSpace *)0) return 0;
+  uintb fullEncoding;
+  Address rampoint = fd->getArch()->resolveConstant(spc,0,vn->getSize(),addop->getAddr(),fullEncoding);
+  if (rampoint.isInvalid()) return 0;
+  Scope *scope = fd->getScopeLocal()->getParent();
+  SymbolEntry *entry = scope->queryContainer(rampoint,1,Address());
+  return 0;
+}
+
 /// If the Varnode has a restricted range due to masking via INT_AND, the maximum value of this range is returned.
 /// Otherwise, 0 is returned, indicating that the Varnode can take all possible values.
 /// \param vn is the given Varnode
@@ -536,8 +563,11 @@ uintb JumpBasic::getMaxValue(Varnode *vn)
 
 {
   uintb maxValue = 0;		// 0 indicates maximum possible value
-  if (!vn->isWritten())
+  if (!vn->isWritten()) {
+    uintb sz = getGlobalArraySize(vn);
+    if (sz != 0) return sz;
     return maxValue;
+  }
   PcodeOp *op = vn->getDef();
   if (op->code() == CPUI_INT_AND) {
     Varnode *constvn = op->getIn(1);
