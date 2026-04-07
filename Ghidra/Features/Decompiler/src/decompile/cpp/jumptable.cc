@@ -534,25 +534,34 @@ uintb JumpBasic::getGlobalArraySize(Varnode *vn)
 {
   uintb multiplier = 1;
   int4 slot = -1;
+  Varnode *outvn = vn;
   PcodeOp *addop = vn->loneDescend();
   if (addop == (PcodeOp *)0) return 0;
   if (addop->code() == CPUI_INT_MULT) {
     PcodeOp *multop = addop;
     slot = multop->getSlot(vn);
     multiplier = multop->getIn(1-slot)->getOffset();
-    addop = multop->getOut()->loneDescend();
+    outvn = multop->getOut();
+    addop = outvn->loneDescend();
     if (addop == (PcodeOp *)0) return 0;
   }
   if (addop->code() != CPUI_INT_ADD) return 0;
+  slot = addop->getSlot(outvn);
+  Varnode *cvn = addop->getIn(1-slot);
+  if (!cvn->isConstant()) return 0;
   Funcdata *fd = addop->getFuncdata();
   AddrSpace *spc = ActionConstantPtr::selectInferSpace(vn,addop,fd->getArch()->inferPtrSpaces);
   if (spc == (AddrSpace *)0) return 0;
   uintb fullEncoding;
-  Address rampoint = fd->getArch()->resolveConstant(spc,0,vn->getSize(),addop->getAddr(),fullEncoding);
+  Address rampoint = fd->getArch()->resolveConstant(spc,cvn->getOffset(),vn->getSize(),addop->getAddr(),fullEncoding);
   if (rampoint.isInvalid()) return 0;
   Scope *scope = fd->getScopeLocal()->getParent();
   SymbolEntry *entry = scope->queryContainer(rampoint,1,Address());
-  return 0;
+  if (entry == (SymbolEntry *)0) return 0;
+  TypeArray *ta = (TypeArray *)entry->getSymbol()->getType();
+  if (ta->getMetatype() != TYPE_ARRAY) return 0;
+  if (ta->getBase()->getSize() != multiplier) return 0;
+  return ta->numElements();
 }
 
 /// If the Varnode has a restricted range due to masking via INT_AND, the maximum value of this range is returned.
