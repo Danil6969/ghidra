@@ -5086,7 +5086,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
     }
     endOff = startOff + sz;
     for (uintb off=startOff;off<endOff;++off) {
-      markConsumedAddress(space,off,data,worklist);
+      markConsumedAddress(space,off&calc_mask(space->getAddrSize()),data,worklist);
     }
   }
 
