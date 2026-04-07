@@ -382,7 +382,8 @@ protected:
   static bool ispoint(Varnode *vn);	///< Is it possible for the given Varnode to be a switch variable?
   static int4 getStride(Varnode *vn);	///< Get the step/stride associated with the Varnode
   static uintb backup2Switch(Funcdata *fd,uintb output,Varnode *outvn,Varnode *invn);
-  static uintb getMaxValue(Varnode *vn);	///< Get maximum value associated with the given Varnode
+  static uintb getGlobalArraySize(Varnode *vn);		///< Get count of array elements if there is corresponding global entry
+  static uintb getMaxValue(Varnode *vn);		///< Get maximum value associated with the given Varnode
   bool isValidCompareOp(PcodeOp *opcode);
   bool isValidInputBlock(BlockBasic *bl);
   bool isValidMainBlock(BlockBasic *bl,int4 &index);
