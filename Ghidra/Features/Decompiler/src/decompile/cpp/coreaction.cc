@@ -4973,9 +4973,8 @@ bool ActionDeadCode::testSpacebase(PcodeOp *op)
 void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata &data,vector<Varnode *> &worklist)
 
 {
-  intb off = sign_extend(offset,8*space->getAddrSize()-1);
-
-  Address addr(space,offset);
+  uintb off = offset&calc_mask(space->getAddrSize());
+  Address addr(space,off);
   VarnodeLocSet::const_iterator viter;
   for (viter=data.beginLoc(addr);viter!=data.endLoc(addr);++viter) {
     Varnode *vn = *viter;
@@ -5086,7 +5085,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
     }
     endOff = startOff + sz;
     for (uintb off=startOff;off<endOff;++off) {
-      markConsumedAddress(space,off&calc_mask(space->getAddrSize()),data,worklist);
+      markConsumedAddress(space,off,data,worklist);
     }
   }
 
