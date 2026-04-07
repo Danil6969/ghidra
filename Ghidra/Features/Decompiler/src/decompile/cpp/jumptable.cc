@@ -535,19 +535,22 @@ uintb JumpBasic::getGlobalArraySize(Varnode *vn)
   uintb multiplier = 1;
   int4 slot = -1;
   Varnode *outvn = vn;
+  Varnode *cvn = (Varnode *)0;
   PcodeOp *addop = vn->loneDescend();
   if (addop == (PcodeOp *)0) return 0;
   if (addop->code() == CPUI_INT_MULT) {
     PcodeOp *multop = addop;
     slot = multop->getSlot(vn);
-    multiplier = multop->getIn(1-slot)->getOffset();
+    cvn = multop->getIn(1-slot);
+    if (!cvn->isConstant()) return 0;
+    multiplier = cvn->getOffset();
     outvn = multop->getOut();
     addop = outvn->loneDescend();
     if (addop == (PcodeOp *)0) return 0;
   }
   if (addop->code() != CPUI_INT_ADD) return 0;
   slot = addop->getSlot(outvn);
-  Varnode *cvn = addop->getIn(1-slot);
+  cvn = addop->getIn(1-slot);
   if (!cvn->isConstant()) return 0;
   Funcdata *fd = addop->getFuncdata();
   AddrSpace *spc = ActionConstantPtr::selectInferSpace(vn,addop,fd->getArch()->inferPtrSpaces);
