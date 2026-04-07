@@ -529,7 +529,7 @@ uintb JumpBasic::backup2Switch(Funcdata *fd,uintb output,Varnode *outvn,Varnode 
   return output;
 }
 
-uintb JumpBasic::getGlobalArraySize(Varnode *vn)
+uintb JumpBasic::getGlobalArraySize(Varnode *vn) const
 
 {
   uintb multiplier = 1;
@@ -571,13 +571,12 @@ uintb JumpBasic::getGlobalArraySize(Varnode *vn)
 /// Otherwise, 0 is returned, indicating that the Varnode can take all possible values.
 /// \param vn is the given Varnode
 /// \return the maximum value or 0
-uintb JumpBasic::getMaxValue(Varnode *vn)
+uintb JumpBasic::getMaxValue(Varnode *vn) const
 
 {
   uintb maxValue = 0;		// 0 indicates maximum possible value
   if (!vn->isWritten()) {
-    uintb sz = getGlobalArraySize(vn);
-    if (sz != 0) return sz;
+    maxValue = getGlobalArraySize(vn);
     return maxValue;
   }
   PcodeOp *op = vn->getDef();
@@ -607,6 +606,8 @@ uintb JumpBasic::getMaxValue(Varnode *vn)
     else
       maxValue = 0;
   }
+  if (maxValue == 0)
+    maxValue = getGlobalArraySize(vn);
   return maxValue;
 }
 
