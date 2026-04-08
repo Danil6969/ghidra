@@ -14776,6 +14776,7 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
 {
   FlowBlock *condBlock = op->getParent();
   if (!condBlock->hasLoopIn()) return 0;
+  if (condBlock->sizeOut() != 2) return 0;
 
   // Initialize loop data
   LoopData loopData;
@@ -14810,12 +14811,12 @@ int4 RuleByteLoop::applyOp(PcodeOp *op,Funcdata &data)
   }
 
   buildSubpieces(loopData,data);
-  PcodeOp *prevop = buildPiece(loopData,data);
-  if (prevop == (PcodeOp *)0) return 0;
+  loopData.pieceOp = buildPiece(loopData,data);
+  if (loopData.pieceOp == (PcodeOp *)0) return 0;
 
   // Commit final piece op
   PcodeOp *lastmulti = loopData.insertlist[0]->getOut()->loneDescend();
-  data.opSetOutput(prevop,lastmulti->getOut());
+  data.opSetOutput(loopData.pieceOp,lastmulti->getOut());
   data.opDestroy(loopData.insertlist[0]);
   data.opDestroy(lastmulti);
   return 1;
