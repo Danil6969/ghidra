@@ -532,11 +532,21 @@ uintb JumpBasic::backup2Switch(Funcdata *fd,uintb output,Varnode *outvn,Varnode 
 uintb JumpBasic::getGlobalArraySize(Varnode *vn) const
 
 {
-  uintb multiplier = 1;
-  int4 slot = -1;
   Varnode *outvn = vn;
   Varnode *cvn = (Varnode *)0;
-  PcodeOp *addop = vn->loneDescend();
+  uintb multiplier = 1;
+  int4 slot = -1;
+  int4 j = -1;
+  for (int4 i=pathMeld.numCommonVarnode()-1;i>=0;i--) {
+    if (pathMeld.getVarnode(i) == vn) {
+      j = i;
+      break;
+    }
+  }
+
+  j--;
+  if (j<0) return 0;
+  PcodeOp *addop = pathMeld.getVarnode(j)->getDef();
   if (addop == (PcodeOp *)0) return 0;
   if (addop->code() == CPUI_INT_MULT) {
     PcodeOp *multop = addop;
@@ -545,7 +555,9 @@ uintb JumpBasic::getGlobalArraySize(Varnode *vn) const
     if (!cvn->isConstant()) return 0;
     multiplier = cvn->getOffset();
     outvn = multop->getOut();
-    addop = outvn->loneDescend();
+    j--;
+    if (j<0) return 0;
+    addop = pathMeld.getVarnode(j)->getDef();
     if (addop == (PcodeOp *)0) return 0;
   }
   if (addop->code() != CPUI_INT_ADD) return 0;
