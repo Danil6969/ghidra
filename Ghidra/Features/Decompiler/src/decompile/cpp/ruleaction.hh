@@ -1925,6 +1925,7 @@ class RuleByteLoop : public Rule {
     PcodeOp *condOp = (PcodeOp *)0;
     PcodeOp *endOp = (PcodeOp *)0;
     PcodeOp *initOp = (PcodeOp *)0;
+    PcodeOp *pieceOp = (PcodeOp *)0;
     Varnode *counterVn = (Varnode *)0;
   };
   bool setCountsCountervn(LoopData &loopData);
