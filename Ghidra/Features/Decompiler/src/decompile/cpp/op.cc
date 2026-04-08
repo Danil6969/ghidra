@@ -81,6 +81,20 @@ PcodeOp::PcodeOp(int4 s,const SeqNum &sq) : start(sq),inrefs(s)
     inrefs[i] = (Varnode *)0;
 }
 
+int4 PcodeOp::getSlot(const Varnode *vn) const
+
+{
+  int4 j = -1;
+  int4 n = inrefs.size();
+  for(int4 i=0;i<n;++i) {
+    if (inrefs[i] == vn) {
+      j = i;
+      break;
+    }
+  }
+  return j;
+}
+
 int4 PcodeOp::getPointerSlot(void) const
 
 {
