@@ -4734,6 +4734,18 @@ void ActionDeadCode::propagateConsumed(vector<Varnode *> &worklist)
       a = outc >> (sz*8);
       b = outc ^ (a << (sz*8));
     }
+
+    // Do not display any additional zeros to user
+    // if they are not present in original code
+    if (op->getOut()->getSize() > sizeof(uintb)) {
+      a = ~((uintb)0);
+      b = ~((uintb)0);
+    }
+    if (outc != 0) {
+      a = ~((uintb)0);
+      b = ~((uintb)0);
+    }
+
     pushConsumed(a,op->getIn(0),worklist);
     pushConsumed(b,op->getIn(1),worklist);
     break;
