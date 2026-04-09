@@ -3600,7 +3600,7 @@ void PrintC::emitBlockBasic(const BlockBasic *bb)
   emitLabelStatement(bb);	// Print label (for flat prints)
   if (isSet(only_branch)) {
     inst = bb->lastOp();
-    if (inst->isBranch())
+    if (inst != (const PcodeOp *)0 && inst->isBranch())
       emitExpression(inst);	// Only print branch instruction
   }
   else {
@@ -3986,7 +3986,8 @@ void PrintC::emitBlockWhileDo(const BlockWhileDo *bl)
 void PrintC::emitBlockDoWhile(const BlockDoWhile *bl)
 
 {
-  const PcodeOp *op;
+  const PcodeOp *op = bl->getBlock(0)->lastOp();
+  if (op == (const PcodeOp *)0) return;
 
 				// dowhile block NEVER prints final branch
   pushMod();
@@ -4003,7 +4004,6 @@ void PrintC::emitBlockDoWhile(const BlockDoWhile *bl)
   popMod();
   emit->closeBraceIndent(CLOSE_CURLY, id);
   emit->spaces(1);
-  op = bl->getBlock(0)->lastOp();
   emit->tagOp(KEYWORD_WHILE,EmitMarkup::keyword_color,op);
   emit->spaces(1);
   setMod(only_branch);
