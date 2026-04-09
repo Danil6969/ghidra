@@ -4576,6 +4576,12 @@ int4 ActionDoNothing::apply(Funcdata &data)
 	return 0;
       }
     }
+    if (bb->isEmptyConstantLoop()) {
+      data.opDestroy(bb->getIn(1)->lastOp());
+      data.opDestroy(bb->lastOp());
+      count += 1;
+      return 0;
+    }
   }
   return 0;
 }
