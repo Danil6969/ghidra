@@ -615,6 +615,13 @@ int4 FlowBlock::getOutIndex(const FlowBlock *bl) const
   return -1;
 }
 
+bool FlowBlock::isEmptyConstantLoop(void) const
+
+{
+  if (!hasLoopIn()) return false;
+  return true;
+}
+
 /// Only print a header for \b this single block
 /// \param s is the output stream
 void FlowBlock::printHeader(ostream &s) const
