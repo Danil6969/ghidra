@@ -428,11 +428,11 @@ bool FlowBlock::restrictedByConditional(const FlowBlock *cond) const
 bool FlowBlock::hasSpecialFunction(void) const
 
 {
-  const PcodeOp *op = (PcodeOp *)0;
   PcodeOp *first = firstOp();
+  PcodeOp *last = lastOp();
   if (first == (PcodeOp *)0) return false;
-  PcodeOp *last = first->getParent()->lastOp();
   if (last == (PcodeOp *)0) return false;
+  const PcodeOp *op;
   for(op=first;op!=last;op=op->nextOp()) {
     if (op == (PcodeOp *)0) return false;
     if (TypeOpCallother::isSpecialFunc(op)) return true;
@@ -619,6 +619,24 @@ bool FlowBlock::isEmptyConstantLoop(void) const
 
 {
   if (!hasLoopIn()) return false;
+  PcodeOp *first = firstOp();
+  PcodeOp *last = lastOp();
+  if (first == (PcodeOp *)0) return false;
+  if (last == (PcodeOp *)0) return false;
+
+  vector<const PcodeOp *> ops1;
+  const PcodeOp *op;
+  for(op=first;op!=last;op=op->nextOp()) {
+    if (op == (PcodeOp *)0) return false;
+    ops1.push_back(op);
+  }
+  ops1.push_back(op);
+  if (ops1.size() != 3) return false;
+  if (sizeIn() != 2) return false;
+  const FlowBlock *in1 = getIn(1);
+  if (in1->lastOp() == (PcodeOp *)0) return false;
+  if (in1->firstOp() != in1->lastOp()->previousOp()) return false;
+  if (in1->lastOp()->code() != CPUI_BRANCH) return false;
   return true;
 }
 
