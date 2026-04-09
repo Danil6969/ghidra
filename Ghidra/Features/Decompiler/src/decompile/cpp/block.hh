@@ -311,6 +311,7 @@ public:
   bool isLoopOut(int4 i) const { return ((outofthis[i].label & f_loop_edge)!=0); }	///< Is the i-th outgoing edge a \e loop edge
   int4 getInIndex(const FlowBlock *bl) const;		///< Get the incoming edge index for the given FlowBlock
   int4 getOutIndex(const FlowBlock *bl) const;		///< Get the outgoing edge index for the given FlowBlock
+  bool isEmptyConstantLoop(void) const;			///< Is \b this a \e for \e loop block which only changes counter with constant initializer, increment and boundary
   bool isDefaultBranch(int4 i) const { return ((outofthis[i].label & f_defaultswitch_edge)!=0); }	///< Is the i-th out edge the switch default edge
   bool isLabelBumpUp(void) const { return ((flags & f_label_bumpup)!=0); }	///< Are labels for \b this printed by the parent
   bool isUnstructuredTarget(void) const { return ((flags & f_unstructured_targ)!=0); }	///< Is \b this the target of an unstructured goto
