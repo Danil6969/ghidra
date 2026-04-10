@@ -522,6 +522,19 @@ void ActionStackPtrFlow::analyzeExtraPop(Funcdata &data,AddrSpace *stackspace,in
   }
   if (solver.getNumVariables() == 0) return;
   solver.solve();		// Solve the equations
+  // TODO debug start
+  vector<uintb> addrs;
+  for(int4 i=0;i<solver.getNumVariables();++i) {
+    Varnode *vn = solver.getVariable(i);
+    PcodeOp *op = vn->getDef();
+    if (op == (PcodeOp *)0) {
+      addrs.emplace_back(0);
+    }
+    else {
+      addrs.emplace_back(op->getAddr().getOffset());
+    }
+  }
+  // TODO debug end
 
   Varnode *invn = solver.getVariable(0);
   bool warningprinted = false;
@@ -4577,8 +4590,11 @@ int4 ActionDoNothing::apply(Funcdata &data)
       }
     }
     if (bb->isEmptyConstantLoop()) {
-      data.opDestroy(bb->getIn(1)->lastOp());
-      data.opDestroy(bb->lastOp());
+      FlowBlock *in1 = bb->getIn(1);
+      PcodeOp *op1 = bb->lastOp();
+      PcodeOp *op2 = in1->lastOp();
+      data.opDestroy(op1);
+      data.opDestroy(op2);
       count += 1;
       return 0;
     }
