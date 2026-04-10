@@ -618,26 +618,44 @@ int4 FlowBlock::getOutIndex(const FlowBlock *bl) const
 bool FlowBlock::isEmptyConstantLoop(void) const
 
 {
+  const PcodeOp *op;
+  vector<const PcodeOp *> ops1;
+  vector<const PcodeOp *> ops2;
   if (!hasLoopIn()) return false;
+  if (sizeIn() != 2) return false;
+  const FlowBlock *in1 = getIn(1);
+
   PcodeOp *first = firstOp();
   PcodeOp *last = lastOp();
   if (first == (PcodeOp *)0) return false;
   if (last == (PcodeOp *)0) return false;
-
-  vector<const PcodeOp *> ops1;
-  const PcodeOp *op;
   for(op=first;op!=last;op=op->nextOp()) {
     if (op == (PcodeOp *)0) return false;
     ops1.push_back(op);
   }
   ops1.push_back(op);
+
+  first = in1->firstOp();
+  last = in1->lastOp();
+  if (first == (PcodeOp *)0) return false;
+  if (last == (PcodeOp *)0) return false;
+  for(op=first;op!=last;op=op->nextOp()) {
+    if (op == (PcodeOp *)0) return false;
+    ops2.push_back(op);
+  }
+  ops2.push_back(op);
+
   if (ops1.size() != 3) return false;
-  if (sizeIn() != 2) return false;
-  const FlowBlock *in1 = getIn(1);
-  if (in1->lastOp() == (PcodeOp *)0) return false;
-  if (in1->firstOp() != in1->lastOp()->previousOp()) return false;
-  if (in1->lastOp()->code() != CPUI_BRANCH) return false;
-  return true;
+  if (ops1[0]->code() != CPUI_MULTIEQUAL) return false;
+  if (ops1[1]->code() != CPUI_INT_LESS) return false;
+  if (ops1[2]->code() != CPUI_CBRANCH) return false;
+  if (ops1[2]->getIn(1)->getDef() == (PcodeOp *)0) return false;
+
+  if (ops2.size() != 2) return false;
+  if (ops2[0]->code() != CPUI_INT_ADD) return false;
+  if (ops2[1]->code() != CPUI_BRANCH) return false;
+  if (in1->sizeIn() > 1) return false;
+  return false;
 }
 
 /// Only print a header for \b this single block
