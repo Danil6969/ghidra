@@ -623,12 +623,16 @@ bool FlowBlock::isEmptyConstantLoop(void) const
   vector<const PcodeOp *> ops2;
   if (!hasLoopIn()) return false;
   if (sizeIn() != 2) return false;
+  const FlowBlock *in0 = getIn(0);
   const FlowBlock *in1 = getIn(1);
 
-  PcodeOp *first = firstOp();
-  PcodeOp *last = lastOp();
-  if (first == (PcodeOp *)0) return false;
-  if (last == (PcodeOp *)0) return false;
+  if (in1->sizeIn() != 1) return false;
+  if (in1->getIn(0) != this) return false;
+
+  const PcodeOp *first = firstOp();
+  const PcodeOp *last = lastOp();
+  if (first == (const PcodeOp *)0) return false;
+  if (last == (const PcodeOp *)0) return false;
   for(op=first;op!=last;op=op->nextOp()) {
     if (op == (PcodeOp *)0) return false;
     ops1.push_back(op);
@@ -646,16 +650,29 @@ bool FlowBlock::isEmptyConstantLoop(void) const
   ops2.push_back(op);
 
   if (ops1.size() != 3) return false;
+  if (ops2.size() != 2) return false;
   if (ops1[0]->code() != CPUI_MULTIEQUAL) return false;
   if (ops1[1]->code() != CPUI_INT_LESS) return false;
   if (ops1[2]->code() != CPUI_CBRANCH) return false;
-  if (ops1[2]->getIn(1)->getDef() == (PcodeOp *)0) return false;
-
-  if (ops2.size() != 2) return false;
   if (ops2[0]->code() != CPUI_INT_ADD) return false;
   if (ops2[1]->code() != CPUI_BRANCH) return false;
-  if (in1->sizeIn() > 1) return false;
-  return false;
+
+  // We check chaining
+  if (ops1[0]->getIn(1)->getDef() != ops2[0]) return false;
+  if (ops1[1]->getIn(0)->getDef() != ops1[0]) return false;
+  if (ops1[2]->getIn(1)->getDef() != ops1[1]) return false;
+  if (ops2[0]->getIn(0)->getDef() != ops1[0]) return false;
+  // Then we check constants
+  if (!ops1[1]->getIn(1)->isConstant()) return false;
+  if (!ops1[2]->getIn(0)->isConstant()) return false;
+  if (!ops2[0]->getIn(1)->isConstant()) return false;
+  if (!ops2[1]->getIn(0)->isConstant()) return false;
+
+  const PcodeOp *copyop = ops1[0]->getIn(0)->getDef();
+  if (copyop == (const PcodeOp *)0) return false;
+  if (copyop->getParent() != in0) return false;
+  if (!copyop->getIn(0)->isConstant()) return false;
+  return true;
 }
 
 /// Only print a header for \b this single block
