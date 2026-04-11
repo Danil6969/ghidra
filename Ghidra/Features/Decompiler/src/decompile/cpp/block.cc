@@ -428,6 +428,7 @@ bool FlowBlock::restrictedByConditional(const FlowBlock *cond) const
 bool FlowBlock::hasSpecialFunction(void) const
 
 {
+  set<const PcodeOp *> visitedOps;
   PcodeOp *first = firstOp();
   PcodeOp *last = lastOp();
   if (first == (PcodeOp *)0) return false;
@@ -435,6 +436,9 @@ bool FlowBlock::hasSpecialFunction(void) const
   const PcodeOp *op;
   for(op=first;op!=last;op=op->nextOp()) {
     if (op == (PcodeOp *)0) return false;
+    // protect against infinite loop with no result
+    if (visitedOps.find(op) != visitedOps.end()) return false;
+    visitedOps.insert(op);
     if (TypeOpCallother::isSpecialFunc(op)) return true;
   }
   return false;
