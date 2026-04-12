@@ -9026,6 +9026,12 @@ bool RulePieceStructure::convertZextToPiece(PcodeOp *zext,Datatype *ct,int4 offs
     if (ct->getMetatype() == TYPE_UINT) return false;
     if (ct->getMetatype() == TYPE_PTR) return false;
   }
+  if (dt->getMetatype() == TYPE_UINT) {
+    // We prefer native zext in case unsigned is converted into any integer
+    if (ct->getMetatype() == TYPE_INT) return false;
+    if (ct->getMetatype() == TYPE_UINT) return false;
+    if (ct->getMetatype() == TYPE_PTR) return false;
+  }
   if (invn->isConstant()) return false;
 
   int4 sz = outvn->getSize() - invn->getSize();
