@@ -175,7 +175,7 @@ bool Merge::mergeTestRequired(HighVariable *high_out,HighVariable *high_in)
       // When non-tied is defined as op result we may have
       // to not merge with global due to conflicts of their values
       if (defOp != (PcodeOp *)0) {
-        // TODO figure out whether we always forbid regardless of opcode
+	// TODO figure out whether we always forbid regardless of opcode
 	return false;
       }
     }
