@@ -8633,6 +8633,13 @@ bool RulePtrsubUndo::canProcessOp(PcodeOp *op,Funcdata &data)
   int8 multiplier;
   int8 extra = getExtraOffset(op,multiplier);
   Datatype *basetype = basevn->getTypeReadFacing(op);
+  if (basetype->getMetatype() == TYPE_PTR) {
+    if (!basetype->isFormalPointerRel()) {
+      Datatype *ptrto = ((TypePointer *)basetype)->getPtrTo();
+      if (ptrto->getSize() == multiplier)
+	return true;
+    }
+  }
   if (basetype->isPtrsubMatching(val,extra,multiplier))
     return false;
   PcodeOp *ptrOp = basevn->getDef();
