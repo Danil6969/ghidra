@@ -169,6 +169,17 @@ bool Merge::mergeTestRequired(HighVariable *high_out,HighVariable *high_in)
     if (high_in->getSymbolOffset() != high_out->getSymbolOffset())
       return false;			// Map to different parts of same symbol
   }
+  if (high_out->isAddrTied() && !high_in->isAddrTied()) {
+    if (high_out->isPersist() && high_in->numInstances() == 1) {
+      PcodeOp *defOp = high_in->getInstance(0)->getDef();
+      // When non-tied is defined as op result we may have
+      // to not merge with global due to conflicts of their values
+      if (defOp != (PcodeOp *)0) {
+        // TODO figure out whether we always forbid regardless of opcode
+	return false;
+      }
+    }
+  }
   return true;
 }
 
