@@ -13283,18 +13283,20 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,set<Varnode *> &visite
   if (multiop == (PcodeOp *)0) return false;
   if (multiop->code() != CPUI_MULTIEQUAL) return false;
 
-  for(list<PcodeOp *>::const_iterator iter=vn->beginDescend();iter!=vn->endDescend();++iter) {
-    PcodeOp *op = *iter;
-    PcodeOp *descend = op;
-    OpCode opc = descend->code();
+  list<PcodeOp *>::const_iterator iter1;
+  list<PcodeOp *>::const_iterator iter2;
+  for(iter1=vn->beginDescend();iter1!=vn->endDescend();++iter1) {
+    PcodeOp *op = *iter1;
+    PcodeOp *descend1 = op;
+    OpCode opc = descend1->code();
     if (opc == CPUI_MULTIEQUAL) {
-      if (descend == multiop) continue;
+      if (descend1 == multiop) continue;
       // Check if used somewhere farther
-      if (checkPointerUsages(descend->getOut(),visitedVarnodes,data)) return true;
+      if (checkPointerUsages(descend1->getOut(),visitedVarnodes,data)) return true;
     }
     if (!(opc == CPUI_INT_ADD || opc == CPUI_INT_MULT)) continue;
-    if (descend->getOut() != (Varnode *)0) {
-      PcodeOp *lone = descend->getOut()->loneDescend();
+    if (descend1->getOut() != (Varnode *)0) {
+      PcodeOp *lone = descend1->getOut()->loneDescend();
       if (lone != (PcodeOp *)0) {
 	if (lone->code() == CPUI_LOAD) return true;
 	if (lone->code() == CPUI_STORE) return true;
@@ -13305,7 +13307,7 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,set<Varnode *> &visite
     if (!addop->containsInput(out)) return false;
     int4 addslot = addop->getSlot(out);
     while (opc == CPUI_INT_ADD || opc == CPUI_INT_MULT) {
-      addop = descend;
+      addop = descend1;
       if (!addop->containsInput(out)) return false;
       addslot = addop->getSlot(out);
 
@@ -13320,30 +13322,32 @@ bool RuleInferPointerMult::checkPointerUsages(Varnode *vn,set<Varnode *> &visite
       }
 
       out = addop->getOut();
-      descend = out->loneDescend();
-      if (descend == (PcodeOp *)0) break;
-      opc = descend->code();
+      descend1 = out->loneDescend();
+      if (descend1 == (PcodeOp *)0) break;
+      opc = descend1->code();
     }
 
-    if (descend == (PcodeOp *)0) continue;
-    opc = descend->code();
-    if (opc == CPUI_LOAD || opc == CPUI_STORE) {
-      Varnode *ptrvn = addop->getIn(1-addslot);
-      Datatype *ptrdt = ptrvn->getTypeReadFacing(addop);
-      Varnode *othervn = addop->getIn(addslot);
-      Datatype *otherdt = othervn->getTypeReadFacing(addop);
-      if (ptrdt->getMetatype() != TYPE_PTR) continue;
-      return true;
-    }
-    if (opc = CPUI_CALL) {
-      FuncCallSpecs *fc = data.getCallSpecs(descend);
-      int4 slot = descend->getSlot(out);
-      if (fc == (FuncCallSpecs *)0) continue;
-      ProtoParameter *param = fc->getParam(slot-1);
-      if (param == (ProtoParameter *)0) continue;
-      Datatype *dt = param->getType();
-      if (dt->getMetatype() != TYPE_PTR) continue;
-      return true;
+    for(iter2=out->beginDescend();iter2!=out->endDescend();++iter2) {
+      PcodeOp *descend2 = *iter2;
+      opc = descend2->code();
+      if (opc == CPUI_LOAD || opc == CPUI_STORE) {
+	Varnode *ptrvn = addop->getIn(1-addslot);
+	Datatype *ptrdt = ptrvn->getTypeReadFacing(addop);
+	Varnode *othervn = addop->getIn(addslot);
+	Datatype *otherdt = othervn->getTypeReadFacing(addop);
+	if (ptrdt->getMetatype() != TYPE_PTR) continue;
+	return true;
+      }
+      if (opc = CPUI_CALL) {
+	FuncCallSpecs *fc = data.getCallSpecs(descend2);
+	int4 slot = descend2->getSlot(out);
+	if (fc == (FuncCallSpecs *)0) continue;
+	ProtoParameter *param = fc->getParam(slot-1);
+	if (param == (ProtoParameter *)0) continue;
+	Datatype *dt = param->getType();
+	if (dt->getMetatype() != TYPE_PTR) continue;
+	return true;
+      }
     }
   }
   return false;
