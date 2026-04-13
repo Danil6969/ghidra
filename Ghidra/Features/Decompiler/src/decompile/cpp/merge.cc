@@ -171,12 +171,16 @@ bool Merge::mergeTestRequired(HighVariable *high_out,HighVariable *high_in)
   }
   if (high_out->isAddrTied() && !high_in->isAddrTied()) {
     if (high_out->isPersist() && high_in->numInstances() == 1) {
-      PcodeOp *defOp = high_in->getInstance(0)->getDef();
+      Varnode *vn_in = high_in->getInstance(0);
+      PcodeOp *defOp = vn_in->getDef();
       // When non-tied is defined as op result we may have
       // to not merge with global due to conflicts of their values
       if (defOp != (PcodeOp *)0) {
+	PcodeOp *lone = vn_in->loneDescend();
+	if (lone == (PcodeOp *)0) return false;
+	if (lone->getOut() == (Varnode *)0) return false;
 	// TODO figure out whether we always forbid regardless of opcode
-	return false;
+	if (lone->getOut()->getHigh() != high_out) return false;
       }
     }
   }
