@@ -8633,10 +8633,17 @@ bool RulePtrsubUndo::canProcessOp(PcodeOp *op,Funcdata &data)
   int8 multiplier;
   int8 extra = getExtraOffset(op,multiplier);
   Datatype *basetype = basevn->getTypeReadFacing(op);
-  if (basetype->getMetatype() == TYPE_PTR) {
+  if (basetype->getMetatype() == TYPE_PTR && val == 0) {
     if (!basetype->isFormalPointerRel()) {
-      Datatype *ptrto = ((TypePointer *)basetype)->getPtrTo();
-      if (ptrto->getSize() == multiplier)
+      TypeFactory *types = data.getArch()->types;
+      int8 typeOffset = val;
+      int8 parentOff;
+      TypePointer *parent;
+      Datatype *ptrto1 = ((TypePointer *)basetype)->downChain(typeOffset,parent,parentOff,false,*types);
+      Datatype *ptrto2 = ((TypePointer *)basetype)->getPtrTo();
+      int4 sz1 = ptrto1->getSize();
+      int4 sz2 = ptrto2->getSize();
+      if (sz2 <= multiplier && sz1 < sz2)
 	return true;
     }
   }
