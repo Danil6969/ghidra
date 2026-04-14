@@ -8641,10 +8641,11 @@ bool RulePtrsubUndo::canProcessOp(PcodeOp *op,Funcdata &data)
       TypePointer *parent;
       Datatype *ptrto1 = ((TypePointer *)basetype)->downChain(typeOffset,parent,parentOff,false,*types);
       Datatype *ptrto2 = ((TypePointer *)basetype)->getPtrTo();
+      if (ptrto1 == (Datatype *)0) return true;
+
       int4 sz1 = ptrto1->getSize();
       int4 sz2 = ptrto2->getSize();
-      if (sz2 <= multiplier && sz1 < sz2)
-	return true;
+      if (sz2 <= multiplier && sz1 < sz2) return true;
     }
   }
   if (basetype->isPtrsubMatching(val,extra,multiplier))
