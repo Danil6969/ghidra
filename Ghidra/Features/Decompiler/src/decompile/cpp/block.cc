@@ -632,6 +632,8 @@ bool FlowBlock::isEmptyConstantLoop(void) const
 
   if (in1->sizeIn() != 1) return false;
   if (in1->getIn(0) != this) return false;
+  if (sizeOut() != 2) return false;
+  if (getOut(1) != in1) return false;
 
   const PcodeOp *first = firstOp();
   const PcodeOp *last = lastOp();
