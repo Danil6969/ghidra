@@ -4577,11 +4577,10 @@ int4 ActionDoNothing::apply(Funcdata &data)
       }
     }
     if (bb->isEmptyConstantLoop()) {
+      FlowBlock *in0 = bb->getIn(0);
       FlowBlock *in1 = bb->getIn(1);
-      PcodeOp *op1 = bb->lastOp();
-      PcodeOp *op2 = in1->lastOp();
-      data.opDestroy(op1);
-      data.opDestroy(op2);
+      FlowBlock *out = bb->getOut(1-bb->getOutIndex(in1));
+      data.switchEdge(in0,bb,out);
       count += 1;
       return 0;
     }
