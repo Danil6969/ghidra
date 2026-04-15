@@ -4576,14 +4576,6 @@ int4 ActionDoNothing::apply(Funcdata &data)
 	return 0;
       }
     }
-    if (bb->isEmptyConstantLoop()) {
-      FlowBlock *in0 = bb->getIn(0);
-      FlowBlock *in1 = bb->getIn(1);
-      FlowBlock *out = bb->getOut(1-bb->getOutIndex(in1));
-      data.switchEdge(in0,bb,out);
-      count += 1;
-      return 0;
-    }
   }
   return 0;
 }
@@ -4643,6 +4635,18 @@ int4 ActionDeterminedBranch::apply(Funcdata &data)
     int4 num = ((val!=0)!=cbranch->isBooleanFlip()) ? 0 : 1;
     data.removeBranch(bb,num);
     count += 1;
+  }
+
+  for(i=0;i<graph.getSize();++i) {
+    bb = (BlockBasic *) graph.getBlock(i);
+    if (bb->isEmptyConstantLoop()) {
+      FlowBlock *in0 = bb->getIn(0);
+      FlowBlock *in1 = bb->getIn(1);
+      FlowBlock *out = bb->getOut(1-bb->getOutIndex(in1));
+      data.switchEdge(in0,bb,out);
+      count += 1;
+      return 0;
+    }
   }
   return 0;
 }
