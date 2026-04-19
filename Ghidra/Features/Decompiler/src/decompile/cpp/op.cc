@@ -558,12 +558,10 @@ int4 PcodeOp::getAllocaAttachSlot(const Funcdata &data) const
   // so there should be always something it can be attached to.
   // But it can also be the stack input varnode
   // as well so it should be picked up anyway
-  if (invn0->isStackVariableAddress(data,true)) {
-    if (!invn1->isStackVariableAddress(data,true)) return 0;
-  }
-  if (invn1->isStackVariableAddress(data,true)) {
-    if (!invn0->isStackVariableAddress(data,true)) return 1;
-  }
+  bool isAddress0 = invn0->isStackVariableAddress(data,true);
+  bool isAddress1 = invn1->isStackVariableAddress(data,true);
+  if (isAddress0 && !isAddress1) return 0;
+  if (!isAddress0 && isAddress1) return 1;
   return -1;
 }
 
