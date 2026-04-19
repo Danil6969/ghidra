@@ -609,14 +609,15 @@ bool PcodeOp::isAllocaShift(const Funcdata &data) const
   int4 attachSlot = getAllocaAttachSlot(data); // Slot for the stack variable allocated right before alloca
   if (attachSlot == -1) return false;
   const Varnode *lengthvn = getIn(1-attachSlot);
-  if (!isFirstAllocaDefinition(data)) return false;
   if (opc == CPUI_INT_SUB) {
+    if (!isFirstAllocaDefinition(data)) return false;
     if (attachSlot != 0) return false;
     if (!data.isStackGrowsNegative()) return false;
     return true;
   }
   if (opc != CPUI_INT_ADD && opc != CPUI_PTRADD) return false;
   if (!lengthvn->isAllocaLength(data)) return false;
+  if (!isFirstAllocaDefinition(data)) return false;
   return true;
 }
 
