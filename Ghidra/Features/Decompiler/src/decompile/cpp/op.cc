@@ -437,8 +437,6 @@ bool PcodeOp::isProtectedCopy(Funcdata &data) const
 
 {
   if (code() != CPUI_COPY) false;
-  const Varnode *invn = getIn(0);
-  if (invn->isAllocaAddress(data)) return true;
   if (isUnionParamCopy(data)) return true;
   //if (isStaticCastCopy(data)) return true;
   return false;
