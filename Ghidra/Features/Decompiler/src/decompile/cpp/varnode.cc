@@ -1443,7 +1443,7 @@ Datatype *Varnode::recoverVftableDatatype(TypeFactory *types) const
   list<PcodeOp *>::const_iterator iter;
   for (iter=beginDescend();iter!=endDescend();++iter) {
     PcodeOp *op = *iter;
-    Datatype *ct = op->recoverVftableDatatype(types);
+    Datatype *ct = op->recoverVftableDatatype(types,false);
     if (ct == (Datatype *)0) continue;
     dt = ct;
   }
