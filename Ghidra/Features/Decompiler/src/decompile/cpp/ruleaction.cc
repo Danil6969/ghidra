@@ -4055,6 +4055,7 @@ bool RuleAddMultCollapse::form3(PcodeOp *op,Funcdata &data)
   Varnode *c[2];           // Constant varnodes
   Varnode *sub;
   Varnode *newvn;
+  Varnode *subvn;
   PcodeOp *subop;
 
   if (op->code() != CPUI_INT_ADD) return false;
@@ -4062,11 +4063,13 @@ bool RuleAddMultCollapse::form3(PcodeOp *op,Funcdata &data)
   c[0] = op->getIn(1);
   if (!c[0]->isConstant()) return false; // Neither input is a constant
   // Find other constant one level down
-  subop = op->getIn(0)->getDef();
+  subvn = op->getIn(0);
+  subop = subvn->getDef();
   if (subop == (PcodeOp *)0) return false;
   if (subop->code() != CPUI_INT_ADD) return false; // Must be same exact operation
   c[1] = subop->getIn(1);
   if (c[1]->isConstant()) return false;
+
   // a = ((stackbase + c[1]) + othervn) + c[0]  =>       (stackbase + c[0] + c[1]) + othervn
   // This lets two constant offsets get added together even in the case where there is:
   //    another term getting added in AND
@@ -4086,6 +4089,7 @@ bool RuleAddMultCollapse::form3(PcodeOp *op,Funcdata &data)
     basevn = baseop->getIn(0);
     if (!basevn->isSpacebase()) continue; // Only apply this particular case if we are adding to a base pointer
     if (!basevn->isInput()) continue;	// because this adds a new add operation
+    if (sub->isAllocaAddress(data) && subvn->isSpacebase()) continue;
 
     intb val0 = sign_extend(c[0]->getOffset(),8*c[0]->getSize()-1);
     intb val1 = sign_extend(c[1]->getOffset(),8*c[1]->getSize()-1);
