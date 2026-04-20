@@ -526,7 +526,7 @@ Datatype *TypeOpStore::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
   if (slot == 1) {
-    Datatype *ct = op->recoverVftableDatatype(tlst);
+    Datatype *ct = op->recoverVftableDatatype(tlst,false);
     if (ct != (Datatype *)0)
       return ct;
   }
