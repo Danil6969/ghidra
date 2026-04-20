@@ -365,7 +365,7 @@ public:
   bool isAllocaLength(const Funcdata &data) const;
   bool isLengthAllAllocaUsed(const Funcdata &data) const;
   bool isStackPointerLocated(const Funcdata &data) const;
-  bool isStackVariableAddress(const Funcdata &data,bool allocaAllowed,bool recursive=false) const;
+  bool isStackVariableAddress(const Funcdata &data,bool allocaAllowed,bool recursive) const;
   bool isPtrdiffOperand(Funcdata &data) const;
 };
 
