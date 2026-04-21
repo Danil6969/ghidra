@@ -2718,11 +2718,11 @@ void PrintC::pushPartialSymbol(const Symbol *sym,int4 off,int4 sz,
 	}
       }
       if (op->code() == CPUI_CAST)
-        casttype = vn->getHigh()->getType();
+	casttype = vn->getHigh()->getType();
 
       // Third we postprocess up metatypes
       if (casttype->needsResolution())
-        casttype = casttype->findResolve(op, inslot);
+	casttype = casttype->findResolve(op, inslot);
       if (casttype != (Datatype *)0)
 	outArr = casttype->getMetatype() == TYPE_ARRAY;
 
