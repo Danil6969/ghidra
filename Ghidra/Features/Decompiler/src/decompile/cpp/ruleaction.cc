@@ -3759,19 +3759,26 @@ int4 RuleCollapseConstants::applyOp(PcodeOp *op,Funcdata &data)
 
   if (!op->isCollapsible()) return 0; // Expression must be collapsible
 
+  Address newval;
+  bool markedInput = false;
+  Architecture *glb = data.getArch();
+  try {
+    newval = glb->getConstant(op->collapse(markedInput));
+  }
+  catch(LowlevelError &err) {
+    data.opMarkNoCollapse(op); // Dont know how or dont want to collapse further
+    return 0;
+  }
+
   if (op->getOut()->numDescend() > 1) {
     data.splitUses(op->getOut());
     return 1;
   }
 
-  Address newval;
-  bool markedInput = false;
-  try {
-    newval = data.getArch()->getConstant(op->collapse(markedInput));
-  }
-  catch(LowlevelError &err) {
-    data.opMarkNoCollapse(op); // Dont know how or dont want to collapse further
-    return 0;
+  string currentName = glb->allacts.getCurrentName();
+  const ActionGroupList &curgrp(glb->allacts.getGroup(currentName));
+  if (!curgrp.contains("unreachable")) {
+    if (op->isCbranchCondition()) return 0;
   }
 
   vn = data.newVarnode(op->getOut()->getSize(),newval); // Create new collapsed constant
