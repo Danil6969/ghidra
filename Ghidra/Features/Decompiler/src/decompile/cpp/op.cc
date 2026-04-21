@@ -746,6 +746,12 @@ bool PcodeOp::isIndirectSelfCopy(const Funcdata &data) const
   return true;
 }
 
+bool PcodeOp::isCbranchCondition(const Funcdata &data) const
+
+{
+  return false;
+}
+
 Datatype *PcodeOp::recoverVftableDatatype(TypeFactory *types,bool allowNonzero) const
 
 {
