@@ -334,6 +334,22 @@ bool PcodeOp::isCollapsible(void) const
   return true;
 }
 
+bool PcodeOp::isCbranchCondition(void) const
+
+{
+  const Varnode *out = getOut();
+  if (out == (const Varnode *)0) return false;
+  list<PcodeOp *>::const_iterator iter;
+  for (iter=out->beginDescend();iter!=out->endDescend();++iter) {
+    PcodeOp *op = *iter;
+    if (op->code() == CPUI_CBRANCH) return true;
+    if (op->code() == CPUI_COPY) {
+      if (op->isCbranchCondition()) return true;
+    }
+  }
+  return false;
+}
+
 bool PcodeOp::isUnionParamCopy(Funcdata &data) const
 
 {
@@ -744,12 +760,6 @@ bool PcodeOp::isIndirectSelfCopy(const Funcdata &data) const
     else return false;
   }
   return true;
-}
-
-bool PcodeOp::isCbranchCondition(const Funcdata &data) const
-
-{
-  return false;
 }
 
 Datatype *PcodeOp::recoverVftableDatatype(TypeFactory *types,bool allowNonzero) const
