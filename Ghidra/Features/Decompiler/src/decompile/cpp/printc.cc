@@ -2412,11 +2412,21 @@ void PrintC::pushConstant(uintb val,const Datatype *ct,tagtype tag,
     if (vn != (Varnode *)0) {
       entry = vn->getGlobalPointerSymbol(op);
       if (entry != (SymbolEntry *)0) {
-	Symbol *symbol = entry->getSymbol();
-	if (symbol != (Symbol *)0) {
-	  pushOp(&addressof,op);
-	  pushSymbol(symbol,vn,op);
-	  return;
+	Symbol *sym = entry->getSymbol();
+	if (sym != (Symbol *)0) {
+	  uintb off = entry->getAddr().getOffset();
+	  int4 symboloff = sign_extend(val-off,8*vn->getSize()-1);
+	  if (symboloff == 0 && !sym->getType()->needsResolution()) {
+	    pushOp(&addressof,op);
+	    pushSymbol(sym,vn,op);
+	    return;
+	  }
+	  if (symboloff + vn->getSize() <= sym->getType()->getSize()) {
+	    int4 inslot = op->getSlot(vn);
+	    pushOp(&addressof,op);
+	    pushPartialSymbol(sym,symboloff,vn->getSize(),vn,op,inslot);
+	    return;
+	  }
 	}
       }
     }
