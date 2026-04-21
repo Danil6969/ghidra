@@ -2492,6 +2492,18 @@ int4 RuleTrivialArith::applyOp(PcodeOp *op,Funcdata &data)
     if (!in1->isWritten()) return 0;
     if (!in0->getDef()->isCseMatch(in1->getDef())) return 0; // or constructed identically
   }
+
+  Architecture *glb = data.getArch();
+  string currentName = glb->allacts.getCurrentName();
+  const ActionGroupList &curgrp(glb->allacts.getGroup(currentName));
+  if (!curgrp.contains("unreachable") && op->isCbranchCondition()) {
+    if (op->getOut()->numDescend() > 1) {
+      data.splitUses(op->getOut());
+      return 1;
+    }
+    return 0;
+  }
+
   switch(op->code()) {
 
   case CPUI_INT_NOTEQUAL:	// Boolean 0
@@ -3777,9 +3789,7 @@ int4 RuleCollapseConstants::applyOp(PcodeOp *op,Funcdata &data)
 
   string currentName = glb->allacts.getCurrentName();
   const ActionGroupList &curgrp(glb->allacts.getGroup(currentName));
-  if (!curgrp.contains("unreachable")) {
-    if (op->isCbranchCondition()) return 0;
-  }
+  if (!curgrp.contains("unreachable") && op->isCbranchCondition()) return 0;
 
   vn = data.newVarnode(op->getOut()->getSize(),newval); // Create new collapsed constant
   if (markedInput) {
