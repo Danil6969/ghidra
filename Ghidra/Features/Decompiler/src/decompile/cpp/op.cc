@@ -339,13 +339,29 @@ bool PcodeOp::isCbranchCondition(void) const
 {
   const Varnode *out = getOut();
   if (out == (const Varnode *)0) return false;
+  OpCode opc = code();
+  if (opc != CPUI_COPY &&
+      opc != CPUI_INT_EQUAL &&
+      opc != CPUI_INT_NOTEQUAL &&
+      opc != CPUI_INT_SLESS &&
+      opc != CPUI_INT_SLESSEQUAL &&
+      opc != CPUI_INT_LESS &&
+      opc != CPUI_INT_LESSEQUAL &&
+      opc != CPUI_BOOL_NEGATE &&
+      opc != CPUI_BOOL_XOR &&
+      opc != CPUI_BOOL_AND &&
+      opc != CPUI_BOOL_OR &&
+      opc != CPUI_FLOAT_EQUAL &&
+      opc != CPUI_FLOAT_NOTEQUAL &&
+      opc != CPUI_FLOAT_LESS &&
+      opc != CPUI_FLOAT_LESSEQUAL &&
+      opc != CPUI_FLOAT_NAN) return false;
+
   list<PcodeOp *>::const_iterator iter;
   for (iter=out->beginDescend();iter!=out->endDescend();++iter) {
     PcodeOp *op = *iter;
     if (op->code() == CPUI_CBRANCH) return true;
-    if (op->code() == CPUI_COPY) {
-      if (op->isCbranchCondition()) return true;
-    }
+    if (op->isCbranchCondition()) return true;
   }
   return false;
 }
