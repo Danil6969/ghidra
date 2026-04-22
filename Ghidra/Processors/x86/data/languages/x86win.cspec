@@ -242,7 +242,6 @@
       <register name="FS_OFFSET"/>
     </unaffected>
     <killedbycall>
-      <register name="EAX"/>
       <register name="ECX"/>
       <register name="EDX"/>
       <register name="ST0"/>
