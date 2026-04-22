@@ -70,9 +70,8 @@
         <register name="FS_OFFSET"/>
       </unaffected>
       <killedbycall>
-        <register name="EAX"/>
         <register name="ECX"/>
-        <register name="EDX"/>
+	<register name="EDX"/>
         <register name="ST0"/>
         <register name="ST1"/>
       </killedbycall>
@@ -81,7 +80,41 @@
       </likelytrash>
     </prototype>
   </default_proto>
-  <prototype name="__usercall_out_EDX_preserved_EAX_ECX" extrapop="unknown" stackshift="4">
+  <prototype name="__usercall_in_EBX_out_EAX" extrapop="4" stackshift="4">
+    <input>
+      <pentry minsize="1" maxsize="4">
+        <register name="EBX"/>
+      </pentry>
+      <pentry minsize="1" maxsize="500" align="4">
+        <addr offset="4" space="stack"/>
+      </pentry>
+    </input>
+    <output killedbycall="true">
+      <pentry minsize="1" maxsize="4">
+        <register name="EAX"/>
+      </pentry>
+    </output>
+    <unaffected>
+      <register name="ESP"/>
+      <register name="EBP"/>
+      <register name="ESI"/>
+      <register name="EDI"/>
+      <register name="EBX"/>
+      <register name="DF"/>
+      <register name="FS_OFFSET"/>
+    </unaffected>
+    <killedbycall>
+      <register name="EAX"/>
+      <register name="ECX"/>
+      <register name="EDX"/>
+      <register name="ST0"/>
+      <register name="ST1"/>
+    </killedbycall>
+    <likelytrash>
+      <register name="ECX"/>
+    </likelytrash>
+  </prototype>
+  <prototype name="__userpurge_out_EDX_preserved_EAX_ECX" extrapop="unknown" stackshift="4">
     <input>
       <pentry minsize="1" maxsize="500" align="4">
         <addr offset="4" space="stack"/>
@@ -109,7 +142,7 @@
       <register name="ST1"/>
     </killedbycall>
   </prototype>
-  <prototype name="__usercall_in_ECX_EAX_out_EAX_preserved_EDX" extrapop="unknown" stackshift="4">
+  <prototype name="__userpurge_in_ECX_EAX_out_EAX_preserved_EDX" extrapop="unknown" stackshift="4">
     <input>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
@@ -139,11 +172,12 @@
     <killedbycall>
       <register name="EAX"/>
       <register name="ECX"/>
+      <register name="EDX"/>
       <register name="ST0"/>
       <register name="ST1"/>
     </killedbycall>
   </prototype>
-  <prototype name="__usercall_in_ECX_out_ECX_preserved_EDX" extrapop="unknown" stackshift="4">
+  <prototype name="__userpurge_in_ECX_out_ECX_preserved_EDX" extrapop="unknown" stackshift="4">
     <input>
       <pentry minsize="1" maxsize="4">
         <register name="ECX"/>
@@ -258,7 +292,6 @@
       <register name="FS_OFFSET"/>
     </unaffected>
     <killedbycall>
-      <register name="EAX"/>
       <register name="ECX"/>
       <register name="EDX"/>
       <register name="ST0"/>
@@ -305,7 +338,6 @@
       <register name="FS_OFFSET"/>
     </unaffected>
     <killedbycall>
-      <register name="EAX"/>
       <register name="ECX"/>
       <register name="EDX"/>
       <register name="ST0"/>
