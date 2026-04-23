@@ -3699,19 +3699,19 @@ void PrintC::emitBlockLabel(const BlockLabelClause *bl)
   emit->print(COLON);
   emit->spaces(1);
 
-  int4 id = emit->openBraceIndent(OPEN_CURLY, option_brace_loop);
+  int4 id = emit->openBraceIndent(OPEN_CURLY,option_brace_loop);
   pushMod();
-  unsetMod(no_branch | only_branch);
+  unsetMod(no_branch|only_branch);
 
   const vector<FlowBlock *> &list(bl->getList());
-  for(uint4 i=0; i<list.size(); ++i) {
+  for(uint4 i=0;i<list.size();++i) {
     int4 subId = emit->beginBlock(list[i]);
     list[i]->emit(this);
     emit->endBlock(subId);
   }
 
   popMod();
-  emit->closeBraceIndent(CLOSE_CURLY, id);
+  emit->closeBraceIndent(CLOSE_CURLY,id);
 }
 
 void PrintC::emitBlockGoto(const BlockGoto *bl)
