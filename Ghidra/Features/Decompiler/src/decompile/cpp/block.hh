@@ -26,6 +26,7 @@ namespace ghidra {
 class BlockBasic;		// Forward declarations
 class BlockList;
 class BlockCopy;
+class BlockLabelClause;
 class BlockGoto;
 class BlockMultiGoto;
 class BlockCondition;
@@ -75,7 +76,7 @@ class FlowBlock {
 public:
   /// \brief The possible block types
   enum block_type {
-    t_plain, t_basic, t_graph, t_copy, t_goto, t_multigoto, t_ls,
+    t_plain, t_basic, t_graph, t_copy, t_labelclause, t_goto, t_multigoto, t_ls,
     t_condition, t_if, t_whiledo, t_dowhile, t_switch, t_infloop
   };
   /// \brief Boolean properties of blocks
@@ -526,6 +527,15 @@ public:
   virtual FlowBlock *getSplitPoint(void) { return copy->getSplitPoint(); }
   virtual bool isComplex(void) const { return copy->isComplex(); }
   virtual void encodeHeader(Encoder &encoder) const;
+};
+
+class BlockLabelClause : public BlockGraph {
+  FlowBlock *target;
+public:
+  BlockLabelClause(FlowBlock *t) : BlockGraph() { target = t; }
+  virtual block_type getType(void) const { return t_labelclause; }
+  virtual void emit(PrintLanguage *lng) const { lng->emitBlockLabel(this); }
+  FlowBlock *getTarget(void) const { return target; }
 };
 
 /// \brief A block that terminates with an unstructured (goto) branch to another block
