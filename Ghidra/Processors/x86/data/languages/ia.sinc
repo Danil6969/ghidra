@@ -370,7 +370,7 @@ define register offset=0x1200 size=64  [
 define register offset=0x1a00 size=64  [ zmmOut zmmRes zmmTmp1 zmmTmp2 ];
 
 # Define context bits
-define register offset=0x2000 size=12  contextreg;
+define register offset=0x2000 size=128  contextreg;
 
 # AVX-512 opmask registers
 define register offset=0x2100 size=8  [ K0  K1  K2  K3  K4  K5  K6  K7 ];
@@ -515,6 +515,7 @@ define context contextreg
   exceptionFlag=(60,62)   noflow
   exceptionVariant=(63,63)   noflow
   exceptionOffset=(64,95) noflow
+  exceptionType=(96,127) noflow
 
 ;
 
@@ -2178,6 +2179,7 @@ macro setupOnPointers() {
 }
 
 exceptRel: reloc is exceptionOffset [ reloc = inst_next + exceptionOffset; ] { export *[ram]:$(SIZE) reloc; }
+exceptType: tp is exceptionType [ tp = inst_next + exceptionType; ] { export tp; }
 
 # Common
 @define FLAG_CLEARED		"exceptionFlag=0"
@@ -2226,9 +2228,9 @@ define pcodeop on;
 
 # catch clauses
 # catch clause variant 0
-:^instruction is $(FLAG_CATCH) & exceptionVariant=0 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+:^instruction is $(FLAG_CATCH) & exceptionVariant=0 & exceptionOffset & exceptionType & exceptRel & exceptType & instruction [ $(FLAG_CLEARED); ]
 {
-    e:1 = catch();
+    e:1 = catch(exceptType);
     if (!e) goto <lab_skip>;
 	setupCatchPointers();
 	goto exceptRel;
@@ -2237,9 +2239,9 @@ define pcodeop on;
 }
 
 # catch clause variant 1
-:^instruction is $(FLAG_CATCH) & exceptionVariant=1 & exceptionOffset & instruction & exceptRel [ $(FLAG_CLEARED); ]
+:^instruction is $(FLAG_CATCH) & exceptionVariant=1 & exceptionOffset & exceptionType & exceptRel & exceptType & instruction [ $(FLAG_CLEARED); ]
 {
-    e:1 = catch();
+    e:1 = catch(exceptType);
     if (e) goto <lab_catch>;
 	goto <lab_skip>;
 	<lab_catch>
@@ -5045,7 +5047,19 @@ define pcodeop fldenv;
 :FNOP           is vexMode=0 & byte=0xD9; byte=0xD0                 { }
 
 define pcodeop atan2;
-:FPATAN		is vexMode=0 & byte=0xD9; byte=0xF3			{ ST1 = atan2(ST1,ST0); fpop(); }
+:FPATAN		is vexMode=0 & byte=0xD9; byte=0xF3
+{
+  zero:10 = int2float(0:4);
+  pos_inf:10 = float2float(0x7F800000:4);
+  neg_inf:10 = float2float(0xFF800000:4);
+
+  is_zero:1 = (ST1 f== zero) || (ST0 f== zero);
+  is_pos_inf:1 = (ST1 f== pos_inf) || (ST0 f== pos_inf);
+  is_neg_inf:1 = (ST1 f== neg_inf) || (ST0 f== neg_inf);
+  PE = PE || (!is_zero && !is_pos_inf && !is_neg_inf);
+  ST1 = atan2(ST1,ST0);
+  fpop();
+}
 
 :FPREM          is vexMode=0 & byte=0xD9; byte=0xF8
 {
@@ -5197,7 +5211,7 @@ define pcodeop sin;
 :FSQRT          is vexMode=0 & byte=0xD9; byte=0xFA
 {
   zero:10 = int2float(0:4);
-  PE = PE || ((sqrt(ST0) * sqrt(ST0) f!= ST0) && (ST0 f> zero));
+  PE = PE || ((sqrt(ST0) f* sqrt(ST0) f!= ST0) && (ST0 f> zero));
   # if st0 is less than zero then nan is produced but it's considered as an exact result though
 
   ST0 = sqrt(ST0);
