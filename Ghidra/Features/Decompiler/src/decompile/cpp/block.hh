@@ -409,6 +409,7 @@ public:
 
 				// Factory (identify) routines
   BlockCopy *newBlockCopy(FlowBlock *bl);					///< Build a new BlockCopy
+  BlockLabelClause *newBlockLabelClause(const vector<FlowBlock *> &nodes,FlowBlock *target);	///< Build a new BlockLabelClause
   BlockGoto *newBlockGoto(FlowBlock *bl);					///< Build a new BlockGoto
   BlockMultiGoto *newBlockMultiGoto(FlowBlock *bl,int4 outedge);		///< Build a new BlockMultiGoto
   BlockList *newBlockList(const vector<FlowBlock *> &nodes);			///< Build a new BlockList
