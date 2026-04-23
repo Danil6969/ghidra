@@ -207,6 +207,7 @@ class CollapseStructure {
   void orderLoopBodies(void);			///< Identify and label all loop structure for this graph
   bool updateLoopBody(void);			///< Find likely \e unstructured edges within the innermost loop body
   FlowBlock *selectGoto(void);			///< Select an edge to mark as  \e unstructured
+  bool ruleBlockLabelClause(FlowBlock *bl);	///< Attempt to apply the BlockLabelClause structure
   bool ruleBlockGoto(FlowBlock *bl);		///< Attempt to apply the BlockGoto structure
   bool ruleBlockCat(FlowBlock *bl);		///< Attempt to apply a BlockList structure
   bool ruleBlockOr(FlowBlock *bl);		///< Attempt to apply a BlockCondition structure
