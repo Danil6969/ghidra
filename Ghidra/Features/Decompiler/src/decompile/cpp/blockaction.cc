@@ -1447,6 +1447,38 @@ bool CollapseStructure::ruleBlockIfElse(FlowBlock *bl)
   return true;
 }
 
+bool CollapseStructure::ruleBlockLabelClause(FlowBlock *bl) {
+  FlowBlock *parent = bl->getParent();
+  FlowBlock *header = bl->getImmedDom();
+  if (header == (FlowBlock *)0) return false;
+  if (header->getParent() != parent) return false;
+  if (parent->getType() == FlowBlock::t_labelclause) return false;
+
+  int4 sizeout = bl->sizeOut();
+  for(int4 i=0;i<sizeout;++i) {
+    if (!bl->isGotoOut(i)) continue;
+    FlowBlock *target = bl->getOut(i);
+    if (target->getParent() != parent) continue;
+    PcodeOp *targetop = target->firstOp();
+    PcodeOp *blop = bl->firstOp();
+    if (targetop == (PcodeOp *)0) continue;
+    if (blop == (PcodeOp *)0) continue;
+    if (targetop->getAddr().getOffset() < blop->getAddr().getOffset()) continue;
+
+    vector<FlowBlock *> nodes;
+    int4 startIndex = header->getIndex();
+    int4 endIndex = target->getIndex();
+    if (parent->getType() == FlowBlock::t_graph) {
+      for (int4 j = startIndex; j < endIndex; ++j) {
+	nodes.push_back(((BlockGraph *)parent)->getBlock(j));
+      }
+      graph.newBlockLabelClause(nodes, target);
+      return true;
+    }
+  }
+  return false;
+}
+
 /// For the given FlowBlock, look for an outgoing edge marked as \e unstructured.
 /// Create or update the BlockGoto or BlockMultiGoto structure.
 /// \param bl is the given FlowBlock
