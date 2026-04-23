@@ -1754,6 +1754,16 @@ BlockCopy *BlockGraph::newBlockCopy(FlowBlock *bl)
   return ret;
 }
 
+BlockLabelClause *BlockGraph::newBlockLabelClause(const vector<FlowBlock *> &nodes,FlowBlock *target)
+
+{
+  BlockLabelClause *ret = new BlockLabelClause(target);
+  int4 outforce = 1;
+  identifyInternal(ret,nodes);
+  addBlock(ret);
+  return ret;
+}
+
 /// Add the new BlockGoto to \b this, incorporating the given FlowBlock
 /// \param bl is the given FlowBlock whose outgoing edge is to be marked as a \e goto
 /// \return the new BlockGoto
