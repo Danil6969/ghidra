@@ -76,7 +76,7 @@ class FlowBlock {
 public:
   /// \brief The possible block types
   enum block_type {
-    t_plain, t_basic, t_graph, t_copy, t_labelclause, t_goto, t_multigoto, t_ls,
+    t_plain, t_basic, t_graph, t_copy, t_labelclause, t_multilabelclause, t_goto, t_multigoto, t_ls,
     t_condition, t_if, t_whiledo, t_dowhile, t_switch, t_infloop
   };
   /// \brief Boolean properties of blocks
@@ -104,7 +104,9 @@ public:
     f_whiledo_overflow = 0x8000,///< Set if the conditional block of a whiledo is too big to print as while(cond) { ...
     f_flip_path = 0x10000,      ///< If true, out edges have been flipped since last time path was traced
     f_joined_block = 0x20000,	///< Block is a merged form of original basic blocks
-    f_duplicate_block = 0x40000	///< Block is a duplicated version of an original basic block
+    f_duplicate_block = 0x40000,///< Block is a duplicated version of an original basic block
+    f_has_label_break = 0x80000,///< Block contains a conditional break from a label clause
+    f_break_on_true = 0x100000	///< Block contains a conditional break from a label clause
   };
   /// \brief Boolean properties on edges
   enum edge_flags {
@@ -116,7 +118,8 @@ public:
     f_forward_edge = 0x20,	///< An edge that jumps forward in the spanning tree
     f_cross_edge = 0x40,	///< An edge that crosses subtrees in the spanning tree
     f_back_edge = 0x80,		///< Within (reducible) graph, a back edge defining a loop
-    f_loop_exit_edge = 0x100	///< Edge exits the body of a loop
+    f_loop_exit_edge = 0x100,	///< Edge exits the body of a loop
+    f_break_edge = 0x200	///< Edge exits (using break) the body of a label clause
   };
 private:
   uint4 flags;			///< Collection of block_flags
