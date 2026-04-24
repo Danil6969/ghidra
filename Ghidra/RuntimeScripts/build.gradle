@@ -44,6 +44,7 @@ rootProject.PLATFORMS.each { platform ->
 				into "support/gradle"
 			}
 			t.from (p.file("Linux/ghidraRun"))
+			t.from (p.file("Linux/ghidraDebug"))
 		}
 
 		if (isWindows(platform.name)) {
@@ -58,6 +59,7 @@ rootProject.PLATFORMS.each { platform ->
 				into "support/gradle"
 			}
 			t.from (p.file("Windows/ghidraRun.bat"))
+			t.from (p.file("Windows/ghidraDebug.bat"))
 		}
 	}
 }
