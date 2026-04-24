@@ -12,6 +12,7 @@ Common/support/debug.log4j.xml||GHIDRA||||END|
 Common/support/gradle/gradle-wrapper.jar||Apache License 2.0||||END|
 Common/support/gradle/gradle-wrapper.properties||Apache License 2.0||||END|
 Common/support/launch.properties||GHIDRA||||END|
+Linux/ghidraDebug||GHIDRA||||END|
 Linux/ghidraRun||GHIDRA||||END|
 Linux/server/ghidraSvr||GHIDRA||||END|
 Linux/server/svrAdmin||GHIDRA||||END|
