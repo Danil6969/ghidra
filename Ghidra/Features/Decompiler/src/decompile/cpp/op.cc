@@ -378,6 +378,7 @@ bool PcodeOp::isUnionParamCopy(Funcdata &data) const
       Datatype *ct = out->getTypeReadFacing(op);
       if (ct->getMetatype() == TYPE_UNKNOWN) return true;
       if (ct->getMetatype() == TYPE_UNION) return true;
+      if (ct->getMetatype() == TYPE_STRUCT) return true;
       continue;
     }
 
@@ -386,6 +387,7 @@ bool PcodeOp::isUnionParamCopy(Funcdata &data) const
       Datatype *ct = out->getTypeReadFacing(op);
       if (ct->getMetatype() == TYPE_UNKNOWN) return true;
       if (ct->getMetatype() == TYPE_UNION) return true;
+      if (ct->getMetatype() == TYPE_STRUCT) return true;
       continue;
     }
   }
