@@ -493,7 +493,8 @@ public:
   virtual void emitBlockBasic(const BlockBasic *bb)=0;			///< Emit statements in a basic block
   virtual void emitBlockGraph(const BlockGraph *bl)=0;			///< Emit (an unspecified) list of blocks
   virtual void emitBlockCopy(const BlockCopy *bl)=0;			///< Emit a basic block (with any labels)
-  virtual void emitBlockLabel(const BlockLabelClause *bl)=0;		///< Emit a labeled block
+  virtual void emitBlockLabel(const BlockLabelClause *bl)=0;		///< Emit a labeled block (single)
+  virtual void emitBlockMultiLabel(const BlockLabelClause *bl)=0;	///< Emit a labeled block (multi)
   virtual void emitBlockGoto(const BlockGoto *bl)=0;			///< Emit a block ending with a goto statement
   virtual void emitBlockLs(const BlockList *bl)=0;			///< Emit a sequence of blocks
   virtual void emitBlockCondition(const BlockCondition *bl)=0;		///< Emit a conditional statement
