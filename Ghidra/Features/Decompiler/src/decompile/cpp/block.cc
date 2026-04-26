@@ -2903,6 +2903,28 @@ void BlockCopy::encodeHeader(Encoder &encoder) const
   encoder.writeSignedInteger(ATTRIB_ALTINDEX, altindex);
 }
 
+void BlockMultiLabelClause::addBreakPoint(FlowBlock *bl, int4 outIndex)
+
+{
+  int4 slot = -1;
+  for(int4 i=0;i<getSize();++i) {
+    if (getBlock(i) == bl) {
+      slot = i;
+      break;
+    }
+  }
+
+  if (slot != -1) {
+    break_exits[slot] = outIndex;
+
+    bl->setBreakEdge(outIndex);
+    bl->setHasLabelBreak();
+
+    if (outIndex == 1)
+      bl->setBreakOnTrue();
+  }
+}
+
 void BlockGoto::markUnstructured(void)
 
 {
