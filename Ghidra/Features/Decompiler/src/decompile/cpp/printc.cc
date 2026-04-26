@@ -3694,7 +3694,6 @@ void PrintC::emitBlockCopy(const BlockCopy *bl)
 void PrintC::emitBlockLabel(const BlockLabelClause *bl)
 
 {
-  emit->tagLine();
   emitLabel(bl->getTarget());
   emit->print(COLON);
   emit->spaces(1);
@@ -3703,11 +3702,73 @@ void PrintC::emitBlockLabel(const BlockLabelClause *bl)
   pushMod();
   unsetMod(no_branch|only_branch);
 
-  const vector<FlowBlock *> &list(bl->getList());
-  for(uint4 i=0;i<list.size();++i) {
-    int4 subId = emit->beginBlock(list[i]);
-    list[i]->emit(this);
-    emit->endBlock(subId);
+  for (int4 i=0;i<bl->getSize();++i) {
+    FlowBlock *subbl = bl->getBlock(i);
+    if ((subbl->getFlags()&FlowBlock::f_break_edge)!=0) {
+      int4 subId = emit->beginBlock(subbl);
+      subbl->emit(this);
+      emit->endBlock(subId);
+      emit->print(KEYWORD_BREAK);
+      emit->spaces(1);
+      emitLabel(bl->getTarget());
+      emit->print(SEMICOLON);
+    }
+    else {
+      subbl->emit(this);
+    }
+    emit->tagLine();
+  }
+
+  popMod();
+  emit->closeBraceIndent(CLOSE_CURLY,id);
+}
+
+void PrintC::emitBlockMultiLabel(const BlockMultiLabelClause *bl)
+
+{
+  emitLabel(bl->getTarget());
+  emit->print(COLON);
+  emit->spaces(1);
+
+  int4 id = emit->openBraceIndent(OPEN_CURLY,option_brace_loop);
+  pushMod();
+  unsetMod(no_branch|only_branch);
+
+  for (int4 i = 0; i < bl->getSize(); ++i) {
+    FlowBlock *subbl = bl->getBlock(i);
+    if ((subbl->getFlags()&FlowBlock::f_has_label_break)!=0) {
+      int4 subId = emit->beginBlock(subbl);
+      subbl->emit(this);
+      emit->endBlock(subId);
+      emit->print(KEYWORD_IF);
+      emit->spaces(1);
+      int4 id2 = emit->openParen(OPEN_PAREN);
+      if ((subbl->getFlags()&FlowBlock::f_break_on_true)!=0) {
+	pushMod();
+	setMod(only_branch);
+        subbl->emit(this);
+	popMod();
+	//pushCondition(subbl,1);
+      }
+      else {
+	emit->print("!");
+        pushMod();
+        setMod(only_branch);
+        subbl->emit(this);
+        popMod();
+	//pushCondition(subbl,0);
+      }
+      emit->closeParen(CLOSE_PAREN,id2);
+      emit->spaces(1);
+      emit->print(KEYWORD_BREAK);
+      emit->spaces(1);
+      emitLabel(bl->getTarget());
+      emit->print(SEMICOLON);
+    }
+    else {
+      subbl->emit(this);
+    }
+    emit->tagLine();
   }
 
   popMod();
