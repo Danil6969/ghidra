@@ -1754,14 +1754,64 @@ BlockCopy *BlockGraph::newBlockCopy(FlowBlock *bl)
   return ret;
 }
 
+/// \brief Create a standard label clause (single exit path)
+///
+/// This method instantiates a basic label clause, adds the specified nodes
+/// to its internal graph, and sets the entry point.
+/// \param nodes is the list of components for the clause
+/// \param targetop is the block reached upon exit
+/// \return the newly created BlockLabelClause
 BlockLabelClause *BlockGraph::newBlockLabelClause(const vector<FlowBlock *> &nodes,FlowBlock *target)
 
 {
-  BlockLabelClause *ret = new BlockLabelClause(target);
-  int4 outforce = 1;
-  identifyInternal(ret,nodes);
-  addBlock(ret);
-  return ret;
+  BlockLabelClause *res = new BlockLabelClause(target);
+  //res->setParent(this);
+  //res->setIndex(getSize());
+  identifyInternal(res,nodes);
+  addBlock(res);
+  for(int4 i=0;i<nodes.size();++i)
+    res->addBlock(nodes[i]);
+  return res;
+}
+
+/// \brief Create a multi-exit label clause (handles conditional breaks)
+///
+/// This method acts as the "multi" dual. It initializes the exit vector
+/// and scans the component blocks for any conditional branches leading
+/// to the target, registering them as formal \b break points.
+/// \param nodes is the list of components for the clause
+/// \param targetop is the block reached upon exit
+/// \return the newly created BlockMultiLabelClause
+BlockMultiLabelClause *BlockGraph::newBlockMultiLabelClause(const vector<FlowBlock *> &nodes, FlowBlock *target)
+
+{
+  BlockMultiLabelClause *res = new BlockMultiLabelClause(target);
+  //res->setParent(this);
+  //res->setIndex(getSize());
+  identifyInternal(res,nodes);
+  addBlock(res);
+
+  // Переносим узлы в новый граф
+  for(int4 i=0; i<nodes.size(); ++i)
+    res->addBlock(nodes[i]);
+
+  // Инициализация вектора break_exits значениями 0
+  // Используем size() переданного вектора nodes, так как res->getSize() уже равен этому значению
+  res->setupExits(nodes.size());
+
+  // Сканируем узлы на наличие условных выходов (CBRANCH) на цель
+  for(int4 i=0; i<nodes.size(); ++i) {
+    FlowBlock *bl = nodes[i];
+    for(int4 j=0; j<bl->sizeOut(); ++j) {
+      if (bl->getOut(j) == target) {
+	// Если у блока больше одного выхода, регистрируем его как формальный break
+	if (bl->sizeOut() > 1)
+	  res->addBreakPoint(bl, j);
+      }
+    }
+  }
+
+  return res;
 }
 
 /// Add the new BlockGoto to \b this, incorporating the given FlowBlock
