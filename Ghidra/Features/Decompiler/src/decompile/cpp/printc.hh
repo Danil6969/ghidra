@@ -285,6 +285,7 @@ public:
   virtual void emitBlockGraph(const BlockGraph *bl);
   virtual void emitBlockCopy(const BlockCopy *bl);
   virtual void emitBlockLabel(const BlockLabelClause *bl);
+  virtual void emitBlockMultiLabel(const BlockLabelClause *bl);
   virtual void emitBlockGoto(const BlockGoto *bl);
   virtual void emitBlockLs(const BlockList *bl);
   virtual void emitBlockCondition(const BlockCondition *bl);
