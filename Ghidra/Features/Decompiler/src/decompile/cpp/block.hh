@@ -291,6 +291,9 @@ public:
   void setLoopExit(int4 i) { setOutEdgeFlag(i,f_loop_exit_edge); }	///< Label the edge exiting \b this as a loop
   void clearLoopExit(int4 i) { clearOutEdgeFlag(i,f_loop_exit_edge); }	///< Clear the loop exit edge
   void setBackEdge(int4 i) { setOutEdgeFlag(i,f_back_edge); }		///< Label the \e back edge of a loop
+  void setBreakEdge(int4 i) { setOutEdgeFlag(i,f_break_edge); }		///< Label the \e break edge of a label clause
+  void setHasLabelBreak(void) { setFlag(f_has_label_break); }
+  void setBreakOnTrue(void) { setFlag(f_break_on_true); }
   bool getFlipPath(void) const { return ((flags & f_flip_path)!=0); }	///< Have out edges been flipped
   bool isJumpTarget(void) const;		///< Return \b true if non-fallthru jump flows into \b this
   FlowBlock *getFalseOut(void) const { return outofthis[0].point; }	///< Get the \b false output FlowBlock
@@ -412,7 +415,8 @@ public:
 
 				// Factory (identify) routines
   BlockCopy *newBlockCopy(FlowBlock *bl);					///< Build a new BlockCopy
-  BlockLabelClause *newBlockLabelClause(const vector<FlowBlock *> &nodes,FlowBlock *target);	///< Build a new BlockLabelClause
+  BlockLabelClause *newBlockLabelClause(const vector<FlowBlock *> &nodes,FlowBlock *target);		///< Build a new BlockLabelClause (single)
+  BlockMultiLabelClause *newBlockMultiLabelClause(const vector<FlowBlock *> &nodes,FlowBlock *target);	///< Build a new BlockLabelClause (multiple)
   BlockGoto *newBlockGoto(FlowBlock *bl);					///< Build a new BlockGoto
   BlockMultiGoto *newBlockMultiGoto(FlowBlock *bl,int4 outedge);		///< Build a new BlockMultiGoto
   BlockList *newBlockList(const vector<FlowBlock *> &nodes);			///< Build a new BlockList
@@ -533,13 +537,31 @@ public:
   virtual void encodeHeader(Encoder &encoder) const;
 };
 
+/// \brief A block representing a named scope with a label: \b label: { ... }
 class BlockLabelClause : public BlockGraph {
-  FlowBlock *target;
+  FlowBlock *target;				///< The target block executed after this clause
 public:
   BlockLabelClause(FlowBlock *t) : BlockGraph() { target = t; }
   virtual block_type getType(void) const { return t_labelclause; }
   virtual void emit(PrintLanguage *lng) const { lng->emitBlockLabel(this); }
   FlowBlock *getTarget(void) const { return target; }
+};
+
+/// \brief A label clause that handles multiple conditional exits (breaks)
+class BlockMultiLabelClause : public BlockGraph {
+  FlowBlock *target;				///< The common target for all breaks from this clause
+  vector<int4> break_exits;			///< Maps internal block index to its break out-edge index
+public:
+  BlockMultiLabelClause(FlowBlock *t) : BlockGraph() { target = t; }
+  virtual block_type getType(void) const { return t_multilabelclause; }
+  virtual void emit(PrintLanguage *lng) const { lng->emitBlockMultiLabel(this); }
+  FlowBlock *getTarget(void) const { return target; }
+
+  /// \brief Initialize the exit vector for the given number of component nodes
+  /// \param size is the number of nodes in the clause
+  void setupExits(int4 size) { break_exits.assign(size,-1); }
+  void addBreakPoint(FlowBlock *bl, int4 outIndex);	///< Register a component block and its out-edge as a formal break point
+  int4 getBreakExit(const FlowBlock *bl) const;		///< Get the break edge index for a given component block
 };
 
 /// \brief A block that terminates with an unstructured (goto) branch to another block
