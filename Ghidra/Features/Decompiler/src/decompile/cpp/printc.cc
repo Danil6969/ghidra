@@ -3600,6 +3600,17 @@ void PrintC::docFunction(const Funcdata *fd)
   }
 }
 
+void PrintC::emitBreakLabelStatement(const FlowBlock *bl1,const FlowBlock *bl2)
+
+{
+  int4 id = emit->beginStatement(bl1->lastOp());
+  emit->print(KEYWORD_BREAK,EmitMarkup::keyword_color);
+  emit->spaces(1);
+  emitLabel(bl2);
+  emit->print(SEMICOLON);
+  emit->endStatement(id);
+}
+
 void PrintC::emitBlockBasic(const BlockBasic *bb)
 
 {
@@ -3694,85 +3705,68 @@ void PrintC::emitBlockCopy(const BlockCopy *bl)
 void PrintC::emitBlockLabel(const BlockLabelClause *bl)
 
 {
+  emit->tagLine();
   emitLabel(bl->getTarget());
   emit->print(COLON);
   emit->spaces(1);
 
-  int4 id = emit->openBraceIndent(OPEN_CURLY,option_brace_loop);
+  int4 braceId = emit->openBraceIndent(OPEN_CURLY,option_brace_loop);
   pushMod();
-  unsetMod(no_branch|only_branch);
 
-  for (int4 i=0;i<bl->getSize();++i) {
-    FlowBlock *subbl = bl->getBlock(i);
-    if ((subbl->getFlags()&FlowBlock::f_break_edge)!=0) {
-      int4 subId = emit->beginBlock(subbl);
-      subbl->emit(this);
-      emit->endBlock(subId);
-      emit->print(KEYWORD_BREAK);
-      emit->spaces(1);
-      emitLabel(bl->getTarget());
-      emit->print(SEMICOLON);
-    }
-    else {
-      subbl->emit(this);
-    }
-    emit->tagLine();
-  }
+  setMod(no_branch);
+  FlowBlock *subBlock = bl->getBlock(0);
+  subBlock->emit(this);
 
   popMod();
-  emit->closeBraceIndent(CLOSE_CURLY,id);
+  emit->tagLine();
+  emitBreakLabelStatement(subBlock, bl->getTarget());
+  emit->closeBraceIndent(CLOSE_CURLY, braceId);
 }
 
 void PrintC::emitBlockMultiLabel(const BlockMultiLabelClause *bl)
 
 {
+  emit->tagLine();
   emitLabel(bl->getTarget());
   emit->print(COLON);
   emit->spaces(1);
+  int4 mainBraceId = emit->openBraceIndent(OPEN_CURLY,option_brace_loop);
 
-  int4 id = emit->openBraceIndent(OPEN_CURLY,option_brace_loop);
   pushMod();
-  unsetMod(no_branch|only_branch);
-
+  unsetMod(no_branch | only_branch | pending_brace);
   for (int4 i = 0; i < bl->getSize(); ++i) {
-    FlowBlock *subbl = bl->getBlock(i);
-    if ((subbl->getFlags()&FlowBlock::f_has_label_break)!=0) {
-      int4 subId = emit->beginBlock(subbl);
-      subbl->emit(this);
-      emit->endBlock(subId);
-      emit->print(KEYWORD_IF);
-      emit->spaces(1);
-      int4 id2 = emit->openParen(OPEN_PAREN);
-      if ((subbl->getFlags()&FlowBlock::f_break_on_true)!=0) {
+    FlowBlock *currNode = bl->getBlock(i);
+    int4 breakIdx = -1;
+    for (int4 j = 0; j < bl->numExitPoints(); ++j) {
+      if (bl->getExitBlock(j) == currNode) {
+	breakIdx = bl->getExitIndex(j);
+	break;
+      }
+    }
+
+    if (breakIdx != -1) {
+      emit->tagLine();
+      if (currNode->sizeOut() > 1) {
+	emit->tagOp(KEYWORD_IF, EmitMarkup::keyword_color, currNode->lastOp());
+	emit->spaces(1);
+	int4 id = emit->openParen(OPEN_PAREN);
+
 	pushMod();
 	setMod(only_branch);
-        subbl->emit(this);
+	currNode->emit(this);
 	popMod();
-	//pushCondition(subbl,1);
+
+	emit->closeParen(CLOSE_PAREN,id);
+	emit->spaces(1);
       }
-      else {
-	emit->print("!");
-        pushMod();
-        setMod(only_branch);
-        subbl->emit(this);
-        popMod();
-	//pushCondition(subbl,0);
-      }
-      emit->closeParen(CLOSE_PAREN,id2);
-      emit->spaces(1);
-      emit->print(KEYWORD_BREAK);
-      emit->spaces(1);
-      emitLabel(bl->getTarget());
-      emit->print(SEMICOLON);
+      emitBreakLabelStatement(currNode, bl->getTarget());
     }
     else {
-      subbl->emit(this);
+      currNode->emit(this);
     }
-    emit->tagLine();
   }
-
   popMod();
-  emit->closeBraceIndent(CLOSE_CURLY,id);
+  emit->closeBraceIndent(CLOSE_CURLY, mainBraceId);
 }
 
 void PrintC::emitBlockGoto(const BlockGoto *bl)
