@@ -1734,21 +1734,15 @@ bool BlockGraph::findLabelClause(FlowBlock *bl, FlowBlock *breakTarget, vector<F
 
     for(int4 i=0; i < currNode->sizeOut(); ++i) {
       FlowBlock *outbl = currNode->getOut(i);
-
       if (outbl == breakTarget) continue;
-
       if (outbl->getParent() != commonParent) return false;
-
       PcodeOp *outPcode = outbl->firstOp();
       if (outPcode == (PcodeOp *)0) return false;
-
-      if (outPcode->getAddr().getOffset() < startOffset) {
-        return false;
-      }
+      if (outPcode->getAddr().getOffset() < startOffset) return false;
 
       if (outbl->getVisitCount() == 0) {
-        outbl->setVisitCount(1);
-        worklist.push_back(outbl);
+	outbl->setVisitCount(1);
+	worklist.push_back(outbl);
       }
     }
   }
@@ -1831,16 +1825,14 @@ BlockMultiLabelClause *BlockGraph::newBlockMultiLabelClause(const vector<FlowBlo
     FlowBlock *b = nodes[i];
     for (int4 j = 0; j < b->sizeOut(); ++j) {
       if (b->getOut(j) == breakTarget) {
-        ret->addExitPoint(b, j);
+	ret->addExitPoint(b, j);
       }
     }
   }
 
   identifyInternal(ret, nodes);
   addBlock(ret);
-
   ret->forceOutputNum(1); 
-
   return ret;
 }
 
