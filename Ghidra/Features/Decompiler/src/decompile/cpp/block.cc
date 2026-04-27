@@ -1712,6 +1712,50 @@ FlowBlock *BlockGraph::getStartBlock(void) const
   return list[0];
 }
 
+bool BlockGraph::findLabelClause(FlowBlock *bl, FlowBlock *breakTarget, vector<FlowBlock *> &nodes)
+
+{
+  FlowBlock *commonParent = bl->getParent();
+
+  PcodeOp *firstPcode = bl->firstOp();
+  if (firstPcode == (PcodeOp *)0) return false;
+  uintb startOffset = firstPcode->getAddr().getOffset();
+
+  clearVisitCount();
+  vector<FlowBlock *> worklist;
+
+  worklist.push_back(bl);
+  bl->setVisitCount(1);
+
+  int4 head = 0;
+  while(head < worklist.size()) {
+    FlowBlock *currNode = worklist[head++];
+    nodes.push_back(currNode);
+
+    for(int4 i=0; i < currNode->sizeOut(); ++i) {
+      FlowBlock *outbl = currNode->getOut(i);
+
+      if (outbl == breakTarget) continue;
+
+      if (outbl->getParent() != commonParent) return false;
+
+      PcodeOp *outPcode = outbl->firstOp();
+      if (outPcode == (PcodeOp *)0) return false;
+
+      if (outPcode->getAddr().getOffset() < startOffset) {
+        return false;
+      }
+
+      if (outbl->getVisitCount() == 0) {
+        outbl->setVisitCount(1);
+        worklist.push_back(outbl);
+      }
+    }
+  }
+
+  return !nodes.empty();
+}
+
 /// Add the new FlowBlock to \b this
 /// \return the new FlowBlock
 FlowBlock *BlockGraph::newBlock(void)
@@ -1759,19 +1803,15 @@ BlockCopy *BlockGraph::newBlockCopy(FlowBlock *bl)
 /// This method instantiates a basic label clause, adds the specified nodes
 /// to its internal graph, and sets the entry point.
 /// \param nodes is the list of components for the clause
-/// \param targetop is the block reached upon exit
+/// \param breakTarget is the block reached upon exit
 /// \return the newly created BlockLabelClause
-BlockLabelClause *BlockGraph::newBlockLabelClause(const vector<FlowBlock *> &nodes,FlowBlock *target)
+BlockLabelClause *BlockGraph::newBlockLabelClause(const vector<FlowBlock *> &nodes, FlowBlock *breakTarget)
 
 {
-  BlockLabelClause *res = new BlockLabelClause(target);
-  //res->setParent(this);
-  //res->setIndex(getSize());
-  identifyInternal(res,nodes);
-  addBlock(res);
-  for(int4 i=0;i<nodes.size();++i)
-    res->addBlock(nodes[i]);
-  return res;
+  BlockLabelClause *ret = new BlockLabelClause(breakTarget);
+  identifyInternal(ret, nodes);
+  addBlock(ret);
+  return ret;
 }
 
 /// \brief Create a multi-exit label clause (handles conditional breaks)
@@ -1780,38 +1820,28 @@ BlockLabelClause *BlockGraph::newBlockLabelClause(const vector<FlowBlock *> &nod
 /// and scans the component blocks for any conditional branches leading
 /// to the target, registering them as formal \b break points.
 /// \param nodes is the list of components for the clause
-/// \param targetop is the block reached upon exit
+/// \param breakTarget is the block reached upon exit
 /// \return the newly created BlockMultiLabelClause
-BlockMultiLabelClause *BlockGraph::newBlockMultiLabelClause(const vector<FlowBlock *> &nodes, FlowBlock *target)
+BlockMultiLabelClause *BlockGraph::newBlockMultiLabelClause(const vector<FlowBlock *> &nodes, FlowBlock *breakTarget)
 
 {
-  BlockMultiLabelClause *res = new BlockMultiLabelClause(target);
-  //res->setParent(this);
-  //res->setIndex(getSize());
-  identifyInternal(res,nodes);
-  addBlock(res);
+  BlockMultiLabelClause *ret = new BlockMultiLabelClause(breakTarget);
 
-  // Переносим узлы в новый граф
-  for(int4 i=0; i<nodes.size(); ++i)
-    res->addBlock(nodes[i]);
-
-  // Инициализация вектора break_exits значениями 0
-  // Используем size() переданного вектора nodes, так как res->getSize() уже равен этому значению
-  res->setupExits(nodes.size());
-
-  // Сканируем узлы на наличие условных выходов (CBRANCH) на цель
-  for(int4 i=0; i<nodes.size(); ++i) {
-    FlowBlock *bl = nodes[i];
-    for(int4 j=0; j<bl->sizeOut(); ++j) {
-      if (bl->getOut(j) == target) {
-	// Если у блока больше одного выхода, регистрируем его как формальный break
-	if (bl->sizeOut() > 1)
-	  res->addBreakPoint(bl, j);
+  for (int4 i = 0; i < nodes.size(); ++i) {
+    FlowBlock *b = nodes[i];
+    for (int4 j = 0; j < b->sizeOut(); ++j) {
+      if (b->getOut(j) == breakTarget) {
+        ret->addExitPoint(b, j);
       }
     }
   }
 
-  return res;
+  identifyInternal(ret, nodes);
+  addBlock(ret);
+
+  ret->forceOutputNum(1); 
+
+  return ret;
 }
 
 /// Add the new BlockGoto to \b this, incorporating the given FlowBlock
@@ -2951,28 +2981,6 @@ void BlockCopy::encodeHeader(Encoder &encoder) const
   FlowBlock::encodeHeader(encoder);
   int4 altindex = copy->getIndex();
   encoder.writeSignedInteger(ATTRIB_ALTINDEX, altindex);
-}
-
-void BlockMultiLabelClause::addBreakPoint(FlowBlock *bl, int4 outIndex)
-
-{
-  int4 slot = -1;
-  for(int4 i=0;i<getSize();++i) {
-    if (getBlock(i) == bl) {
-      slot = i;
-      break;
-    }
-  }
-
-  if (slot != -1) {
-    break_exits[slot] = outIndex;
-
-    bl->setBreakEdge(outIndex);
-    bl->setHasLabelBreak();
-
-    if (outIndex == 1)
-      bl->setBreakOnTrue();
-  }
 }
 
 void BlockGoto::markUnstructured(void)
