@@ -281,6 +281,7 @@ public:
   virtual void docSingleGlobal(const Symbol *sym);
   virtual void docFunction(const Funcdata *fd);
 
+  virtual void emitBreakLabelStatement(const FlowBlock *bl1,const FlowBlock *bl2);
   virtual void emitBlockBasic(const BlockBasic *bb);
   virtual void emitBlockGraph(const BlockGraph *bl);
   virtual void emitBlockCopy(const BlockCopy *bl);
