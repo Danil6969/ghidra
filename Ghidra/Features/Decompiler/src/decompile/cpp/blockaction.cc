@@ -1447,36 +1447,67 @@ bool CollapseStructure::ruleBlockIfElse(FlowBlock *bl)
   return true;
 }
 
-bool CollapseStructure::ruleBlockLabelClause(FlowBlock *bl) {
-  FlowBlock *parent = bl->getParent();
-  FlowBlock *header = bl->getImmedDom();
-  if (header == (FlowBlock *)0) return false;
-  if (header->getParent() != parent) return false;
-  if (parent->getType() == FlowBlock::t_labelclause) return false;
+bool CollapseStructure::ruleBlockLabelClause(FlowBlock *bl)
 
-  int4 sizeout = bl->sizeOut();
-  for(int4 i=0;i<sizeout;++i) {
-    if (!bl->isGotoOut(i)) continue;
-    FlowBlock *target = bl->getOut(i);
-    if (target->getParent() != parent) continue;
-    PcodeOp *targetop = target->firstOp();
-    PcodeOp *blop = bl->firstOp();
-    if (targetop == (PcodeOp *)0) continue;
-    if (blop == (PcodeOp *)0) continue;
-    if (targetop->getAddr().getOffset() < blop->getAddr().getOffset()) continue;
+{
+  if (bl->isLabelBumpUp()) return false;
+  if (bl->sizeIn() != 1) return false;
+  if (bl->isSwitchOut()) return false;
 
-    vector<FlowBlock *> nodes;
-    int4 startIndex = header->getIndex();
-    int4 endIndex = target->getIndex();
-    if (parent->getType() == FlowBlock::t_graph) {
-      for (int4 j = startIndex; j < endIndex; ++j) {
-	nodes.push_back(((BlockGraph *)parent)->getBlock(j));
-      }
-      graph.newBlockLabelClause(nodes, target);
-      return true;
+  PcodeOp *firstPcode = bl->firstOp();
+  if (firstPcode == (PcodeOp *)0) return false;
+  uintb startOffset = firstPcode->getAddr().getOffset();
+
+  FlowBlock *breakTarget = (FlowBlock *)0;
+  FlowBlock *commonParent = bl->getParent();
+
+  for (int4 i = 0; i < bl->sizeOut(); ++i) {
+    FlowBlock *nextBlock = bl->getOut(i);
+    if (nextBlock == bl) continue;
+    
+    PcodeOp *nextPcode = nextBlock->firstOp();
+    if (nextPcode == (PcodeOp *)0) continue;
+    uintb nextOffset = nextPcode->getAddr().getOffset();
+
+    if (nextOffset > startOffset) {
+      if (breakTarget == (FlowBlock *)0 || nextOffset < breakTarget->firstOp()->getAddr().getOffset())
+	breakTarget = nextBlock;
     }
   }
-  return false;
+
+  if (breakTarget == (FlowBlock *)0 || breakTarget->getParent() != commonParent) return false;
+
+  vector<FlowBlock *> nodes;
+  if (!graph.findLabelClause(bl, breakTarget, nodes)) return false;
+
+  bool isMulti = false;
+  for (int4 i = 0; i < nodes.size(); ++i) {
+    FlowBlock *currNode = nodes[i];
+    if (currNode->getParent() != commonParent) return false;
+    if (currNode->isLabelBumpUp()) return false;
+
+    for (int4 j = 0; j < currNode->sizeOut(); ++j) {
+      FlowBlock *outbl = currNode->getOut(j);
+      if (outbl == breakTarget) {
+	if (currNode->sizeOut() > 1) isMulti = true;
+	continue;
+      }
+      int4 k;
+      for (k = 0; k < nodes.size(); ++k)
+	if (nodes[k] == outbl) break;
+      if (k == nodes.size()) return false;
+    }
+  }
+
+  FlowBlock *newbl;
+  if (isMulti)
+    newbl = graph.newBlockMultiLabelClause(nodes, breakTarget);
+  else
+    newbl = graph.newBlockLabelClause(nodes, breakTarget);
+
+  newbl->markLabelBumpUp(true);
+  
+  return true;
 }
 
 /// For the given FlowBlock, look for an outgoing edge marked as \e unstructured.
@@ -1849,10 +1880,6 @@ int4 CollapseStructure::collapseInternal(FlowBlock *targetbl)
 	}
 
 	// Try each rule on the block
-	if (ruleBlockGoto(bl)) {
-	  change = true;
-	  continue;
-	}
 	if (ruleBlockCat(bl)) {
 	  change = true;
 	  continue;
@@ -1899,6 +1926,14 @@ int4 CollapseStructure::collapseInternal(FlowBlock *targetbl)
       if (ruleCaseFallthru(bl)) { // Check for fallthru cases in a switch
 	fullchange = true;
 	break;
+      }
+      if (ruleBlockLabelClause(bl)) {
+	fullchange = true;
+	continue;
+      }
+      if (ruleBlockGoto(bl)) {
+	fullchange = true;
+	continue;
       }
     }
   } while(fullchange);
