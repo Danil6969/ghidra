@@ -314,6 +314,7 @@ public:
   bool hasSpecialFunction(void) const;			///< Is there a call to any special function
   bool hasLoopIn(void) const;				///< Is there a looping edge coming into \b this block
   bool hasLoopOut(void) const;				///< Is there a looping edge going out of \b this block
+  bool isLoopHeader(void) const;
   bool isLoopIn(int4 i) const { return ((intothis[i].label & f_loop_edge)!=0); }	///< Is the i-th incoming edge a \e loop edge
   bool isLoopOut(int4 i) const { return ((outofthis[i].label & f_loop_edge)!=0); }	///< Is the i-th outgoing edge a \e loop edge
   int4 getInIndex(const FlowBlock *bl) const;		///< Get the incoming edge index for the given FlowBlock
@@ -409,7 +410,7 @@ public:
   void spliceBlock(FlowBlock *bl);		///< Splice given FlowBlock together with its output
   void setStartBlock(FlowBlock *bl);		///< Set the entry point FlowBlock for \b this graph
   FlowBlock *getStartBlock(void) const;		///< Get the entry point FlowBlock
-  bool findLabelClause(FlowBlock *bl,FlowBlock *breakTarget,vector<FlowBlock *> &nodes);
+  bool findLabelClause(FlowBlock *bl,FlowBlock *breakTarget,vector<FlowBlock *> &nodes,bool &isMulti);
 				// Factory functions
   FlowBlock *newBlock(void);							///< Build a new plain FlowBlock
   BlockBasic *newBlockBasic(Funcdata *fd);					///< Build a new BlockBasic
@@ -544,6 +545,7 @@ class BlockLabelClause : public BlockGraph {
 public:
   BlockLabelClause(FlowBlock *t) : BlockGraph() { target = t; }
   virtual block_type getType(void) const { return t_labelclause; }
+  virtual void scopeBreak(int4 curexit,int4 curloopexit);
   virtual void emit(PrintLanguage *lng) const { lng->emitBlockLabel(this); }
   FlowBlock *getTarget(void) const { return target; }
 };
@@ -556,6 +558,7 @@ class BlockMultiLabelClause : public BlockGraph {
 public:
   BlockMultiLabelClause(FlowBlock *t) : BlockGraph() { target = t; }
   virtual block_type getType(void) const { return t_multilabelclause; }
+  virtual void scopeBreak(int4 curexit,int4 curloopexit);
   virtual void emit(PrintLanguage *lng) const { lng->emitBlockMultiLabel(this); }
   FlowBlock *getTarget(void) const { return target; }
   void addExitPoint(FlowBlock *bl, int4 outIdx) { exitBlocks.push_back(bl); exitIndices.push_back(outIdx); }
