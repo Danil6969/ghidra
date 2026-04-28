@@ -3042,14 +3042,14 @@ void BlockGoto::scopeBreak(int4 curexit, int4 curloopexit)
   if (getSize() > 0)
     getBlock(0)->scopeBreak(gototarget->getIndex(), curloopexit);
 
-  if (gototarget->getIndex() == curexit) {
+  // Check if our goto hits the current loop exit
+  if (curloopexit == gototarget->getIndex()) {
     gototype = f_break_goto;
   }
-  else if (gototarget->getIndex() == curloopexit) {
+  else if (curexit == gototarget->getIndex()) {
     gototype = f_break_goto;
   }
 }
-
 
 /// Under rare circumstances, the emitter can place the target block of the goto immediately
 /// after this goto block.  In this case, because the control-flow is essentially a fall-thru,
