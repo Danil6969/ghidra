@@ -3026,9 +3026,17 @@ void PrintC::emitGotoStatement(const FlowBlock *bl,const FlowBlock *exp_bl,
   switch(type) {
   case FlowBlock::f_break_goto:
     emit->print(KEYWORD_BREAK,EmitMarkup::keyword_color);
+    if (exp_bl != (const FlowBlock *)0) {
+      emit->spaces(1);
+      emitLabel(exp_bl);
+    }
     break;
   case FlowBlock::f_continue_goto:
     emit->print(KEYWORD_CONTINUE,EmitMarkup::keyword_color);
+    if (exp_bl != (const FlowBlock *)0) {
+      emit->spaces(1);
+      emitLabel(exp_bl);
+    }
     break;
   case FlowBlock::f_goto_goto:
     emit->print(KEYWORD_GOTO,EmitMarkup::keyword_color);
@@ -3706,7 +3714,7 @@ void PrintC::emitBlockLabel(const BlockLabelClause *bl)
 
 {
   emit->tagLine();
-  emitLabel(bl->getTarget());
+  emitLabel(bl->getBlock(0));
   emit->print(COLON);
   emit->spaces(1);
 
@@ -3727,17 +3735,17 @@ void PrintC::emitBlockMultiLabel(const BlockMultiLabelClause *bl)
 
 {
   emit->tagLine();
-  emitLabel(bl->getTarget());
+  emitLabel(bl->getBlock(0));
   emit->print(COLON);
   emit->spaces(1);
   int4 mainBraceId = emit->openBraceIndent(OPEN_CURLY,option_brace_loop);
 
   pushMod();
-  unsetMod(no_branch | only_branch | pending_brace);
-  for (int4 i = 0; i < bl->getSize(); ++i) {
+  unsetMod(no_branch|only_branch|pending_brace);
+  for (int4 i=0;i<bl->getSize();++i) {
     FlowBlock *currNode = bl->getBlock(i);
     int4 breakIdx = -1;
-    for (int4 j = 0; j < bl->numExitPoints(); ++j) {
+    for (int4 j=0;j<bl->numExitPoints();++j) {
       if (bl->getExitBlock(j) == currNode) {
 	breakIdx = bl->getExitIndex(j);
 	break;
@@ -3747,7 +3755,7 @@ void PrintC::emitBlockMultiLabel(const BlockMultiLabelClause *bl)
     if (breakIdx != -1) {
       emit->tagLine();
       if (currNode->sizeOut() > 1) {
-	emit->tagOp(KEYWORD_IF, EmitMarkup::keyword_color, currNode->lastOp());
+	emit->tagOp(KEYWORD_IF,EmitMarkup::keyword_color,currNode->lastOp());
 	emit->spaces(1);
 	int4 id = emit->openParen(OPEN_PAREN);
 
@@ -3759,14 +3767,14 @@ void PrintC::emitBlockMultiLabel(const BlockMultiLabelClause *bl)
 	emit->closeParen(CLOSE_PAREN,id);
 	emit->spaces(1);
       }
-      emitBreakLabelStatement(currNode, bl->getTarget());
+      emitBreakLabelStatement(currNode,bl);
     }
     else {
       currNode->emit(this);
     }
   }
   popMod();
-  emit->closeBraceIndent(CLOSE_CURLY, mainBraceId);
+  emit->closeBraceIndent(CLOSE_CURLY,mainBraceId);
 }
 
 void PrintC::emitBlockGoto(const BlockGoto *bl)
