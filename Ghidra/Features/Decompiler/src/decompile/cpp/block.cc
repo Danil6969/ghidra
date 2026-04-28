@@ -1724,42 +1724,68 @@ FlowBlock *BlockGraph::getStartBlock(void) const
   return list[0];
 }
 
-bool BlockGraph::findLabelClause(FlowBlock *bl, FlowBlock *breakTarget, vector<FlowBlock *> &nodes)
+bool BlockGraph::findLabelClause(FlowBlock *bl,FlowBlock *breakTarget,vector<FlowBlock *> &nodes,bool &isMulti)
 
 {
-  FlowBlock *commonParent = bl->getParent();
+  nodes.clear();
+  isMulti = false;
+  nodes.push_back(bl);
+  int4 pos = 0;
+  
+  while(pos < nodes.size()) {
+    FlowBlock *curr = nodes[pos++];
+    for(int4 i=0;i<curr->sizeOut();++i) {
+      FlowBlock *out = curr->getOut(i);
 
-  PcodeOp *firstPcode = bl->firstOp();
-  if (firstPcode == (PcodeOp *)0) return false;
-  uintb startOffset = firstPcode->getAddr().getOffset();
+      if (out == breakTarget) {
+	if (curr->sizeOut() > 1) {
+	  isMulti = true;
+	}
+      }
 
-  clearVisitCount();
-  vector<FlowBlock *> worklist;
+      if (out == bl) continue; 
+      bool externalIn = false;
+      for(int4 j=0;j<out->sizeIn();++j) {
+	FlowBlock *in = out->getIn(j);
+	PcodeOp *inOp = in->firstOp();
+	PcodeOp *outOp = out->firstOp();
 
-  worklist.push_back(bl);
-  bl->setVisitCount(1);
+	if (inOp != (PcodeOp *)0 && outOp != (PcodeOp *)0) {
+	  if (inOp->getAddr().getOffset() > outOp->getAddr().getOffset()) continue;
+	}
 
-  int4 head = 0;
-  while(head < worklist.size()) {
-    FlowBlock *currNode = worklist[head++];
-    nodes.push_back(currNode);
+	bool found = false;
+	for(int4 k=0;k<nodes.size();++k) {
+	  if (nodes[k] == in) {
+	    found = true;
+	    break;
+	  }
+	}
 
-    for(int4 i=0; i < currNode->sizeOut(); ++i) {
-      FlowBlock *outbl = currNode->getOut(i);
-      if (outbl == breakTarget) continue;
-      if (outbl->getParent() != commonParent) return false;
-      PcodeOp *outPcode = outbl->firstOp();
-      if (outPcode == (PcodeOp *)0) return false;
-      if (outPcode->getAddr().getOffset() < startOffset) return false;
+	if (!found) {
+	  if (in->getType() == FlowBlock::t_whiledo || in->getType() == FlowBlock::t_dowhile) continue;
+	  if (out == breakTarget) continue;
+	  externalIn = true;
+	  break;
+	}
+      }
 
-      if (outbl->getVisitCount() == 0) {
-	outbl->setVisitCount(1);
-	worklist.push_back(outbl);
+      if (externalIn) continue;
+
+      bool alreadyIn = false;
+      for(int4 k=0;k<nodes.size();++k) {
+	if (nodes[k] == out) {
+	  alreadyIn = true;
+	  break;
+	}
+      }
+      if (!alreadyIn) {
+	nodes.push_back(out);
       }
     }
   }
 
-  return !nodes.empty();
+  return isMulti || (nodes.size() > 1);
 }
 
 /// Add the new FlowBlock to \b this
@@ -3011,15 +3037,19 @@ void BlockGoto::markUnstructured(void)
   }
 }
 
-void BlockGoto::scopeBreak(int4 curexit,int4 curloopexit)
-
+void BlockGoto::scopeBreak(int4 curexit, int4 curloopexit)
 {
-  getBlock(0)->scopeBreak(gototarget->getIndex(),curloopexit); // Recurse
+  if (getSize() > 0)
+    getBlock(0)->scopeBreak(gototarget->getIndex(), curloopexit);
 
-  // Check if our goto hits the current loop exit
-  if (curloopexit == gototarget->getIndex())
-    gototype = f_break_goto;	// If so, our goto is a break
+  if (gototarget->getIndex() == curexit) {
+    gototype = f_break_goto;
+  }
+  else if (gototarget->getIndex() == curloopexit) {
+    gototype = f_break_goto;
+  }
 }
+
 
 /// Under rare circumstances, the emitter can place the target block of the goto immediately
 /// after this goto block.  In this case, because the control-flow is essentially a fall-thru,
