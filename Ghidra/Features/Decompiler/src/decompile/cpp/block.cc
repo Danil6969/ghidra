@@ -3044,7 +3044,7 @@ void BlockGoto::scopeBreak(int4 curexit, int4 curloopexit)
 
   // Check if our goto hits the current loop exit
   if (curloopexit == gototarget->getIndex()) {
-    gototype = f_break_goto;
+    gototype = f_break_goto;	// If so, our goto is a break
   }
   else if (curexit == gototarget->getIndex()) {
     gototype = f_break_goto;
