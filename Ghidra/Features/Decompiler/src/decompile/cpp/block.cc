@@ -462,6 +462,18 @@ bool FlowBlock::hasLoopOut(void) const
   return false;
 }
 
+bool FlowBlock::isLoopHeader(void) const
+
+{
+  int4 insize = sizeIn();
+  for (int4 i=0;i<insize;++i) {
+    if (isBackEdgeIn(i)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /// \param bl is the given block
 void FlowBlock::eliminateInDups(FlowBlock *bl)
 
