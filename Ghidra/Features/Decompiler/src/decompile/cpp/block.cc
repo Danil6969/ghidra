@@ -2987,6 +2987,20 @@ void BlockCopy::encodeHeader(Encoder &encoder) const
   encoder.writeSignedInteger(ATTRIB_ALTINDEX, altindex);
 }
 
+void BlockLabelClause::scopeBreak(int4 curexit,int4 curloopexit)
+
+{
+  getBlock(0)->scopeBreak(target->getIndex(),curloopexit);
+}
+
+void BlockMultiLabelClause::scopeBreak(int4 curexit,int4 curloopexit)
+
+{
+  for(int4 i=0;i<getSize();++i) {
+    getBlock(i)->scopeBreak(target->getIndex(),curloopexit);
+  }
+}
+
 void BlockGoto::markUnstructured(void)
 
 {
