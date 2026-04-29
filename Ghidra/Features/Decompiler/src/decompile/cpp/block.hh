@@ -410,7 +410,7 @@ public:
   void spliceBlock(FlowBlock *bl);		///< Splice given FlowBlock together with its output
   void setStartBlock(FlowBlock *bl);		///< Set the entry point FlowBlock for \b this graph
   FlowBlock *getStartBlock(void) const;		///< Get the entry point FlowBlock
-  bool findLabelClause(FlowBlock *bl,FlowBlock *breakTarget,vector<FlowBlock *> &nodes,bool &isMulti);
+  bool findLabelClause(FlowBlock *headbl,FlowBlock *breakTarget,vector<FlowBlock *> &nodes,bool &isMulti);
 				// Factory functions
   FlowBlock *newBlock(void);							///< Build a new plain FlowBlock
   BlockBasic *newBlockBasic(Funcdata *fd);					///< Build a new BlockBasic
