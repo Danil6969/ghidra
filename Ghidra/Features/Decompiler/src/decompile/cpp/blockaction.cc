@@ -1478,7 +1478,8 @@ bool CollapseStructure::ruleBlockLabelClause(FlowBlock *bl)
   if (breakTarget == (FlowBlock *)0 || breakTarget->getParent() != commonParent) return false;
 
   vector<FlowBlock *> nodes;
-  if (!graph.findLabelClause(bl, breakTarget, nodes)) return false;
+  bool dummy;
+  if (!graph.findLabelClause(bl,breakTarget,nodes,dummy)) return false;
 
   bool isMulti = false;
   for (int4 i = 0; i < nodes.size(); ++i) {
