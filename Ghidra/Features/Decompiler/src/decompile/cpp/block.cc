@@ -1724,14 +1724,14 @@ FlowBlock *BlockGraph::getStartBlock(void) const
   return list[0];
 }
 
-bool BlockGraph::findLabelClause(FlowBlock *bl,FlowBlock *breakTarget,vector<FlowBlock *> &nodes,bool &isMulti)
+bool BlockGraph::findLabelClause(FlowBlock *headbl,FlowBlock *breakTarget,vector<FlowBlock *> &nodes,bool &isMulti)
 
 {
   nodes.clear();
   isMulti = false;
-  nodes.push_back(bl);
+  nodes.push_back(headbl);
   int4 pos = 0;
-  
+
   while(pos < nodes.size()) {
     FlowBlock *curr = nodes[pos++];
     for(int4 i=0;i<curr->sizeOut();++i) {
@@ -1743,7 +1743,7 @@ bool BlockGraph::findLabelClause(FlowBlock *bl,FlowBlock *breakTarget,vector<Flo
 	}
       }
 
-      if (out == bl) continue; 
+      if (out == headbl) continue;
       bool externalIn = false;
       for(int4 j=0;j<out->sizeIn();++j) {
 	FlowBlock *in = out->getIn(j);
