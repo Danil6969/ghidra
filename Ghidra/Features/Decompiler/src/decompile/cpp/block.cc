@@ -1724,68 +1724,32 @@ FlowBlock *BlockGraph::getStartBlock(void) const
   return list[0];
 }
 
-bool BlockGraph::findLabelClause(FlowBlock *headbl,FlowBlock *breakTarget,vector<FlowBlock *> &nodes,bool &isMulti)
-
+bool BlockGraph::findLabelClause(FlowBlock *headbl, FlowBlock *breakTarget, vector<FlowBlock *> &nodes, bool &isMulti)
 {
   nodes.clear();
   isMulti = false;
-  nodes.push_back(headbl);
-  int4 pos = 0;
+  FlowBlock *commonParent = headbl->getParent();
 
-  while(pos < nodes.size()) {
-    FlowBlock *curr = nodes[pos++];
-    for(int4 i=0;i<curr->sizeOut();++i) {
-      FlowBlock *out = curr->getOut(i);
+  int4 startIdx = headbl->getIndex();
+  int4 endIdx = breakTarget->getIndex();
 
-      if (out == breakTarget) {
-	if (curr->sizeOut() > 1) {
-	  isMulti = true;
-	}
-      }
+  for (int4 i = startIdx; i <= endIdx; ++i) {
+    FlowBlock *b = (commonParent->getType() == t_graph) ? 
+                   ((BlockGraph *)commonParent)->getBlock(i) : 
+                   ((BlockList *)commonParent)->getBlock(i);
 
-      if (out == headbl) continue;
-      bool externalIn = false;
-      for(int4 j=0;j<out->sizeIn();++j) {
-	FlowBlock *in = out->getIn(j);
-	PcodeOp *inOp = in->firstOp();
-	PcodeOp *outOp = out->firstOp();
-
-	if (inOp != (PcodeOp *)0 && outOp != (PcodeOp *)0) {
-	  if (inOp->getAddr().getOffset() > outOp->getAddr().getOffset()) continue;
-	}
-
-	bool found = false;
-	for(int4 k=0;k<nodes.size();++k) {
-	  if (nodes[k] == in) {
-	    found = true;
-	    break;
-	  }
-	}
-
-	if (!found) {
-	  if (in->getType() == FlowBlock::t_whiledo || in->getType() == FlowBlock::t_dowhile) continue;
-	  if (out == breakTarget) continue;
-	  externalIn = true;
-	  break;
-	}
-      }
-
-      if (externalIn) continue;
-
-      bool alreadyIn = false;
-      for(int4 k=0;k<nodes.size();++k) {
-	if (nodes[k] == out) {
-	  alreadyIn = true;
-	  break;
-	}
-      }
-      if (!alreadyIn) {
-	nodes.push_back(out);
-      }
+    if (!headbl->dominates(b)) {
+      break; 
     }
+
+    if (b == breakTarget) {
+      break;
+    }
+
+    nodes.push_back(b);
   }
 
-  return isMulti || (nodes.size() > 1);
+  return nodes.size() > 1;
 }
 
 /// Add the new FlowBlock to \b this
@@ -1843,6 +1807,7 @@ BlockLabelClause *BlockGraph::newBlockLabelClause(const vector<FlowBlock *> &nod
   BlockLabelClause *ret = new BlockLabelClause(breakTarget);
   identifyInternal(ret, nodes);
   addBlock(ret);
+  ret->forceOutputNum(1);
   return ret;
 }
 
@@ -1859,18 +1824,18 @@ BlockMultiLabelClause *BlockGraph::newBlockMultiLabelClause(const vector<FlowBlo
 {
   BlockMultiLabelClause *ret = new BlockMultiLabelClause(breakTarget);
 
-  for (int4 i = 0; i < nodes.size(); ++i) {
+  for (int4 i=0;i<nodes.size();++i) {
     FlowBlock *b = nodes[i];
-    for (int4 j = 0; j < b->sizeOut(); ++j) {
+    for (int4 j=0;j<b->sizeOut();++j) {
       if (b->getOut(j) == breakTarget) {
-	ret->addExitPoint(b, j);
+	ret->addExitPoint(b,j);
       }
     }
   }
 
-  identifyInternal(ret, nodes);
+  identifyInternal(ret,nodes);
   addBlock(ret);
-  ret->forceOutputNum(1); 
+  ret->forceOutputNum(2);
   return ret;
 }
 
