@@ -1276,6 +1276,12 @@ FlowBlock *CollapseStructure::selectGoto(void)
   return (FlowBlock *)0;
 }
 
+FlowBlock *CollapseStructure::findLabelBranchBlock(ghidra::FlowBlock *bl)
+
+{
+  return (FlowBlock *)0;
+}
+
 /// Try to concatenate a straight sequences of blocks starting with the given FlowBlock.
 /// All of the internal edges should be DAG  (no \e exit, \e goto,or \e loopback).
 /// The final edge can be an exit or loopback
