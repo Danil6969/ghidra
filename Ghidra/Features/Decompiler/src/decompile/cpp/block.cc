@@ -1823,7 +1823,6 @@ BlockMultiLabelClause *BlockGraph::newBlockMultiLabelClause(const vector<FlowBlo
 
 {
   BlockMultiLabelClause *ret = new BlockMultiLabelClause(breakTarget);
-
   for (int4 i=0;i<nodes.size();++i) {
     FlowBlock *b = nodes[i];
     for (int4 j=0;j<b->sizeOut();++j) {
