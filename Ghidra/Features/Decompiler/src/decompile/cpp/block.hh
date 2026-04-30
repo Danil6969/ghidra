@@ -379,6 +379,7 @@ protected:
   void swapBlocks(int4 i,int4 j);	///< Swap the positions two component FlowBlocks
   static void markCopyBlock(FlowBlock *bl,uint4 fl);	///< Set properties on the first leaf FlowBlock
 public:
+  bool labelBreakContinueAllowed = false;
   void clear(void);					///< Clear all component FlowBlock objects
   virtual ~BlockGraph(void) { clear(); }		///< Destructor
   const vector<FlowBlock *> &getList(void) const { return list; }	///< Get the list of component FlowBlock objects
