@@ -1456,64 +1456,71 @@ bool CollapseStructure::ruleBlockIfElse(FlowBlock *bl)
 bool CollapseStructure::ruleBlockLabelClause(FlowBlock *bl)
 
 {
-  if (bl->isLabelBumpUp()) return false;
-  if (bl->sizeIn() != 1) return false;
-  if (bl->isSwitchOut()) return false;
+  FlowBlock *headbl = bl;
+  if (headbl->isLabelBumpUp()) return false;
+  if (headbl->sizeIn() == 0) return false;
+  if (headbl->isSwitchOut()) return false;
+  if (headbl->getType() == FlowBlock::t_copy && headbl->isLoopHeader()) return false;
 
-  PcodeOp *firstPcode = bl->firstOp();
+  FlowBlock *parent = headbl->getParent();
+  if (parent == (FlowBlock *)0) return false;
+  if (parent->getType() != FlowBlock::t_graph)
+    if (parent->getType() != FlowBlock::t_ls)
+      return false;
+
+  PcodeOp *firstPcode = headbl->firstOp();
   if (firstPcode == (PcodeOp *)0) return false;
   uintb startOffset = firstPcode->getAddr().getOffset();
 
+  FlowBlock *branchbl = (FlowBlock *)0;
   FlowBlock *breakTarget = (FlowBlock *)0;
-  FlowBlock *commonParent = bl->getParent();
 
-  for (int4 i = 0; i < bl->sizeOut(); ++i) {
-    FlowBlock *nextBlock = bl->getOut(i);
-    if (nextBlock == bl) continue;
-    
-    PcodeOp *nextPcode = nextBlock->firstOp();
-    if (nextPcode == (PcodeOp *)0) continue;
-    uintb nextOffset = nextPcode->getAddr().getOffset();
+  bool isMulti = false;
+  int4 outsize = headbl->sizeOut();
+  for(int4 i=0;i<outsize;++i) {
+    FlowBlock *outbl = headbl->getOut(i);
+    if (headbl->dominates(outbl)) {
+      int4 sizeout = outbl->sizeOut();
+      for(int4 j=0;j<sizeout;++j) {
+	if (!outbl->isGotoOut(j)) continue;
+	if (outbl->isSwitchOut()) continue;
+	FlowBlock *subOut = outbl->getOut(j);
 
-    if (nextOffset > startOffset) {
-      if (breakTarget == (FlowBlock *)0 || nextOffset < breakTarget->firstOp()->getAddr().getOffset())
-	breakTarget = nextBlock;
+	if (sizeout == 1) {
+	  isMulti = false;
+	  branchbl = outbl;
+	  breakTarget = subOut;
+	  break;
+	}
+	if (sizeout == 2) {
+	  isMulti = true;
+	  branchbl = outbl;
+	  breakTarget = subOut;
+	  break;
+	}
+      }
     }
+    if (breakTarget != (FlowBlock *)0) break;
   }
-
-  if (breakTarget == (FlowBlock *)0 || breakTarget->getParent() != commonParent) return false;
+  if (breakTarget == (FlowBlock *)0) return false;
+  if (breakTarget->getParent() != parent) return false;
 
   vector<FlowBlock *> nodes;
   bool dummy;
-  if (!graph.findLabelClause(bl,breakTarget,nodes,dummy)) return false;
-
-  bool isMulti = false;
-  for (int4 i = 0; i < nodes.size(); ++i) {
-    FlowBlock *currNode = nodes[i];
-    if (currNode->getParent() != commonParent) return false;
-    if (currNode->isLabelBumpUp()) return false;
-
-    for (int4 j = 0; j < currNode->sizeOut(); ++j) {
-      FlowBlock *outbl = currNode->getOut(j);
-      if (outbl == breakTarget) {
-	if (currNode->sizeOut() > 1) isMulti = true;
-	continue;
-      }
-      int4 k;
-      for (k = 0; k < nodes.size(); ++k)
-	if (nodes[k] == outbl) break;
-      if (k == nodes.size()) return false;
-    }
-  }
+  if (!graph.findLabelClause(headbl,breakTarget,nodes,dummy)) return false;
 
   FlowBlock *newbl;
-  if (isMulti)
-    newbl = graph.newBlockMultiLabelClause(nodes, breakTarget);
+  if (isMulti) {
+    if (!branchbl->isGotoOut(1)) { // True branch must be goto
+      if (branchbl->negateCondition(true))
+        dataflow_changecount += 1;
+    }
+    newbl = graph.newBlockMultiLabelClause(nodes,breakTarget);
+  }
   else
-    newbl = graph.newBlockLabelClause(nodes, breakTarget);
+    newbl = graph.newBlockLabelClause(nodes,breakTarget);
 
   newbl->markLabelBumpUp(true);
-  
   return true;
 }
 
