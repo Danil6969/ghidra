@@ -1941,7 +1941,7 @@ int4 CollapseStructure::collapseInternal(FlowBlock *targetbl)
 	fullchange = true;
 	break;
       }
-      if (ruleBlockLabelClause(bl)) {
+      if (graph.labelBreakContinueAllowed && ruleBlockLabelClause(bl)) {
 	fullchange = true;
 	continue;
       }
