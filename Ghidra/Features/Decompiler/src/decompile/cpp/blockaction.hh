@@ -202,11 +202,12 @@ class CollapseStructure {
   bool needsIfNoExitFirst(FlowBlock *bl);
   void onlyReachableFromRoot(FlowBlock *root,vector<FlowBlock *> &body);
   int4 markExitsAsGotos(vector<FlowBlock *> &body);	///< Mark edges exiting the body as \e unstructured gotos
-  bool clipExtraRoots(void);			///< Mark edges between root components as \e unstructured gotos
+  bool clipExtraRoots(void);				///< Mark edges between root components as \e unstructured gotos
   void labelLoops(vector<LoopBody *> &looporder);	///< Identify all the loops in this graph
-  void orderLoopBodies(void);			///< Identify and label all loop structure for this graph
-  bool updateLoopBody(void);			///< Find likely \e unstructured edges within the innermost loop body
-  FlowBlock *selectGoto(void);			///< Select an edge to mark as  \e unstructured
+  void orderLoopBodies(void);				///< Identify and label all loop structure for this graph
+  bool updateLoopBody(void);				///< Find likely \e unstructured edges within the innermost loop body
+  FlowBlock *selectGoto(void);				///< Select an edge to mark as  \e unstructured
+  FlowBlock *findLabelBranchBlock(FlowBlock *bl);	///< Find a block which ends with goto or if goto given head of label clause
   bool ruleBlockLabelClause(FlowBlock *bl);	///< Attempt to apply the BlockLabelClause structure
   bool ruleBlockGoto(FlowBlock *bl);		///< Attempt to apply the BlockGoto structure
   bool ruleBlockCat(FlowBlock *bl);		///< Attempt to apply a BlockList structure
