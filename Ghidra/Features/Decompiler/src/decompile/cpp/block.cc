@@ -1725,6 +1725,7 @@ FlowBlock *BlockGraph::getStartBlock(void) const
 }
 
 bool BlockGraph::findLabelClause(FlowBlock *headbl, FlowBlock *breakTarget, vector<FlowBlock *> &nodes, bool &isMulti)
+
 {
   nodes.clear();
   isMulti = false;
