@@ -4638,7 +4638,7 @@ int4 ActionDeterminedBranch::apply(Funcdata &data)
   }
 
   for(i=0;i<graph.getSize();++i) {
-    bb = (BlockBasic *) graph.getBlock(i);
+    bb = (BlockBasic *)graph.getBlock(i);
     if (bb->isEmptyConstantLoop()) {
       FlowBlock *in0 = bb->getIn(0);
       FlowBlock *in1 = bb->getIn(1);
