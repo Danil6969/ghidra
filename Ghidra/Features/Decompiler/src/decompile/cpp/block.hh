@@ -689,10 +689,13 @@ public:
 class BlockIf : public BlockGraph {
   uint4 gototype;			///< The type of unstructured edge (if present)
   FlowBlock *gototarget;		///< The target FlowBlock of the unstructured edge (if present)
+  FlowBlock *gotolabel;			///< The label FlowBlock of the unstructured edge (if present)
 public:
-  BlockIf(void) { gototype = f_goto_goto; gototarget = (FlowBlock *)0; }	///< Constructor
+  BlockIf(void) { gototype = f_goto_goto; gototarget = (FlowBlock *)0; gotolabel = (FlowBlock *)0; }		///< Constructor
   void setGotoTarget(FlowBlock *bl) { gototarget = bl; }		///< Mark the target of the unstructured edge
+  void setGotoLabel(FlowBlock *bl) { gotolabel = bl; }			///< Mark the label of the unstructured edge
   FlowBlock *getGotoTarget(void) const { return gototarget; }		///< Get the target of the unstructured edge
+  FlowBlock *getGotoLabel(void) const { return gotolabel; }		///< Get the label of the unstructured edge
   uint4 getGotoType(void) const { return gototype; }			///< Get the type of unstructured edge
   virtual block_type getType(void) const { return t_if; }
   virtual void markUnstructured(void);
