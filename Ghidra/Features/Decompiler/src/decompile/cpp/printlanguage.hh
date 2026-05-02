@@ -64,7 +64,6 @@ class BlockBasic;
 class BlockList;
 class BlockCopy;
 class BlockLabelClause;
-class BlockMultiLabelClause;
 class BlockGoto;
 class BlockIf;
 class BlockCondition;
@@ -495,7 +494,6 @@ public:
   virtual void emitBlockGraph(const BlockGraph *bl)=0;			///< Emit (an unspecified) list of blocks
   virtual void emitBlockCopy(const BlockCopy *bl)=0;			///< Emit a basic block (with any labels)
   virtual void emitBlockLabel(const BlockLabelClause *bl)=0;		///< Emit a labeled block (single)
-  virtual void emitBlockMultiLabel(const BlockMultiLabelClause *bl)=0;	///< Emit a labeled block (multiple)
   virtual void emitBlockGoto(const BlockGoto *bl)=0;			///< Emit a block ending with a goto statement
   virtual void emitBlockLs(const BlockList *bl)=0;			///< Emit a sequence of blocks
   virtual void emitBlockCondition(const BlockCondition *bl)=0;		///< Emit a conditional statement
