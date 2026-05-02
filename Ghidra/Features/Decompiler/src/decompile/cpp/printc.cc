@@ -3722,17 +3722,16 @@ void PrintC::emitBlockLabel(const BlockLabelClause *bl)
   pushMod();
 
   setMod(no_branch);
-  FlowBlock *subBlock = bl->getBlock(0);
-  subBlock->emit(this);
+  for (int4 i=0;i<bl->getSize();++i) {
+    FlowBlock *subBlock = bl->getBlock(i);
+    subBlock->emit(this);
+  }
 
   popMod();
-  emit->tagLine();
-  emitBreakLabelStatement(subBlock, bl->getTarget());
   emit->closeBraceIndent(CLOSE_CURLY, braceId);
 }
 
 void PrintC::emitBlockMultiLabel(const BlockMultiLabelClause *bl)
-
 {
   emit->tagLine();
   emitLabel(bl->getBlock(0));
@@ -3742,6 +3741,7 @@ void PrintC::emitBlockMultiLabel(const BlockMultiLabelClause *bl)
 
   pushMod();
   unsetMod(no_branch|only_branch|pending_brace);
+
   for (int4 i=0;i<bl->getSize();++i) {
     FlowBlock *currNode = bl->getBlock(i);
     int4 breakIdx = -1;
@@ -3752,25 +3752,21 @@ void PrintC::emitBlockMultiLabel(const BlockMultiLabelClause *bl)
       }
     }
 
-    if (breakIdx != -1) {
-      emit->tagLine();
-      if (currNode->sizeOut() > 1) {
-	emit->tagOp(KEYWORD_IF,EmitMarkup::keyword_color,currNode->lastOp());
-	emit->spaces(1);
-	int4 id = emit->openParen(OPEN_PAREN);
-
-	pushMod();
-	setMod(only_branch);
-	currNode->emit(this);
-	popMod();
-
-	emit->closeParen(CLOSE_PAREN,id);
-	emit->spaces(1);
-      }
-      emitBreakLabelStatement(currNode,bl);
+    if (breakIdx != -1 && currNode->sizeOut() > 1) {
+       emit->tagLine();
+       emit->tagOp(KEYWORD_IF, EmitMarkup::keyword_color,currNode->lastOp());
+       emit->spaces(1);
+       int4 id = emit->openParen(OPEN_PAREN);
+       pushMod();
+       setMod(only_branch);
+       currNode->emit(this);
+       popMod();
+       emit->closeParen(CLOSE_PAREN,id);
+       emit->spaces(1);
+       emitBreakLabelStatement(currNode,bl);
     }
     else {
-      currNode->emit(this);
+       currNode->emit(this);
     }
   }
   popMod();
@@ -3927,7 +3923,10 @@ void PrintC::emitBlockIf(const BlockIf *bl)
   popMod();
   if (bl->getGotoTarget() != (FlowBlock *)0) {
     emit->spaces(1);
-    emitGotoStatement(condBlock,bl->getGotoTarget(),bl->getGotoType());
+    if (bl->getGotoLabel() == (FlowBlock *)0)
+      emitGotoStatement(condBlock,bl->getGotoTarget(),bl->getGotoType());
+    else
+      emitGotoStatement(condBlock,bl->getGotoLabel(),bl->getGotoType());
   }
   else {
     setMod(no_branch);
