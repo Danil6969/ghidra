@@ -418,8 +418,7 @@ public:
 
 				// Factory (identify) routines
   BlockCopy *newBlockCopy(FlowBlock *bl);					///< Build a new BlockCopy
-  BlockLabelClause *newBlockLabelClause(const vector<FlowBlock *> &nodes,FlowBlock *breakTarget);		///< Build a new BlockLabelClause (single)
-  BlockMultiLabelClause *newBlockMultiLabelClause(const vector<FlowBlock *> &nodes,FlowBlock *breakTarget);	///< Build a new BlockLabelClause (multiple)
+  BlockLabelClause *newBlockLabelClause(const vector<FlowBlock *> &nodes,FlowBlock *breakTarget);		///< Build a new BlockLabelClause
   BlockGoto *newBlockGoto(FlowBlock *bl);					///< Build a new BlockGoto
   BlockMultiGoto *newBlockMultiGoto(FlowBlock *bl,int4 outedge);		///< Build a new BlockMultiGoto
   BlockList *newBlockList(const vector<FlowBlock *> &nodes);			///< Build a new BlockList
@@ -549,23 +548,6 @@ public:
   virtual void scopeBreak(int4 curexit,int4 curloopexit);
   virtual void emit(PrintLanguage *lng) const { lng->emitBlockLabel(this); }
   FlowBlock *getTarget(void) const { return target; }
-};
-
-/// \brief A block representing a named scope where multiple internal blocks can "break" to the target
-class BlockMultiLabelClause : public BlockGraph {
-  FlowBlock *target;				///< The target block executed after this clause
-  vector<FlowBlock *> exitBlocks;	///< Blocks inside that have an edge to target
-  vector<int4> exitIndices;			///< Specific out-index for each exitBlock
-public:
-  BlockMultiLabelClause(FlowBlock *t) : BlockGraph() { target = t; }
-  virtual block_type getType(void) const { return t_multilabelclause; }
-  virtual void scopeBreak(int4 curexit,int4 curloopexit);
-  virtual void emit(PrintLanguage *lng) const { lng->emitBlockMultiLabel(this); }
-  FlowBlock *getTarget(void) const { return target; }
-  void addExitPoint(FlowBlock *bl, int4 outIdx) { exitBlocks.push_back(bl); exitIndices.push_back(outIdx); }
-  int4 numExitPoints(void) const { return exitBlocks.size(); }
-  FlowBlock *getExitBlock(int4 i) const { return exitBlocks[i]; }
-  int4 getExitIndex(int4 i) const { return exitIndices[i]; }
 };
 
 /// \brief A block that terminates with an unstructured (goto) branch to another block
