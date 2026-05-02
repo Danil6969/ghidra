@@ -1730,27 +1730,20 @@ bool BlockGraph::findLabelClause(FlowBlock *headbl, FlowBlock *breakTarget, vect
   nodes.clear();
   isMulti = false;
   FlowBlock *commonParent = headbl->getParent();
+  if (commonParent == (FlowBlock *)0) return false;
+  if (commonParent != breakTarget->getParent()) return false;
 
   int4 startIdx = headbl->getIndex();
   int4 endIdx = breakTarget->getIndex();
 
-  for (int4 i = startIdx; i <= endIdx; ++i) {
-    FlowBlock *b = (commonParent->getType() == t_graph) ? 
-                   ((BlockGraph *)commonParent)->getBlock(i) : 
-                   ((BlockList *)commonParent)->getBlock(i);
-
-    if (!headbl->dominates(b)) {
-      break; 
-    }
-
-    if (b == breakTarget) {
-      break;
-    }
-
-    nodes.push_back(b);
+  FlowBlock *curbl = headbl;
+  while (curbl != breakTarget) {
+    if (curbl->sizeOut() != 1) return false;
+    nodes.push_back(curbl);
+    curbl = curbl->getOut(0);
   }
 
-  return nodes.size() > 1;
+  return !nodes.empty();
 }
 
 /// Add the new FlowBlock to \b this
@@ -1802,13 +1795,12 @@ BlockCopy *BlockGraph::newBlockCopy(FlowBlock *bl)
 /// \param nodes is the list of components for the clause
 /// \param breakTarget is the block reached upon exit
 /// \return the newly created BlockLabelClause
-BlockLabelClause *BlockGraph::newBlockLabelClause(const vector<FlowBlock *> &nodes, FlowBlock *breakTarget)
+BlockLabelClause *BlockGraph::newBlockLabelClause(const vector<FlowBlock *> &nodes,FlowBlock *breakTarget)
 
 {
   BlockLabelClause *ret = new BlockLabelClause(breakTarget);
-  identifyInternal(ret, nodes);
+  identifyInternal(ret,nodes);
   addBlock(ret);
-  ret->forceOutputNum(1);
   return ret;
 }
 
@@ -1835,7 +1827,7 @@ BlockMultiLabelClause *BlockGraph::newBlockMultiLabelClause(const vector<FlowBlo
 
   identifyInternal(ret,nodes);
   addBlock(ret);
-  ret->forceOutputNum(2);
+  ret->forceOutputNum(1);
   return ret;
 }
 
