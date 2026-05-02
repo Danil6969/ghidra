@@ -3881,10 +3881,15 @@ void PrintC::emitBlockIf(const BlockIf *bl)
   popMod();
   if (bl->getGotoTarget() != (FlowBlock *)0) {
     emit->spaces(1);
-    if (bl->getGotoLabel() == (FlowBlock *)0)
-      emitGotoStatement(condBlock,bl->getGotoTarget(),bl->getGotoType());
-    else
-      emitGotoStatement(condBlock,bl->getGotoLabel(),bl->getGotoType());
+    uint4 gototype = bl->getGotoType();
+    FlowBlock *gotolabel = bl->getGotoTarget();
+    if (gototype == FlowBlock::f_break_goto) {
+      gotolabel = bl->getGotoLabel();
+    }
+    if (gototype == FlowBlock::f_continue_goto) {
+      gotolabel = bl->getGotoLabel();
+    }
+    emitGotoStatement(condBlock,gotolabel,bl->getGotoType());
   }
   else {
     setMod(no_branch);
