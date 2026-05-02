@@ -3728,7 +3728,7 @@ void PrintC::emitBlockLabel(const BlockLabelClause *bl)
   }
 
   popMod();
-  emit->closeBraceIndent(CLOSE_CURLY, braceId);
+  emit->closeBraceIndent(CLOSE_CURLY,braceId);
 }
 
 void PrintC::emitBlockMultiLabel(const BlockMultiLabelClause *bl)
@@ -3744,6 +3744,7 @@ void PrintC::emitBlockMultiLabel(const BlockMultiLabelClause *bl)
 
   for (int4 i=0;i<bl->getSize();++i) {
     FlowBlock *currNode = bl->getBlock(i);
+
     int4 breakIdx = -1;
     for (int4 j=0;j<bl->numExitPoints();++j) {
       if (bl->getExitBlock(j) == currNode) {
@@ -3753,22 +3754,25 @@ void PrintC::emitBlockMultiLabel(const BlockMultiLabelClause *bl)
     }
 
     if (breakIdx != -1 && currNode->sizeOut() > 1) {
-       emit->tagLine();
-       emit->tagOp(KEYWORD_IF, EmitMarkup::keyword_color,currNode->lastOp());
-       emit->spaces(1);
-       int4 id = emit->openParen(OPEN_PAREN);
-       pushMod();
-       setMod(only_branch);
-       currNode->emit(this);
-       popMod();
-       emit->closeParen(CLOSE_PAREN,id);
-       emit->spaces(1);
-       emitBreakLabelStatement(currNode,bl);
+      emit->tagLine();
+      emit->tagOp(KEYWORD_IF,EmitMarkup::keyword_color,currNode->lastOp());
+      emit->spaces(1);
+      int4 id = emit->openParen(OPEN_PAREN);
+
+      pushMod();
+      setMod(only_branch);
+      currNode->emit(this);
+      popMod();
+
+      emit->closeParen(CLOSE_PAREN,id);
+      emit->spaces(1);
+      emitBreakLabelStatement(currNode,bl);
     }
     else {
-       currNode->emit(this);
+      currNode->emit(this);
     }
   }
+
   popMod();
   emit->closeBraceIndent(CLOSE_CURLY,mainBraceId);
 }
