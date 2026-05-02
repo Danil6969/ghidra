@@ -1720,9 +1720,16 @@ bool CollapseStructure::isLabelTargetBlock(FlowBlock *targetbl)
   if (throughbl->sizeIn() != 1) return false;
   FlowBlock *loopbl = throughbl->getIn(0);
   if (loopbl->sizeOut() != 2) return false;
+  if (loopbl->getOut(1) != throughbl) return false;
   //
-  if (loopbl->sizeIn() != 1) return false;
-  //
+  if (loopbl->sizeIn() == 1) {
+    //
+    return true;
+  }
+  if (loopbl->sizeIn() == 2) {
+    //
+    return true;
+  }
   return false;
 }
 
@@ -2279,6 +2286,7 @@ int4 ActionBlockStructure::apply(Funcdata &data)
 
 {
   BlockGraph &graph(data.getStructure());
+  //graph.labelBreakContinueAllowed = true;
 
   // Check if already structured
   if (graph.getSize() != 0) return 0;
