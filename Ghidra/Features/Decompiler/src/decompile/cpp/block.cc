@@ -1804,33 +1804,6 @@ BlockLabelClause *BlockGraph::newBlockLabelClause(const vector<FlowBlock *> &nod
   return ret;
 }
 
-/// \brief Create a multi-exit label clause (handles conditional breaks)
-///
-/// This method acts as the "multi" dual. It initializes the exit vector
-/// and scans the component blocks for any conditional branches leading
-/// to the target, registering them as formal \b break points.
-/// \param nodes is the list of components for the clause
-/// \param breakTarget is the block reached upon exit
-/// \return the newly created BlockMultiLabelClause
-BlockMultiLabelClause *BlockGraph::newBlockMultiLabelClause(const vector<FlowBlock *> &nodes, FlowBlock *breakTarget)
-
-{
-  BlockMultiLabelClause *ret = new BlockMultiLabelClause(breakTarget);
-  for (int4 i=0;i<nodes.size();++i) {
-    FlowBlock *b = nodes[i];
-    for (int4 j=0;j<b->sizeOut();++j) {
-      if (b->getOut(j) == breakTarget) {
-	ret->addExitPoint(b,j);
-      }
-    }
-  }
-
-  identifyInternal(ret,nodes);
-  addBlock(ret);
-  ret->forceOutputNum(1);
-  return ret;
-}
-
 /// Add the new BlockGoto to \b this, incorporating the given FlowBlock
 /// \param bl is the given FlowBlock whose outgoing edge is to be marked as a \e goto
 /// \return the new BlockGoto
@@ -2974,14 +2947,6 @@ void BlockLabelClause::scopeBreak(int4 curexit,int4 curloopexit)
 
 {
   getBlock(0)->scopeBreak(target->getIndex(),curloopexit);
-}
-
-void BlockMultiLabelClause::scopeBreak(int4 curexit,int4 curloopexit)
-
-{
-  for(int4 i=0;i<getSize();++i) {
-    getBlock(i)->scopeBreak(target->getIndex(),curloopexit);
-  }
 }
 
 void BlockGoto::markUnstructured(void)
