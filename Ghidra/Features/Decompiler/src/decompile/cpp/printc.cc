@@ -3731,52 +3731,6 @@ void PrintC::emitBlockLabel(const BlockLabelClause *bl)
   emit->closeBraceIndent(CLOSE_CURLY,braceId);
 }
 
-void PrintC::emitBlockMultiLabel(const BlockMultiLabelClause *bl)
-{
-  emit->tagLine();
-  emitLabel(bl->getBlock(0));
-  emit->print(COLON);
-  emit->spaces(1);
-  int4 mainBraceId = emit->openBraceIndent(OPEN_CURLY,option_brace_loop);
-
-  pushMod();
-  unsetMod(no_branch|only_branch|pending_brace);
-
-  for (int4 i=0;i<bl->getSize();++i) {
-    FlowBlock *currNode = bl->getBlock(i);
-
-    int4 breakIdx = -1;
-    for (int4 j=0;j<bl->numExitPoints();++j) {
-      if (bl->getExitBlock(j) == currNode) {
-	breakIdx = bl->getExitIndex(j);
-	break;
-      }
-    }
-
-    if (breakIdx != -1 && currNode->sizeOut() > 1) {
-      emit->tagLine();
-      emit->tagOp(KEYWORD_IF,EmitMarkup::keyword_color,currNode->lastOp());
-      emit->spaces(1);
-      int4 id = emit->openParen(OPEN_PAREN);
-
-      pushMod();
-      setMod(only_branch);
-      currNode->emit(this);
-      popMod();
-
-      emit->closeParen(CLOSE_PAREN,id);
-      emit->spaces(1);
-      emitBreakLabelStatement(currNode,bl);
-    }
-    else {
-      currNode->emit(this);
-    }
-  }
-
-  popMod();
-  emit->closeBraceIndent(CLOSE_CURLY,mainBraceId);
-}
-
 void PrintC::emitBlockGoto(const BlockGoto *bl)
 
 {
