@@ -1276,9 +1276,19 @@ FlowBlock *CollapseStructure::selectGoto(void)
   return (FlowBlock *)0;
 }
 
-FlowBlock *CollapseStructure::findLabelBranchBlock(ghidra::FlowBlock *bl)
+FlowBlock *CollapseStructure::findLabelBranchBlock(ghidra::FlowBlock *headbl)
 
 {
+  if (headbl->getType() != FlowBlock::t_dowhile) return (FlowBlock *)0;
+  if (((BlockDoWhile *)headbl)->getSize() != 1) return (FlowBlock *)0;
+  FlowBlock *compbl = ((BlockDoWhile *)headbl)->getBlock(0);
+  if (compbl->getType() != FlowBlock::t_ls) return (FlowBlock *)0;
+  if (((BlockList *)compbl)->getSize() != 2) return (FlowBlock *)0;
+  FlowBlock *branchbl = ((BlockList *)compbl)->getBlock(0);
+  if (branchbl->getType() == FlowBlock::t_if) {
+    if (((BlockIf *)branchbl)->getSize() != 1) return (FlowBlock *)0;
+    return branchbl;
+  }
   return (FlowBlock *)0;
 }
 
@@ -1300,6 +1310,7 @@ bool CollapseStructure::ruleBlockCat(FlowBlock *bl)
   if (outblock->sizeIn() != 1) return false; // Nothing else can hit outblock
   if (!bl->isDecisionOut(0)) return false; // Not a goto or a loopbottom
   if (outblock->isSwitchOut()) return false; // Switch must be resolved first
+  if (isLabelTargetBlock(outblock)) return false;
 
   vector<FlowBlock *> nodes;
   nodes.push_back(bl);		// The first two blocks being concatenated
@@ -1456,71 +1467,36 @@ bool CollapseStructure::ruleBlockIfElse(FlowBlock *bl)
 bool CollapseStructure::ruleBlockLabelClause(FlowBlock *bl)
 
 {
-  FlowBlock *headbl = bl;
-  if (headbl->isLabelBumpUp()) return false;
-  if (headbl->sizeIn() == 0) return false;
-  if (headbl->isSwitchOut()) return false;
-  if (headbl->getType() == FlowBlock::t_copy && headbl->isLoopHeader()) return false;
-
-  FlowBlock *parent = headbl->getParent();
+  if (!graph.labelBreakContinueAllowed) return false;
+  FlowBlock *parent = bl->getParent();
   if (parent == (FlowBlock *)0) return false;
-  if (parent->getType() != FlowBlock::t_graph)
-    if (parent->getType() != FlowBlock::t_ls)
-      return false;
+  PcodeOp *firstblop = bl->firstOp();
+  PcodeOp *lastblop = bl->lastOp();
+  if (firstblop == (PcodeOp *)0) return false;
+  if (lastblop == (PcodeOp *)0) return false;
 
-  PcodeOp *firstPcode = headbl->firstOp();
-  if (firstPcode == (PcodeOp *)0) return false;
-  uintb startOffset = firstPcode->getAddr().getOffset();
+  if (bl->isLabelBumpUp()) return false;
+  if (bl->sizeIn() == 0) return false;
+  if (bl->isSwitchOut()) return false;
 
-  FlowBlock *branchbl = (FlowBlock *)0;
+  if (bl->sizeOut() != 1) return false;
+  FlowBlock *headbl = bl->getOut(0);
+  FlowBlock *branchbl = findLabelBranchBlock(headbl);
+  if (branchbl == (FlowBlock *)0) return false;
   FlowBlock *breakTarget = (FlowBlock *)0;
-
-  bool isMulti = false;
-  int4 outsize = headbl->sizeOut();
-  for(int4 i=0;i<outsize;++i) {
-    FlowBlock *outbl = headbl->getOut(i);
-    if (headbl->dominates(outbl)) {
-      int4 sizeout = outbl->sizeOut();
-      for(int4 j=0;j<sizeout;++j) {
-	if (!outbl->isGotoOut(j)) continue;
-	if (outbl->isSwitchOut()) continue;
-	FlowBlock *subOut = outbl->getOut(j);
-
-	if (sizeout == 1) {
-	  isMulti = false;
-	  branchbl = outbl;
-	  breakTarget = subOut;
-	  break;
-	}
-	if (sizeout == 2) {
-	  isMulti = true;
-	  branchbl = outbl;
-	  breakTarget = subOut;
-	  break;
-	}
-      }
-    }
-    if (breakTarget != (FlowBlock *)0) break;
-  }
-  if (breakTarget == (FlowBlock *)0) return false;
+  if (branchbl->getType() == FlowBlock::t_if)
+    breakTarget = ((BlockIf *)branchbl)->getGotoTarget();
   if (breakTarget->getParent() != parent) return false;
 
-  vector<FlowBlock *> nodes;
+  vector<FlowBlock *> nodes1;
   bool dummy;
-  if (!graph.findLabelClause(headbl,breakTarget,nodes,dummy)) return false;
+  if (!graph.findLabelClause(headbl,breakTarget,nodes1,dummy)) return false;
 
-  FlowBlock *newbl;
-  if (isMulti) {
-    if (!branchbl->isGotoOut(1)) { // True branch must be goto
-      if (branchbl->negateCondition(true))
-        dataflow_changecount += 1;
-    }
-    newbl = graph.newBlockMultiLabelClause(nodes,breakTarget);
-  }
-  else
-    newbl = graph.newBlockLabelClause(nodes,breakTarget);
-
+  FlowBlock *newbl = graph.newBlockLabelClause(nodes1,breakTarget);
+  graph.calcForwardDominator(vector<FlowBlock *>{graph.getBlock(0)});
   newbl->markLabelBumpUp(true);
+  if (branchbl->getType() == FlowBlock::t_if)
+    ((BlockIf *)branchbl)->setGotoLabel(newbl);
   return true;
 }
 
@@ -1733,6 +1709,23 @@ bool CollapseStructure::needsIfNoExitFirst(FlowBlock *bl)
   return true;
 }
 
+bool CollapseStructure::isLabelTargetBlock(FlowBlock *targetbl)
+
+{
+  if (!graph.labelBreakContinueAllowed) return false;
+  if (targetbl->sizeIn() != 1) return false;
+  FlowBlock *throughbl = targetbl->getIn(0);
+  if (throughbl->getType() == FlowBlock::t_labelclause) return false;
+  if (throughbl->sizeOut() != 1) return false;
+  if (throughbl->sizeIn() != 1) return false;
+  FlowBlock *loopbl = throughbl->getIn(0);
+  if (loopbl->sizeOut() != 2) return false;
+  //
+  if (loopbl->sizeIn() != 1) return false;
+  //
+  return false;
+}
+
 /// Try to find a switch structure, starting with the given FlowBlock.
 /// \param bl is the given FlowBlock
 /// \return \b true if the structure was applied
@@ -1885,6 +1878,14 @@ int4 CollapseStructure::collapseInternal(FlowBlock *targetbl)
 	}
 
 	// For exception clauses
+	if (ruleBlockGoto(bl)) {
+	  fullchange = true;
+	  continue;
+	}
+	if (ruleBlockLabelClause(bl)) {
+          change = true;
+	  continue;
+	}
 	if (needsIfNoExitFirst(bl)) {
 	  // Try ifnoexit first
 	  if (ruleBlockIfNoExit(bl)) {
@@ -1940,14 +1941,6 @@ int4 CollapseStructure::collapseInternal(FlowBlock *targetbl)
       if (ruleCaseFallthru(bl)) { // Check for fallthru cases in a switch
 	fullchange = true;
 	break;
-      }
-      if (graph.labelBreakContinueAllowed && ruleBlockLabelClause(bl)) {
-	fullchange = true;
-	continue;
-      }
-      if (ruleBlockGoto(bl)) {
-	fullchange = true;
-	continue;
       }
     }
   } while(fullchange);
