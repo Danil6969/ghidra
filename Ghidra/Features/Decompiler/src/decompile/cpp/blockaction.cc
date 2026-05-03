@@ -1886,11 +1886,11 @@ int4 CollapseStructure::collapseInternal(FlowBlock *targetbl)
 
 	// For exception clauses
 	if (ruleBlockGoto(bl)) {
-	  fullchange = true;
+	  change = true;
 	  continue;
 	}
 	if (ruleBlockLabelClause(bl)) {
-          change = true;
+	  change = true;
 	  continue;
 	}
 	if (needsIfNoExitFirst(bl)) {
