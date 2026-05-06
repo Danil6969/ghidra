@@ -1790,6 +1790,8 @@ public:
 };
 
 class RulePtrsubAdjust : public Rule {
+  static bool formPtrsub(PcodeOp *op,Funcdata &data);
+  static bool formPtradd(PcodeOp *op,Funcdata &data);
 public:
   RulePtrsubAdjust(const string &g) : Rule( g, 0, "ptrsubadjust") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
