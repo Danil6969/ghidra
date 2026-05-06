@@ -12925,18 +12925,7 @@ int4 RulePtrsubOr::applyOp(PcodeOp *op,Funcdata &data)
   return 0;
 }
 
-/// \class RulePtrsubAdjust
-/// \brief Adjust constants inside ptrsub added with
-/// variable and constant so it fits better
-///
-/// `PTRSUB(V,c) + (W + d)` => 'PTRSUB(V,c+e) + (W + d-e)`
-void RulePtrsubAdjust::getOpList(vector<uint4> &oplist) const
-
-{
-  oplist.push_back(CPUI_INT_ADD);
-}
-
-int4 RulePtrsubAdjust::applyOp(PcodeOp *op,Funcdata &data)
+bool RulePtrsubAdjust::formPtrsub(PcodeOp *op,Funcdata &data)
 
 {
   Varnode *newvn[2];
@@ -12944,40 +12933,40 @@ int4 RulePtrsubAdjust::applyOp(PcodeOp *op,Funcdata &data)
   uintb val[2];
 
   PcodeOp *ptrsubop = op->getIn(0)->getDef();
-  if (ptrsubop == (PcodeOp *)0) return 0;
-  if (ptrsubop->code() != CPUI_PTRSUB) return 0;
+  if (ptrsubop == (PcodeOp *)0) return false;
+  if (ptrsubop->code() != CPUI_PTRSUB) return false;
   Varnode *basevn = ptrsubop->getIn(0);
   c[0] = ptrsubop->getIn(1);
 
   PcodeOp *addop = op->getIn(1)->getDef();
-  if (addop == (PcodeOp *)0) return 0;
-  if (addop->code() != CPUI_INT_ADD) return 0;
+  if (addop == (PcodeOp *)0) return false;
+  if (addop->code() != CPUI_INT_ADD) return false;
   Varnode *invn = addop->getIn(0);
   c[1] = addop->getIn(1);
 
-  if (basevn->isConstant()) return 0;
-  if (invn->isConstant()) return 0;
-  if (!c[0]->isConstant()) return 0;
-  if (!c[1]->isConstant()) return 0;
+  if (basevn->isConstant()) return false;
+  if (invn->isConstant()) return false;
+  if (!c[0]->isConstant()) return false;
+  if (!c[1]->isConstant()) return false;
 
   int4 sz = c[0]->getSize();
   val[0] = c[0]->getOffset();
   val[1] = c[1]->getOffset();
 
   TypePointer *ptype = (TypePointer *)basevn->getType();
-  if (ptype->getMetatype() != TYPE_PTR) return 0;
+  if (ptype->getMetatype() != TYPE_PTR) return false;
   type_metatype meta = ptype->getPtrTo()->getMetatype();
   if (meta == TYPE_SPACEBASE) {
     TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
     Scope *scope = sb->getMap();
 
     Address addr = sb->getAddress(val[0],basevn->getSize(),op->getAddr());
-    if (addr.isInvalid()) return 0;
+    if (addr.isInvalid()) return false;
     SymbolEntry *entry1 = scope->queryContainer(addr,1,Address());
-    if (entry1 == (SymbolEntry *)0) return 0;
+    if (entry1 == (SymbolEntry *)0) return false;
 
     uintb off = (intb)entry1->getSize();
-    if (off <= val[1]) return 0;
+    if (off <= val[1]) return false;
     addr = sb->getAddress(val[0] + off,basevn->getSize(),op->getAddr());
     SymbolEntry *entry2 = scope->queryContainer(addr,1,Address());
     if (entry2 == (SymbolEntry *)0) {
@@ -12987,14 +12976,14 @@ int4 RulePtrsubAdjust::applyOp(PcodeOp *op,Funcdata &data)
       PcodeOp *newptrsubop2 = data.newOpBefore(op,CPUI_PTRSUB,newptrsubop1->getOut(),newvn[1]);
       data.opSetInput(op,newptrsubop2->getOut(),0);
       data.opSetInput(op,invn,1);
-      return 1;
+      return true;
     }
 
     Datatype *dt = entry2->getSymbol()->getType();
-    if (dt->getMetatype() != TYPE_ARRAY) return 0;
+    if (dt->getMetatype() != TYPE_ARRAY) return false;
     dt = ((TypeArray *)dt)->getBase();
     uintb diff = off - val[1];
-    if (diff < dt->getSize()) return 0;
+    if (diff < dt->getSize()) return false;
 
     newvn[0] = data.newConstant(sz,(val[0] + off) & calc_mask(sz));
     newvn[1] = data.newConstant(sz,(val[1] - off) & calc_mask(sz));
@@ -13002,7 +12991,7 @@ int4 RulePtrsubAdjust::applyOp(PcodeOp *op,Funcdata &data)
     PcodeOp *newaddop = data.newOpBefore(op,CPUI_INT_ADD,invn,newvn[1]);
     data.opSetInput(op,newptrsubop->getOut(),0);
     data.opSetInput(op,newaddop->getOut(),1);
-    return 1;
+    return true;
   }
   if (meta == TYPE_STRUCT) {
     TypeStruct *ts = (TypeStruct *)ptype->getPtrTo();
@@ -13014,21 +13003,21 @@ int4 RulePtrsubAdjust::applyOp(PcodeOp *op,Funcdata &data)
       if (field.offset == val[0]) {
 	field1 = &(*iter);
 	iter++;
-	if (iter==ts->endField()) return 0;
+	if (iter==ts->endField()) return false;
 	field2 = &(*iter);
 	break;
       }
-      if (field.offset > val[0]) return 0;
+      if (field.offset > val[0]) return false;
     }
 
     uintb off = field2->offset - val[0];
-    if (off <= val[1]) return 0;
+    if (off <= val[1]) return false;
     uintb diff = off - val[1];
 
     Datatype *dt = field2->type;
-    if (dt->getMetatype() != TYPE_ARRAY) return 0;
+    if (dt->getMetatype() != TYPE_ARRAY) return false;
     dt = ((TypeArray *)dt)->getBase();
-    if (diff < dt->getSize()) return 0;
+    if (diff < dt->getSize()) return false;
 
     newvn[0] = data.newConstant(sz,(val[0] + off) & calc_mask(sz));
     newvn[1] = data.newConstant(sz,(val[1] - off) & calc_mask(sz));
@@ -13036,8 +13025,108 @@ int4 RulePtrsubAdjust::applyOp(PcodeOp *op,Funcdata &data)
     PcodeOp *newaddop = data.newOpBefore(op,CPUI_INT_ADD,invn,newvn[1]);
     data.opSetInput(op,newptrsubop->getOut(),0);
     data.opSetInput(op,newaddop->getOut(),1);
-    return 1;
+    return true;
   }
+  return false;
+}
+
+bool RulePtrsubAdjust::formPtradd(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *newvn[3];
+  Varnode *c[2];
+  uintb val[2];
+  if (!data.hasTypeRecoveryStarted()) return false;
+
+  Varnode *basevn = op->getIn(0);
+  PcodeOp *addop = op->getIn(1)->getDef();
+  if (addop == (PcodeOp *)0) return false;
+  if (addop->code() != CPUI_INT_ADD) return false;
+  c[0] = addop->getIn(1);
+
+  PcodeOp *multop = addop->getIn(0)->getDef();
+  if (multop == (PcodeOp *)0) return false;
+  if (multop->code() != CPUI_INT_MULT) return false;
+  Varnode *invn = multop->getIn(0);
+  c[1] = multop->getIn(1);
+
+  if (basevn->isConstant()) return false;
+  if (invn->isConstant()) return false;
+  if (!c[0]->isConstant()) return false;
+  if (!c[1]->isConstant()) return false;
+
+  int4 sz = c[0]->getSize();
+  val[0] = c[0]->getOffset();
+  val[1] = c[1]->getOffset();
+
+  if (sign_extend(val[0],8*sz-1) >= 0) return false;
+  if (sign_extend(val[1],8*sz-1) <= 0) return false;
+  uintb n = 0;
+  uintb fieldoff = val[0];
+  while (sign_extend(fieldoff,8*sz-1) <= 0) {
+    n += 1;
+    fieldoff += val[1];
+    fieldoff &= calc_mask(sz);
+  }
+
+  TypePointer *ptype = (TypePointer *)basevn->getTypeReadFacing(op);
+  if (ptype->getMetatype() != TYPE_PTR) return false;
+  type_metatype meta = ptype->getPtrTo()->getMetatype();
+  if (meta == TYPE_STRUCT) {
+    TypeStruct *ts = (TypeStruct *)ptype->getPtrTo();
+    vector<TypeField>::const_iterator iter;
+    const TypeField *field1 = (TypeField *)0;
+    const TypeField *field2 = (TypeField *)0;
+    for (iter=ts->beginField();iter!=ts->endField();++iter) {
+      const TypeField &field(*iter);
+      if (field.offset == fieldoff) {
+        field2 = &(*iter);
+        if (iter==ts->beginField()) return false;
+        iter--;
+        field1 = &(*iter);
+        break;
+      }
+      if (field.offset > fieldoff) return false;
+    }
+    Datatype *dt = field2->type;
+    if (dt->getMetatype() == TYPE_ARRAY && dt->getSize() > val[1]) {
+      dt = ((TypeArray *)dt)->getBase();
+    }
+    if (dt->getSize() != val[1]) return false;
+
+    newvn[0] = data.newConstant(sz,fieldoff);
+    newvn[1] = data.newConstant(sz,(-n) & calc_mask(sz));
+    newvn[2] = data.newConstant(sz,val[1]);
+    PcodeOp *newptrsubop = data.newOpBefore(op,CPUI_PTRSUB,basevn,newvn[0]);
+    PcodeOp *newaddop = data.newOpBefore(op,CPUI_INT_ADD,invn,newvn[1]);
+    vector<Varnode *> params;
+    params.push_back(newptrsubop->getOut());
+    params.push_back(newaddop->getOut());
+    params.push_back(newvn[2]);
+    data.opSetAllInput(op,params);
+    data.opSetOpcode(op,CPUI_PTRADD);
+    return true;
+  }
+  return false;
+}
+
+/// \class RulePtrsubAdjust
+/// \brief Adjust constants inside ptrsub added with
+/// variable and constant so it fits better
+///
+/// `PTRSUB(V,c) + (W + d)` => `PTRSUB(V,c+e) + (W + d-e)`
+/// `V + ((W * c) + d)`     => `PTRADD(PTRSUB(V,d+e*c),W + -e,c)`
+void RulePtrsubAdjust::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_ADD);
+}
+
+int4 RulePtrsubAdjust::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  if (formPtrsub(op,data)) return 1;
+  if (formPtradd(op,data)) return 1;
   return 0;
 }
 
