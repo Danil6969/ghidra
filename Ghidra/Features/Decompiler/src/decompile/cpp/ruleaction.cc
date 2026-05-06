@@ -13015,8 +13015,9 @@ bool RulePtrsubAdjust::formPtrsub(PcodeOp *op,Funcdata &data)
     uintb diff = off - val[1];
 
     Datatype *dt = field2->type;
-    if (dt->getMetatype() != TYPE_ARRAY) return false;
-    dt = ((TypeArray *)dt)->getBase();
+    if (dt->getMetatype() == TYPE_ARRAY && dt->getSize() > diff) {
+      dt = ((TypeArray *)dt)->getBase();
+    }
     if (diff < dt->getSize()) return false;
 
     newvn[0] = data.newConstant(sz,(val[0] + off) & calc_mask(sz));
