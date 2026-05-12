@@ -2749,7 +2749,12 @@ Datatype *TypeOpPtradd::getInputLocal(const PcodeOp *op,int4 slot) const
 Datatype *TypeOpPtradd::getOutputLocal(const PcodeOp *op) const
 
 {
-  return tlst->getBase(op->getOut()->getSize(),TYPE_INT);	// For type propagation, treat same as INT_ADD
+  Datatype *dt = tlst->getBase(op->getOut()->getSize(),TYPE_INT);
+  TypePointer *ptype = (TypePointer *)op->getIn(0)->getTypeReadFacing(op);
+  if (ptype->getMetatype() != TYPE_PTR) return dt;
+  Datatype *ptrto = ptype->getPtrTo();
+  if (ptrto->getSize() != op->getIn(2)->getOffset()) return dt;
+  return ptype;
 }
 
 Datatype *TypeOpPtradd::getOutputToken(const PcodeOp *op,CastStrategy *castStrategy) const
