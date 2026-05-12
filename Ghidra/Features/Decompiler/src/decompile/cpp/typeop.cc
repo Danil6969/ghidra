@@ -2433,6 +2433,10 @@ Datatype *TypeOpMulti::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn
     if (ct->getMetatype() != TYPE_PTR) return (Datatype *)0;
     return (Datatype *)0;
   }
+  if (inop->code() == CPUI_MULTIEQUAL) {
+    if (alttype->getMetatype() == TYPE_UNKNOWN)
+      alttype = op->getIn(inslot)->getTypeDefFacing();
+  }
   if (alttype->getSize() != outvn->getSize()) return (Datatype *)0;
   return alttype;
 }
