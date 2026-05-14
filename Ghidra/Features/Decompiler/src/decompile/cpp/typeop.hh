@@ -427,6 +427,7 @@ public:
   virtual void push(PrintLanguage *lng,const PcodeOp *op,const PcodeOp *readOp) const { lng->opIntZext(op,readOp); }
   virtual string getOperatorName(const PcodeOp *op) const;
   virtual Datatype *getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const;
+  virtual Datatype *getOutputLocal(const PcodeOp *op) const;
 };
 
 /// \brief Information about the INT_SEXT op-code
