@@ -1429,6 +1429,14 @@ Datatype *TypeOpIntZext::getInputCast(const PcodeOp *op,int4 slot,const CastStra
   return castStrategy->castStandard(reqtype,curtype,true,false);
 }
 
+Datatype *TypeOpIntZext::getOutputLocal(const PcodeOp *op) const
+
+{
+  if (op->getOut()->getTypeDefFacing()->isMemsizeType())
+    return tlst->getMemsizeType(false);
+  return TypeOpFunc::getOutputLocal(op);
+}
+
 TypeOpIntSext::TypeOpIntSext(TypeFactory *t)
   : TypeOpFunc(t,CPUI_INT_SEXT,"SEXT",TYPE_INT,TYPE_INT)
 {
