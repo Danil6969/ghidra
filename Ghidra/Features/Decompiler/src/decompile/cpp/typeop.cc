@@ -1834,6 +1834,21 @@ TypeOpIntAnd::TypeOpIntAnd(TypeFactory *t)
   behave = new OpBehaviorIntAnd();
 }
 
+Datatype *TypeOpIntAnd::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
+
+{
+  Datatype *ct = TypeOp::getInputCast(op,slot,castStrategy);
+  if (op->getOut()->getTypeDefFacing()->getMetatype() == TYPE_PTR) {
+    if (ct == (Datatype *)0) return ct;
+    if (ct->getMetatype() == TYPE_INT)
+      return tlst->getMemsizeType(true);
+    if (ct->getMetatype() == TYPE_UINT)
+      return tlst->getMemsizeType(false);
+    return ct;
+  }
+  return ct;
+}
+
 Datatype *TypeOpIntAnd::getInputLocal(const PcodeOp *op,int4 slot) const
 
 {
@@ -1878,6 +1893,16 @@ Datatype *TypeOpIntAnd::getOutputToken(const PcodeOp *op,CastStrategy *castStrat
 Datatype *TypeOpIntAnd::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn,Varnode *outvn,
 				      int4 inslot,int4 outslot)
 {
+  if (alttype->getMetatype() == TYPE_PTR) {
+    if (inslot == -1 && outslot != -1) {
+      Datatype *ct = outvn->getTypeReadFacing(op);
+      if (ct->getMetatype() == TYPE_INT)
+	return tlst->getMemsizeType(true);
+      if (ct->getMetatype() == TYPE_UINT)
+	return tlst->getMemsizeType(false);
+      return (Datatype *)0;
+    }
+  }
   if (!alttype->isPowerOfTwo()) {
     if (alttype->getMetatype() != TYPE_FLOAT)
       return (Datatype *)0;
@@ -2082,6 +2107,17 @@ Datatype *TypeOpIntMult::getOutputToken(const PcodeOp *op,CastStrategy *castStra
 {
   return castStrategy->arithmeticOutputStandard(op);
 }
+
+Datatype *TypeOpIntMult::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn,Varnode *outvn,
+				       int4 inslot,int4 outslot)
+{
+  if (inslot == -1 && outslot != -1) {
+    Datatype *ct = invn->getTypeDefFacing();
+    if (ct->isMemsizeType())
+      return ct;
+  }
+  return (Datatype *)0;
+};
 
 TypeOpIntDiv::TypeOpIntDiv(TypeFactory *t)
   : TypeOpBinary(t,CPUI_INT_DIV,"/",TYPE_UINT,TYPE_UINT)
@@ -2425,17 +2461,17 @@ Datatype *TypeOpMulti::propagateType(Datatype *alttype,PcodeOp *op,Varnode *invn
     else
       return (Datatype *)0;
   }
-  PcodeOp *inop = op->getIn(inslot)->getDef();
+  PcodeOp *inop = invn->getDef();
   if (inop == (PcodeOp *)0) return alttype;
   if (inop->code() == CPUI_PTRSUB) {
     if (alttype->getMetatype() != TYPE_PTR) return (Datatype *)0;
-    Datatype *ct = op->getIn(inslot)->getTypeDefFacing();
+    Datatype *ct = invn->getTypeDefFacing();
     if (ct->getMetatype() != TYPE_PTR) return (Datatype *)0;
     return (Datatype *)0;
   }
   if (inop->code() == CPUI_MULTIEQUAL) {
     if (alttype->getMetatype() == TYPE_UNKNOWN)
-      alttype = op->getIn(inslot)->getTypeDefFacing();
+      alttype = invn->getTypeDefFacing();
   }
   if (alttype->getSize() != outvn->getSize()) return (Datatype *)0;
   return alttype;
@@ -2532,12 +2568,6 @@ string TypeOpPiece::getOperatorName(const PcodeOp *op) const
   return s.str();
 }
 
-Datatype *TypeOpPiece::getInputLocal(const PcodeOp *op,int4 slot) const
-
-{
-  return TypeOpFunc::getInputLocal(op,slot);
-}
-
 Datatype *TypeOpPiece::getInputCast(const PcodeOp *op,int4 slot,const CastStrategy *castStrategy) const
 
 {
@@ -2553,6 +2583,12 @@ Datatype *TypeOpPiece::getInputCast(const PcodeOp *op,int4 slot,const CastStrate
   if (meta == TYPE_UNKNOWN)
     return tlst->getTypeArray(sz,ct);
   return (Datatype *)0;
+}
+
+Datatype *TypeOpPiece::getInputLocal(const PcodeOp *op,int4 slot) const
+
+{
+  return TypeOpFunc::getInputLocal(op,slot);
 }
 
 Datatype *TypeOpPiece::getOutputLocal(const PcodeOp *op) const
