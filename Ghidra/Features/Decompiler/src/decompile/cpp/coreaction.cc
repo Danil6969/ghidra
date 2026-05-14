@@ -1449,6 +1449,12 @@ SymbolEntry *ActionConstantPtr::isPointer(AddrSpace *spc,Varnode *vn,PcodeOp *op
       else if (!glb->infer_pointers)
 	return (SymbolEntry *)0;
       break;
+    case CPUI_INT_AND:
+      outvn = op->getOut();
+      if (outvn->getTypeDefFacing()->getMetatype()==TYPE_PTR) {
+	break;
+      }
+      return (SymbolEntry *)0;
     case CPUI_INT_MULT:
       if (!vn->isPtrdiffOperand(data)) return (SymbolEntry *)0;
       break;
