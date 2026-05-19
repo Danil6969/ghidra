@@ -8046,6 +8046,12 @@ int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> &visitedOps)
     invn = op->getIn(2);
     return invn->getSize();
   }
+  if (opc == CPUI_INT_EQUAL) {
+    return 1;
+  }
+  if (opc == CPUI_INT_NOTEQUAL) {
+    return 1;
+  }
   if (opc == CPUI_INT_ADD) {
     invn = op->getIn(0);
     if (invn->isConstant())
@@ -8056,6 +8062,9 @@ int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> &visitedOps)
     if (movesize < 0)
       movesize = -movesize;
     return movesize;
+  }
+  if (opc == CPUI_PTRADD) {
+    return op->getIn(2)->getOffset();
   }
   if (opc == CPUI_PTRSUB) {
     list<PcodeOp *>::const_iterator iter;
