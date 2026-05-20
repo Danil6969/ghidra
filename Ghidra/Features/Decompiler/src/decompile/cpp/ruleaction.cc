@@ -8059,7 +8059,7 @@ int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> &visitedOps)
 
   int4 maxsize = 0;
   int4 movesize = 0;
-  uintb offset = 0;
+  int4 offset = 0;
   Varnode *outvn = (Varnode *)0;
   Varnode *invn = (Varnode *)0;
   OpCode opc = op->code();
@@ -8099,13 +8099,45 @@ int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> &visitedOps)
       offset = sign_extend(invn->getOffset(),8*invn->getSize()-1);
     if (offset < 0)
       offset = -offset;
-    return offset;
+
+    list<PcodeOp *>::const_iterator iter;
+    outvn = op->getOut();
+    for (iter=outvn->beginDescend();iter!=outvn->endDescend();++iter) {
+      PcodeOp *otherop = *iter;
+      if (visitedOps.find(otherop) != visitedOps.end()) continue;
+      movesize = getMaxMoveSize(otherop,visitedOps);
+      if (movesize == 0) return offset;
+      if (movesize <= maxsize) continue;
+      maxsize = movesize;
+    }
+    return offset + maxsize;
   }
   if (opc == CPUI_PTRADD) {
-    return op->getIn(2)->getOffset();
+    invn = op->getIn(1);
+    if (invn->isConstant())
+      offset = sign_extend(invn->getOffset(),8*invn->getSize()-1);
+    else
+      offset = 1;
+    invn = op->getIn(2);
+    offset *= invn->getOffset();
+    if (offset < 0)
+      offset = -offset;
+
+    list<PcodeOp *>::const_iterator iter;
+    outvn = op->getOut();
+    for (iter=outvn->beginDescend();iter!=outvn->endDescend();++iter) {
+      PcodeOp *otherop = *iter;
+      if (visitedOps.find(otherop) != visitedOps.end()) continue;
+      movesize = getMaxMoveSize(otherop,visitedOps);
+      if (movesize == 0) return offset;
+      if (movesize <= maxsize) continue;
+      maxsize = movesize;
+    }
+    return offset + maxsize;
   }
   if (opc == CPUI_PTRSUB) {
-    offset = op->getIn(1)->getOffset();
+    invn = op->getIn(1);
+    offset = sign_extend(invn->getOffset(),8*invn->getSize()-1);
     list<PcodeOp *>::const_iterator iter;
     outvn = op->getOut();
     for (iter=outvn->beginDescend();iter!=outvn->endDescend();++iter) {
@@ -8188,7 +8220,7 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
   // Number of bytes being moved by load or store
   int4 movesize = getMaxMoveSize(op,visitedOps);
   visitedOps.clear();
-  if (movesize == 0) return 0;
+  if (movesize <= 0) return 0;
 
   if (meta == TYPE_STRUCT) {
     Datatype *subType = baseType->getSubType(offset,&offset);	// Get field at pointer's offset
