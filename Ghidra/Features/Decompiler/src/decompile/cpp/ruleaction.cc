@@ -8015,6 +8015,43 @@ bool RulePtrArith::canApply(PcodeOp *op,Funcdata &data)
   return false;
 }
 
+/// \brief Prevents infinite loop in cases when struct contains pointers to the same type as itself
+///
+/// \param op is main op
+/// \param baseType is type retrieved from main op by input 1
+/// \param subType is type at zeroth offset of baseType fetched from database
+/// \return true if repeats to itself or similar
+bool RuleStructOffset0::isRepeated(Varnode *vn,Datatype *baseType,Datatype *subType)
+
+{
+  // Checks that this is another PTRSUB
+  PcodeOp *def = vn->getDef();
+  if (def == (PcodeOp *)0) return false;
+  OpCode opc = def->code();
+  if (opc != CPUI_PTRSUB) return false;
+  // Checks that this is a zero-offset PTRSUB
+  Varnode *cvn = def->getIn(1);
+  if (!cvn->isConstant()) return false;
+  if (cvn->getOffset() != 0) return false;
+  Datatype *intype = def->getIn(0)->getTypeReadFacing(def);
+  Datatype *outtype = def->getOut()->getTypeDefFacing();
+  // Already has one PTRSUB, why need more if datatype is the same?
+  if (intype == outtype) {
+    return true;
+  }
+  if (subType == (Datatype *)0) return false;
+  type_metatype subMeta = subType->getMetatype();
+  if (subMeta == TYPE_PTR) {
+    Datatype *subBase = ((TypePointer *) subType)->getPtrTo();
+    if (subBase == baseType)
+      return true;
+  }
+  if (subMeta == TYPE_STRUCT) {
+    return false;
+  }
+  return false;
+}
+
 int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> &visitedOps)
 
 {
@@ -8092,43 +8129,6 @@ int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> &visitedOps)
   }
   // TODO more testing required
   return 1;
-}
-
-/// \brief Prevents infinite loop in cases when struct contains pointers to the same type as itself
-///
-/// \param op is main op
-/// \param baseType is type retrieved from main op by input 1
-/// \param subType is type at zeroth offset of baseType fetched from database
-/// \return true if repeats to itself or similar
-bool RuleStructOffset0::isRepeated(Varnode *vn,Datatype *baseType,Datatype *subType)
-
-{
-  // Checks that this is another PTRSUB
-  PcodeOp *def = vn->getDef();
-  if (def == (PcodeOp *)0) return false;
-  OpCode opc = def->code();
-  if (opc != CPUI_PTRSUB) return false;
-  // Checks that this is a zero-offset PTRSUB
-  Varnode *cvn = def->getIn(1);
-  if (!cvn->isConstant()) return false;
-  if (cvn->getOffset() != 0) return false;
-  Datatype *intype = def->getIn(0)->getTypeReadFacing(def);
-  Datatype *outtype = def->getOut()->getTypeDefFacing();
-  // Already has one PTRSUB, why need more if datatype is the same?
-  if (intype == outtype) {
-    return true;
-  }
-  if (subType == (Datatype *)0) return false;
-  type_metatype subMeta = subType->getMetatype();
-  if (subMeta == TYPE_PTR) {
-    Datatype *subBase = ((TypePointer *) subType)->getPtrTo();
-    if (subBase == baseType)
-      return true;
-  }
-  if (subMeta == TYPE_STRUCT) {
-    return false;
-  }
-  return false;
 }
 
 /// \class RuleStructOffset0
