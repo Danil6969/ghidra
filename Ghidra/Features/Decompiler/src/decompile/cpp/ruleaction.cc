@@ -8077,7 +8077,7 @@ int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> &visitedOps)
       if (movesize <= maxsize) continue;
       maxsize = movesize;
     }
-    return maxsize;
+    return maxsize + op->getIn(1)->getOffset();
   }
   if (opc == CPUI_COPY) {
     outvn = op->getOut();
