@@ -1127,8 +1127,8 @@ public:
 };
 class RuleStructOffset0 : public Rule {
   static bool isRepeated(Varnode *vn,Datatype *baseType,Datatype *subType);
-public:
   static int4 getMaxMoveSize(PcodeOp *op,set<PcodeOp *> &visitedOps);
+public:
   RuleStructOffset0(const string &g) : Rule(g, 0, "structoffset0") {}	///< Constructor
   virtual Rule *clone(const ActionGroupList &grouplist) const {
     if (!grouplist.contains(getGroup())) return (Rule *)0;
