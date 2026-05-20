@@ -8042,7 +8042,7 @@ bool RuleStructOffset0::isRepeated(Varnode *vn,Datatype *baseType,Datatype *subT
   if (subType == (Datatype *)0) return false;
   type_metatype subMeta = subType->getMetatype();
   if (subMeta == TYPE_PTR) {
-    Datatype *subBase = ((TypePointer *) subType)->getPtrTo();
+    Datatype *subBase = ((TypePointer *)subType)->getPtrTo();
     if (subBase == baseType)
       return true;
   }
