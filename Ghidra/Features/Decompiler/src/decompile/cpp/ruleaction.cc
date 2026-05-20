@@ -8059,6 +8059,7 @@ int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> &visitedOps)
 
   int4 maxsize = 0;
   int4 movesize = 0;
+  uintb offset = 0;
   Varnode *outvn = (Varnode *)0;
   Varnode *invn = (Varnode *)0;
   OpCode opc = op->code();
@@ -8092,29 +8093,30 @@ int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> &visitedOps)
   if (opc == CPUI_INT_ADD) {
     invn = op->getIn(0);
     if (invn->isConstant())
-      movesize = sign_extend(invn->getOffset(),8*invn->getSize()-1);
+      offset = sign_extend(invn->getOffset(),8*invn->getSize()-1);
     invn = op->getIn(1);
     if (invn->isConstant())
-      movesize = sign_extend(invn->getOffset(),8*invn->getSize()-1);
-    if (movesize < 0)
-      movesize = -movesize;
-    return movesize;
+      offset = sign_extend(invn->getOffset(),8*invn->getSize()-1);
+    if (offset < 0)
+      offset = -offset;
+    return offset;
   }
   if (opc == CPUI_PTRADD) {
     return op->getIn(2)->getOffset();
   }
   if (opc == CPUI_PTRSUB) {
+    offset = op->getIn(1)->getOffset();
     list<PcodeOp *>::const_iterator iter;
     outvn = op->getOut();
     for (iter=outvn->beginDescend();iter!=outvn->endDescend();++iter) {
       PcodeOp *otherop = *iter;
       if (visitedOps.find(otherop) != visitedOps.end()) continue;
       movesize = getMaxMoveSize(otherop,visitedOps);
-      if (movesize == 0) return 0;
+      if (movesize == 0) return offset;
       if (movesize <= maxsize) continue;
       maxsize = movesize;
     }
-    return maxsize + op->getIn(1)->getOffset();
+    return maxsize + offset;
   }
   if (opc == CPUI_COPY) {
     outvn = op->getOut();
@@ -8155,15 +8157,12 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
   int8 offset = 0;
   OpCode opc = op->code();
 
-  if (opc == CPUI_LOAD) {
+  if (opc == CPUI_LOAD)
     slot = 1;
-  }
-  if (opc == CPUI_STORE) {
+  if (opc == CPUI_STORE)
     slot = 1;
-  }
-  if (opc == CPUI_MULTIEQUAL) {
+  if (opc == CPUI_MULTIEQUAL)
     slot = 0;
-  }
   if (slot == -1) return 0;
   Varnode *ptrVn = op->getIn(slot);
   Datatype *ct = ptrVn->getTypeReadFacing(op);
