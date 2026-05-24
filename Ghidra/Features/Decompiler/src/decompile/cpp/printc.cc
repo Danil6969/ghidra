@@ -1463,8 +1463,15 @@ void PrintC::opPtrsub(const PcodeOp *op)
       const TypeField *fld = ct->findTruncation(suboff,0,op,0,newoff);
       if (fld == (const TypeField*)0) {
 	if (ct->getSize() <= suboff || suboff < 0) {
+	  ostringstream msg;
+	  msg << "PTRSUB at 0x";
+	  msg << hex << op->getAddr().getOffset();
+	  msg << " has offset 0x";
+	  msg << hex << suboff;
+	  msg << " out of bounds into struct ";
+	  msg << ct->getName();
 	  clear();
-	  throw LowlevelError("PTRSUB out of bounds into struct");
+	  throw LowlevelError(msg.str());
 	}
 	// Try to match the Ghidra's default field name from DataTypeComponent.getDefaultFieldName
 	ostringstream s;
