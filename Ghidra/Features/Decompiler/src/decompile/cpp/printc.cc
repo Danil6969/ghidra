@@ -1393,6 +1393,7 @@ void PrintC::opPtrsub(const PcodeOp *op)
     }
     pushVn(in0,op,m);
     push_integer(in1const,4,true,syntax,(Varnode *)0,op);
+    return;
   }
   Datatype *ct = ptype->getPtrTo();	// By default, view as it would be an ordinary pointer
 
