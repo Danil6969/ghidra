@@ -1464,11 +1464,12 @@ void PrintC::opPtrsub(const PcodeOp *op)
       if (fld == (const TypeField*)0) {
 	if (ct->getSize() <= suboff || suboff < 0) {
 	  ostringstream msg;
-	  msg << "PTRSUB at 0x";
+	  msg << "PTRSUB out of bounds into struct\n";
+	  msg << "Op address: 0x";
 	  msg << hex << op->getAddr().getOffset();
-	  msg << " has offset 0x";
+	  msg << "\nOffset: 0x";
 	  msg << hex << suboff;
-	  msg << " out of bounds into struct ";
+	  msg << "\nStruct name: ";
 	  msg << ct->getName();
 	  clear();
 	  throw LowlevelError(msg.str());
