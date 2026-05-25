@@ -1386,8 +1386,13 @@ void PrintC::opPtrsub(const PcodeOp *op)
     ptype = (TypePointer *)in0->getHighTypeReadFacing(op);	// Then we can omit such extended information
   }
   if (ptype->getMetatype() != TYPE_PTR) {
-    clear();
-    throw LowlevelError("PTRSUB off of non-pointer type");
+    pushOp(&binary_plus,op);
+    if (ptype->getMetatype() != TYPE_INT || ptype->getName() != "intptr_t") {
+      pushOp(&typecast,op);
+      pushType(glb->types->getMemsizeType(true));
+    }
+    pushVn(in0,op,m);
+    push_integer(in1const,4,true,syntax,(Varnode *)0,op);
   }
   Datatype *ct = ptype->getPtrTo();	// By default, view as it would be an ordinary pointer
 
@@ -1463,16 +1468,12 @@ void PrintC::opPtrsub(const PcodeOp *op)
       const TypeField *fld = ct->findTruncation(suboff,0,op,0,newoff);
       if (fld == (const TypeField*)0) {
 	if (ct->getSize() <= suboff || suboff < 0) {
-	  ostringstream msg;
-	  msg << "PTRSUB out of bounds into struct\n";
-	  msg << "Op address: 0x";
-	  msg << hex << op->getAddr().getOffset();
-	  msg << "\nOffset: 0x";
-	  msg << hex << suboff;
-	  msg << "\nStruct name: ";
-	  msg << ct->getName();
-	  clear();
-	  throw LowlevelError(msg.str());
+	  pushOp(&binary_plus,op);
+	  pushOp(&typecast,op);
+	  pushType(glb->types->getMemsizeType(true));
+	  pushVn(in0,op,m);
+	  push_integer(in1const,4,true,syntax,(Varnode *)0,op);
+	  return;
 	}
 	// Try to match the Ghidra's default field name from DataTypeComponent.getDefaultFieldName
 	ostringstream s;
@@ -1633,8 +1634,8 @@ void PrintC::opPtrsub(const PcodeOp *op)
   else {
     clear();
     ostringstream s;
-    s << "PTRSUB off of non structured pointer type\n";
-    s << "Op address: 0x";
+    s << "PTRSUB off of non structured pointer type";
+    s << "\nOp address: 0x";
     s << std::hex << op->getAddr().getOffset();
     throw LowlevelError(s.str());
   }
