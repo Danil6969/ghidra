@@ -1386,6 +1386,7 @@ void PrintC::opPtrsub(const PcodeOp *op)
     ptype = (TypePointer *)in0->getHighTypeReadFacing(op);	// Then we can omit such extended information
   }
   if (ptype->getMetatype() != TYPE_PTR) {
+    // PTRSUB off of non-pointer type
     pushOp(&binary_plus,op);
     if (ptype->getMetatype() != TYPE_INT || ptype->getName() != "intptr_t") {
       pushOp(&typecast,op);
@@ -1469,6 +1470,7 @@ void PrintC::opPtrsub(const PcodeOp *op)
       const TypeField *fld = ct->findTruncation(suboff,0,op,0,newoff);
       if (fld == (const TypeField*)0) {
 	if (ct->getSize() <= suboff || suboff < 0) {
+	  // PTRSUB out of bounds into struct
 	  pushOp(&binary_plus,op);
 	  pushOp(&typecast,op);
 	  pushType(glb->types->getMemsizeType(true));
