@@ -1950,11 +1950,12 @@ PcodeOp *ActionExtraPopSetup::getDefinitionRecurse(PcodeOp *op,Varnode *vn,set<B
   if (visitedBlocks.find(curblock) != visitedBlocks.end()) return (PcodeOp *)0;
   visitedBlocks.insert(curblock);
 
+  PcodeOp *curop = (PcodeOp *)0;
   list<PcodeOp *>::iterator begiter = curblock->beginOp();
   list<PcodeOp *>::iterator iter = op->getBasicIter();
   while (iter != begiter) {
     --iter;
-    PcodeOp *curop = *iter;
+    curop = *iter;
     Varnode *outvn = curop->getOut();
     if (outvn == (Varnode *)0) continue;
     if (outvn->getAddr().getSpace() != vn->getAddr().getSpace()) continue;
@@ -1962,8 +1963,12 @@ PcodeOp *ActionExtraPopSetup::getDefinitionRecurse(PcodeOp *op,Varnode *vn,set<B
     if (outvn->getSize() != vn->getSize()) continue;
     return curop;
   }
-  if (curblock->sizeIn() == 0) return (PcodeOp *)0;
-  return getDefinition(curblock->getIn(0)->lastOp(),vn);
+  curop = (PcodeOp *)0;
+  for (int4 i=0;i<curblock->sizeIn();++i) {
+    curop = getDefinitionRecurse(curblock->getIn(i)->lastOp(),vn,visitedBlocks);
+    if (curop != (PcodeOp *)0) return curop;
+  }
+  return (PcodeOp *)0;
 }
 
 PcodeOp *ActionExtraPopSetup::getDefinition(PcodeOp *op,Varnode *vn)
