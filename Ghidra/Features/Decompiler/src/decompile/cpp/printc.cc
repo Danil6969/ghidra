@@ -1635,12 +1635,13 @@ void PrintC::opPtrsub(const PcodeOp *op)
     }
   }
   else {
-    clear();
-    ostringstream s;
-    s << "PTRSUB off of non structured pointer type";
-    s << "\nOp address: 0x";
-    s << std::hex << op->getAddr().getOffset();
-    throw LowlevelError(s.str());
+    // PTRSUB off of non structured pointer type
+    pushOp(&binary_plus,op);
+    pushOp(&typecast,op);
+    pushType(glb->types->getMemsizeType(true));
+    pushVn(in0,op,m);
+    push_integer(in1const,4,true,syntax,(Varnode *)0,op);
+    return;
   }
 }
 
