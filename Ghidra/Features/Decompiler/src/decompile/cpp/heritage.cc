@@ -2626,6 +2626,7 @@ void Heritage::renameRecurse(BlockBasic *bl,VariableStack &varstack)
     for(suboiter=subbl->beginOp();suboiter!=subbl->endOp();++suboiter) {
       multiop = *suboiter;
       if (multiop->code()!=CPUI_MULTIEQUAL) break; // For each MULTIEQUAL
+      if (multiop->numInput() <= slot) continue;
       vnin = multiop->getIn(slot);
       if (vnin->isHeritageKnown()) continue;
       vector<Varnode *> &stack( varstack[ vnin->getAddr() ] );
