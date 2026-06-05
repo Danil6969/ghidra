@@ -162,7 +162,9 @@ public class DataTypeManagerHandler {
 		// archives opened by the program are considered transient.  Alternatively, archives opened
 		// by the user will trigger config state changes.
 		tool.setConfigChanged(wasChanged);
-        putMissingDatatypes(programArchive.getDataTypeManager());
+		if (!program.getDomainFile().isReadOnly()) {
+			putMissingDatatypes(programArchive.getDataTypeManager());
+		}
 	}
 
 	/**
@@ -779,24 +781,24 @@ public class DataTypeManagerHandler {
 		});
 	}
 
-    private void putMissingDatatypes(DataTypeManager dataTypeManager) {
-        DataType dt = dataTypeManager.getDataType(CategoryPath.ROOT, "ULARGE_INTEGER");
-        if (dt == null) {
-            boolean commit = false;
-            int transactionID = dataTypeManager.startTransaction("Put missing datatype");
-            try {
-                StructureDataType struct = new StructureDataType("ULARGE_INTEGER", 0, dataTypeManager);
-                struct.add(UnsignedIntegerDataType.dataType, "LowPart", "");
-                struct.add(UnsignedIntegerDataType.dataType, "HighPart", "");
-                struct.setCategoryPath(CategoryPath.ROOT);
-                dataTypeManager.addDataType(struct, DataTypeConflictHandler.DEFAULT_HANDLER);
-                commit = true;
-            }
-            finally {
-                dataTypeManager.endTransaction(transactionID, commit);
-            }
-        }
-    }
+	private void putMissingDatatypes(DataTypeManager dataTypeManager) {
+		DataType dt = dataTypeManager.getDataType(CategoryPath.ROOT, "ULARGE_INTEGER");
+		if (dt == null) {
+			boolean commit = false;
+			int transactionID = dataTypeManager.startTransaction("Put missing datatype");
+			try {
+				StructureDataType struct = new StructureDataType("ULARGE_INTEGER", 0, dataTypeManager);
+				struct.add(UnsignedIntegerDataType.dataType, "LowPart", "");
+				struct.add(UnsignedIntegerDataType.dataType, "HighPart", "");
+				struct.setCategoryPath(CategoryPath.ROOT);
+				dataTypeManager.addDataType(struct, DataTypeConflictHandler.DEFAULT_HANDLER);
+				commit = true;
+			}
+			finally {
+				dataTypeManager.endTransaction(transactionID, commit);
+			}
+		}
+	}
 
 	public void fireDataTypeManagerChanged(final FileArchive archive) {
 		SystemUtilities.runSwingNow(() -> {
