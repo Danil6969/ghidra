@@ -39,7 +39,9 @@ public class TVmt {
 		dt.add(pointerDT, "DynamicTable", "Pointer to table with dynamic methods");
 		dt.add(PShortString.getDataType(path, manager), "ClassName", "Pointer to shortstring with classname");
 		dt.add(SizeIntDT, "InstanceSize", "Class instance size");
-		dt.add(pointerDT, "Parent", "Pointer to parent VMT");
+		PointerDataType pt = new PointerDataType(dt, manager);
+		TypedefDataType td = new TypedefDataType(path, "PVmt", pt, manager);
+		dt.add(td, "Parent", "Pointer to parent VMT");
 		while (dt.getLength() < maxLength - (maxLength % pointerSize)) {
 			dt.add(pointerDT);
 		}
