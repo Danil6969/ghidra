@@ -53,7 +53,14 @@ public class TVmt {
 
 	public static Address putObject(Address address, long maxLength, CategoryPath path, Program program) {
 		ProgramBasedDataTypeManager manager = program.getDataTypeManager();
-		StructureDataType TVmtDT = TVmt.getDataType(maxLength, path, manager);
+		StructureDataType TVmtDT = null;
+		DataType dt = manager.getDataType(path, "TVmt");
+		if (dt instanceof StructureDataType) {
+			TVmtDT = (StructureDataType)dt;
+		}
+		if (TVmtDT == null) {
+			TVmtDT = TVmt.getDataType(maxLength, path, manager);
+		}
 		PointerDataType pointerDT = PointerDataType.dataType;
 		PascalString255DataType stringDT = PascalString255DataType.dataType;
 		Address startAddress = address;
