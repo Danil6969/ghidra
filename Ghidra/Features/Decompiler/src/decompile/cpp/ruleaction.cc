@@ -13545,18 +13545,26 @@ bool RuleInferPointerMult::testMainOp(PcodeOp *mainop,PcodeOp *otherop,bool &isM
     isMain = false;
     return true;
   }
-  PcodeOp *lone = otherop->getOut()->loneDescend();
+  PcodeOp *lone1 = otherop->getOut()->loneDescend();
   // TODO investigate cases
-  if (lone != (PcodeOp *)0) {
-    if (lone->code() == CPUI_LOAD) {
+  if (lone1 != (PcodeOp *)0) {
+    while (true) {
+      PcodeOp *lone2 = (PcodeOp *)0;
+      if (lone1->code() == CPUI_INT_ADD) {
+        lone2 = lone1->getOut()->loneDescend();
+      }
+      if (lone2 == (PcodeOp *)0) break;
+      lone1 = lone2;
+    }
+    if (lone1->code() == CPUI_LOAD) {
       isMain = false;
       return true;
     }
-    if (lone->code() == CPUI_STORE) {
+    if (lone1->code() == CPUI_STORE) {
       isMain = false;
       return true;
     }
-    if (lone->code() == CPUI_INDIRECT) {
+    if (lone1->code() == CPUI_INDIRECT) {
       isMain = true;
       return false;
     }
