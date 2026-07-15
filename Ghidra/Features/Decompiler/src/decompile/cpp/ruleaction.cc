@@ -7809,7 +7809,7 @@ bool RulePtrArith::isPointerOpValid(PcodeOp *op,Varnode *ptrBase,Varnode *ptrOth
 
 	meta = containingDatatype->getMetatype();
 	int8 newoff;
-	Datatype *derivedDatatype = containingDatatype->getSubType(in1const, &newoff);
+	derivedDatatype = containingDatatype->getSubType(in1const, &newoff);
 	if (derivedDatatype == (Datatype *)0)
 	  // Datatype is unknown, so it's concidered not safe to put ptrsub there
 	  return false;
