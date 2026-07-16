@@ -13302,7 +13302,10 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
   for(list<PcodeOp *>::const_iterator iter=out->beginDescend();iter!=out->endDescend();++iter) {
     PcodeOp *dop = *iter;
     bool isMain;
-    if (!testMainOp(op,dop,isMain)) return false;
+    if (!testMainOp(op,dop,isMain)) {
+      testMainOp(op,dop,isMain);
+      return false;
+    }
     // Main op is processed separately
     if (isMain)
       mainops.push_back(dop);
@@ -13565,6 +13568,31 @@ bool RuleInferPointerMult::testMainOp(PcodeOp *mainop,PcodeOp *otherop,bool &isM
       isMain = false;
       return true;
     }
+    if (lone1->code() == CPUI_INT_EQUAL) {
+      isMain = false;
+      return true;
+    }
+    if (lone1->code() == CPUI_INT_NOTEQUAL) {
+      isMain = false;
+      return true;
+    }
+    if (lone1->code() == CPUI_INT_SLESS) {
+      isMain = false;
+      return true;
+    }
+    if (lone1->code() == CPUI_INT_SLESSEQUAL) {
+      isMain = false;
+      return true;
+    }
+    if (lone1->code() == CPUI_INT_LESS) {
+      isMain = false;
+      return true;
+    }
+    if (lone1->code() == CPUI_INT_LESSEQUAL) {
+      isMain = false;
+      return true;
+    }
+
     if (lone1->code() == CPUI_INDIRECT) {
       isMain = true;
       return false;
