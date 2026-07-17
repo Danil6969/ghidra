@@ -4951,7 +4951,17 @@ bool ActionDeadCode::neverConsumed(Varnode *vn,Funcdata &data)
     // because if vn is not consumed and is input to a marker
     // then the output is also not consumed and the marker
     // op is about to be deleted anyway
-    data.opSetInput(op,data.newConstant(vn->getSize(),0),slot);
+    Varnode *invn = data.newConstant(vn->getSize(),0);
+    if (op->code() == CPUI_MULTIEQUAL) {
+      Varnode *cvn = invn;
+      PcodeOp *copyop = data.newOp(1,op->getAddr());
+      data.opSetOpcode(copyop,CPUI_COPY);
+      data.opInsertBefore(copyop,op);
+      data.newUniqueOut(cvn->getSize(),copyop);
+      data.opSetInput(copyop,cvn,0);
+      invn = copyop->getOut();
+    }
+    data.opSetInput(op,invn,slot);
   }
   op = vn->getDef();
   if (op->isCall() && !op->isPureCall())
