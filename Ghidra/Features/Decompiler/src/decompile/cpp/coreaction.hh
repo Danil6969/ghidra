@@ -500,7 +500,7 @@ class ActionNameVars : public Action {
   static void lookForBadJumpTables(Funcdata &data);	///< Mark the switch variable for bad jump-tables
   static void lookForFuncParamNames(Funcdata &data,const vector<Varnode *> &varlist);
   static PcodeOp *getUseOp(Varnode *vn);	///< Iterate and find copy op or return null
-  static void createSurrogate(PcodeOp *vn,Funcdata &data);	///< Replace raw copy op with ptrsub
+  static void copyToPtrsub(PcodeOp *vn,Funcdata &data);	///< Replace raw copy op with ptrsub
   static void linkSpacebaseSymbol(Varnode *vn,Funcdata &data,vector<Varnode *> &namerec);
   static void linkSymbols(Funcdata &data,vector<Varnode *> &namerec);
 public:
@@ -575,6 +575,7 @@ public:
 /// the particular op being passed through can transform the
 /// "bit usage" vector of the output to obtain the input.
 class ActionDeadCode : public Action {
+  static Varnode *buildZeroConstant(PcodeOp *op,int4 s,Funcdata &data);
   static void pushConsumed(uintb val,Varnode *vn,vector<Varnode *> &worklist);
   static void propagateConsumed(vector<Varnode *> &worklist);
   static bool neverConsumed(Varnode *vn,Funcdata &data);
