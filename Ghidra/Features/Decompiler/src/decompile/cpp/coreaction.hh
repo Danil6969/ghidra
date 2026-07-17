@@ -578,7 +578,7 @@ class ActionDeadCode : public Action {
   static Varnode *buildZeroConstant(PcodeOp *op,int4 s,Funcdata &data);
   static void pushConsumed(uintb val,Varnode *vn,vector<Varnode *> &worklist);
   static void propagateConsumed(vector<Varnode *> &worklist);
-  static bool neverConsumed(Varnode *vn,Funcdata &data);
+  static void neverConsumed(Varnode *vn,Funcdata &data);
   static bool testSpacebase(PcodeOp *op);
   static void markConsumedAddress(AddrSpace *space,uintb offset,Funcdata &data,vector<Varnode *> &worklist);
   static void markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vector<Varnode *> &worklist);
