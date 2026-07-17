@@ -3213,6 +3213,20 @@ int4 RuleMultiCollapse::applyOp(PcodeOp *op,Funcdata &data)
   for(int4 i=0;i<op->numInput();++i)	// Everything must be heritaged before collapse
     if (!op->getIn(i)->isHeritageKnown()) return 0;
 
+  for(int4 i=0;i<op->numInput();++i) {	// Every free varnode must have copy op when used with multi
+    Varnode *invn = op->getIn(i);
+    if (invn->getDef() != (PcodeOp *)0) continue;
+    if (!invn->isFree()) continue;
+    PcodeOp *copyop = data.newOp(1,op->getAddr());
+    data.opSetOpcode(copyop,CPUI_COPY);
+    data.opInsertBefore(copyop,op);
+    data.newUniqueOut(invn->getSize(),copyop);
+    data.opUnsetInput(op,i);
+    data.opSetInput(copyop,invn,0);
+    data.opSetInput(op,copyop->getOut(),i);
+    return 1;
+  }
+
   func_eq = false;		// Start assuming absolute equality of branches
   nofunc = false;		// Functional equalities are initially allowed
   defcopyr = (Varnode *)0;
