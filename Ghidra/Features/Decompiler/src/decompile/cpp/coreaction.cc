@@ -3880,16 +3880,12 @@ PcodeOp *ActionNameVars::getUseOp(Varnode *vn)
   return (PcodeOp *)0;
 }
 
-void ActionNameVars::createSurrogate(PcodeOp *op,Funcdata &data)
+void ActionNameVars::copyToPtrsub(PcodeOp *op,Funcdata &data)
 
 {
-  Varnode *invn = (Varnode *)0;
-  Varnode *cvn = (Varnode *)0;
-  OpCode opc = op->code();
-  if (opc == CPUI_COPY) {
-    invn = op->getIn(0);
-    cvn = data.newConstant(invn->getSize(),0);
-  }
+  if (op->code() != CPUI_COPY) return;
+  Varnode *invn = op->getIn(0);
+  Varnode *cvn = data.newConstant(invn->getSize(),0);
   if (invn == (Varnode *)0) return;
   if (cvn == (Varnode *)0) return;
   vector<Varnode *> inlist;
@@ -3914,7 +3910,7 @@ void ActionNameVars::linkSpacebaseSymbol(Varnode *vn,Funcdata &data,vector<Varno
 
   PcodeOp *op;
   while (op = getUseOp(vn),op != (PcodeOp *)0) {
-    createSurrogate(op,data);
+    copyToPtrsub(op,data);
   }
 
   list<PcodeOp *>::const_iterator iter;
@@ -4662,6 +4658,19 @@ int4 ActionDeterminedBranch::apply(Funcdata &data)
   return 0;
 }
 
+Varnode *ActionDeadCode::buildZeroConstant(PcodeOp *op,int4 s,Funcdata &data)
+
+{
+  Varnode *cvn = data.newConstant(s,0);
+  if (op->code() != CPUI_MULTIEQUAL) return cvn;
+  PcodeOp *copyop = data.newOp(1,op->getAddr());
+  data.opSetOpcode(copyop,CPUI_COPY);
+  data.opInsertBefore(copyop,op);
+  data.newUniqueOut(s,copyop);
+  data.opSetInput(copyop,cvn,0);
+  return copyop->getOut();
+}
+
 /// Given a new \e consume value to push to a Varnode, determine if this changes
 /// the Varnodes consume value and whether to push the Varnode onto the work-list.
 /// \param val is the new consume value
@@ -4951,16 +4960,7 @@ bool ActionDeadCode::neverConsumed(Varnode *vn,Funcdata &data)
     // because if vn is not consumed and is input to a marker
     // then the output is also not consumed and the marker
     // op is about to be deleted anyway
-    Varnode *invn = data.newConstant(vn->getSize(),0);
-    if (op->code() == CPUI_MULTIEQUAL) {
-      Varnode *cvn = invn;
-      PcodeOp *copyop = data.newOp(1,op->getAddr());
-      data.opSetOpcode(copyop,CPUI_COPY);
-      data.opInsertBefore(copyop,op);
-      data.newUniqueOut(cvn->getSize(),copyop);
-      data.opSetInput(copyop,cvn,0);
-      invn = copyop->getOut();
-    }
+    Varnode *invn = buildZeroConstant(op,vn->getSize(),data);
     data.opSetInput(op,invn,slot);
   }
   op = vn->getDef();
