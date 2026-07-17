@@ -4661,7 +4661,18 @@ int4 ActionDeterminedBranch::apply(Funcdata &data)
 Varnode *ActionDeadCode::buildZeroConstant(PcodeOp *op,int4 s,Funcdata &data)
 
 {
-  Varnode *cvn = data.newConstant(s,0);
+  int4 sz = s;
+  if (s > sizeof(uintb))
+    sz = 8;
+  Varnode *cvn = data.newConstant(sz,0);
+  if (s > sizeof(uintb)) {
+    PcodeOp *zextop = data.newOp(1,op->getAddr());
+    data.opSetOpcode(zextop,CPUI_INT_ZEXT);
+    data.opInsertBefore(zextop,op);
+    data.newUniqueOut(s,zextop);
+    data.opSetInput(zextop,cvn,0);
+    return zextop->getOut();
+  }
   if (op->code() != CPUI_MULTIEQUAL) return cvn;
   PcodeOp *copyop = data.newOp(1,op->getAddr());
   data.opSetOpcode(copyop,CPUI_COPY);
