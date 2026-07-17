@@ -4945,10 +4945,9 @@ void ActionDeadCode::propagateConsumed(vector<Varnode *> &worklist)
 /// \param vn is the Varnode
 /// \param data is the function being analyzed
 /// \return true if the Varnode was eliminated
-bool ActionDeadCode::neverConsumed(Varnode *vn,Funcdata &data)
+void ActionDeadCode::neverConsumed(Varnode *vn,Funcdata &data)
 
 {
-  if (vn->getSize() > sizeof(uintb)) return false; // Not enough precision to really tell
   list<PcodeOp *>::const_iterator iter;
   PcodeOp *op;
   iter = vn->beginDescend();
@@ -4968,7 +4967,6 @@ bool ActionDeadCode::neverConsumed(Varnode *vn,Funcdata &data)
     data.opUnsetOutput(op); // For calls just get rid of output
   else
     data.opDestroy(op);	// Otherwise completely remove the op
-  return true;
 }
 
 bool ActionDeadCode::testSpacebase(PcodeOp *op)
@@ -5406,18 +5404,18 @@ int4 ActionDeadCode::apply(Funcdata &data)
       vn->clearConsumeVacuous();
       if (!vacflag) {		// Not even vacuously consumed
 	op = vn->getDef();
+        neverConsumed(vn,data);
 	changecount += 1;
-	if (op->isCall() && !op->isPureCall())
-	  data.opUnsetOutput(op); // For calls just get rid of output
-	else
-	  data.opDestroy(op);	// Otherwise completely remove the op
       }
       else {
-	// Check for values that are never used, but bang around
-	// for a while
+	// Check for values that are never used,
+	// but bang around for a while
 	if (vn->getConsume()==0) {
-	  if (neverConsumed(vn,data))
+	  // Must have enough precision to really tell
+	  if (vn->getSize() <= sizeof(uintb)) {
+	    neverConsumed(vn,data);
 	    changecount += 1;
+	  }
 	}
       }
     }
