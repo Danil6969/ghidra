@@ -5410,11 +5410,17 @@ int4 ActionDeadCode::apply(Funcdata &data)
     while(viter != endviter) {
       vn = *viter++;		// Advance iterator BEFORE (possibly) deleting varnode
       if (!vn->isWritten()) continue;
+      if (!vn->hasNoDescend()) {
+	op = vn->getDef();
+	if (op->code() == CPUI_COPY || op->code() == CPUI_INT_ZEXT) {
+	  Varnode *invn = op->getIn(0);
+	  if (invn->isConstant() && invn->getOffset() == 0) continue;
+	}
+      }
       bool vacflag = vn->isConsumeVacuous();
       vn->clearConsumeList();
       vn->clearConsumeVacuous();
       if (!vacflag) {		// Not even vacuously consumed
-	op = vn->getDef();
         neverConsumed(vn,data);
 	changecount += 1;
       }
