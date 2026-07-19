@@ -5411,6 +5411,7 @@ int4 ActionDeadCode::apply(Funcdata &data)
       vn = *viter++;		// Advance iterator BEFORE (possibly) deleting varnode
       if (!vn->isWritten()) continue;
       if (!vn->hasNoDescend()) {
+	// Postpone dead end ops elimination until consumers are gone
 	op = vn->getDef();
 	if (op->code() == CPUI_COPY || op->code() == CPUI_INT_ZEXT) {
 	  Varnode *invn = op->getIn(0);
