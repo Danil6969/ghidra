@@ -1470,6 +1470,17 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
 };
 
+class RuleSignMod2nOpt3 : public Rule {
+public:
+  RuleSignMod2nOpt3(const string &g) : Rule( g, 0, "signmod2nopt3") {}	///< Constructor
+  virtual Rule *clone(const ActionGroupList &grouplist) const {
+    if (!grouplist.contains(getGroup())) return (Rule *)0;
+    return new RuleSignMod2nOpt3(getGroup());
+  }
+  virtual void getOpList(vector<uint4> &oplist) const;
+  virtual int4 applyOp(PcodeOp *op,Funcdata &data);
+};
+
 class RuleSegment : public Rule {
 public:
   RuleSegment(const string &g) : Rule( g, 0, "segment") {}	///< Constructor
