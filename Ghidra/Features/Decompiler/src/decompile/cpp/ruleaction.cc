@@ -10741,6 +10741,61 @@ Varnode *RuleSignMod2nOpt2::checkMultiequalForm(PcodeOp *op,uintb npow)
   return base;
 }
 
+void RuleSignMod2nOpt3::getOpList(vector<uint4> &oplist) const
+
+{
+  oplist.push_back(CPUI_INT_AND);
+}
+
+int4 RuleSignMod2nOpt3::applyOp(PcodeOp *op,Funcdata &data)
+
+{
+  Varnode *base = op->getIn(0);
+  Varnode *andOut = op->getOut();
+  if (andOut->numDescend() != 3) return 0;
+
+  PcodeOp *slessOp = (PcodeOp *)0;
+  PcodeOp *addOp1 = (PcodeOp *)0;
+  PcodeOp *multiOp = (PcodeOp *)0;
+  list<PcodeOp *>::const_iterator iter;
+  for(iter=andOut->beginDescend();iter!=andOut->endDescend();++iter) {
+    OpCode opc = (*iter)->code();
+    if (opc == CPUI_MULTIEQUAL)
+      multiOp = *iter;
+    if (opc == CPUI_INT_SLESS)
+      slessOp = *iter;
+    if (opc == CPUI_INT_ADD)
+      addOp1 = *iter;
+  }
+
+  if (multiOp == (PcodeOp *)0) return 0;
+  if (multiOp->numInput() != 2) return 0;
+  int4 slot = multiOp->getSlot(andOut);
+
+  PcodeOp *addOp2 = multiOp->getIn(1-slot)->getDef();
+  if (addOp2 == (PcodeOp *)0) return 0;
+  if (addOp2->code() != CPUI_INT_ADD) return 0;
+
+  PcodeOp *orOp = addOp2->getIn(0)->getDef();
+  if (orOp == (PcodeOp *)0) return 0;
+  if (orOp->code() != CPUI_INT_OR) return 0;
+  Varnode *constVn = orOp->getIn(1);
+  if (!constVn->isConstant()) return 0;
+
+  uintb mask = calc_mask(constVn->getSize());
+  uintb npow = (~constVn->getOffset() + 1) & mask;
+  if (popcount(npow) != 1) return 0;
+  if (npow == 1) return 0;
+
+  if (slessOp == (PcodeOp *)0) return 0;
+  if (addOp1 == (PcodeOp *)0) return 0;
+
+  data.opSetInput(multiOp,base,0);
+  data.opSetInput(multiOp,data.newConstant(base->getSize(),npow),1);
+  data.opSetOpcode(multiOp,CPUI_INT_SREM);
+  return 1;
+}
+
 /// \class RuleSegment
 /// \brief Propagate constants through a SEGMENTOP
 void RuleSegment::getOpList(vector<uint4> &oplist) const
