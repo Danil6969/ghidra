@@ -6909,6 +6909,7 @@ void ActionDatabase::universalAction(Architecture *conf)
 	actprop->addRule( new RuleModOpt("analysis") );
 	actprop->addRule( new RuleSignMod2nOpt("analysis") );
 	actprop->addRule( new RuleSignMod2nOpt2("analysis") );
+	actprop->addRule( new RuleSignMod2nOpt3("analysis") );
 	actprop->addRule( new RuleSignMod2Opt("analysis") );
 	actprop->addRule( new RuleSwitchSingle("analysis") );
 	actprop->addRule( new RuleCondNegate("analysis") );
