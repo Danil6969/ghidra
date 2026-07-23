@@ -10757,7 +10757,7 @@ int4 RuleSignMod2nOpt3::applyOp(PcodeOp *op,Funcdata &data)
   if (andOut->numDescend() != 3) return 0;
 
   int4 slot = -1;
-  PcodeOp *slessOp = (PcodeOp *)0;
+  PcodeOp *lessOp = (PcodeOp *)0;
   PcodeOp *addOp1 = (PcodeOp *)0;
   PcodeOp *multiOp = (PcodeOp *)0;
   list<PcodeOp *>::const_iterator iter;
@@ -10766,14 +10766,14 @@ int4 RuleSignMod2nOpt3::applyOp(PcodeOp *op,Funcdata &data)
     if (opc == CPUI_MULTIEQUAL)
       multiOp = *iter;
     if (opc == CPUI_INT_SLESS)
-      slessOp = *iter;
+      lessOp = *iter;
     if (opc == CPUI_INT_ADD)
       addOp1 = *iter;
   }
 
   if (addOp1 == (PcodeOp *)0) return 0;
   if (multiOp == (PcodeOp *)0) return 0;
-  if (slessOp == (PcodeOp *)0) return 0;
+  if (lessOp == (PcodeOp *)0) return 0;
 
   slot = addOp1->getSlot(andOut);
   Varnode *constVn2 = addOp1->getIn(1-slot);
@@ -10794,8 +10794,28 @@ int4 RuleSignMod2nOpt3::applyOp(PcodeOp *op,Funcdata &data)
   slot = multiOp->getSlot(andOut);
   if (multiOp->getIn(1-slot)->getDef() != addOp2) return 0;
 
-  slot = slessOp->getSlot(andOut);
-  Varnode *constVn5 = slessOp->getIn(1-slot);
+  slot = lessOp->getSlot(andOut);
+  Varnode *constVn5 = lessOp->getIn(1-slot);
+
+  int4 index = -1;
+  BlockBasic *decision = lessOp->getParent();
+  BlockBasic *inner = orOp->getParent();
+  BlockBasic *bl = multiOp->getParent();
+
+  if (inner->sizeIn() != 1) return 0;
+  if (inner->getIn(0) != decision) return 0;
+
+  if (inner->sizeOut() != 1) return 0;
+  if (inner->getOut(0) != bl) return 0;
+
+  if (decision->sizeOut() != 2) return 0;
+  index = decision->getOutIndex(inner);
+  if (decision->getOut(1-index) != bl) return 0;
+
+  PcodeOp *cbranch = lessOp->getOut()->loneDescend();
+  if (cbranch == (PcodeOp*)0) return 0;
+  if (cbranch->code() != CPUI_CBRANCH) return 0;
+  if (cbranch->getParent() != decision) return 0;
 
   if (!constVn1->isConstant()) return 0;
   if (!constVn2->isConstant()) return 0;
