@@ -105,6 +105,7 @@ Datatype *ScoreUnionFields::getTypeStripComposite(Datatype *compositeType,int4 s
 PcodeOp *ScoreUnionFields::getCallAddressUse(set<BlockBasic *> &visitedBlocks,PcodeOp *op,Varnode *vn,int4 &slot)
 
 {
+  if (op == (PcodeOp *)0) return (PcodeOp *)0;
   BlockBasic *bl = op->getParent();
   if (bl == (BlockBasic *)0) return (PcodeOp *)0;
   Funcdata *fd = op->getFuncdata();
