@@ -2076,7 +2076,7 @@ int4 ActionExtraPopSetup::apply(Funcdata &data)
     if (callop->code() == CPUI_CALLIND) {
       // We may have to parse all the ops tree by recursion
       // so we can find the real prototype
-      Datatype *ct = getOutDatatype(callop, 0);
+      Datatype *ct = getOutDatatype(callop,0);
       if (ct != (Datatype *)0 && ct->getMetatype() == TYPE_PTR) {
 	if (((TypePointer *)ct)->getPtrTo()->getMetatype()==TYPE_CODE) {
           TypeCode *tc = (TypeCode *)((TypePointer *)ct)->getPtrTo();
