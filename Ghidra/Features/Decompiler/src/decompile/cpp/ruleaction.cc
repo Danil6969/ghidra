@@ -10751,9 +10751,12 @@ int4 RuleSignMod2nOpt3::applyOp(PcodeOp *op,Funcdata &data)
 
 {
   Varnode *base = op->getIn(0);
+  Varnode *constVn1 = op->getIn(1);
+
   Varnode *andOut = op->getOut();
   if (andOut->numDescend() != 3) return 0;
 
+  int4 slot = -1;
   PcodeOp *slessOp = (PcodeOp *)0;
   PcodeOp *addOp1 = (PcodeOp *)0;
   PcodeOp *multiOp = (PcodeOp *)0;
@@ -10768,30 +10771,55 @@ int4 RuleSignMod2nOpt3::applyOp(PcodeOp *op,Funcdata &data)
       addOp1 = *iter;
   }
 
+  if (addOp1 == (PcodeOp *)0) return 0;
   if (multiOp == (PcodeOp *)0) return 0;
-  if (multiOp->numInput() != 2) return 0;
-  int4 slot = multiOp->getSlot(andOut);
+  if (slessOp == (PcodeOp *)0) return 0;
 
-  PcodeOp *addOp2 = multiOp->getIn(1-slot)->getDef();
-  if (addOp2 == (PcodeOp *)0) return 0;
-  if (addOp2->code() != CPUI_INT_ADD) return 0;
+  slot = addOp1->getSlot(andOut);
+  Varnode *constVn2 = addOp1->getIn(1-slot);
 
-  PcodeOp *orOp = addOp2->getIn(0)->getDef();
+  PcodeOp *orOp = addOp1->getOut()->loneDescend();
   if (orOp == (PcodeOp *)0) return 0;
   if (orOp->code() != CPUI_INT_OR) return 0;
-  Varnode *constVn = orOp->getIn(1);
-  if (!constVn->isConstant()) return 0;
+  slot = orOp->getSlot(addOp1->getOut());
+  Varnode *constVn3 = orOp->getIn(1-slot);
 
-  uintb mask = calc_mask(constVn->getSize());
-  uintb npow = (~constVn->getOffset() + 1) & mask;
+  PcodeOp *addOp2 = orOp->getOut()->loneDescend();
+  if (addOp2 == (PcodeOp *)0) return 0;
+  if (addOp2->code() != CPUI_INT_ADD) return 0;
+  slot = addOp2->getSlot(orOp->getOut());
+  Varnode *constVn4 = addOp2->getIn(1-slot);
+
+  if (multiOp->numInput() != 2) return 0;
+  slot = multiOp->getSlot(andOut);
+  if (multiOp->getIn(1-slot)->getDef() != addOp2) return 0;
+
+  slot = slessOp->getSlot(andOut);
+  Varnode *constVn5 = slessOp->getIn(1-slot);
+
+  if (!constVn1->isConstant()) return 0;
+  if (!constVn2->isConstant()) return 0;
+  if (!constVn3->isConstant()) return 0;
+  if (!constVn4->isConstant()) return 0;
+  if (!constVn5->isConstant()) return 0;
+  int4 sz = constVn1->getSize();
+  if (constVn2->getSize() != sz) return 0;
+  if (constVn3->getSize() != sz) return 0;
+  if (constVn4->getSize() != sz) return 0;
+  if (constVn5->getSize() != sz) return 0;
+
+  if (constVn5->getOffset() != 0) return 0;
+  if (constVn4->getOffset() != 1) return 0;
+  uintb mask = calc_mask(sz);
+  uintb npow = (~constVn3->getOffset() + 1) & mask;
   if (popcount(npow) != 1) return 0;
   if (npow == 1) return 0;
-
-  if (slessOp == (PcodeOp *)0) return 0;
-  if (addOp1 == (PcodeOp *)0) return 0;
+  if (constVn2->getOffset() != mask) return 0;
+  uintb val = ((npow - 1) + (1 << (sz * 8 - 1))) & mask;
+  if (constVn1->getOffset() != val) return 0;
 
   data.opSetInput(multiOp,base,0);
-  data.opSetInput(multiOp,data.newConstant(base->getSize(),npow),1);
+  data.opSetInput(multiOp,data.newConstant(sz,npow),1);
   data.opSetOpcode(multiOp,CPUI_INT_SREM);
   return 1;
 }
