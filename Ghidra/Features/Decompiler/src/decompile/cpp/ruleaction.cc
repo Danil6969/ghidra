@@ -10802,20 +10802,26 @@ int4 RuleSignMod2nOpt3::applyOp(PcodeOp *op,Funcdata &data)
   BlockBasic *inner = orOp->getParent();
   BlockBasic *bl = multiOp->getParent();
 
+  PcodeOp *cbranch = lessOp->getOut()->loneDescend();
+  if (cbranch == (PcodeOp*)0) return 0;
+  if (cbranch->code() != CPUI_CBRANCH) return 0;
+  if (cbranch->getParent() != decision) return 0;
+
   if (inner->sizeIn() != 1) return 0;
   if (inner->getIn(0) != decision) return 0;
-
   if (inner->sizeOut() != 1) return 0;
   if (inner->getOut(0) != bl) return 0;
 
   if (decision->sizeOut() != 2) return 0;
   index = decision->getOutIndex(inner);
   if (decision->getOut(1-index) != bl) return 0;
-
-  PcodeOp *cbranch = lessOp->getOut()->loneDescend();
-  if (cbranch == (PcodeOp*)0) return 0;
-  if (cbranch->code() != CPUI_CBRANCH) return 0;
-  if (cbranch->getParent() != decision) return 0;
+  if (bl->sizeIn() != 2) return 0;
+  index = bl->getInIndex(inner);
+  if (bl->getIn(1-index) != decision) return 0;
+  FlowBlock *negBlock = cbranch->isBooleanFlip() ? decision->getFalseOut() : decision->getTrueOut();
+  if (negBlock != inner && negBlock != bl) return 0;
+  int4 negSlot = (negBlock == inner) ? index : (1-index);
+  if (multiOp->getIn(negSlot) != addOp2->getOut()) return 0;
 
   if (!constVn1->isConstant()) return 0;
   if (!constVn2->isConstant()) return 0;
