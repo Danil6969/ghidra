@@ -429,13 +429,13 @@ bool FlowBlock::hasSpecialFunction(void) const
 
 {
   set<const PcodeOp *> visitedOps;
-  PcodeOp *first = firstOp();
-  PcodeOp *last = lastOp();
-  if (first == (PcodeOp *)0) return false;
-  if (last == (PcodeOp *)0) return false;
+  const PcodeOp *first = firstOp();
+  const PcodeOp *last = lastOp();
+  if (first == (const PcodeOp *)0) return false;
+  if (last == (const PcodeOp *)0) return false;
   const PcodeOp *op;
   for(op=first;op!=last;op=op->nextOp()) {
-    if (op == (PcodeOp *)0) return false;
+    if (op == (const PcodeOp *)0) return false;
     // protect against infinite loop with no result
     if (visitedOps.find(op) != visitedOps.end()) return false;
     visitedOps.insert(op);
