@@ -8727,8 +8727,10 @@ bool RulePtrsubUndo::canProcessOp(PcodeOp *op,Funcdata &data)
   if (basetype->isPtrsubMatching(val,extra,multiplier))
     return false;
   PcodeOp *ptrOp = basevn->getDef();
-  if (ptrOp != (PcodeOp *)0 && ptrOp->code() == CPUI_PTRSUB)
-    return false;
+  if (ptrOp != (PcodeOp *)0) {
+    if (ptrOp->code() == CPUI_PTRSUB) return false;
+    if (ptrOp->code() == CPUI_PTRADD) return false;
+  }
 
   return true;
 }
