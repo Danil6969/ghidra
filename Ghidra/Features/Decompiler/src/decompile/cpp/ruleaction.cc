@@ -13433,10 +13433,7 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
   for(list<PcodeOp *>::const_iterator iter=out->beginDescend();iter!=out->endDescend();++iter) {
     PcodeOp *dop = *iter;
     bool isMain;
-    if (!testMainOp(op,dop,isMain)) {
-      testMainOp(op,dop,isMain);
-      return false;
-    }
+    if (!testMainOp(op,dop,isMain)) return false;
     // Main op is processed separately
     if (isMain)
       mainops.push_back(dop);
