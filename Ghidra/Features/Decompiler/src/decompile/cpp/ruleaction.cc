@@ -13339,27 +13339,32 @@ PcodeOp *RuleInferPointerMult::getIncrementMultiOp(PcodeOp *op)
 
 {
   PcodeOp *multiop = op->getIn(0)->getDef();
-  if (multiop == (PcodeOp *)0) return 0;
-  if (multiop->code() != CPUI_MULTIEQUAL) return 0;
-  return multiop;
+  if (multiop == (PcodeOp *)0) return (PcodeOp *)0;
+  if (multiop->code() != CPUI_MULTIEQUAL) return (PcodeOp *)0;
+  if (multiop->numInput() < 2) return (PcodeOp *)0;
+  if (multiop->getIn(1)->getDef() == op) return multiop;
+  PcodeOp *otherop = multiop->getIn(0)->getDef();
+  PcodeOp *multieq = (PcodeOp *)0;
+  if (otherop->code() == CPUI_INDIRECT) {
+    //multieq = otherop->getIn(0)->getDef();
+  }
+  return multieq;
 }
 
 intb RuleInferPointerMult::getCounterIncrement(PcodeOp *multiop,PcodeOp *op)
 
 {
+  if (op == (PcodeOp *)0) return 0;
   // Increment must be constant
   Varnode *cvn = op->getIn(1);
   if (!cvn->isConstant()) return 0;
   Varnode *invn = op->getIn(0);
   if (invn->isFree()) return 0;
 
-  // Check multi input
+  // Check multi input which must loop to INT_ADD
+  if (multiop == (PcodeOp *)0) return 0;
   if (multiop->numInput() != 2) return 0;
-  Varnode *inmulti = multiop->getIn(1);
-  if (inmulti->isFree()) return 0;
-  PcodeOp *inadd = inmulti->getDef();
-  if (inadd == (PcodeOp *)0) return 0;
-  // Must loop to INT_ADD
+  PcodeOp *inadd = multiop->getIn(1)->getDef();
   if (inadd != op) return 0;
 
   int4 slot;
