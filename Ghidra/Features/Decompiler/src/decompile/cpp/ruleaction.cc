@@ -13826,10 +13826,10 @@ bool RuleInferPointerAdd::formConstant(PcodeOp *op,Funcdata &data)
   // Should not touch if haven't split out other descendants yet
   if (op->getOut()->loneDescend() == (PcodeOp *)0) return false;
 
+  PcodeOp *multiOp = op->getIn(0)->getDef();
   intb increment = getCounterIncrement(op);
   if (increment == 0) return false;
 
-  PcodeOp *multiOp = op->getIn(0)->getDef();
   int4 slot;
   PcodeOp *initOp = getCounterInitOp(multiOp, slot);
 
@@ -13881,10 +13881,10 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
   // Should not touch if haven't split out other descendants yet
   if (op->getOut()->loneDescend() == (PcodeOp *)0) return false;
 
+  PcodeOp *multiOp = op->getIn(0)->getDef();
   intb increment = getCounterIncrement(op);
   if (increment == 0) return false;
 
-  PcodeOp *multiOp = op->getIn(0)->getDef();
   int4 slot; // Slot with constant
   PcodeOp *initOp = getCounterInitOp(multiOp,slot);
 
