@@ -13443,7 +13443,6 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
     PcodeOp *dop = *iter;
     bool isMain;
     if (!testMainOp(op,dop,increment,isMain)) return false;
-    //if (dop->code() == CPUI_MULTIEQUAL) continue;
     // Main op is processed separately
     if (isMain)
       mainops.insert(dop);
@@ -13455,7 +13454,6 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
     PcodeOp *dop = *iter;
     bool isMain;
     if (!testMainOp(op,dop,increment,isMain)) return false;
-    //if (dop->code() == CPUI_MULTIEQUAL) continue;
     // Main op is processed separately
     if (isMain)
       mainops.insert(dop);
