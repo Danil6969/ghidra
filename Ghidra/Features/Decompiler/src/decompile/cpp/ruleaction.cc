@@ -13466,8 +13466,17 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
   intb val = isnegative ? -1 : 1;
   for(set<PcodeOp *>::const_iterator iter=mainops.begin();iter!=mainops.end();++iter) {
     PcodeOp *mainop = *iter;
-    if (mainop->code() == CPUI_MULTIEQUAL) continue;
-    Varnode *invn1 = mainop->getIn(1);
+    Varnode *invn1 = (Varnode *)0;
+    if (mainop->code() == CPUI_MULTIEQUAL) {
+      invn1 = mainop->getIn(1);
+      mainop = invn1->getDef();
+      set<PcodeOp *>::iterator found = descends.find(mainop);
+      if (found != descends.end())
+	descends.erase(found);
+      if (mainop == (PcodeOp *)0) continue;
+    }
+    if (mainop->code() != CPUI_INT_ADD) continue;
+    invn1 = mainop->getIn(1);
     int4 sz = invn1->getSize();
     data.opSetInput(mainop,data.newConstant(sz,val&calc_mask(sz)),1);
   }
