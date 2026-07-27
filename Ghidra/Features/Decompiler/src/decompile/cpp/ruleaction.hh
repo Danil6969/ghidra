@@ -1815,7 +1815,8 @@ public:
 
 class RuleInferPointerMult : public Rule {
   static PcodeOp *getCounterInitOp(PcodeOp *multiop,int4 &slot);
-  static intb getCounterIncrement(PcodeOp *op);
+  static PcodeOp *getIncrementMultiOp(PcodeOp *op);
+  static intb getCounterIncrement(PcodeOp *multiop,PcodeOp *op);
   static intb getCounterMultiplier(PcodeOp *op);
   // Forms for the rule
   static bool formIncrement(PcodeOp *op,Funcdata &data);
@@ -1830,7 +1831,7 @@ public:
   virtual int4 applyOp(PcodeOp *op,Funcdata &data);
   static bool canApply(PcodeOp *op,Funcdata &data);
   static bool checkPointerUsages(Varnode *vn,set<Varnode *> &visitedVarnodes,Funcdata &data);
-  static bool testMainOp(PcodeOp *mainop,PcodeOp *otherop,bool &isMain);
+  static bool testMainOp(PcodeOp *mainop,PcodeOp *otherop,intb increment,bool &isMain);
 };
 
 class RuleInferPointerAdd : public Rule {
