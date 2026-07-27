@@ -13405,16 +13405,10 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
   // Specific to this form
   if (op->code() != CPUI_INT_ADD) return false;
 
-  PcodeOp *multiop = getIncrementMultiOp(op);
-
-  if (op->getAddr().getOffset() == 0x7cb098) {
-    volatile bool test = true;
-    getCounterIncrement(multiop,op);
-  }
-
   // Should not touch if haven't split out other descendants yet
   if (op->getOut()->loneDescend() == (PcodeOp *)0) return false;
 
+  PcodeOp *multiop = getIncrementMultiOp(op);
   intb increment = getCounterIncrement(multiop,op);
   if (increment == 0) return false;
   if (increment == 1) return false;
@@ -13666,7 +13660,6 @@ bool RuleInferPointerMult::testMainOp(PcodeOp *mainop,PcodeOp *otherop,intb incr
     isMain = true;
     return true;
   }
-  //intb increment = getCounterIncrement(mainop);
   if (otherop->code() != CPUI_INT_ADD) {
     isMain = false;
     return true;
