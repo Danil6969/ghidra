@@ -13268,7 +13268,7 @@ bool RulePtrsubAdjust::formPtradd(PcodeOp *op,Funcdata &data)
     if (dt->getSize() != val[1]) return false;
 
     newvn[0] = data.newConstant(sz,fieldoff);
-    newvn[1] = data.newConstant(sz,(-n) & calc_mask(sz));
+    newvn[1] = data.newConstant(sz,(-n)&calc_mask(sz));
     newvn[2] = data.newConstant(sz,val[1]);
     PcodeOp *newptrsubop = data.newOpBefore(op,CPUI_PTRSUB,basevn,newvn[0]);
     PcodeOp *newaddop = data.newOpBefore(op,CPUI_INT_ADD,invn,newvn[1]);
@@ -13346,7 +13346,7 @@ PcodeOp *RuleInferPointerMult::getIncrementMultiOp(PcodeOp *op)
   PcodeOp *otherop = multiop->getIn(0)->getDef();
   PcodeOp *multieq = (PcodeOp *)0;
   if (otherop->code() == CPUI_INDIRECT) {
-    //multieq = otherop->getIn(0)->getDef();
+    multieq = otherop->getIn(0)->getDef();
   }
   return multieq;
 }
@@ -13429,46 +13429,64 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
   intb b = isnegative ? -increment : increment;
   if (a % b != 0) return false;
 
-  Varnode *out = multiop->getOut();
-  if (out->isFree()) return false;
+  Varnode *multivn = multiop->getOut();
   set<Varnode *> visitedVarnodes;
-  bool res = checkPointerUsages(out,visitedVarnodes,data);
+  bool res = checkPointerUsages(multivn,visitedVarnodes,data);
   visitedVarnodes.clear();
   if (!res) return false;
 
+  list<PcodeOp *>::const_iterator iter;
   // Collect descends
-  vector<PcodeOp *> descends;
-  vector<PcodeOp *> mainops;
-  for(list<PcodeOp *>::const_iterator iter=out->beginDescend();iter!=out->endDescend();++iter) {
+  set<PcodeOp *> descends;
+  set<PcodeOp *> mainops;
+  for(iter=multivn->beginDescend();iter!=multivn->endDescend();++iter) {
     PcodeOp *dop = *iter;
     bool isMain;
     if (!testMainOp(op,dop,increment,isMain)) return false;
+    //if (dop->code() == CPUI_MULTIEQUAL) continue;
     // Main op is processed separately
     if (isMain)
-      mainops.push_back(dop);
+      mainops.insert(dop);
     else
-      descends.push_back(dop);
+      descends.insert(dop);
+  }
+  multivn = op->getIn(0);
+  for (iter=multivn->beginDescend();iter!=multivn->endDescend();++iter) {
+    PcodeOp *dop = *iter;
+    bool isMain;
+    if (!testMainOp(op,dop,increment,isMain)) return false;
+    //if (dop->code() == CPUI_MULTIEQUAL) continue;
+    // Main op is processed separately
+    if (isMain)
+      mainops.insert(dop);
+    else
+      descends.insert(dop);
   }
 
   intb val = isnegative ? -1 : 1;
-  for(vector<PcodeOp *>::const_iterator iter=mainops.begin();iter!=mainops.end();++iter) {
+  for(set<PcodeOp *>::const_iterator iter=mainops.begin();iter!=mainops.end();++iter) {
     PcodeOp *mainop = *iter;
     Varnode *invn1 = mainop->getIn(1);
     int4 sz = invn1->getSize();
-    data.opSetInput(mainop,data.newConstant(sz,val & calc_mask(sz)),1);
+    data.opSetInput(mainop,data.newConstant(sz,val&calc_mask(sz)),1);
   }
   val = isnegative ? -increment : increment;
-  int4 sz = out->getSize();
-  for(vector<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
+  int4 sz = multivn->getSize();
+  for(set<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
     PcodeOp *descend = *iter;
-    PcodeOp *newop = data.newOpAfter(multiop,CPUI_INT_MULT,out,data.newConstant(sz,val & calc_mask(sz)));
-    int4 slot = descend->getSlot(out);
+    multivn = multiop->getOut();
+    if (descend->getSlot(multivn) == -1)
+      multivn = op->getIn(0);
+    if (descend->getSlot(multivn) == -1)
+      throw LowlevelError("Could not find use op of multivn");
+    PcodeOp *newop = data.newOpAfter(multiop,CPUI_INT_MULT,multivn,data.newConstant(sz,val&calc_mask(sz)));
+    int4 slot = descend->getSlot(multivn);
     data.opSetInput(descend,newop->getOut(),slot);
   }
   // Also divide initializer
   if (a != 0) {
     val = a / b;
-    data.opSetInput(initop,data.newConstant(initvn->getSize(),val & calc_mask(initvn->getSize())),slot);
+    data.opSetInput(initop,data.newConstant(initvn->getSize(),val&calc_mask(initvn->getSize())),slot);
   }
   return true;
 }
@@ -13502,17 +13520,17 @@ bool RuleInferPointerMult::formAssignment(PcodeOp *op,Funcdata &data)
   if (!res) return false;
 
   // Collect descends
-  vector<PcodeOp *> descends;
-  vector<PcodeOp *> mainops;
+  set<PcodeOp *> descends;
+  set<PcodeOp *> mainops;
   for(list<PcodeOp *>::const_iterator iter=out->beginDescend();iter!=out->endDescend();++iter) {
     PcodeOp *dop = *iter;
     bool isMain;
     if (!testMainOp(op,dop,multiplier,isMain)) return false;
     // Main op is processed separately
     if (isMain)
-      mainops.push_back(dop);
+      mainops.insert(dop);
     else
-      descends.push_back(dop);
+      descends.insert(dop);
   }
 
   // Should not have any usage of main op
@@ -13520,19 +13538,19 @@ bool RuleInferPointerMult::formAssignment(PcodeOp *op,Funcdata &data)
   intb val = 1;
   Varnode *invn1 = op->getIn(1);
   int4 sz = invn1->getSize();
-  data.opSetInput(op,data.newConstant(sz,val & calc_mask(sz)),1);
+  data.opSetInput(op,data.newConstant(sz,val&calc_mask(sz)),1);
   val = multiplier;
   sz = out->getSize();
-  for(vector<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
+  for(set<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
     PcodeOp *descend = *iter;
-    PcodeOp *newop = data.newOpAfter(multiop,CPUI_INT_MULT,out,data.newConstant(sz,val & calc_mask(sz)));
+    PcodeOp *newop = data.newOpAfter(multiop,CPUI_INT_MULT,out,data.newConstant(sz,val&calc_mask(sz)));
     int4 slot = descend->getSlot(out);
     data.opSetInput(descend,newop->getOut(),slot);
   }
   // Also divide initializer
   if (a != 0) {
     val = a / b;
-    data.opSetInput(initop,data.newConstant(initvn->getSize(),val & calc_mask(initvn->getSize())),slot);
+    data.opSetInput(initop,data.newConstant(initvn->getSize(),val&calc_mask(initvn->getSize())),slot);
   }
   return true;
 }
@@ -13666,6 +13684,10 @@ bool RuleInferPointerMult::testMainOp(PcodeOp *mainop,PcodeOp *otherop,intb incr
     return true;
   }
   if (otherop->code() != CPUI_INT_ADD) {
+    if (otherop->code() == CPUI_MULTIEQUAL) {
+      isMain = true;
+      return true;
+    }
     isMain = false;
     return true;
   }
@@ -13723,6 +13745,11 @@ bool RuleInferPointerMult::testMainOp(PcodeOp *mainop,PcodeOp *otherop,intb incr
       return true;
     }
     if (lone1->code() == CPUI_INT_LESSEQUAL) {
+      isMain = false;
+      return true;
+    }
+
+    if (lone1->code() == CPUI_MULTIEQUAL) {
       isMain = false;
       return true;
     }
@@ -13852,7 +13879,7 @@ bool RuleInferPointerAdd::formConstant(PcodeOp *op,Funcdata &data)
   if (!res) return false;
 
   // Collect descends
-  vector<PcodeOp *> descends;
+  set<PcodeOp *> descends;
   for(list<PcodeOp *>::const_iterator iter=multiOut->beginDescend();iter!=multiOut->endDescend();++iter) {
     PcodeOp *dop = *iter;
 
@@ -13866,10 +13893,10 @@ bool RuleInferPointerAdd::formConstant(PcodeOp *op,Funcdata &data)
     if (!RuleInferPointerMult::testMainOp(op,dop,increment,isMain)) return false;
     // Main op isn't processed
     if (isMain) continue;
-    descends.push_back(dop);
+    descends.insert(dop);
   }
 
-  for(vector<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
+  for(set<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
     PcodeOp *descend = *iter;
     PcodeOp *newop = data.newOpAfter(multiOp,CPUI_INT_ADD,multiOut,data.newConstant(size,shiftOffset&calc_mask(size)));
     int4 slot = descend->getSlot(multiOut);
@@ -13913,7 +13940,7 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
   if (!res) return false;
 
   // Collect descends
-  vector<PcodeOp *> descends;
+  set<PcodeOp *> descends;
   for(list<PcodeOp *>::const_iterator iter=multiOut->beginDescend();iter!=multiOut->endDescend();++iter) {
     PcodeOp *dop = *iter;
 
@@ -13927,11 +13954,11 @@ bool RuleInferPointerAdd::formSpacebase(PcodeOp *op,Funcdata &data)
     if (!RuleInferPointerMult::testMainOp(op,dop,increment,isMain)) return false;
     // Main op isn't processed
     if (isMain) continue;
-    descends.push_back(dop);
+    descends.insert(dop);
   }
 
   if (descends.empty()) return false;
-  for(vector<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
+  for(set<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
     PcodeOp *descend = *iter;
     PcodeOp *newop = data.newOpAfter(multiOp,CPUI_INT_ADD,multiOut,initopOut);
     int4 slot = descend->getSlot(multiOut);
