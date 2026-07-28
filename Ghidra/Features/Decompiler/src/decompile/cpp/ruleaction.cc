@@ -13483,6 +13483,7 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
   int4 sz = multivn->getSize();
   for(set<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
     PcodeOp *descend = *iter;
+    if (descend->code() == CPUI_INDIRECT) continue;
     multivn = multiop->getOut();
     if (descend->getSlot(multivn) == -1)
       multivn = op->getIn(0);
@@ -13491,6 +13492,25 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
     PcodeOp *newop = data.newOpAfter(multiop,CPUI_INT_MULT,multivn,data.newConstant(sz,val&calc_mask(sz)));
     int4 slot = descend->getSlot(multivn);
     data.opSetInput(descend,newop->getOut(),slot);
+  }
+  for(set<PcodeOp *>::const_iterator iter=descends.begin();iter!=descends.end();++iter) {
+    PcodeOp *descend = *iter;
+    PcodeOp *addop = descend;
+    while (true) {
+      if (addop == (PcodeOp *)0) break;
+      if (addop->code() != CPUI_INT_ADD) break;
+      PcodeOp *ptrsubop = addop->getIn(0)->getDef();
+      if (ptrsubop != (PcodeOp *)0) {
+	if (ptrsubop->code() == CPUI_PTRSUB)
+	  data.opSetOpcode(ptrsubop,CPUI_INT_ADD);
+      }
+      ptrsubop = addop->getIn(1)->getDef();
+      if (ptrsubop != (PcodeOp *)0) {
+        if (ptrsubop->code() == CPUI_PTRSUB)
+          data.opSetOpcode(ptrsubop,CPUI_INT_ADD);
+      }
+      addop = addop->getOut()->loneDescend();
+    }
   }
   // Also divide initializer
   if (a != 0) {
