@@ -13784,12 +13784,15 @@ bool RuleInferPointerMult::testMainOp(PcodeOp *mainop,PcodeOp *otherop,intb incr
       isMain = false;
       return true;
     }
-
     if (lone1->code() == CPUI_MULTIEQUAL) {
       isMain = false;
       return true;
     }
 
+    if (lone1->code() == CPUI_COPY) {
+      isMain = true;
+      return true;
+    }
     if (lone1->code() == CPUI_INDIRECT) {
       isMain = true;
       return false;
