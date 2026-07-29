@@ -13476,14 +13476,18 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
 
     if (mainop->code() == CPUI_MULTIEQUAL) {
       Varnode *invn1 = mainop->getIn(1);
-      PcodeOp *addop = invn1->getDef();
-      if (addop == (PcodeOp *)0) continue;
-      set<PcodeOp *>::iterator found = descends.find(addop);
-      if (found != descends.end()) {
-	descends.erase(found);
+      PcodeOp *otherop = invn1->getDef();
+      if (otherop == (PcodeOp *)0) continue;
+      if (otherop->code() == CPUI_INT_ADD) {
+	set<PcodeOp *>::iterator found = descends.find(otherop);
+	if (found != descends.end()) {
+	  descends.erase(found);
+	}
+	mainops.insert(otherop);
+	mainops.erase(iter);
+	continue;
       }
-      mainops.insert(addop);
-      mainops.erase(iter);
+      if (otherop->code() == CPUI_MULTIEQUAL) continue;
     }
   }
 
@@ -13795,11 +13799,11 @@ bool RuleInferPointerMult::testMainOp(PcodeOp *mainop,PcodeOp *otherop,intb incr
       isMain = false;
       return true;
     }
+
     if (lone1->code() == CPUI_MULTIEQUAL) {
-      isMain = false;
+      isMain = true;
       return true;
     }
-
     if (lone1->code() == CPUI_COPY) {
       isMain = true;
       return true;
