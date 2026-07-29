@@ -13443,11 +13443,10 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
   visitedVarnodes.clear();
   if (!res) return false;
 
-  list<PcodeOp *>::const_iterator iter;
   // Collect descends
   set<PcodeOp *> descends;
   set<PcodeOp *> mainops;
-  for(iter=multivn->beginDescend();iter!=multivn->endDescend();++iter) {
+  for(list<PcodeOp *>::const_iterator iter=multivn->beginDescend();iter!=multivn->endDescend();++iter) {
     PcodeOp *dop = *iter;
     bool isMain;
     if (!testMainOp(op,dop,increment,isMain)) return false;
@@ -13458,7 +13457,7 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
       descends.insert(dop);
   }
   multivn = op->getIn(0);
-  for (iter=multivn->beginDescend();iter!=multivn->endDescend();++iter) {
+  for (list<PcodeOp *>::const_iterator iter=multivn->beginDescend();iter!=multivn->endDescend();++iter) {
     PcodeOp *dop = *iter;
     bool isMain;
     if (!testMainOp(op,dop,increment,isMain)) return false;
@@ -13469,21 +13468,34 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
       descends.insert(dop);
   }
 
+  // Patch up some incorrect main ops
+  set<PcodeOp *>::iterator iter1=mainops.begin();
+  while (iter1!=mainops.end()) {
+    set<PcodeOp *>::iterator iter2 = iter1;
+    iter1++;
+    PcodeOp *mainop = *iter2;
+
+    if (mainop->code() == CPUI_MULTIEQUAL) {
+      Varnode *invn1 = mainop->getIn(1);
+      PcodeOp *addop = invn1->getDef();
+      if (addop == (PcodeOp *)0) continue;
+      set<PcodeOp *>::iterator found = descends.find(addop);
+      if (found != descends.end()) {
+	descends.erase(found);
+      }
+      mainops.insert(addop);
+      mainops.erase(iter2);
+    }
+  }
+
+  if (mainops.empty()) return false;
+  if (descends.empty()) return false;
+
   intb val = isnegative ? -1 : 1;
   for(set<PcodeOp *>::const_iterator iter=mainops.begin();iter!=mainops.end();++iter) {
     PcodeOp *mainop = *iter;
-    Varnode *invn1 = (Varnode *)0;
-    if (mainop->code() == CPUI_MULTIEQUAL) {
-      invn1 = mainop->getIn(1);
-      mainop = invn1->getDef();
-      set<PcodeOp *>::iterator found = descends.find(mainop);
-      if (found != descends.end())
-	descends.erase(found);
-      if (mainop == (PcodeOp *)0) continue;
-    }
     if (mainop->code() != CPUI_INT_ADD) continue;
-    invn1 = mainop->getIn(1);
-    int4 sz = invn1->getSize();
+    int4 sz = mainop->getIn(1)->getSize();
     data.opSetInput(mainop,data.newConstant(sz,val&calc_mask(sz)),1);
   }
   val = isnegative ? -increment : increment;
