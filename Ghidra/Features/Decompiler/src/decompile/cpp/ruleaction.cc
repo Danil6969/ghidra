@@ -13471,9 +13471,8 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
   // Patch up some incorrect main ops
   set<PcodeOp *>::iterator iter1=mainops.begin();
   while (iter1!=mainops.end()) {
-    set<PcodeOp *>::iterator iter2 = iter1;
-    iter1++;
-    PcodeOp *mainop = *iter2;
+    set<PcodeOp *>::iterator iter = iter1++;
+    PcodeOp *mainop = *iter;
 
     if (mainop->code() == CPUI_MULTIEQUAL) {
       Varnode *invn1 = mainop->getIn(1);
@@ -13484,7 +13483,7 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
 	descends.erase(found);
       }
       mainops.insert(addop);
-      mainops.erase(iter2);
+      mainops.erase(iter);
     }
   }
 
