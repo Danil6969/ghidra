@@ -13346,17 +13346,17 @@ PcodeOp *RuleInferPointerMult::getIncrementMultiOp(PcodeOp *op)
     return multiop;
   PcodeOp *otherop = multiop->getIn(0)->getDef();
   if (otherop == (PcodeOp *)0) return (PcodeOp *)0;
-  PcodeOp *multieq = (PcodeOp *)0;
   if (otherop->code() == CPUI_INDIRECT) {
-    multieq = otherop->getIn(0)->getDef();
+    PcodeOp *multieq = otherop->getIn(0)->getDef();
+    if (multieq == (PcodeOp *)0) return (PcodeOp *)0;
     if (multieq->getIn(1)->getDef() == op)
       return multieq;
   }
   if (otherop->code() == CPUI_MULTIEQUAL) {
-    multieq = otherop;
+    PcodeOp *multieq = otherop;
     return multieq;
   }
-  return multieq;
+  return (PcodeOp *)0;
 }
 
 intb RuleInferPointerMult::getCounterIncrement(PcodeOp *multiop,PcodeOp *op)
