@@ -6,7 +6,7 @@
 
 # Maximum heap memory may be changed if default is inadequate. This will generally be up to 1/4 of 
 # the physical memory available to the OS. Uncomment MAXMEM setting if non-default value is needed.
-#MAXMEM=2G
+#MAXMEM=4G
 
 # Resolve symbolic link if present and get the directory this script lives in.
 # NOTE: "readlink -f" is best but works on Linux only, "readlink" will only work if your PWD
