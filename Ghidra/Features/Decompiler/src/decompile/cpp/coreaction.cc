@@ -1785,8 +1785,8 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	}
 	if ((fp==(const FuncProto *)0||fc->isInputLocked())&&rootvn!=(Varnode *)0) {
 	  ostringstream msg;
-	  msg << "Indirect call misses its prototype information\n";
-	  msg << "possible varnodes to extract information from:\n";
+	  msg << "Indirect call misses its prototype information.\n";
+	  msg << "Possible varnodes to extract information from:\n";
 	  const set<pair<Address,Address>> &locs = data.rootlocs;
 	  for (set<pair<Address,Address>>::const_iterator iter=locs.begin();iter!=locs.end();++iter) {
 	    pair<Address,Address> loc = *iter;
