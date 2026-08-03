@@ -1640,6 +1640,9 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,Va
     case CPUI_MULTIEQUAL:
       dt = getOutDatatype(def,0,offset,rootvn,visitedOps);
       return dt;
+    case CPUI_INDIRECT:
+      dt = getOutDatatype(def,0,offset,rootvn,visitedOps);
+      return dt;
     case CPUI_PTRADD:
       invn1 = def->getIn(1);
       if (!invn1->isConstant()) return ct;
@@ -1762,6 +1765,8 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	  set<PcodeOp *> visitedOps;
 	  ct = getOutDatatype(op,0,offset,rootvn,visitedOps);
 	  visitedOps.clear();
+	  if (rootvn != (Varnode *)0)
+	    fc->rootloc.insert(rootvn->getAddr());
 	  if (ct != (Datatype *)0 && ct->getMetatype() == TYPE_PTR) {
 	    if (((TypePointer *)ct)->getPtrTo()->getMetatype()==TYPE_CODE) {
 	      tc = (TypeCode *)((TypePointer *)ct)->getPtrTo();
@@ -1778,7 +1783,7 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	    count += 1;
 	  }
 	}
-	else {
+	if ((fp==(const FuncProto *)0||fc->isInputLocked())&&rootvn!=(Varnode *)0) {
 	  ostringstream msg;
 	  msg << "Indirect call has missing its prototype information\n";
 	  msg << "(varnode to extract information from is ";
