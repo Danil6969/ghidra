@@ -146,6 +146,7 @@ public:
   static const string FIELD_VBPTR;
   static const string LABEL_VFTABLE;
   static const string DATATYPE_VTABLE;
+  set<pair<Address,Address>> rootlocs;					///< First is op address, second is vn address
   Funcdata(const string &nm,const string &disp,Scope *conf,const Address &addr,FunctionSymbol *sym,int4 sz=0);	///< Constructor
   ~Funcdata(void);							///< Destructor
   const string &getName(void) const { return name; }			///< Get the function's local symbol name
