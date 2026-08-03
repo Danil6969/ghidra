@@ -204,7 +204,7 @@ public:
 
 /// \brief Eliminate locally constant indirect calls or at least resolve prototype
 class ActionDeindirect : public Action {
-  static Datatype *getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,set<PcodeOp *> &visitedOps);
+  static Datatype *getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,Varnode *&rootvn,set<PcodeOp *> &visitedOps);
 public:
   static Datatype *getSizeStrippedDatatype(Datatype *pt,int4 size,TypeFactory *types);
   static Datatype *getOffsetStrippedDatatype(Datatype *pt,int8 offset,TypeFactory *types);
