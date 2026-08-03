@@ -1785,12 +1785,17 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	}
 	if ((fp==(const FuncProto *)0||fc->isInputLocked())&&rootvn!=(Varnode *)0) {
 	  ostringstream msg;
-	  msg << "Indirect call has missing its prototype information\n";
-	  msg << "(varnode to extract information from is ";
-	  msg << rootvn->getSpace()->getName();
-	  msg << ":";
-	  msg << hex << rootvn->getOffset();
-	  msg << ")";
+	  msg << "Indirect call misses its prototype information\n";
+	  msg << "possible varnodes to extract information from:\n";
+	  const set<pair<Address,Address>> &locs = data.rootlocs;
+	  for (set<pair<Address,Address>>::const_iterator iter=locs.begin();iter!=locs.end();++iter) {
+	    pair<Address,Address> loc = *iter;
+	    if (loc.first != op->getAddr()) continue;
+	    msg << loc.second.getSpace()->getName();
+	    msg << ":";
+	    msg << hex << loc.second.getOffset();
+	    msg << "\n";
+	  }
 	  data.warning(msg.str(),op->getAddr());
 	}
 	// FIXME: If fc's input IS locked presumably this means
