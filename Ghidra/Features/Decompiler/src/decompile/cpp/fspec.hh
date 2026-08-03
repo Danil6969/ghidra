@@ -1682,6 +1682,7 @@ class FuncCallSpecs : public FuncProto {
   void clearStackPlaceholderSlot(void) {
     stackPlaceholderSlot = -1; if (isinputactive) activeinput.freePlaceholderSlot(); }	///< Release the stack-pointer placeholder
 public:
+  set<Address> rootloc;						///< set of root locations (to emit diagnostic messages)
   enum {
     offset_unknown = 0xBADBEEF					///< "Magic" stack offset indicating the offset is unknown
   };
