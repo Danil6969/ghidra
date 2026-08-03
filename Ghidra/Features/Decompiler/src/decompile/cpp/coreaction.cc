@@ -1766,7 +1766,7 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	  ct = getOutDatatype(op,0,offset,rootvn,visitedOps);
 	  visitedOps.clear();
 	  if (rootvn != (Varnode *)0)
-	    fc->rootloc.insert(rootvn->getAddr());
+	    data.rootlocs.insert(pair<Address,Address>(op->getAddr(),rootvn->getAddr()));
 	  if (ct != (Datatype *)0 && ct->getMetatype() == TYPE_PTR) {
 	    if (((TypePointer *)ct)->getPtrTo()->getMetatype()==TYPE_CODE) {
 	      tc = (TypeCode *)((TypePointer *)ct)->getPtrTo();
