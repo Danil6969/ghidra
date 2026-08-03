@@ -1754,11 +1754,11 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	TypeCode *tc = (TypeCode *)((TypePointer *)ct)->getPtrTo();
 	const FuncProto *fp = tc->getPrototype();
 
+	Varnode *rootvn = (Varnode *)0;
 	if (fp==(const FuncProto *)0) {
 	  // We may have to parse all the ops tree by recursion
 	  // so we can find the real prototype
 	  intb offset = 0;
-	  Varnode *rootvn;
 	  set<PcodeOp *> visitedOps;
 	  ct = getOutDatatype(op,0,offset,rootvn,visitedOps);
 	  visitedOps.clear();
@@ -1780,8 +1780,13 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	}
 	else {
 	  ostringstream msg;
-	  msg << "Op at address";
-	  data.warningHeader(msg.str());
+	  msg << "Indirect call has missing its prototype information\n";
+	  msg << "(varnode to extract information from is ";
+	  msg << rootvn->getSpace()->getName();
+	  msg << ":";
+	  msg << hex << rootvn->getOffset();
+	  msg << ")";
+	  data.warning(msg.str(),op->getAddr());
 	}
 	// FIXME: If fc's input IS locked presumably this means
 	// that this prototype is already set, but it MIGHT mean
