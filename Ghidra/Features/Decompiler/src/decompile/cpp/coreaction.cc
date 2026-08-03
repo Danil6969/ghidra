@@ -1547,7 +1547,7 @@ int4 ActionConstantPtr::apply(Funcdata &data)
   return 0;
 }
 
-Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,set<PcodeOp *> &visitedOps)
+Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,Varnode *&rootvn,set<PcodeOp *> &visitedOps)
 
 {
   FuncCallSpecs *fc = (FuncCallSpecs *)0;			// The function prototype (direct call case)
@@ -1582,6 +1582,7 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,se
   Funcdata *fd = op->getFuncdata();
   TypeFactory *types = fd->getArch()->types;
   Varnode *vn = op->getIn(slot);
+  rootvn = vn;
   PcodeOp *def = vn->getDef();
   if (def == (PcodeOp *)0) {
     dt = vn->getTypeReadFacing(op);
@@ -1591,10 +1592,10 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,se
   OpCode opc = def->code();
   switch (opc) {
     case CPUI_COPY:
-      dt = getOutDatatype(def,0,offset,visitedOps);
+      dt = getOutDatatype(def,0,offset,rootvn,visitedOps);
       return dt;
     case CPUI_LOAD:
-      ct = getOutDatatype(def,1,off,visitedOps);
+      ct = getOutDatatype(def,1,off,rootvn,visitedOps);
       dt = ct;
       if (off != 0) {
 	dt = getOffsetStrippedDatatype(ct,off,types);
@@ -1634,10 +1635,10 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,se
       off = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
       offset += off;
 
-      dt = getOutDatatype(def,0,offset,visitedOps);
+      dt = getOutDatatype(def,0,offset,rootvn,visitedOps);
       return dt;
     case CPUI_MULTIEQUAL:
-      dt = getOutDatatype(def,0,offset,visitedOps);
+      dt = getOutDatatype(def,0,offset,rootvn,visitedOps);
       return dt;
     case CPUI_PTRADD:
       invn1 = def->getIn(1);
@@ -1650,7 +1651,7 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,se
       off = off1 * off2;
       offset += off;
 
-      dt = getOutDatatype(def,0,offset,visitedOps);
+      dt = getOutDatatype(def,0,offset,rootvn,visitedOps);
       return dt;
     case CPUI_PTRSUB:
       invn1 = def->getIn(1);
@@ -1659,7 +1660,7 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,se
       off = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
       offset += off;
 
-      dt = getOutDatatype(def,0,offset,visitedOps);
+      dt = getOutDatatype(def,0,offset,rootvn,visitedOps);
       return dt;
   }
   return (Datatype *)0;
@@ -1757,8 +1758,9 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	  // We may have to parse all the ops tree by recursion
 	  // so we can find the real prototype
 	  intb offset = 0;
+	  Varnode *rootvn;
 	  set<PcodeOp *> visitedOps;
-	  ct = getOutDatatype(op,0,offset,visitedOps);
+	  ct = getOutDatatype(op,0,offset,rootvn,visitedOps);
 	  visitedOps.clear();
 	  if (ct != (Datatype *)0 && ct->getMetatype() == TYPE_PTR) {
 	    if (((TypePointer *)ct)->getPtrTo()->getMetatype()==TYPE_CODE) {
@@ -1775,6 +1777,11 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	    fc->forceSet(data,*fp);
 	    count += 1;
 	  }
+	}
+	else {
+	  ostringstream msg;
+	  msg << "Op at address";
+	  data.warningHeader(msg.str());
 	}
 	// FIXME: If fc's input IS locked presumably this means
 	// that this prototype is already set, but it MIGHT mean
