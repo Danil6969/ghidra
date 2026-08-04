@@ -97,7 +97,7 @@ ext.deps = [
 	[
 		name: "PyDev 6.3.1.zip",
 		url: "https://sourceforge.net/projects/pydev/files/pydev/PyDev%206.3.1/PyDev%206.3.1.zip",
-		sha256: "16a6ff0c2e9dacbd1b4e6a75373aa370b914f71bdd453aeb73ed0ed633c65ac2",
+		sha256: "4d81fe9d8afe7665b8ea20844d3f5107f446742927c59973eade4f29809b0699",
 		destination: file("${DEPS_DIR}/GhidraDev")
 	],
 	[
