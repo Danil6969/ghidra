@@ -1775,15 +1775,22 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	  }
 	}
 
+	bool applied = false;
 	if (fp!=(const FuncProto *)0) {
-	  if (!fc->isInputLocked()) {
+	  if (fc->isInputLocked()) {
+	    applied = true;
+	    applied &= fc->getModelName() == fp->getModelName();
+	    applied &= fc->numParams() == fp->numParams();
+	  }
+	  else {
 	    // We use isInputLocked as a test of whether the
 	    // function pointer prototype has been applied before
 	    fc->forceSet(data,*fp);
 	    count += 1;
+	    applied = true;
 	  }
 	}
-	if ((fp==(const FuncProto *)0||fc->isInputLocked())&&rootvn!=(Varnode *)0) {
+	if (!applied) {
 	  ostringstream msg;
 	  msg << "Indirect call misses its prototype information.\n";
 	  msg << "Possible varnodes to extract information from:\n";
