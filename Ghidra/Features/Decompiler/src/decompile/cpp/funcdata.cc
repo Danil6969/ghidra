@@ -115,6 +115,7 @@ void Funcdata::clear(void)
   // Do not clear overrides
   heritage.clear();
   covermerge.clear();
+  appliedcalls.clear();
 #ifdef OPACTION_DEBUG
   opactdbg_count = 0;
 #endif
