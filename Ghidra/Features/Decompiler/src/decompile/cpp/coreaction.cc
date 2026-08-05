@@ -1783,7 +1783,7 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	    if (fc->numParams() != fp->numParams())
 	      applied = true;
 
-	    if (data.appliedcalls.find(op->getAddr()) == data.appliedcalls.end())
+	    if (data.appliedcalls.find(op->getAddr()) != data.appliedcalls.end())
 	      applied = false;
 	  }
           else {
