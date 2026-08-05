@@ -1778,19 +1778,27 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	bool applied = false;
 	if (fp!=(const FuncProto *)0) {
 	  if (fc->isInputLocked()) {
-	    applied = true;
-	    applied &= fc->getModelName() == fp->getModelName();
-	    applied &= fc->numParams() == fp->numParams();
+	    if (fc->getModelName() != fp->getModelName())
+	      applied = true;
+	    if (fc->numParams() != fp->numParams())
+	      applied = true;
+
+	    if (data.appliedcalls.find(op->getAddr()) == data.appliedcalls.end())
+	      applied = false;
 	  }
-	  else {
-	    // We use isInputLocked as a test of whether the
-	    // function pointer prototype has been applied before
-	    fc->forceSet(data,*fp);
-	    count += 1;
-	    applied = true;
-	  }
+          else {
+            applied = true;
+          }
 	}
-	if (!applied) {
+
+	if (applied) {
+	  // We use isInputLocked as a test of whether the
+	  // function pointer prototype has been applied before
+	  fc->forceSet(data,*fp);
+	  count += 1;
+	  data.appliedcalls.insert(op->getAddr());
+	}
+	else if (fp==(const FuncProto *)0) {
 	  ostringstream msg;
 	  msg << "Indirect call misses its prototype information.\n";
 	  msg << "Possible varnodes to extract information from:\n";
@@ -1805,9 +1813,6 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	  }
 	  data.warning(msg.str(),op->getAddr());
 	}
-	// FIXME: If fc's input IS locked presumably this means
-	// that this prototype is already set, but it MIGHT mean
-	// we have conflicting locked prototypes
       }
     }
   }
@@ -6806,7 +6811,7 @@ void ActionDatabase::universalAction(Architecture *conf)
   ActionGroup *actstackstall;
   AddrSpace *stackspace = conf->getStackSpace();
 
-  act = new ActionRestartGroup(Action::rule_onceperfunc,"universal",1);
+  act = new ActionRestartGroup(Action::rule_onceperfunc,"universal",3);
   registerAction(universalname,act);
 
   act->addAction( new ActionStart("base"));
