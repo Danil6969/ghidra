@@ -541,6 +541,9 @@ public:
   void forceFacingType(Datatype *parent,int4 fieldNum,PcodeOp *op,int4 slot);
   int4 inheritResolution(Datatype *parent,const PcodeOp *op,int4 slot,PcodeOp *oldOp,int4 oldSlot);
 
+  void insertRootLocation(Address op,Address loc) { rootlocs.insert(pair<Address,Address>(op,loc)); }
+  set<Address> getRootLocations(Address op);
+
   // Jumptable routines
   JumpTable *linkJumpTable(PcodeOp *op);		///< Link jump-table with a given BRANCHIND
   JumpTable *findJumpTable(const PcodeOp *op) const;	///< Find a jump-table associated with a given BRANCHIND
