@@ -1766,7 +1766,7 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	  ct = getOutDatatype(op,0,offset,rootvn,visitedOps);
 	  visitedOps.clear();
 	  if (rootvn != (Varnode *)0)
-	    data.rootlocs.insert(pair<Address,Address>(op->getAddr(),rootvn->getAddr()));
+	    data.insertRootLocation(op->getAddr(),rootvn->getAddr());
 	  if (ct != (Datatype *)0 && ct->getMetatype() == TYPE_PTR) {
 	    if (((TypePointer *)ct)->getPtrTo()->getMetatype()==TYPE_CODE) {
 	      tc = (TypeCode *)((TypePointer *)ct)->getPtrTo();
@@ -1802,13 +1802,12 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	  ostringstream msg;
 	  msg << "Indirect call misses its prototype information.\n";
 	  msg << "Possible varnodes to extract information from:\n";
-	  const set<pair<Address,Address>> &locs = data.rootlocs;
-	  for (set<pair<Address,Address>>::const_iterator iter=locs.begin();iter!=locs.end();++iter) {
-	    pair<Address,Address> loc = *iter;
-	    if (loc.first != op->getAddr()) continue;
-	    msg << loc.second.getSpace()->getName();
+	  set<Address> locs = data.getRootLocations(op->getAddr());
+	  for (set<Address,Address>::const_iterator iter=locs.begin();iter!=locs.end();++iter) {
+	    Address loc = *iter;
+	    msg << loc.getSpace()->getName();
 	    msg << ":";
-	    msg << hex << loc.second.getOffset();
+	    msg << hex << loc.getOffset();
 	    msg << "\n";
 	  }
 	  data.warning(msg.str(),op->getAddr());
