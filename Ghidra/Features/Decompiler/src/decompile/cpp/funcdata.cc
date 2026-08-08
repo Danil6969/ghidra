@@ -1027,6 +1027,19 @@ int4 Funcdata::inheritResolution(Datatype *parent,const PcodeOp *op,int4 slot,Pc
   return (*iter).second.getFieldNum();
 }
 
+set<Address> Funcdata::getRootLocations(Address op)
+
+{
+  set<Address> locs;
+  set<pair<Address,Address>>::const_iterator iter;
+  for (iter=rootlocs.begin();iter!=rootlocs.end();++iter) {
+    pair<Address,Address> loc = *iter;
+    if (loc.first != op) continue;
+    locs.insert(loc.second);
+  }
+  return locs;
+}
+
 #ifdef OPACTION_DEBUG
 
 /// The current state of the op is recorded for later comparison after
