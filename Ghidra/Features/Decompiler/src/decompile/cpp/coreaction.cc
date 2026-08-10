@@ -1783,7 +1783,7 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	    if (fc->numParams() != fp->numParams())
 	      applied = true;
 
-	    if (data.appliedcalls.find(op->getAddr()) != data.appliedcalls.end())
+	    if (data.hasAppliedCall(op->getAddr()))
 	      applied = false;
 	  }
           else {
@@ -1796,7 +1796,7 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	  // function pointer prototype has been applied before
 	  fc->forceSet(data,*fp);
 	  count += 1;
-	  data.appliedcalls.insert(op->getAddr());
+	  data.insertAppliedCall(op->getAddr());
 	}
 	else if (fp==(const FuncProto *)0) {
 	  ostringstream msg;
