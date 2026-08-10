@@ -1027,17 +1027,37 @@ int4 Funcdata::inheritResolution(Datatype *parent,const PcodeOp *op,int4 slot,Pc
   return (*iter).second.getFieldNum();
 }
 
+void Funcdata::insertAppliedCall(Address op)
+
+{
+  appliedcalls.insert(op);
+}
+
+bool Funcdata::hasAppliedCall(Address op)
+
+{
+  bool res = appliedcalls.find(op) != appliedcalls.end();
+  return res;
+}
+
+void Funcdata::insertRootLocation(Address op,Address loc)
+
+{
+  pair<Address,Address> res(op,loc);
+  rootlocs.insert(res);
+}
+
 set<Address> Funcdata::getRootLocations(Address op)
 
 {
-  set<Address> locs;
+  set<Address> res;
   set<pair<Address,Address>>::const_iterator iter;
   for (iter=rootlocs.begin();iter!=rootlocs.end();++iter) {
     pair<Address,Address> loc = *iter;
     if (loc.first != op) continue;
-    locs.insert(loc.second);
+    res.insert(loc.second);
   }
-  return locs;
+  return res;
 }
 
 #ifdef OPACTION_DEBUG
