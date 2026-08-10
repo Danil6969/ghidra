@@ -98,6 +98,8 @@ class Funcdata {
   Override localoverride;	///< Overrides of data-flow, prototypes, etc. that are local to \b this function
   map<VarnodeData,const LanedRegister *> lanedMap;	///< Current storage locations which may be laned registers
   map<ResolveEdge,ResolvedUnion> unionMap;	///< A map from data-flow edges to the resolved field of TypeUnion being accessed
+  set<pair<Address,Address>> rootlocs;		///< First is op address, second is vn address
+  set<Address> appliedcalls;			///< List of call addresses which is cleared on each restart
 
 				// Low level Varnode functions
   void setVarnodeProperties(Varnode *vn) const;	///< Look-up boolean properties and data-type information
@@ -146,8 +148,6 @@ public:
   static const string FIELD_VBPTR;
   static const string LABEL_VFTABLE;
   static const string DATATYPE_VTABLE;
-  set<pair<Address,Address>> rootlocs;					///< First is op address, second is vn address
-  set<Address> appliedcalls;
   Funcdata(const string &nm,const string &disp,Scope *conf,const Address &addr,FunctionSymbol *sym,int4 sz=0);	///< Constructor
   ~Funcdata(void);							///< Destructor
   const string &getName(void) const { return name; }			///< Get the function's local symbol name
@@ -541,7 +541,9 @@ public:
   void forceFacingType(Datatype *parent,int4 fieldNum,PcodeOp *op,int4 slot);
   int4 inheritResolution(Datatype *parent,const PcodeOp *op,int4 slot,PcodeOp *oldOp,int4 oldSlot);
 
-  void insertRootLocation(Address op,Address loc) { rootlocs.insert(pair<Address,Address>(op,loc)); }
+  void insertAppliedCall(Address op);
+  bool hasAppliedCall(Address op);
+  void insertRootLocation(Address op,Address loc);
   set<Address> getRootLocations(Address op);
 
   // Jumptable routines
