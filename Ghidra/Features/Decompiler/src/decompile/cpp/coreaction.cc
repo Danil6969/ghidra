@@ -1630,12 +1630,14 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,Va
       return dt;
     case CPUI_INT_ADD:
       invn1 = def->getIn(1);
-      if (!invn1->isConstant()) return ct;
+      if (invn1->isConstant()) {
+	off = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
+	offset += off;
 
-      off = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
-      offset += off;
-
-      dt = getOutDatatype(def,0,offset,rootvn,visitedOps);
+	dt = getOutDatatype(def,0,offset,rootvn,visitedOps);
+	return dt;
+      }
+      dt = getOutDatatype(def,1,offset,rootvn,visitedOps);
       return dt;
     case CPUI_MULTIEQUAL:
       dt = getOutDatatype(def,0,offset,rootvn,visitedOps);
