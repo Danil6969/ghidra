@@ -1647,11 +1647,15 @@ Datatype *ActionDeindirect::getOutDatatype(PcodeOp *op,int4 slot,int8 &offset,Va
       return dt;
     case CPUI_PTRADD:
       invn1 = def->getIn(1);
-      if (!invn1->isConstant()) return ct;
       invn2 = def->getIn(2);
       if (!invn2->isConstant()) return ct;
 
-      off1 = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
+      if (invn1->isConstant()) {
+	off1 = sign_extend(invn1->getOffset(),8*invn1->getSize()-1);
+      }
+      else {
+	off1 = sign_extend(0,8*invn1->getSize()-1);
+      }
       off2 = sign_extend(invn2->getOffset(),8*invn2->getSize()-1);
       off = off1 * off2;
       offset += off;
