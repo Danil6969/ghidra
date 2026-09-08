@@ -13354,10 +13354,14 @@ PcodeOp *RuleInferPointerMult::getIncrementMultiOp(PcodeOp *op)
     PcodeOp *indop = multieq->getIn(0)->getDef();
     while (true) {
       if (indop == (PcodeOp *)0) break;
-      if (indop->code() == CPUI_INDIRECT)
+      if (indop->code() == CPUI_INDIRECT) {
 	indop = indop->getIn(0)->getDef();
-      if (indop->code() == CPUI_MULTIEQUAL)
+	continue;
+      }
+      if (indop->code() == CPUI_MULTIEQUAL) {
 	multieq = indop;
+	break;
+      }
       break;
     }
     if (multieq->getIn(1)->getDef() == op) return multieq;
