@@ -1812,7 +1812,7 @@ int4 ActionDeindirect::apply(Funcdata &data)
 	  for (set<Address,Address>::const_iterator iter=locs.begin();iter!=locs.end();++iter) {
 	    Address loc = *iter;
 	    msg << loc.getSpace()->getName();
-	    msg << ":";
+	    msg << ": 0x";
 	    msg << hex << loc.getOffset();
 	    msg << "\n";
 	  }
