@@ -6712,7 +6712,7 @@ PcodeOp *RuleAllocaPushParams::getCorrespondingLoadOp(PcodeOp *storeop,bool isSt
     switch (opc) {
       case CPUI_LOAD:
       {
-        // Must use the same space to load/store
+	// Must use the same space to load/store
 	if (op->getIn(0)->getOffset() != storeop->getIn(0)->getOffset()) continue;
 	PcodeOp *addop = op->getIn(1)->getDef();
 	if (addop == (PcodeOp *)0) continue;
@@ -6767,8 +6767,8 @@ void RuleAllocaPushParams::gatherSimilarStoreOps(PcodeOp *storeop,vector<PcodeOp
     switch (opc) {
       case CPUI_STORE:
       {
-        // Must use the same space to load/store
-        if (op->getIn(0)->getOffset() != storeop->getIn(0)->getOffset()) continue;
+	// Must use the same space to load/store
+	if (op->getIn(0)->getOffset() != storeop->getIn(0)->getOffset()) continue;
 	PcodeOp *addop = op->getIn(1)->getDef();
 	if (addop == (PcodeOp *)0) continue;
 	if (addop->code() != CPUI_INT_ADD) continue;
@@ -6953,7 +6953,7 @@ void RuleCancelOutPtrAdd::gatherNegateOps(PcodeOp *op,vector<PcodeOp *> &negateo
     vn = negateOp->getIn(1);
     if (vn->isConstant()) {
       if (vn->getOffset() == calc_mask(vn->getSize())) {
-        negateops.push_back(negateOp);
+	negateops.push_back(negateOp);
       }
     }
   }
@@ -6962,7 +6962,7 @@ void RuleCancelOutPtrAdd::gatherNegateOps(PcodeOp *op,vector<PcodeOp *> &negateo
     vn = negateOp->getIn(1);
     if (vn->isConstant()) {
       if (vn->getOffset() == calc_mask(vn->getSize())) {
-        negateops.push_back(negateOp);
+	negateops.push_back(negateOp);
       }
     }
   }
@@ -13253,11 +13253,11 @@ bool RulePtrsubAdjust::formPtradd(PcodeOp *op,Funcdata &data)
     for (iter=ts->beginField();iter!=ts->endField();++iter) {
       const TypeField &field(*iter);
       if (field.offset == fieldoff) {
-        field2 = &(*iter);
-        if (iter==ts->beginField()) return false;
-        iter--;
-        field1 = &(*iter);
-        break;
+	field2 = &(*iter);
+	if (iter==ts->beginField()) return false;
+	iter--;
+	field1 = &(*iter);
+	break;
       }
       if (field.offset > fieldoff) return false;
     }
@@ -13326,7 +13326,7 @@ PcodeOp *RuleInferPointerMult::getCounterInitOp(PcodeOp *multiop,int4 &slot)
     if (initop->code() == CPUI_INT_MULT) {
       Varnode *avn = initop->getIn(1);
       if (avn->isConstant()) {
-        if (initop->getOut()->loneDescend() == (PcodeOp *)0) return (PcodeOp *)0;
+	if (initop->getOut()->loneDescend() == (PcodeOp *)0) return (PcodeOp *)0;
 	slot = 1;
 	return initop;
       }
@@ -13538,8 +13538,8 @@ bool RuleInferPointerMult::formIncrement(PcodeOp *op,Funcdata &data)
       }
       ptrsubop = addop->getIn(1)->getDef();
       if (ptrsubop != (PcodeOp *)0) {
-        if (ptrsubop->code() == CPUI_PTRSUB)
-          data.opSetOpcode(ptrsubop,CPUI_INT_ADD);
+	if (ptrsubop->code() == CPUI_PTRSUB)
+	  data.opSetOpcode(ptrsubop,CPUI_INT_ADD);
       }
       addop = addop->getOut()->loneDescend();
     }
@@ -13772,7 +13772,7 @@ bool RuleInferPointerMult::testMainOp(PcodeOp *mainop,PcodeOp *otherop,intb incr
     while (true) {
       PcodeOp *lone2 = (PcodeOp *)0;
       if (lone1->code() == CPUI_INT_ADD) {
-        lone2 = lone1->getOut()->loneDescend();
+	lone2 = lone1->getOut()->loneDescend();
       }
       if (lone2 == (PcodeOp *)0) break;
       lone1 = lone2;
@@ -13856,8 +13856,8 @@ PcodeOp *RuleInferPointerAdd::getCounterInitOp(PcodeOp *multiop,int4 &slot)
       slot = 1;
       Varnode *cvn = initop->getIn(slot);
       if (cvn->isConstant()) {
-        if (initop->getOut()->loneDescend() == (PcodeOp *)0) return (PcodeOp *)0;
-        return initop;
+	if (initop->getOut()->loneDescend() == (PcodeOp *)0) return (PcodeOp *)0;
+	return initop;
       }
     }
   }
