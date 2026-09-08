@@ -13349,8 +13349,18 @@ PcodeOp *RuleInferPointerMult::getIncrementMultiOp(PcodeOp *op)
   if (otherop->code() == CPUI_INDIRECT) {
     PcodeOp *multieq = otherop->getIn(0)->getDef();
     if (multieq == (PcodeOp *)0) return (PcodeOp *)0;
-    if (multieq->getIn(1)->getDef() == op)
-      return multieq;
+    if (multieq->code() != CPUI_MULTIEQUAL) return (PcodeOp *)0;
+    if (multieq->numInput() < 2) return (PcodeOp *)0;
+    PcodeOp *indop = multieq->getIn(0)->getDef();
+    while (true) {
+      if (indop == (PcodeOp *)0) break;
+      if (indop->code() == CPUI_INDIRECT)
+	indop = indop->getIn(0)->getDef();
+      if (indop->code() == CPUI_MULTIEQUAL)
+	multieq = indop;
+      break;
+    }
+    if (multieq->getIn(1)->getDef() == op) return multieq;
   }
   if (otherop->code() == CPUI_MULTIEQUAL) {
     PcodeOp *multieq = otherop;
