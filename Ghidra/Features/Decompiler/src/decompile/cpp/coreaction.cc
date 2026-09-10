@@ -7078,7 +7078,7 @@ void ActionDatabase::universalAction(Architecture *conf)
   act->addAction( new ActionMarkExplicit("merge") );
   act->addAction( new ActionMarkImplied("merge") ); // This must come BEFORE general merging
   act->addAction( new ActionMergeMultiEntry("merge") );
-  //act->addAction( new ActionMergeCopy("merge") );
+  act->addAction( new ActionMergeCopy("merge") );
   act->addAction( new ActionDominantCopy("merge") );
   act->addAction( new ActionDynamicSymbols("dynamic") );
   act->addAction( new ActionMarkIndirectOnly("merge") ); // Must come after required merges but before speculative
