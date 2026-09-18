@@ -662,18 +662,50 @@ void Merge::mergeAddrTied(void)
       bounds.clear();
       uint4 flags = data.overlapLoc(startiter,bounds);	// Collect maximally overlapping range of Varnodes
       int4 max = bounds.size() - 1;			// Index of last iterator
-      if ((flags & Varnode::addrtied) != 0) {
-	unifyAddress(startiter,bounds[max]);
-	for(int4 i=0;i<max;i+=2) {			// Skip last iterator
-	  mergeRangeMust(bounds[i],bounds[i+1]);
+
+      if ((flags & Varnode::addrtied) == 0) {
+	startiter = bounds[max];
+	continue;
+      }
+      if (max == 2) {
+	bool skip = false;
+	PcodeOp *op = (PcodeOp *)0;
+	if (!vn->hasNoDescend())
+	  op = *(vn->beginDescend());
+	if (op != (PcodeOp *)0) {
+	  if (op->code() == CPUI_STORE)
+	    skip = true;
 	}
-	if (max > 2) {
-	  Varnode *vn1 = *bounds[0];
-	  for(int4 i=2;i<max;i+=2) {
-	    Varnode *vn2 = *bounds[i];
-	    int4 off = (int4)(vn2->getOffset() - vn1->getOffset());
-	    vn2->getHigh()->groupWith(off, vn1->getHigh());
-	  }
+	VarnodeLocSet::const_iterator iter;
+	for (iter=bounds[0];iter!=bounds[1];++iter) {
+	  Varnode *vn1 = *iter;
+	}
+	if (skip) {
+	  startiter = bounds[max];
+	  continue;
+	}
+      }
+      else {
+	// TODO extend and test other cases
+	/* PcodeOp *op = (PcodeOp *)0;
+	if (!vn->hasNoDescend())
+	  op = *(vn->beginDescend());
+	if (op != (PcodeOp *)0) {
+	  if (op->code() == CPUI_STORE)
+	    skip = true;
+	} */
+      }
+
+      unifyAddress(startiter,bounds[max]);
+      for(int4 i=0;i<max;i+=2) {			// Skip last iterator
+	mergeRangeMust(bounds[i],bounds[i+1]);
+      }
+      if (max > 2) {
+	Varnode *vn1 = *bounds[0];
+	for(int4 i=2;i<max;i+=2) {
+	  Varnode *vn2 = *bounds[i];
+	  int4 off = (int4)(vn2->getOffset() - vn1->getOffset());
+	  vn2->getHigh()->groupWith(off, vn1->getHigh());
 	}
       }
       startiter = bounds[max];
@@ -823,8 +855,13 @@ void Merge::mergeOp(PcodeOp *op)
   }
 
   for(i=0;i<max;++i) {		// Try to merge everything for real now
-    if (!mergeTestRequired(op->getOut()->getHigh(),op->getIn(i)->getHigh()))
-      throw LowlevelError("Non-cover related merge restriction violated, despite trims");
+    if (!mergeTestRequired(op->getOut()->getHigh(),op->getIn(i)->getHigh())) {
+      ostringstream errstr;
+      errstr << "Assertion failed: Non-cover related merge restriction violated, despite trims";
+      data.warningHeader(errstr.str());
+      continue;
+      //throw LowlevelError("Non-cover related merge restriction violated, despite trims");
+    }
     if (!merge(op->getOut()->getHigh(),op->getIn(i)->getHigh(),false)) {
       ostringstream errstr;
       errstr << "Assertion failed: Unable to force merge of op at " << op->getSeqNum();
