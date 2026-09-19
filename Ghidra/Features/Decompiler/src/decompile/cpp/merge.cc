@@ -663,37 +663,33 @@ void Merge::mergeAddrTied(void)
       uint4 flags = data.overlapLoc(startiter,bounds);	// Collect maximally overlapping range of Varnodes
       int4 max = bounds.size() - 1;			// Index of last iterator
 
+      vector<Varnode *> vns;
+      for(int4 i=0;i<max;i+=2) {
+	VarnodeLocSet::const_iterator iter;
+	for (iter=bounds[i];iter!=bounds[i+1];++iter) {
+	  vns.push_back(*iter);
+	}
+      }
+
       if ((flags & Varnode::addrtied) == 0) {
 	startiter = bounds[max];
 	continue;
       }
-      if (max == 2) {
-	bool skip = false;
-	PcodeOp *op = (PcodeOp *)0;
-	if (!vn->hasNoDescend())
-	  op = *(vn->beginDescend());
-	if (op != (PcodeOp *)0) {
-	  if (op->code() == CPUI_STORE)
-	    skip = true;
+      if (vns.size() >= 3) {
+	PcodeOp *op1 = (PcodeOp *)0;
+	if (!vns[0]->hasNoDescend())
+	  op1 = *(vns[0]->beginDescend());
+	PcodeOp *op2 = vns[1]->getDef();
+	PcodeOp *op3 = vns[2]->getDef();
+	if (op1 != (PcodeOp *)0 && op2 != (PcodeOp *)0 && op3 != (PcodeOp *)0) {
+	  BlockBasic* bb = op1->getParent();
+	  if (op2->getParent() == bb && op3->getParent() == bb) {
+	    if (op1->code() == CPUI_STORE && op2->code() == CPUI_COPY && op3->code() == CPUI_INDIRECT) {
+	      startiter = bounds[max];
+	      continue;
+	    }
+	  }
 	}
-	VarnodeLocSet::const_iterator iter;
-	for (iter=bounds[0];iter!=bounds[1];++iter) {
-	  Varnode *vn1 = *iter;
-	}
-	if (skip) {
-	  startiter = bounds[max];
-	  continue;
-	}
-      }
-      else {
-	// TODO extend and test other cases
-	/* PcodeOp *op = (PcodeOp *)0;
-	if (!vn->hasNoDescend())
-	  op = *(vn->beginDescend());
-	if (op != (PcodeOp *)0) {
-	  if (op->code() == CPUI_STORE)
-	    skip = true;
-	} */
       }
 
       unifyAddress(startiter,bounds[max]);
