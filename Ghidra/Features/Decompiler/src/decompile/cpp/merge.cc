@@ -682,9 +682,9 @@ void Merge::mergeAddrTied(void)
 	PcodeOp *op2 = vns[1]->getDef();
 	PcodeOp *op3 = vns[2]->getDef();
 	if (op1 != (PcodeOp *)0 && op2 != (PcodeOp *)0 && op3 != (PcodeOp *)0) {
-	  BlockBasic* bb = op1->getParent();
-	  if (op2->getParent() == bb && op3->getParent() == bb) {
-	    if (op1->code() == CPUI_STORE && op2->code() == CPUI_COPY && op3->code() == CPUI_INDIRECT) {
+	  if (op1->code() == CPUI_STORE && op2->code() == CPUI_COPY && op3->code() == CPUI_INDIRECT) {
+	    BlockBasic* bb = op1->getParent();
+	    if (op2->getParent() == bb && op3->getParent() == bb && op1->getIn(2) == vns[0]) {
 	      startiter = bounds[max];
 	      continue;
 	    }
