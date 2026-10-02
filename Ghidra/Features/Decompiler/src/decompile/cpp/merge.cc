@@ -118,8 +118,15 @@ bool Merge::mergeTestRequired(HighVariable *high_out,HighVariable *high_in)
       }
       else {
 	PcodeOp *op = high_out->getTiedVarnode()->getDef();
-	if (op != (PcodeOp *)0)
-	  return false;
+	if (op != (PcodeOp *)0) {
+	  OpCode opc = op->code();
+	  if (opc == CPUI_COPY) {
+	    if (op->getIn(0)->getDef() != (PcodeOp *)0)
+	      return false;
+	  }
+	  if (opc == CPUI_INDIRECT)
+	    return false;
+	}
       }
     }
   }
