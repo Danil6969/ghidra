@@ -7074,7 +7074,7 @@ void ActionDatabase::universalAction(Architecture *conf)
   act->addAction( new ActionNormalizeBranches("normalizebranches") );
   act->addAction( new ActionAssignHigh("merge") );
   // TODO fix all the bugs
-  //act->addAction( new ActionMergeRequired("merge") );
+  act->addAction( new ActionMergeRequired("merge") );
   act->addAction( new ActionMarkExplicit("merge") );
   act->addAction( new ActionMarkImplied("merge") ); // This must come BEFORE general merging
   act->addAction( new ActionMergeMultiEntry("merge") );
