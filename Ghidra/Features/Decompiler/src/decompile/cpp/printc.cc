@@ -474,7 +474,6 @@ bool PrintC::isClassUpcast(Datatype *inType,Datatype *outType,TypeFactory *types
   if (offset != 0) return false;
   if (inVfptrType->getSubMeta() != SUB_PTR) return false;
   Datatype *inpt = inVfptrType->getPtrTo();
-  if (inpt->getSubMeta() != SUB_PTR_STRUCT) return false;
 
   offset = 0;
   TypePointer *outVfptrType = ((TypePointer *)outType)->downChain(offset,unusedParent,unusedOffset,false,*types);
@@ -482,7 +481,6 @@ bool PrintC::isClassUpcast(Datatype *inType,Datatype *outType,TypeFactory *types
   if (outVfptrType == (TypePointer *)0) return false;
   if (outVfptrType->getSubMeta() != SUB_PTR) return false;
   Datatype *outpt = outVfptrType->getPtrTo();
-  if (outpt->getSubMeta() != SUB_PTR_STRUCT) return false;
 
   // TODO check that there are function pointers actually
   inpt = ((TypePointer *)inpt)->getPtrTo();
