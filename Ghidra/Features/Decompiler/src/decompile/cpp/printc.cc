@@ -544,19 +544,25 @@ bool PrintC::isNonstructCast(Datatype *inType,Datatype *outType,TypeFactory *typ
 
 bool PrintC::isPointerIntegerCast(Datatype *inType,Datatype *outType,TypeFactory *types) const
 {
-  if (inType->getMetatype() != TYPE_PTR) return false;
-
-  if (outType->getMetatype() == TYPE_INT) return true;
-  if (outType->getMetatype() == TYPE_UINT) return true;
+  if (inType->getMetatype() == TYPE_PTR) {
+    if (outType->getMetatype() == TYPE_INT) return true;
+    if (outType->getMetatype() == TYPE_UINT) return true;
+  }
+  if (outType->getMetatype() == TYPE_PTR) {
+    if (inType->getMetatype() == TYPE_INT) return true;
+    if (inType->getMetatype() == TYPE_UINT) return true;
+  }
   return false;
 }
 
-bool PrintC::isIntegerPointerCast(Datatype *inType,Datatype *outType,TypeFactory *types) const
+bool PrintC::isIntUintCast(Datatype *inType,Datatype *outType,TypeFactory *types) const
 {
-  if (outType->getMetatype() != TYPE_PTR) return false;
-
-  if (inType->getMetatype() == TYPE_INT) return true;
-  if (inType->getMetatype() == TYPE_UINT) return true;
+  if (inType->getMetatype() == TYPE_INT) {
+    if (outType->getMetatype() == TYPE_UINT) return true;
+  }
+  if (outType->getMetatype() == TYPE_INT) {
+    if (inType->getMetatype() == TYPE_UINT) return true;
+  }
   return false;
 }
 
@@ -574,7 +580,7 @@ bool PrintC::isSimpleCast(Datatype *inType,Datatype *outType,TypeFactory *types)
   if (isVtableUpcast(outType,inType,types)) return true;
   if (isNonstructCast(inType,outType,types)) return true;
   if (isPointerIntegerCast(inType,outType,types)) return true;
-  if (isIntegerPointerCast(inType,outType,types)) return true;
+  if (isIntUintCast(inType,outType,types)) return true;
   return false;
 }
 
