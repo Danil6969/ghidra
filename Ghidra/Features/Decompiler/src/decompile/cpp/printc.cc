@@ -452,35 +452,13 @@ bool PrintC::checkAddressOfCast(const PcodeOp *op) const
   return true;
 }
 
-bool PrintC::isClassUpcast(Datatype *inType,Datatype *outType,TypeFactory *types) const
+bool PrintC::isVtableUpcast(Datatype *inType,Datatype *outType,TypeFactory *types) const
 
 {
-  if (outType->getSubMeta() != SUB_PTR_STRUCT)
-    if (outType->getSubMeta() != SUB_PTR)
-      return false;
-  if (inType->getSubMeta() != SUB_PTR_STRUCT)
-    if (inType->getSubMeta() != SUB_PTR)
-      return false;
-  Datatype *outPointedType = ((TypePointer *)outType)->getPtrTo();
-  Datatype *inPointedType = ((TypePointer *)inType)->getPtrTo();
-  if (inPointedType->getMetatype() != TYPE_STRUCT) return false;
-  if (outPointedType->getMetatype() != TYPE_STRUCT) return false;
-  int8 unusedOffset;
-  TypePointer *unusedParent;
-
-  int8 offset = 0;
-  TypePointer *inVfptrType = ((TypePointer *)inType)->downChain(offset,unusedParent,unusedOffset,false,*types);
-  if (inVfptrType == (TypePointer *)0) return false;
-  if (offset != 0) return false;
-  if (inVfptrType->getSubMeta() != SUB_PTR) return false;
-  Datatype *inpt = inVfptrType->getPtrTo();
-
-  offset = 0;
-  TypePointer *outVfptrType = ((TypePointer *)outType)->downChain(offset,unusedParent,unusedOffset,false,*types);
-  if (offset != 0) return false;
-  if (outVfptrType == (TypePointer *)0) return false;
-  if (outVfptrType->getSubMeta() != SUB_PTR) return false;
-  Datatype *outpt = outVfptrType->getPtrTo();
+  if (inType->getSubMeta() != SUB_PTR) return false;
+  if (outType->getSubMeta() != SUB_PTR) return false;
+  Datatype *inpt = ((TypePointer *)inType)->getPtrTo();
+  Datatype *outpt = ((TypePointer *)outType)->getPtrTo();
 
   // TODO check that there are function pointers actually
   inpt = ((TypePointer *)inpt)->getPtrTo();
@@ -494,6 +472,35 @@ bool PrintC::isClassUpcast(Datatype *inType,Datatype *outType,TypeFactory *types
     if (innerpt == outpt) return true;
   }
   return false;
+}
+
+bool PrintC::isClassUpcast(Datatype *inType,Datatype *outType,TypeFactory *types) const
+
+{
+  if (outType->getSubMeta() != SUB_PTR_STRUCT)
+    if (outType->getSubMeta() != SUB_PTR)
+      return false;
+  if (inType->getSubMeta() != SUB_PTR_STRUCT)
+    if (inType->getSubMeta() != SUB_PTR)
+      return false;
+  Datatype *inPointedType = ((TypePointer *)inType)->getPtrTo();
+  Datatype *outPointedType = ((TypePointer *)outType)->getPtrTo();
+  if (inPointedType->getMetatype() != TYPE_STRUCT) return false;
+  if (outPointedType->getMetatype() != TYPE_STRUCT) return false;
+  int8 unusedOffset;
+  TypePointer *unusedParent;
+
+  int8 offset = 0;
+  TypePointer *inVfptrType = ((TypePointer *)inType)->downChain(offset,unusedParent,unusedOffset,false,*types);
+  if (offset != 0) return false;
+  if (inVfptrType == (TypePointer *)0) return false;
+
+  offset = 0;
+  TypePointer *outVfptrType = ((TypePointer *)outType)->downChain(offset,unusedParent,unusedOffset,false,*types);
+  if (offset != 0) return false;
+  if (outVfptrType == (TypePointer *)0) return false;
+
+  return isVtableUpcast(inVfptrType,outVfptrType,types);
 }
 
 bool PrintC::isNonstructCast(Datatype *inType,Datatype *outType,TypeFactory *types) const
