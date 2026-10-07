@@ -897,7 +897,7 @@ Datatype *Varnode::getLocalType(bool &blockup) const
   Datatype *newct;
 
   Datatype *ct = recoverGlobalDatatype();
-  if (ct != (Datatype *)0)
+  if (ct != (Datatype *)0 && ct->getSize() == size)
     return ct;
 
   if (isTypeLock()) {			// Our type is locked, don't change
@@ -1430,7 +1430,6 @@ Datatype *Varnode::recoverGlobalDatatype(void) const
   if (spc->getName() == "register") return (Datatype *)0;
   SymbolEntry *entry = getSymbolEntry();
   if (entry == (SymbolEntry *)0) return (Datatype *)0;
-  if (entry->getSize() != size) return (Datatype *)0;
   Symbol *symbol = entry->getSymbol();
   if (symbol == (Symbol *)0) return (Datatype *)0;
   return symbol->getType();
