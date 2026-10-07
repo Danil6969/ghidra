@@ -184,7 +184,7 @@ protected:
   bool isClassUpcast(Datatype *inType,Datatype *outType,TypeFactory *types) const;
   bool isNonstructCast(Datatype *inType,Datatype *outType,TypeFactory *types) const;
   bool isPointerIntegerCast(Datatype *inType,Datatype *outType,TypeFactory *types) const;
-  bool isIntegerPointerCast(Datatype *inType,Datatype *outType,TypeFactory *types) const;
+  bool isIntUintCast(Datatype *inType,Datatype *outType,TypeFactory *types) const;
   bool isSimpleCast(Datatype *inType,Datatype *outType,TypeFactory *types) const;
   void emitStructDefinition(const TypeStruct *ct);	///< Emit the definition of a \e structure data-type
   void emitEnumDefinition(const TypeEnum *ct);		///< Emit the definition of an \e enumeration data-type
