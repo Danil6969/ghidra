@@ -8167,9 +8167,14 @@ int4 RuleStructOffset0::getMaxMoveSize(PcodeOp *op,set<PcodeOp *> &visitedOps)
   if (opc == CPUI_COPY) {
     outvn = op->getOut();
     Datatype *ct = outvn->recoverGlobalDatatype();
-    if (ct != (Datatype *)0 && ct->getMetatype() == TYPE_PTR) {
-      TypePointer *pt = (TypePointer *)ct;
-      return pt->getPtrTo()->getSize();
+    if (ct != (Datatype *)0) {
+      if (ct->getMetatype() == TYPE_PTR) {
+	TypePointer *pt = (TypePointer *)ct;
+	return pt->getPtrTo()->getSize();
+      }
+      if (ct->getSize() > outvn->getSize()) {
+	return ct->getSize();
+      }
     }
   }
   if (opc == CPUI_INDIRECT) {
@@ -8199,7 +8204,6 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
 {
   if (!data.hasTypeRecoveryStarted()) return 0;
   int4 slot = -1;			// Pointer slot
-  Datatype *baseType = (Datatype *)0;
   int8 offset = 0;
   OpCode opc = op->code();
 
@@ -8214,6 +8218,7 @@ int4 RuleStructOffset0::applyOp(PcodeOp *op,Funcdata &data)
   Datatype *ct = ptrVn->getTypeReadFacing(op);
   if (ct->getMetatype() != TYPE_PTR) return 0;
 
+  Datatype *baseType;
   if (op->isEventualFormalPointerRel()) {
     TypePointerRel *ptRel = (TypePointerRel *)ct;
     baseType = ptRel->getParent();
