@@ -222,8 +222,19 @@ void PrintLanguage::pushVnExplicit(const Varnode *vn,const PcodeOp *op)
     pushAnnotation(vn,op);
     return;
   }
-  if (vn->isConstant()) {
-    pushConstant(vn->getOffset(),vn->getHighTypeReadFacing(op),vartoken,vn,op);
+  const Varnode *cvn = (const Varnode *)0;
+  const PcodeOp *def = vn->getDef();
+  if (vn->isConstant())
+    cvn = vn;
+  else if (def != (PcodeOp *)0) {
+    if (def->code() == CPUI_COPY) {
+      if (def->getIn(0)->isConstant() && def->getIn(0)->getSize() == vn->getSize()) {
+	cvn = def->getIn(0);
+      }
+    }
+  }
+  if (cvn != (const Varnode *)0) {
+    pushConstant(cvn->getOffset(),vn->getHighTypeReadFacing(op),vartoken,vn,op);
     return;
   }
   pushSymbolDetail(vn,op,true);
