@@ -468,6 +468,7 @@ bool PrintC::isVtableUpcast(Datatype *inType,Datatype *outType,TypeFactory *type
   if (inPointedType->getMetatype() != TYPE_STRUCT) return false;
   TypeStruct *innerpt = (TypeStruct *)inPointedType;
   while (true) {
+    if (innerpt->beginField() == innerpt->endField()) break;
     const TypeField &field(*innerpt->beginField());
     if (field.type->getMetatype() != TYPE_STRUCT) break;
     innerpt = (TypeStruct *)field.type;
