@@ -2503,10 +2503,10 @@ define pcodeop vpunpcklqdq_avx ;
 {
 	local n:16 = vexVVVV_XmmReg;
 	local m:16 = XmmReg2_m128;
-	XmmReg1[0,32] = vexVVVV_XmmReg[0,32] ^ XmmReg2_m128[0,32];
-	XmmReg1[32,32] = vexVVVV_XmmReg[32,32] ^ XmmReg2_m128[32,32];
-	XmmReg1[64,32] = vexVVVV_XmmReg[64,32] ^ XmmReg2_m128[64,32];
-	XmmReg1[96,32] = vexVVVV_XmmReg[96,32] ^ XmmReg2_m128[96,32];
+	XmmReg1[0,32] = n[0,32] ^ m[0,32];
+	XmmReg1[32,32] = n[32,32] ^ m[32,32];
+	XmmReg1[64,32] = n[64,32] ^ m[64,32];
+	XmmReg1[96,32] = n[96,32] ^ m[96,32];
 	ZmmReg1 = zext(XmmReg1);
 }
 
