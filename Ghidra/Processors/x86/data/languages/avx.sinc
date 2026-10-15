@@ -2501,8 +2501,13 @@ define pcodeop vpunpcklqdq_avx ;
 # PXOR 4-518 PAGE 1638 LINE 85495
 :VPXOR XmmReg1, vexVVVV_XmmReg, XmmReg2_m128 is $(VEX_NDS) & $(VEX_L128) & $(VEX_PRE_66) & $(VEX_0F) & $(VEX_WIG) & vexVVVV_XmmReg; byte=0xEF; (XmmReg1 & ZmmReg1) ... & XmmReg2_m128
 {
-	local tmp:16 = vexVVVV_XmmReg ^ XmmReg2_m128;
-	ZmmReg1 = zext(tmp);
+	local n:16 = vexVVVV_XmmReg;
+	local m:16 = XmmReg2_m128;
+	XmmReg1[0,32] = vexVVVV_XmmReg[0,32] ^ XmmReg2_m128[0,32];
+	XmmReg1[32,32] = vexVVVV_XmmReg[32,32] ^ XmmReg2_m128[32,32];
+	XmmReg1[64,32] = vexVVVV_XmmReg[64,32] ^ XmmReg2_m128[64,32];
+	XmmReg1[96,32] = vexVVVV_XmmReg[96,32] ^ XmmReg2_m128[96,32];
+	ZmmReg1 = zext(XmmReg1);
 }
 
 # RCPPS 4-526 PAGE 1646 LINE 85950
