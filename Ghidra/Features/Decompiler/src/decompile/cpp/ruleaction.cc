@@ -9305,8 +9305,10 @@ int4 RulePieceStructure::applyOp(PcodeOp *op,Funcdata &data)
       if (newType->needsResolution()) {
 	newType->resolveInFlow(copyOp, -1);	// If the piece represents part of a union, resolve it
       }
-      //if (!newVn->isAddrTied())
+      if (!newVn->isAddrTied()) {
 	//newVn->setProtoPartial();
+	//outvn->setImplied();
+      }
     }
     else {
       // Reaching here we know vn is NOT addrtied and has a lone descendant
