@@ -9284,11 +9284,7 @@ int4 RulePieceStructure::applyOp(PcodeOp *op,Funcdata &data)
     }
     if (node.isLeaf()) {
       PcodeOp *copyOp = data.newOp(1,node.getOp()->getAddr());
-      Varnode *newVn = (Varnode *)0;
-      if (vn->isAddrTied())
-	newVn = data.newVarnodeOut(vn->getSize(), addr, copyOp);
-      else
-	newVn = data.newUniqueOut(vn->getSize(), copyOp);
+      Varnode *newVn = data.newVarnodeOut(vn->getSize(), addr, copyOp);
       anyAddrTied = anyAddrTied || newVn->isAddrTied();	// Its possible newVn is addrtied, even if vn isn't
       Datatype *newType = data.getArch()->types->getExactPiece(ct, node.getTypeOffset(), vn->getSize());
       if (newType == (Datatype *)0)
@@ -9305,10 +9301,8 @@ int4 RulePieceStructure::applyOp(PcodeOp *op,Funcdata &data)
       if (newType->needsResolution()) {
 	newType->resolveInFlow(copyOp, -1);	// If the piece represents part of a union, resolve it
       }
-      if (!newVn->isAddrTied()) {
-	//newVn->setProtoPartial();
-	//outvn->setImplied();
-      }
+      if (!newVn->isAddrTied())
+	newVn->setProtoPartial();
     }
     else {
       // Reaching here we know vn is NOT addrtied and has a lone descendant
