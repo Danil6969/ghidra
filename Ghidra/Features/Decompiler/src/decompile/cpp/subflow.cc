@@ -2232,6 +2232,25 @@ Varnode *SplitDatatype::getPieceInputVarnode(Varnode *pieceVn,int4 offset,int4 s
   return getPieceInputVarnode(vn,off,size);
 }
 
+void SplitDatatype::cleanUpPieceTree(Varnode *vn)
+
+{
+  if (!vn->hasNoDescend()) return;
+  if (vn->isAddrTied()) return;
+  PcodeOp *op = vn->getDef();
+  if (op == (PcodeOp *)0) return;
+  if (op->code() == CPUI_PIECE) {
+    Varnode *vn0 = op->getIn(0);
+    Varnode *vn1 = op->getIn(1);
+    data.opDestroy(op);
+    cleanUpPieceTree(vn0);
+    cleanUpPieceTree(vn1);
+  }
+  if (op->code() == CPUI_COPY) {
+    data.opDestroy(op);
+  }
+}
+
 /// \brief Assuming the input is a constant, build split constants
 ///
 /// Build constant input Varnodes, extracting the constant value from the given root constant
@@ -2527,21 +2546,17 @@ bool SplitDatatype::splitCopy(PcodeOp *copyOp,Datatype *inType,Datatype *outType
   int4 outSz = outVn->getSize();
   data.opDestroy(copyOp);
 
-  if (inOp != (PcodeOp *)0 && inOp->code() == CPUI_PIECE) {
-    list<PcodeOp *>::const_iterator iter = inVn->beginDescend();
-    list<PcodeOp *>::const_iterator enditer = inVn->endDescend();
-    while (iter != enditer) {
-      PcodeOp *op = *iter++;
-      if (op->code() != CPUI_INDIRECT) continue;
-      if (op->getOut()->getAddr() != outAddr) continue;
-      if (op->getOut()->getSize() != outSz) continue;
-      Varnode *newVn = data.newVarnode(outSz, outAddr, outType);
-      data.opSetInput(op,newVn,0);
-    }
-    if (inVn->hasNoDescend() && !inVn->isAddrTied()) {
-      //data.opDestroy(inOp);
-    }
+  list<PcodeOp *>::const_iterator iter = inVn->beginDescend();
+  list<PcodeOp *>::const_iterator enditer = inVn->endDescend();
+  while (iter != enditer) {
+    PcodeOp *op = *iter++;
+    if (op->code() != CPUI_INDIRECT) continue;
+    if (op->getOut()->getAddr() != outAddr) continue;
+    if (op->getOut()->getSize() != outSz) continue;
+    Varnode *newVn = data.newVarnode(outSz, outAddr, outType);
+    data.opSetInput(op,newVn,0);
   }
+  cleanUpPieceTree(inVn);
   return true;
 }
 
