@@ -2522,7 +2522,26 @@ bool SplitDatatype::splitCopy(PcodeOp *copyOp,Datatype *inType,Datatype *outType
     data.opSetOutput(newCopyOp,outVarnodes[i]);
     data.opInsertBefore(newCopyOp, copyOp);
   }
+  PcodeOp* inOp = inVn->getDef();
+  Address outAddr = outVn->getAddr();
+  int4 outSz = outVn->getSize();
   data.opDestroy(copyOp);
+
+  if (inOp != (PcodeOp *)0 && inOp->code() == CPUI_PIECE) {
+    list<PcodeOp *>::const_iterator iter = inVn->beginDescend();
+    list<PcodeOp *>::const_iterator enditer = inVn->endDescend();
+    while (iter != enditer) {
+      PcodeOp *op = *iter++;
+      if (op->code() != CPUI_INDIRECT) continue;
+      if (op->getOut()->getAddr() != outAddr) continue;
+      if (op->getOut()->getSize() != outSz) continue;
+      Varnode *newVn = data.newVarnode(outSz, outAddr, outType);
+      data.opSetInput(op,newVn,0);
+    }
+    if (inVn->hasNoDescend() && !inVn->isAddrTied()) {
+      //data.opDestroy(inOp);
+    }
+  }
   return true;
 }
 
