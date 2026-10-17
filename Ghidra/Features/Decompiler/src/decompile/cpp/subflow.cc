@@ -2277,6 +2277,13 @@ void SplitDatatype::buildInSubpieces(Varnode *rootVn,PcodeOp *followOp,vector<Va
       off = rootVn->getSize() - off - dt->getSize();
     Varnode *outVn = getPieceInputVarnode(rootVn, off, dt->getSize());
     if (outVn != (Varnode *)0) {
+      PcodeOp *def = outVn->getDef();
+      if (def != (PcodeOp *)0 && def->code() == CPUI_COPY) {
+	if (def->getIn(0)->isConstant()) {
+	  inVarnodes.push_back(def->getIn(0));
+	  continue;
+	}
+      }
       inVarnodes.push_back(outVn);
       continue;
     }
