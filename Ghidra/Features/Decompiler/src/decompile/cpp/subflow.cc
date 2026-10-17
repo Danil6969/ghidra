@@ -2200,29 +2200,6 @@ bool SplitDatatype::generateConstants(Varnode *vn,vector<Varnode *> &inVarnodes)
   return true;
 }
 
-/// \brief Assuming the input is a constant, build split constants
-///
-/// Build constant input Varnodes, extracting the constant value from the given root constant
-/// based on the input offsets in \b dataTypePieces.
-/// \param rootVn is the given root constant
-/// \param inVarnodes is the container for the new Varnodes
-/// \param bigEndian is \b true if the output address space is big endian
-void SplitDatatype::buildInConstants(Varnode *rootVn,vector<Varnode *> &inVarnodes,bool bigEndian)
-
-{
-  uintb baseVal = rootVn->getOffset();
-  for(int4 i=0;i<dataTypePieces.size();++i) {
-    Datatype *dt = dataTypePieces[i].inType;
-    int4 off = dataTypePieces[i].offset;
-    if (bigEndian)
-      off = rootVn->getSize() - off - dt->getSize();
-    uintb val = (baseVal >> (8*off)) & calc_mask(dt->getSize());
-    Varnode *outVn = data.newConstant(dt->getSize(), val);
-    inVarnodes.push_back(outVn);
-    outVn->updateType(dt, false, false);
-  }
-}
-
 Varnode *SplitDatatype::getPieceInputVarnode(Varnode *pieceVn,int4 offset,int4 size)
 
 {
@@ -2253,6 +2230,29 @@ Varnode *SplitDatatype::getPieceInputVarnode(Varnode *pieceVn,int4 offset,int4 s
   // Now recurse to see if there is
   // more piece varnode to drill down to
   return getPieceInputVarnode(vn,off,size);
+}
+
+/// \brief Assuming the input is a constant, build split constants
+///
+/// Build constant input Varnodes, extracting the constant value from the given root constant
+/// based on the input offsets in \b dataTypePieces.
+/// \param rootVn is the given root constant
+/// \param inVarnodes is the container for the new Varnodes
+/// \param bigEndian is \b true if the output address space is big endian
+void SplitDatatype::buildInConstants(Varnode *rootVn,vector<Varnode *> &inVarnodes,bool bigEndian)
+
+{
+  uintb baseVal = rootVn->getOffset();
+  for(int4 i=0;i<dataTypePieces.size();++i) {
+    Datatype *dt = dataTypePieces[i].inType;
+    int4 off = dataTypePieces[i].offset;
+    if (bigEndian)
+      off = rootVn->getSize() - off - dt->getSize();
+    uintb val = (baseVal >> (8*off)) & calc_mask(dt->getSize());
+    Varnode *outVn = data.newConstant(dt->getSize(), val);
+    inVarnodes.push_back(outVn);
+    outVn->updateType(dt, false, false);
+  }
 }
 
 /// \brief Build input Varnodes by extracting SUBPIECEs from the root
