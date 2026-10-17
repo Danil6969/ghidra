@@ -9058,16 +9058,18 @@ Datatype *RulePieceStructure::determineDatatype(Varnode *vn,int4 &baseOffset)
 
 {
   Datatype *ct = (Datatype *)0;
-  if (vn->getSymbolEntry() != (SymbolEntry *)0)
-    ct = vn->getSymbolEntry()->getSymbol()->getType();
+  SymbolEntry *entry = vn->getSymbolEntry();
+  if (entry != (SymbolEntry *)0)
+    ct = entry->getSymbol()->getType();
   else
     ct = vn->getType();
 
   if (ct->getSize() != vn->getSize()) {			// vn is a partial
-    SymbolEntry *entry = vn->getSymbolEntry();
-    if (entry == (SymbolEntry *)0) return (Datatype *)0;
+    if (entry == (SymbolEntry *)0)
+      return (Datatype *)0;
     baseOffset = vn->getAddr().overlap(0,entry->getAddr(),ct->getSize());
-    if (baseOffset < 0) return (Datatype *)0;
+    if (baseOffset < 0)
+      return (Datatype *)0;
     baseOffset += entry->getOffset();
     // Find concrete sub-type that matches the size of the Varnode
     Datatype *subType = ct;
