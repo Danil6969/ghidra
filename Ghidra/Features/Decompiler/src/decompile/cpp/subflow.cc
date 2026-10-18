@@ -2553,8 +2553,9 @@ bool SplitDatatype::splitCopy(PcodeOp *copyOp,Datatype *inType,Datatype *outType
     if (op->code() != CPUI_INDIRECT) continue;
     if (op->getOut()->getAddr() != outAddr) continue;
     if (op->getOut()->getSize() != outSz) continue;
-    Varnode *newVn = data.newVarnode(outSz, outAddr, outType);
+    Varnode *newVn = data.newConstant(outSz,0);
     data.opSetInput(op,newVn,0);
+    data.markIndirectCreation(op,false);
   }
   cleanUpPieceTree(inVn);
   return true;
