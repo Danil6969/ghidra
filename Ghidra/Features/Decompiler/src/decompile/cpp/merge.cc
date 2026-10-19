@@ -476,7 +476,7 @@ PcodeOp *Merge::allocateCopyTrim(Varnode *inVn,const Address &addr,PcodeOp *trim
   Varnode *outVn = data.newUnique(inVn->getSize(),ct);
   data.opSetOutput(copyOp,outVn);
   Varnode *newVn = inVn;
-  if (!inVn->isWritten()) {
+  if (inVn->isFree()) {
     newVn = data.newVarnode(inVn->getSize(),inVn->getAddr(),ct);
   }
   data.opSetInput(copyOp,newVn,0);
