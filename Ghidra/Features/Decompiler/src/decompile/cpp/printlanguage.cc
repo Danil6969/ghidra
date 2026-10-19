@@ -243,8 +243,10 @@ void PrintLanguage::pushSymbolDetail(const Varnode *vn,const PcodeOp *op,bool is
   int4 symboloff = high->getSymbolOffset();
   if (sym == (Symbol *)0) {
     SymbolEntry *entry = op->getFuncdata()->getScopeLocal()->queryContainer(vn->getAddr(),1,Address());
-    sym = entry->getSymbol();
-    symboloff = vn->getOffset() - entry->getAddr().getOffset();
+    if (entry != (SymbolEntry *)0) {
+      sym = entry->getSymbol();
+      symboloff = vn->getOffset() - entry->getAddr().getOffset();
+    }
   }
   if (sym == (Symbol *)0) {
     pushUnnamedLocation(high->getNameRepresentative()->getAddr(),vn,op);
