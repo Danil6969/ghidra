@@ -240,11 +240,16 @@ void PrintLanguage::pushSymbolDetail(const Varnode *vn,const PcodeOp *op,bool is
 {
   HighVariable *high = vn->getHigh();
   Symbol *sym = high->getSymbol();
+  int4 symboloff = high->getSymbolOffset();
+  if (sym == (Symbol *)0) {
+    SymbolEntry *entry = op->getFuncdata()->getScopeLocal()->queryContainer(vn->getAddr(),1,Address());
+    sym = entry->getSymbol();
+    symboloff = vn->getOffset() - entry->getAddr().getOffset();
+  }
   if (sym == (Symbol *)0) {
     pushUnnamedLocation(high->getNameRepresentative()->getAddr(),vn,op);
   }
   else {
-    int4 symboloff = high->getSymbolOffset();
     if (symboloff == -1) {
       if (!sym->getType()->needsResolution()) {
 	pushSymbol(sym,vn,op);
