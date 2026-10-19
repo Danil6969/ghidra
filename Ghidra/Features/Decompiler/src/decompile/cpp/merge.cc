@@ -130,7 +130,7 @@ bool Merge::mergeTestRequired(HighVariable *high_out,HighVariable *high_in)
       }
     }
   }
-  catch (LowlevelError e) {
+  catch (LowlevelError &err) {
     return false;
   }
 
@@ -349,7 +349,13 @@ void Merge::mergeRangeMust(VarnodeLocSet::const_iterator startiter,VarnodeLocSet
   for(;startiter!=enditer;++startiter) {
     vn = *startiter;
     if (vn->getHigh() == high) continue;
-    mergeTestMust(vn);
+    try {
+      mergeTestMust(vn);
+    }
+    catch (LowlevelError &err) {
+      data.warningHeader("Cannot force merge of range");
+      continue;
+    }
     if (!merge(high,vn->getHigh(),false)) {
       data.warningHeader("Assertion failed: Forced merge caused intersection");
     }
