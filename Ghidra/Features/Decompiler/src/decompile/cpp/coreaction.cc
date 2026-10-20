@@ -5103,7 +5103,8 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
   TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
   if (sb->getMetatype() != TYPE_SPACEBASE) return;
   AddrSpace *space = sb->getSpace();
-  if (space != data.getScopeLocal()->getSpaceId()) return;
+  ScopeLocal *scope = data.getScopeLocal();
+  if (space != scope->getSpaceId()) return;
 
   Varnode *cvn = addop->getIn(1);
   if (!cvn->isConstant()) return;
@@ -5128,7 +5129,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
 	useAddr = Address(out->getSpace(),useOff);
       }
       if (useAddr.isInvalid()) break;
-      useEntry = data.getScopeLocal()->queryContainer(useAddr,1,Address());
+      useEntry = scope->queryContainer(useAddr,1,Address());
       if (useEntry == (SymbolEntry *)0) break;
       uintb offset1 = useEntry->getAddr().getOffset();
       uintb offset2 = useAddr.getOffset();
@@ -5189,7 +5190,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
   // mark according to container data itself
   Address addr = sb->getAddress(curOff,basevn->getSize(),addop->getAddr());
   if (addr.isInvalid()) return;
-  SymbolEntry *entry = data.getScopeLocal()->queryContainer(addr,1,Address());
+  SymbolEntry *entry = scope->queryContainer(addr,1,Address());
   if (entry == (SymbolEntry *)0) return;
   sz = entry->getSize();
   startOff = entry->getAddr().getOffset();
