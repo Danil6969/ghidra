@@ -5104,7 +5104,6 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
   if (sb->getMetatype() != TYPE_SPACEBASE) return;
   AddrSpace *space = sb->getSpace();
   if (space != data.getScopeLocal()->getSpaceId()) return;
-  Scope *scope = sb->getMap();
 
   Varnode *cvn = addop->getIn(1);
   if (!cvn->isConstant()) return;
@@ -5119,21 +5118,26 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
     case CPUI_COPY:
     {
       Varnode *out = op->getOut();
+      uintb useOff = out->getOffset();
+      SymbolEntry *useEntry = (SymbolEntry *)0;
+      Address useAddr = Address();
       if (out->getSpace()->getType() == IPTR_SPACEBASE) {
-	uintb useOff = out->getOffset();
-	Address useAddr = sb->getAddress(useOff,out->getSize(),op->getAddr());
-	SymbolEntry *useEntry = scope->queryContainer(useAddr,1,Address());
-	if (useEntry == (SymbolEntry *)0) break;
-	uintb offset1 = useEntry->getAddr().getOffset();
-	uintb offset2 = useAddr.getOffset();
-	if (offset2 < offset1) break;
-	Datatype *containerDt = useEntry->getSymbol()->getType();
-	int8 newoff;
-	Datatype *subDt = containerDt->getSubType(offset2 - offset1, &newoff);
-	if (newoff != 0) break; // Pointer cannot be split in parts
-	tp = (TypePointer *)subDt;
-	break;
+	useAddr = sb->getAddress(useOff,out->getSize(),op->getAddr());
       }
+      else if (out->isAddrTied()) {
+	useAddr = Address(out->getSpace(),useOff);
+      }
+      if (useAddr.isInvalid()) break;
+      useEntry = data.getScopeLocal()->queryContainer(useAddr,1,Address());
+      if (useEntry == (SymbolEntry *)0) break;
+      uintb offset1 = useEntry->getAddr().getOffset();
+      uintb offset2 = useAddr.getOffset();
+      if (offset2 < offset1) break;
+      Datatype *containerDt = useEntry->getSymbol()->getType();
+      int8 newoff;
+      Datatype *subDt = containerDt->getSubType(offset2 - offset1, &newoff);
+      if (newoff != 0) break; // Pointer cannot be split in parts
+      tp = (TypePointer *)subDt;
       break;
     }
     case CPUI_CALL:
@@ -5185,7 +5189,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
   // mark according to container data itself
   Address addr = sb->getAddress(curOff,basevn->getSize(),addop->getAddr());
   if (addr.isInvalid()) return;
-  SymbolEntry *entry = scope->queryContainer(addr,1,Address());
+  SymbolEntry *entry = data.getScopeLocal()->queryContainer(addr,1,Address());
   if (entry == (SymbolEntry *)0) return;
   sz = entry->getSize();
   startOff = entry->getAddr().getOffset();
