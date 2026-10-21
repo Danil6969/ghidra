@@ -5382,14 +5382,13 @@ int4 ActionDeadCode::apply(Funcdata &data)
     else {
       for(i=0;i<op->numInput();++i) {
 	vn = op->getIn(i);
-	// TODO fix incorrect optimize out
-	if (vn->isAutoLive())
+	// TODO check and fix isAutoLive
+	if (vn->isAutoLiveHold())
 	  pushConsumed(~((uintb)0),vn,worklist);
       }
     }
     vn = op->getOut();
     spc = vn->getSpace();
-    // TODO investigate cases
     switch (op->code()) {
     case CPUI_COPY:
       if (spc->getType() == IPTR_PROCESSOR) {
@@ -5402,7 +5401,8 @@ int4 ActionDeadCode::apply(Funcdata &data)
 	lone = vn->loneDescend();
 	if (lone == (PcodeOp *)0) break;
 	if (lone->code() == CPUI_INDIRECT) {
-	  pushConsumed(~((uintb)0),vn,worklist);
+	  // TODO check push consume of indirect
+	  //pushConsumed(~((uintb)0),vn,worklist);
 	  break;
 	}
 	break;
