@@ -5028,16 +5028,46 @@ void ActionDeadCode::neverConsumed(Varnode *vn,Funcdata &data)
 bool ActionDeadCode::extractSpacebaseOffset(PcodeOp *op,Varnode *&basevn,uintb &off)
 
 {
-  PcodeOp *inop0 = op->getIn(0)->getDef();
-  if (inop0 == (PcodeOp *)0) {
+  Varnode *invn = (Varnode *)0;
+  Varnode *cvn1 = (Varnode *)0;
+  Varnode *cvn2 = (Varnode *)0;
+  PcodeOp *inop1 = op->getIn(0)->getDef();
+  while (true) {
+    if (inop1 == (PcodeOp *)0) break;
+    if (inop1->code() != CPUI_COPY) break;
+    invn = inop1->getIn(0);
+    inop1 = invn->getDef();
+  }
+
+  if (inop1 == (PcodeOp *)0) {
     if (op->getIn(0)->isConstant()) return false;
-    Varnode *cvn = op->getIn(1);
-    if (!cvn->isConstant()) return false;
+    cvn1 = op->getIn(1);
+    if (!cvn1->isConstant()) return false;
     basevn = op->getIn(0);
-    off = cvn->getOffset();
+    off = cvn1->getOffset();
     return true;
   }
-  return false;
+
+  invn = (Varnode *)0;
+  if (inop1->code() != CPUI_INT_ADD) return false;
+  PcodeOp *inop2 = inop1->getIn(0)->getDef();
+  while (true) {
+    if (inop2 == (PcodeOp *)0) break;
+    if (inop2->code() != CPUI_COPY) break;
+    invn = inop2->getIn(0);
+    inop2 = invn->getDef();
+  }
+
+  if (invn == (Varnode *)0) return false;
+  if (invn->isConstant()) return false;
+  if (inop2 != (PcodeOp *)0) return false;
+  basevn = invn;
+  cvn1 = inop1->getIn(1);
+  if (!cvn1->isConstant()) return false;
+  cvn2 = op->getIn(1);
+  if (!cvn2->isConstant()) return false;
+  off = cvn1->getOffset() + cvn2->getOffset();
+  return true;
 }
 
 bool ActionDeadCode::testSpacebase(PcodeOp *op)
@@ -5116,20 +5146,13 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
     if (addop->code() != CPUI_PTRSUB)
       return;
 
-  Varnode *basevn = addop->getIn(0);
-  if (basevn->isConstant()) return;
-  if (basevn->getDef() != (PcodeOp *)0) return;
-  TypePointer *ptype = (TypePointer *)basevn->getType();
-  if (ptype->getMetatype() != TYPE_PTR) return;
-  TypeSpacebase *sb = (TypeSpacebase *)ptype->getPtrTo();
-  if (sb->getMetatype() != TYPE_SPACEBASE) return;
-  AddrSpace *space = sb->getSpace();
+  uintb val = 0;
+  Varnode *basevn = (Varnode *)0;
+  if (!extractSpacebaseOffset(addop,basevn,val)) return;
   ScopeLocal *scope = data.getScopeLocal();
-  if (space != scope->getSpaceId()) return;
+  AddrSpace *space = scope->getSpaceId();
+  if (!basevn->isStackPointerLocated(data)) return;
 
-  Varnode *cvn = addop->getIn(1);
-  if (!cvn->isConstant()) return;
-  uintb val = cvn->getOffset();
   uint4 ws = space->getWordSize();
   uintb curOff = AddrSpace::addressToByte(val,ws);
   markConsumedAddress(space,curOff,data,worklist);
@@ -5143,11 +5166,9 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
       uintb useOff = out->getOffset();
       SymbolEntry *useEntry = (SymbolEntry *)0;
       Address useAddr = Address();
-      if (out->getSpace()->getType() == IPTR_SPACEBASE) {
-	useAddr = sb->getAddress(useOff,out->getSize(),op->getAddr());
-      }
-      else if (out->isAddrTied()) {
-	useAddr = Address(out->getSpace(),useOff);
+      if (out->isAddrTied()) {
+	//useAddr = sb->getAddress(useOff,out->getSize(),op->getAddr());
+	useAddr = Address(space,useOff);
       }
       if (useAddr.isInvalid()) break;
       useEntry = scope->queryContainer(useAddr,1,Address());
@@ -5209,7 +5230,8 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
   }
 
   // mark according to container data itself
-  Address addr = sb->getAddress(curOff,basevn->getSize(),addop->getAddr());
+  //Address addr = sb->getAddress(curOff,basevn->getSize(),addop->getAddr());
+  Address addr = Address(space,curOff);
   if (addr.isInvalid()) return;
   SymbolEntry *entry = scope->queryContainer(addr,1,Address());
   if (entry == (SymbolEntry *)0) return;
