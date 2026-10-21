@@ -3780,7 +3780,15 @@ void PrintC::emitBlockGoto(const BlockGoto *bl)
 				// next block to be printed
   if (bl->gotoPrints()) {
     emit->tagLine();
-    emitGotoStatement(bl->getBlock(0),bl->getGotoTarget(),bl->getGotoType());
+    uint4 gototype = bl->getGotoType();
+    FlowBlock *gotolabel = bl->getGotoTarget();
+    if (gototype == FlowBlock::f_break_goto) {
+      gotolabel = (FlowBlock *)0;
+    }
+    if (gototype == FlowBlock::f_continue_goto) {
+      gotolabel = (FlowBlock *)0;
+    }
+    emitGotoStatement(bl->getBlock(0),gotolabel,gototype);
   }
 }
 
@@ -3927,7 +3935,7 @@ void PrintC::emitBlockIf(const BlockIf *bl)
     if (gototype == FlowBlock::f_continue_goto) {
       gotolabel = bl->getGotoLabel();
     }
-    emitGotoStatement(condBlock,gotolabel,bl->getGotoType());
+    emitGotoStatement(condBlock,gotolabel,gototype);
   }
   else {
     setMod(no_branch);
