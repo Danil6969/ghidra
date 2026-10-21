@@ -4852,6 +4852,12 @@ void ActionDeadCode::propagateConsumed(vector<Varnode *> &worklist)
     pushConsumed(outc,op->getIn(0),worklist);
     markConsumedAddOp(op,0,*fd,worklist);
     break;
+  case CPUI_LOAD:
+    a = (outc==0) ? 0 : ~((uintb)0);
+    pushConsumed(a,op->getIn(0),worklist);
+    pushConsumed(a,op->getIn(1),worklist);
+    markConsumedAddOp(op,1,*fd,worklist);
+    break;
   case CPUI_INT_NEGATE:
     pushConsumed(outc,op->getIn(0),worklist);
     break;
@@ -5017,6 +5023,21 @@ void ActionDeadCode::neverConsumed(Varnode *vn,Funcdata &data)
     data.opUnsetOutput(op); // For calls just get rid of output
   else
     data.opDestroy(op);	// Otherwise completely remove the op
+}
+
+bool ActionDeadCode::extractSpacebaseOffset(PcodeOp *op,Varnode *&basevn,uintb &off)
+
+{
+  PcodeOp *inop0 = op->getIn(0)->getDef();
+  if (inop0 == (PcodeOp *)0) {
+    if (op->getIn(0)->isConstant()) return false;
+    Varnode *cvn = op->getIn(1);
+    if (!cvn->isConstant()) return false;
+    basevn = op->getIn(0);
+    off = cvn->getOffset();
+    return true;
+  }
+  return false;
 }
 
 bool ActionDeadCode::testSpacebase(PcodeOp *op)
