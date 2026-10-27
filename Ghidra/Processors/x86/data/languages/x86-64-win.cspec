@@ -102,16 +102,16 @@
         <register name="R15"/>
         <register name="DF"/>
         <register name="GS_OFFSET"/>
-        <register name="XMM6"/>
-        <register name="XMM7"/>
-        <register name="XMM8"/>
-        <register name="XMM9"/>
-        <register name="XMM10"/>
-        <register name="XMM11"/>
-        <register name="XMM12"/>
-        <register name="XMM13"/>
-        <register name="XMM14"/>
-        <register name="XMM15"/>
+        <register name="ZMM6"/>
+        <register name="ZMM7"/>
+        <register name="ZMM8"/>
+        <register name="ZMM9"/>
+        <register name="ZMM10"/>
+        <register name="ZMM11"/>
+        <register name="ZMM12"/>
+        <register name="ZMM13"/>
+        <register name="ZMM14"/>
+        <register name="ZMM15"/>
       </unaffected>
       <killedbycall>
         <register name="RAX"/>
@@ -182,16 +182,16 @@
         <register name="R15"/>
         <register name="DF"/>
         <register name="GS_OFFSET"/>
-        <register name="XMM6"/>
-        <register name="XMM7"/>
-        <register name="XMM8"/>
-        <register name="XMM9"/>
-        <register name="XMM10"/>
-        <register name="XMM11"/>
-        <register name="XMM12"/>
-        <register name="XMM13"/>
-        <register name="XMM14"/>
-        <register name="XMM15"/>
+        <register name="ZMM6"/>
+        <register name="ZMM7"/>
+        <register name="ZMM8"/>
+        <register name="ZMM9"/>
+        <register name="ZMM10"/>
+        <register name="ZMM11"/>
+        <register name="ZMM12"/>
+        <register name="ZMM13"/>
+        <register name="ZMM14"/>
+        <register name="ZMM15"/>
     </unaffected>
     <killedbycall>
       <register name="RAX"/>
@@ -244,22 +244,22 @@
       <register name="R15"/>
       <register name="DF"/>
       <register name="GS_OFFSET"/>
-      <register name="XMM0"/>
-      <register name="XMM1"/>
-      <register name="XMM2"/>
-      <register name="XMM3"/>
-      <register name="XMM4"/>
-      <register name="XMM5"/>
-      <register name="XMM6"/>
-      <register name="XMM7"/>
-      <register name="XMM8"/>
-      <register name="XMM9"/>
-      <register name="XMM10"/>
-      <register name="XMM11"/>
-      <register name="XMM12"/>
-      <register name="XMM13"/>
-      <register name="XMM14"/>
-      <register name="XMM15"/>
+      <register name="ZMM0"/>
+      <register name="ZMM1"/>
+      <register name="ZMM2"/>
+      <register name="ZMM3"/>
+      <register name="ZMM4"/>
+      <register name="ZMM5"/>
+      <register name="ZMM6"/>
+      <register name="ZMM7"/>
+      <register name="ZMM8"/>
+      <register name="ZMM9"/>
+      <register name="ZMM10"/>
+      <register name="ZMM11"/>
+      <register name="ZMM12"/>
+      <register name="ZMM13"/>
+      <register name="ZMM14"/>
+      <register name="ZMM15"/>
     </unaffected>
     <localrange>
       <range space="stack" first="0xfffffffffff0bdc1" last="0xffffffffffffffff"/>
