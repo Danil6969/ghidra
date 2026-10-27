@@ -562,6 +562,7 @@ uintb JumpBasic::getGlobalArraySize(Varnode *vn) const
   }
   if (addop->code() != CPUI_INT_ADD) return 0;
   slot = addop->getSlot(outvn);
+  if (slot == -1) return 0;
   cvn = addop->getIn(1-slot);
   if (!cvn->isConstant()) return 0;
   Funcdata *fd = addop->getFuncdata();
