@@ -8739,7 +8739,20 @@ define pcodeop vpcompressd_avx512f ;
 :VPCOMPRESSD ZmmReg2_m512^KWriteMask, ZmmReg1 is $(EVEX_NONE) & $(EVEX_L512) & $(VEX_PRE_66) & $(VEX_0F38) & $(VEX_W0) & KWriteMask; byte=0x8B; ZmmReg1 ... & ZmmReg2_m512
 [ evexD8Type = 1; evexTType = 3; ] # (TupleType T1S)
 {
-	ZmmReg2_m512 = vpcompressd_avx512f( ZmmReg1 );
+	zmmTmp1 = ZmmReg2_m512;
+	i:4 = 0;
+	j:4 = 0;
+	<loop>
+	if (i >= 16) goto <loop_end>;
+		if ((KWriteMask >> i & 1) == 0) goto <skip>;
+			n:4 = extractind(ZmmReg1,i*4);
+			zmmTmp1 = insertind(zmmTmp1,n,j*4);
+			j = j + 1;
+		<skip>
+		i = i + 1;
+	goto <loop>;
+	<loop_end>
+	ZmmReg2_m512 = zmmTmp1;
 }
 
 # VPCOMPRESSQ 5-353 PAGE 2177 LINE 111970
@@ -10937,7 +10950,7 @@ define pcodeop vshufi64x2_avx512vl ;
 
 # VSHUFF32x4/VSHUFF64x2/VSHUFI32x4/VSHUFI64x2 5-555 PAGE 2379 LINE 122019
 define pcodeop vshufi64x2_avx512f ;
-:VSHUFI64x2 ZmmReg1^KWriteMask, evexV5_ZmmReg, ZmmReg2_m512_m64bcst is $(EVEX_NONE) & $(EVEX_L512) & $(VEX_PRE_66) & $(VEX_0F3A) & $(VEX_W1) & KWriteMask & evexV5_ZmmReg; byte=0x43; ZmmReg1 ... & ZmmReg2_m512_m64bcst
+:VSHUFI64x2 ZmmReg1^KWriteMask, evexV5_ZmmReg, ZmmReg2_m512_m64bcst, imm8 is $(EVEX_NONE) & $(EVEX_L512) & $(VEX_PRE_66) & $(VEX_0F3A) & $(VEX_W1) & KWriteMask & evexV5_ZmmReg; byte=0x43; ZmmReg1 ... & ZmmReg2_m512_m64bcst; imm8
 [ evexD8Type = 0; evexTType = 0; ] # (TupleType FV)
 {
 	ZmmReg1 = vshufi64x2_avx512f( evexV5_ZmmReg, ZmmReg2_m512_m64bcst );
