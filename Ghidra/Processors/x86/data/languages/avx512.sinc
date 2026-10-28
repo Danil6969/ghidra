@@ -6007,6 +6007,7 @@ define pcodeop vcvttsd2usi_avx512f ;
 :VCVTTSD2USI Reg32, XmmReg2_m64 is $(EVEX_NONE) & $(VEX_LIG) & $(VEX_PRE_F2) & $(VEX_0F) & $(VEX_W0); byte=0x78; Reg32 ... & XmmReg2_m64
 [ evexD8Type = 1; evexTType = 5; ] # (TupleType T1F)
 {
+	#0x41e0000000000000
 	Reg32 = vcvttsd2usi_avx512f( XmmReg2_m64 );
 	# TODO Reg64 = zext(Reg32)
 }
@@ -6016,7 +6017,13 @@ define pcodeop vcvttsd2usi_avx512f ;
 :VCVTTSD2USI Reg64, XmmReg2_m64 is $(EVEX_NONE) & $(VEX_LIG) & $(VEX_PRE_F2) & $(VEX_0F) & $(VEX_W1); byte=0x78; Reg64 ... & XmmReg2_m64
 [ evexD8Type = 1; evexTType = 5; ] # (TupleType T1F)
 {
-	Reg64 = vcvttsd2usi_avx512f( XmmReg2_m64 );
+	#0x43e0000000000000
+	local tmp:8 = XmmReg2_m64[0,64];
+	local is_large:1 = 0x43e0000000000000 f<= tmp;
+	local extended:8 = zext(is_large);
+	local small:8 = tmp f- (0x43e0000000000000 f* int2float(extended));
+	Reg64 = trunc(small) + 0x8000000000000000 * extended;
+	#Reg64 = vcvttsd2usi_avx512f( XmmReg2_m64 );
 }
 @endif
 
@@ -6025,6 +6032,7 @@ define pcodeop vcvttss2usi_avx512f ;
 :VCVTTSS2USI Reg32, XmmReg2_m32 is $(EVEX_NONE) & $(VEX_LIG) & $(VEX_PRE_F3) & $(VEX_0F) & $(VEX_W0); byte=0x78; Reg32 ... & XmmReg2_m32
 [ evexD8Type = 1; evexTType = 5; ] # (TupleType T1F)
 {
+	#0x4f000000
 	Reg32 = vcvttss2usi_avx512f( XmmReg2_m32 );
 	# TODO Reg64 = zext(Reg32)
 }
@@ -6034,6 +6042,7 @@ define pcodeop vcvttss2usi_avx512f ;
 :VCVTTSS2USI Reg64, XmmReg2_m32 is $(EVEX_NONE) & $(VEX_LIG) & $(VEX_PRE_F3) & $(VEX_0F) & $(VEX_W1); byte=0x78; Reg64 ... & XmmReg2_m32
 [ evexD8Type = 1; evexTType = 5; ] # (TupleType T1F)
 {
+	#0x5f000000
 	Reg64 = vcvttss2usi_avx512f( XmmReg2_m32 );
 }
 @endif
