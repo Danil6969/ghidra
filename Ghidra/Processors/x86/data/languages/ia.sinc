@@ -140,16 +140,6 @@ define register offset=0x1100 size=1   [
 ];
 
 
-define register offset=0x1180 size=16  [ xmmTmp1 xmmTmp2 ];
-define register offset=0x1180 size=8   [
-  xmmTmp1_Qa  xmmTmp1_Qb
-  xmmTmp2_Qa  xmmTmp2_Qb
-];
-define register offset=0x1180 size=4   [
-  xmmTmp1_Da  xmmTmp1_Db  xmmTmp1_Dc  xmmTmp1_Dd
-  xmmTmp2_Da  xmmTmp2_Db  xmmTmp2_Dc  xmmTmp2_Dd
-];
-
 #
 # YMM0 - YMM7    - available in 32 bit mode
 # YMM0 - YMM15   - available in 64 bit mode
@@ -367,7 +357,17 @@ define register offset=0x1200 size=64  [
 	ZMM30	ZMM31
 ];
 
-define register offset=0x1a00 size=64  [ zmmOut zmmRes zmmTmp1 zmmTmp2 ];
+define register offset=0x1a00 size=64  [ zmmTmp1 zmmTmp2 zmmOut zmmRes ];
+
+define register offset=0x1a00 size=16  [ xmmTmp1 _ _ _ xmmTmp2 _ _ _];
+define register offset=0x1a00 size=8   [
+  xmmTmp1_Qa  xmmTmp1_Qb _ _ _ _ _ _
+  xmmTmp2_Qa  xmmTmp2_Qb _ _ _ _ _ _
+];
+define register offset=0x1a00 size=4   [
+  xmmTmp1_Da  xmmTmp1_Db  xmmTmp1_Dc  xmmTmp1_Dd _ _ _ _ _ _ _ _ _ _ _ _
+  xmmTmp2_Da  xmmTmp2_Db  xmmTmp2_Dc  xmmTmp2_Dd _ _ _ _ _ _ _ _ _ _ _ _
+];
 
 # Define context bits
 define register offset=0x2000 size=128  contextreg;
