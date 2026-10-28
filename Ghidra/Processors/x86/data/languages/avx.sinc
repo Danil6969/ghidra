@@ -2565,10 +2565,15 @@ define pcodeop vroundps_avx ;
 
 # ROUNDSD 4-570 PAGE 1690 LINE 88058
 define pcodeop vroundsd_avx ;
-:VROUNDSD XmmReg1, vexVVVV_XmmReg, XmmReg2_m64, imm8 is $(VEX_NDS) & $(VEX_LIG) & $(VEX_PRE_66) & $(VEX_0F3A) & $(VEX_WIG) & vexVVVV_XmmReg; byte=0x0B; (XmmReg1 & ZmmReg1) ... & XmmReg2_m64; imm8
+VROUNDSD_mon: "VROUNDSD_DOWN" is imm8=0x1 { xmmTmp1[0,64] = floor(xmmTmp1[0,64]); xmmTmp1[64,64] = xmmTmp2[0,64]; }
+VROUNDSD_mon: "VROUNDSD_"^imm8 is imm8 { vroundsd_avx( xmmTmp2, xmmTmp1, imm8:1 ); }
+:^VROUNDSD_mon XmmReg1, vexVVVV_XmmReg, XmmReg2_m64 is $(VEX_NDS) & $(VEX_LIG) & $(VEX_PRE_66) & $(VEX_0F3A) & $(VEX_WIG) & vexVVVV_XmmReg; byte=0x0B; (XmmReg1 & ZmmReg1) ... & XmmReg2_m64; VROUNDSD_mon
 {
-	local tmp:16 = vroundsd_avx( vexVVVV_XmmReg, XmmReg2_m64, imm8:1 );
-	ZmmReg1 = zext(tmp);
+	xmmTmp1 = XmmReg2_m64;
+	xmmTmp2 = vexVVVV_XmmReg;
+	build VROUNDSD_mon;
+	XmmReg1 = xmmTmp1;
+	ZmmReg1 = zext(XmmReg1);
 }
 
 # ROUNDSS 4-572 PAGE 1692 LINE 88145
