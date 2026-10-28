@@ -369,8 +369,6 @@ define register offset=0x1200 size=64  [
 	ZMM30	ZMM31
 ];
 
-define register offset=0x1a00 size=64  [ zmmOut zmmRes ];
-
 # Define context bits
 define register offset=0x2000 size=128  contextreg;
 
