@@ -253,11 +253,16 @@ void PrintLanguage::pushSymbolDetail(const Varnode *vn,const PcodeOp *op,bool is
   }
   else {
     if (symboloff == -1) {
+      symboloff = 0;
       if (!sym->getType()->needsResolution()) {
+	if (vn->getSize() < sym->getType()->getSize()) {
+	  int4 inslot = isRead ? op->getSlot(vn) : -1;
+	  pushPartialSymbol(sym,symboloff,vn->getSize(),vn,op,inslot);
+	  return;
+	}
 	pushSymbol(sym,vn,op);
 	return;
       }
-      symboloff = 0;
     }
     if (symboloff + vn->getSize() <= sym->getType()->getSize()) {
       int4 inslot = isRead ? op->getSlot(vn) : -1;
