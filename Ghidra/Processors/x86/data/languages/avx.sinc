@@ -2165,6 +2165,14 @@ define pcodeop vpor_avx ;
 	ZmmReg1 = zext(tmp);
 }
 
+# PROTQ
+define pcodeop vprotq_avx ;
+:VPROTQ XmmReg1, XmmReg2_m128, imm8 is $(VEX_NDS) & $(VEX_L128) & $(VEX_PRE_NONE) & vexMMMMM=8; byte=0xC3; (XmmReg1 & ZmmReg1) ... & XmmReg2_m128; imm8
+{
+	local tmp:16 = vprotq_avx( XmmReg2_m128, imm8:1 );
+	ZmmReg1 = zext(tmp);
+}
+
 # PSADBW 4-408 PAGE 1528 LINE 79240
 define pcodeop vpsadbw_avx ;
 :VPSADBW XmmReg1, vexVVVV_XmmReg, XmmReg2_m128 is $(VEX_NDS) & $(VEX_L128) & $(VEX_PRE_66) & $(VEX_0F) & $(VEX_WIG) & vexVVVV_XmmReg; byte=0xF6; (XmmReg1 & ZmmReg1) ... & XmmReg2_m128
