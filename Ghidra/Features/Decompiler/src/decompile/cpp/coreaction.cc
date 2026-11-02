@@ -3026,6 +3026,7 @@ bool ActionRepairPtradd::placePtrsubZero(PcodeOp *op,Funcdata &data,CastStrategy
   int8 unusedOffset;
   TypePointer *unusedParent;
   TypePointer *ct = pt->downChain(offset,unusedParent,unusedOffset,false,*tlst);
+  if (ct == (TypePointer *)0) return false;
   ActionSetCasts::insertPtrsubZero(op,0,ct,data);
   return true;
 }
