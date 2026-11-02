@@ -2091,6 +2091,16 @@ macro fucompe(val1, val2) {
 :^instruction is $(LONGMODE_ON) & instrPhase=0 & vexMode=0 & rexprefix=0 & mandover=0 & byte=0xC5; vex_r & vex_vvvv & vex_l & vex_pp=3; instruction
                        [ instrPhase=1; vexMode=1; rexRprefix=~vex_r; vexVVVV=~vex_vvvv; vexL=vex_l; vexMMMMM=0x1; prefix_f2=1; ] {}
 
+# 64-bit 3-byte AMD XOP
+:^instruction is $(LONGMODE_ON) & instrPhase=0 & vexMode=0 & rexprefix=0 & mandover=0 & byte=0x8F; vex_r & vex_x & vex_b & vex_mmmmm; vex_w & vex_vvvv & vex_l & vex_pp=0; instruction
+                       [ instrPhase=1; vexMode=1; rexRprefix=~vex_r; rexXprefix=~vex_x; rexBprefix=~vex_b; vexMMMMM=vex_mmmmm; rexWprefix=vex_w;  vexVVVV=~vex_vvvv; vexL=vex_l; ] {}
+:^instruction is $(LONGMODE_ON) & instrPhase=0 & vexMode=0 & rexprefix=0 & mandover=0 & byte=0x8F; vex_r & vex_x & vex_b & vex_mmmmm; vex_w & vex_vvvv & vex_l & vex_pp=1; instruction
+                       [ instrPhase=1; vexMode=1; rexRprefix=~vex_r; rexXprefix=~vex_x; rexBprefix=~vex_b; vexMMMMM=vex_mmmmm; rexWprefix=vex_w;  vexVVVV=~vex_vvvv; vexL=vex_l; prefix_66=1; ] {}
+:^instruction is $(LONGMODE_ON) & instrPhase=0 & vexMode=0 & rexprefix=0 & mandover=0 & byte=0x8F; vex_r & vex_x & vex_b & vex_mmmmm; vex_w & vex_vvvv & vex_l & vex_pp=2; instruction
+                       [ instrPhase=1; vexMode=1; rexRprefix=~vex_r; rexXprefix=~vex_x; rexBprefix=~vex_b; vexMMMMM=vex_mmmmm; rexWprefix=vex_w;  vexVVVV=~vex_vvvv; vexL=vex_l; prefix_f3=1; ] {}
+:^instruction is $(LONGMODE_ON) & instrPhase=0 & vexMode=0 & rexprefix=0 & mandover=0 & byte=0x8F; vex_r & vex_x & vex_b & vex_mmmmm; vex_w & vex_vvvv & vex_l & vex_pp=3; instruction
+                       [ instrPhase=1; vexMode=1; rexRprefix=~vex_r; rexXprefix=~vex_x; rexBprefix=~vex_b; vexMMMMM=vex_mmmmm; rexWprefix=vex_w;  vexVVVV=~vex_vvvv; vexL=vex_l; prefix_f2=1; ] {}
+
 # 4-byte EVEX prefix
 :^instruction is $(LONGMODE_ON) & instrPhase=0 & vexMode=0 & rexprefix=0 & mandover & byte=0x62; vex_r & vex_x & vex_b & evex_rp & evex_res=0 & evex_mmm;
                  vex_w & vex_vvvv & evex_res2=1 & vex_pp=0; evex_z & evex_lp & evex_l & evex_b & evex_vp & evex_aaa; instruction
