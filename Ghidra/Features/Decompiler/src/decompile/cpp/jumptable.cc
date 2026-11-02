@@ -551,6 +551,7 @@ uintb JumpBasic::getGlobalArraySize(Varnode *vn) const
   if (addop->code() == CPUI_INT_MULT) {
     PcodeOp *multop = addop;
     slot = multop->getSlot(vn);
+    if (slot == -1) return 0;
     cvn = multop->getIn(1-slot);
     if (!cvn->isConstant()) return 0;
     multiplier = cvn->getOffset();
