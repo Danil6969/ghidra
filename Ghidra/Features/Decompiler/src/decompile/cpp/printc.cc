@@ -3481,7 +3481,9 @@ void PrintC::emitVarDeclStatement(const Symbol *sym,const Funcdata *fd)
       pushOp(&addressof,(const PcodeOp *)0);
     pushSymbol(sym,(Varnode *)0,(PcodeOp *)0);
     push_integer(0,1,false,syntax,(Varnode *)0,(const PcodeOp *)0);
-    push_integer(ct->getSize(),1,false,syntax,(Varnode *)0,(const PcodeOp *)0);
+    pushOp(&function_call,(const PcodeOp *)0);
+    pushAtom(Atom("builtin_sizeof",optoken,EmitMarkup::no_color,(const PcodeOp *)0));
+    pushType(ct);
     emit->print(SEMICOLON);
   }
 }
