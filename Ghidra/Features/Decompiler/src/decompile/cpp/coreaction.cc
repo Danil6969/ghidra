@@ -5384,8 +5384,8 @@ int4 ActionDeadCode::apply(Funcdata &data)
     if (op->isAllocaShift(data) && !data.isStackGrowsNegative()) {
       int4 slot = op->getAllocaAttachSlot(data);
       if (!op->getIn(slot)->hasNoDescend()) {
+	// We use auto live hold to always preserve this
 	pushConsumed(~((uintb)0),op->getOut(),worklist);
-	// TODO remove auto live hold
 	op->getOut()->setAutoLiveHold();
       }
     }
