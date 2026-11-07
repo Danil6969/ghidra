@@ -4870,13 +4870,16 @@ void ActionDeadCode::propagateConsumed(vector<Varnode *> &worklist)
   case CPUI_INT_AND:
     if (op->getIn(1)->isConstant()) {
       uintb val = op->getIn(1)->getOffset();
-      pushConsumed(outc&val,op->getIn(0),worklist);
-      pushConsumed(outc,op->getIn(1),worklist);
+      a = outc & val;
     }
-    else {
-      pushConsumed(outc,op->getIn(0),worklist);
-      pushConsumed(outc,op->getIn(1),worklist);
+    else
+      a = outc;
+    // This one still needs testing in case of varying sizes, for example
+    if (op->getIn(0)->isAddrTied()) {
+      markConsumedAddress(op->getIn(0)->getSpace(),op->getIn(0)->getOffset(),a,*fd,worklist);
     }
+    pushConsumed(a,op->getIn(0),worklist);
+    pushConsumed(outc,op->getIn(1),worklist);
     break;
   case CPUI_MULTIEQUAL:
     for(int4 i=0;i<op->numInput();++i)
@@ -5115,7 +5118,7 @@ bool ActionDeadCode::testSpacebase(PcodeOp *op)
   return true;
 }
 
-void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata &data,vector<Varnode *> &worklist)
+void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,uintb mask,Funcdata &data,vector<Varnode *> &worklist)
 
 {
   uintb off = offset&calc_mask(space->getAddrSize());
@@ -5125,7 +5128,7 @@ void ActionDeadCode::markConsumedAddress(AddrSpace *space,uintb offset,Funcdata 
     Varnode *vn = *viter;
     PcodeOp *op = vn->getDef();
     if (!testSpacebase(op)) continue;
-    pushConsumed(~((uintb)0),vn,worklist);
+    pushConsumed(mask,vn,worklist);
   }
 }
 
@@ -5156,7 +5159,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
 
   uint4 ws = space->getWordSize();
   uintb curOff = AddrSpace::addressToByte(val,ws);
-  markConsumedAddress(space,curOff,data,worklist);
+  markConsumedAddress(space,curOff,~((uintb)0),data,worklist);
 
   // inspect use point
   TypePointer *tp = (TypePointer *)0;
@@ -5226,7 +5229,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
     }
     endOff = startOff + sz;
     for (uintb off=startOff;off<endOff;++off) {
-      markConsumedAddress(space,off,data,worklist);
+      markConsumedAddress(space,off,~((uintb)0),data,worklist);
     }
   }
 
@@ -5240,7 +5243,7 @@ void ActionDeadCode::markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vect
   startOff = entry->getAddr().getOffset();
   endOff = startOff + sz;
   for (uintb off=startOff;off<endOff;++off) {
-    markConsumedAddress(space,off,data,worklist);
+    markConsumedAddress(space,off,~((uintb)0),data,worklist);
   }
 }
 
