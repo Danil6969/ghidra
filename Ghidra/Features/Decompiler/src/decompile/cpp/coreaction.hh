@@ -581,7 +581,7 @@ class ActionDeadCode : public Action {
   static void neverConsumed(Varnode *vn,Funcdata &data);
   static bool extractSpacebaseOffset(PcodeOp *op,Varnode *&basevn,uintb &off);
   static bool testSpacebase(PcodeOp *op);
-  static void markConsumedAddress(AddrSpace *space,uintb offset,Funcdata &data,vector<Varnode *> &worklist);
+  static void markConsumedAddress(AddrSpace *space,uintb offset,uintb mask,Funcdata &data,vector<Varnode *> &worklist);
   static void markConsumedAddOp(PcodeOp *op,int4 slot,Funcdata &data,vector<Varnode *> &worklist);
   static void markConsumedParameters(FuncCallSpecs *fc,Funcdata &data,vector<Varnode *> &worklist);
   static uintb gatherConsumedReturn(Funcdata &data);
