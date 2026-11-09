@@ -25,13 +25,18 @@ import ghidra.program.util.DefaultLanguageService;
 
 public class JdiArch {
 
+	private JdiConnector connector;
 	private LanguageID langID;
 	private Language language;
 
 	private final LanguageService languageService = DefaultLanguageService.getLanguageService();
 
+	public JdiArch(JdiConnector connector) {
+		this.connector = connector;
+	}
+
 	public String getArch() {
-		Map<String, String> env = new HashMap<>(System.getenv());
+		Map<String, String> env = new HashMap<>(connector.getEnv());
 		String arch = "JVM";
 		if (env.containsKey("OPT_ARCH")) {
 			arch = env.get("OPT_ARCH");
@@ -44,7 +49,7 @@ public class JdiArch {
 	}
 
 	public String getOSABI() {
-		Map<String, String> env = new HashMap<>(System.getenv());
+		Map<String, String> env = new HashMap<>(connector.getEnv());
 		String arch = "JVM";
 		if (env.containsKey("OPT_ARCH")) {
 			arch = env.get("OPT_ARCH");

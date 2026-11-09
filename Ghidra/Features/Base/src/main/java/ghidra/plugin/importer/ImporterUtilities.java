@@ -550,20 +550,20 @@ public class ImporterUtilities {
 		LoaderMap loaderMap = LoaderService.getSupportedLoadSpecs(provider,
 			loader -> loader.getName().equalsIgnoreCase(program.getExecutableFormat()));
 
+		if (loaderMap.isEmpty()) {
+			return null;
+		}
+
 		Loader loader = loaderMap.firstKey();
 		if (loader == null) {
 			return null;
 		}
-		Stream<LoadSpec> stream = loaderMap.get(loader).stream();
-		Stream<LoadSpec> filtered = stream.filter(e -> {
-			LanguageCompilerSpecPair spec = e.getLanguageCompilerSpec();
-			if (spec == null) {
-				// Not really sure but let's pretend that another operand
-				// has to be null in order to be treated as equal
-				return program.getLanguageCompilerSpecPair() == null;
-			}
-			return spec.equals(program.getLanguageCompilerSpecPair());
-		});
-		return filtered.findFirst().orElse(null);
+
+		LanguageCompilerSpecPair programLcs = program.getLanguageCompilerSpecPair();
+		return loaderMap.get(loader)
+				.stream()
+				.filter(e -> programLcs.equals(e.getLanguageCompilerSpec()))
+				.findFirst()
+				.orElse(null);
 	}
 }

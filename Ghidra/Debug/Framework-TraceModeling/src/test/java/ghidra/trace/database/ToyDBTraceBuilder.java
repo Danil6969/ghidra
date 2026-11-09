@@ -578,7 +578,7 @@ public class ToyDBTraceBuilder implements AutoCloseable {
 	 * 
 	 * @param snap the starting snap
 	 * @param start the min address
-	 * @param platform the platform the the language to disassemble
+	 * @param platform the platform for the language to disassemble
 	 * @param buf the bytes to place, which will become the unit's bytes
 	 * @return the instruction unit
 	 * @throws CodeUnitInsertionException if the instruction cannot be created
@@ -760,7 +760,7 @@ public class ToyDBTraceBuilder implements AutoCloseable {
 		return getLanguage(langID).getCompilerSpecByID(new CompilerSpecID(compID));
 	}
 
-	public void createObjectsProcessAndThreads() {
+	public TraceObjectThread createObjectsProcessAndThreads() {
 		DBTraceObjectManager objs = trace.getObjectManager();
 		TraceObjectKeyPath pathProc1 = TraceObjectKeyPath.parse("Processes[1]");
 		TraceObject proc1 = objs.createObject(pathProc1);
@@ -772,6 +772,8 @@ public class ToyDBTraceBuilder implements AutoCloseable {
 		t2.insert(zeroOn, ConflictResolution.DENY);
 
 		proc1.setAttribute(zeroOn, "_state", TargetExecutionState.STOPPED.name());
+
+		return t1.queryInterface(TraceObjectThread.class);
 	}
 
 	public void createObjectsFramesAndRegs(TraceObjectThread thread, Lifespan lifespan,
