@@ -1310,7 +1310,9 @@ bool CollapseStructure::ruleBlockCat(FlowBlock *bl)
   if (outblock->sizeIn() != 1) return false; // Nothing else can hit outblock
   if (!bl->isDecisionOut(0)) return false; // Not a goto or a loopbottom
   if (outblock->isSwitchOut()) return false; // Switch must be resolved first
-  if (isLabelTargetBlock(outblock)) return false;
+  if (graph.labelBreakContinueAllowed) {
+    if (outblock->isInteriorBreakTarget()) return false;
+  }
 
   vector<FlowBlock *> nodes;
   nodes.push_back(bl);		// The first two blocks being concatenated
@@ -2286,7 +2288,8 @@ int4 ActionBlockStructure::apply(Funcdata &data)
 
 {
   BlockGraph &graph(data.getStructure());
-  //graph.labelBreakContinueAllowed = true;
+  if (data.getArch()->print->getName() == "java-language")
+    graph.labelBreakContinueAllowed = true;
 
   // Check if already structured
   if (graph.getSize() != 0) return 0;
