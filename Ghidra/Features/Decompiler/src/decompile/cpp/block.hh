@@ -87,26 +87,25 @@ public:
   /// are removed from the list of primary edges. These flags keep track only of
   /// the existence of unstructured edges, even though they aren't listed
   enum block_flags {
-    f_goto_goto = 1,		///< (Block ends in) non-structured branch
-    f_break_goto = 2,		///< Block ends with a break;
-    f_continue_goto = 4,	///< Block ends with a continue;
-    f_fallthrough_goto = 8,	///< Block ends with a fallthrough;
-    f_switch_out = 0x10,	///< Output is decided by switch
-    f_unstructured_targ = 0x20,	///< Block is destination of unstructured goto
-    f_mark = 0x80,		///< Generic way to mark a block
-    f_mark2 = 0x100,		///< A secondary mark
-    f_entry_point = 0x200,	///< Official entry point of the function
-    f_interior_gotoout = 0x400,	///< The block has an unstructured jump out of interior
-    f_interior_gotoin = 0x800,	///< Block is target of unstructured jump to its interior
-    f_label_bumpup = 0x1000,	///< Any label printed higher up in hierarchy
-    f_donothing_loop = 0x2000,	///< Block does nothing in infinite loop (halt)
-    f_dead = 0x4000,		///< Block is in process of being deleted
-    f_whiledo_overflow = 0x8000,///< Set if the conditional block of a whiledo is too big to print as while(cond) { ...
-    f_flip_path = 0x10000,      ///< If true, out edges have been flipped since last time path was traced
-    f_joined_block = 0x20000,	///< Block is a merged form of original basic blocks
-    f_duplicate_block = 0x40000,///< Block is a duplicated version of an original basic block
-    f_has_label_break = 0x80000,///< Block contains a conditional break from a label clause
-    f_break_on_true = 0x100000	///< Block contains a conditional break from a label clause
+    f_goto_goto = 1,			///< (Block ends in) non-structured branch
+    f_break_goto = 2,			///< Block ends with a break;
+    f_continue_goto = 4,		///< Block ends with a continue;
+    f_fallthrough_goto = 8,		///< Block ends with a fallthrough;
+    f_switch_out = 0x10,		///< Output is decided by switch
+    f_unstructured_targ = 0x20,		///< Block is destination of unstructured goto
+    f_mark = 0x80,			///< Generic way to mark a block
+    f_mark2 = 0x100,			///< A secondary mark
+    f_entry_point = 0x200,		///< Official entry point of the function
+    f_interior_gotoout = 0x400,		///< The block has an unstructured jump out of interior
+    f_interior_gotoin = 0x800,		///< Block is target of unstructured jump to its interior
+    f_label_bumpup = 0x1000,		///< Any label printed higher up in hierarchy
+    f_donothing_loop = 0x2000,		///< Block does nothing in infinite loop (halt)
+    f_dead = 0x4000,			///< Block is in process of being deleted
+    f_whiledo_overflow = 0x8000,	///< Set if the conditional block of a whiledo is too big to print as while(cond) { ...
+    f_flip_path = 0x10000,      	///< If true, out edges have been flipped since last time path was traced
+    f_joined_block = 0x20000,		///< Block is a merged form of original basic blocks
+    f_duplicate_block = 0x40000,	///< Block is a duplicated version of an original basic block
+    f_interior_breakin = 0x80000	///< Block is target of break from a label clause
   };
   /// \brief Boolean properties on edges
   enum edge_flags {
@@ -290,8 +289,6 @@ public:
   void setLoopExit(int4 i) { setOutEdgeFlag(i,f_loop_exit_edge); }	///< Label the edge exiting \b this as a loop
   void clearLoopExit(int4 i) { clearOutEdgeFlag(i,f_loop_exit_edge); }	///< Clear the loop exit edge
   void setBackEdge(int4 i) { setOutEdgeFlag(i,f_back_edge); }		///< Label the \e back edge of a loop
-  void setHasLabelBreak(void) { setFlag(f_has_label_break); }
-  void setBreakOnTrue(void) { setFlag(f_break_on_true); }
   bool getFlipPath(void) const { return ((flags & f_flip_path)!=0); }	///< Have out edges been flipped
   bool isJumpTarget(void) const;		///< Return \b true if non-fallthru jump flows into \b this
   FlowBlock *getFalseOut(void) const { return outofthis[0].point; }	///< Get the \b false output FlowBlock
@@ -322,6 +319,7 @@ public:
   bool isLabelBumpUp(void) const { return ((flags & f_label_bumpup)!=0); }	///< Are labels for \b this printed by the parent
   bool isUnstructuredTarget(void) const { return ((flags & f_unstructured_targ)!=0); }	///< Is \b this the target of an unstructured goto
   bool isInteriorGotoTarget(void) const { return ((flags & f_interior_gotoin)!=0); }	///< Is there an unstructured goto to \b this block's interior
+  bool isInteriorBreakTarget(void) const { return ((flags & f_interior_breakin)!=0); }	///< Is there an unstructured goto to \b this block's interior
   bool hasInteriorGoto(void) const { return ((flags & f_interior_gotoout)!=0); }	///< Is there an unstructured goto out of \b this block's interior
   bool isEntryPoint(void) const { return ((flags&f_entry_point)!=0); }			///< Is the entry point of the function
   bool isSwitchOut(void) const { return ((flags&f_switch_out)!=0); }			///< Is \b this a switch block
