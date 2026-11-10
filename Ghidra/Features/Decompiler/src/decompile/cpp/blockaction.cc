@@ -1495,7 +1495,6 @@ bool CollapseStructure::ruleBlockLabelClause(FlowBlock *bl)
   if (!graph.findLabelClause(headbl,breakTarget,nodes1,dummy)) return false;
 
   FlowBlock *newbl = graph.newBlockLabelClause(nodes1,breakTarget);
-  graph.calcForwardDominator(vector<FlowBlock *>{graph.getBlock(0)});
   newbl->markLabelBumpUp(true);
   if (branchbl->getType() == FlowBlock::t_if)
     ((BlockIf *)branchbl)->setGotoLabel(newbl);
