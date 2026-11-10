@@ -312,7 +312,7 @@ void FlowBlock::setGotoBranch(int4 i)
   
   outofthis[i].point->flags |= f_interior_gotoin;
   if (intothis.size() == 2 && outofthis.size() == 2) {
-    if ((flags&f_interior_gotoin)==0)
+    if ((flags&f_interior_gotoin)==0 && getFlipPath())
       outofthis[i].point->flags |= f_interior_breakin;
   }
 }
