@@ -311,6 +311,9 @@ void FlowBlock::setGotoBranch(int4 i)
   flags |= f_interior_gotoout; // Mark that there is a goto out of this block
   
   outofthis[i].point->flags |= f_interior_gotoin;
+  if (intothis.size() == 2 && outofthis.size() == 2 && i == 0) {
+    outofthis[i].point->flags |= f_interior_breakin;
+  }
 }
 
 /// The switch can have exactly 1 default edge, so we make sure other edges are not marked.
@@ -1035,6 +1038,7 @@ void BlockGraph::identifyInternal(BlockGraph *ident,const vector<FlowBlock *> &n
     (*iter)->setMark();
     ident->addBlock(*iter);	// Maintain order of blocks
     ident->flags |= ((*iter)->flags & (f_interior_gotoout | f_interior_gotoin));
+    ident->flags |= ((*iter)->flags & f_interior_breakin);
   }
   vector<FlowBlock *> newlist;
   for(iter=list.begin();iter!=list.end();++iter) { // Remove -nodes- from our list
