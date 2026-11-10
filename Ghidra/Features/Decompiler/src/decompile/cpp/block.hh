@@ -119,7 +119,6 @@ public:
     f_cross_edge = 0x40,	///< An edge that crosses subtrees in the spanning tree
     f_back_edge = 0x80,		///< Within (reducible) graph, a back edge defining a loop
     f_loop_exit_edge = 0x100,	///< Edge exits the body of a loop
-    f_break_edge = 0x200	///< Edge exits (using break) the body of a label clause
   };
 private:
   uint4 flags;			///< Collection of block_flags
@@ -291,7 +290,6 @@ public:
   void setLoopExit(int4 i) { setOutEdgeFlag(i,f_loop_exit_edge); }	///< Label the edge exiting \b this as a loop
   void clearLoopExit(int4 i) { clearOutEdgeFlag(i,f_loop_exit_edge); }	///< Clear the loop exit edge
   void setBackEdge(int4 i) { setOutEdgeFlag(i,f_back_edge); }		///< Label the \e back edge of a loop
-  void setBreakEdge(int4 i) { setOutEdgeFlag(i,f_break_edge); }		///< Label the \e break edge of a label clause
   void setHasLabelBreak(void) { setFlag(f_has_label_break); }
   void setBreakOnTrue(void) { setFlag(f_break_on_true); }
   bool getFlipPath(void) const { return ((flags & f_flip_path)!=0); }	///< Have out edges been flipped
