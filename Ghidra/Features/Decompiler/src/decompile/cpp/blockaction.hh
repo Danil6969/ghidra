@@ -153,6 +153,17 @@ class TraceDAG {
     bool operator<(const BadEdgeScore &op2) const;	///< Compare for grouping
   };
 
+  struct LabelClauseRange {
+    enum {
+      f_is_loop_exit   = 1,
+      f_has_backedge   = 2,
+      f_nested_clause  = 4
+    };
+    vector<FlowBlock *> bodyblocks;
+    FlowBlock *exittarget;
+    uint4 flags;
+  };
+
   list<FloatingEdge> &likelygoto;	///< A reference to the list of likely goto edges being produced
   vector<FlowBlock *> rootlist;		///< List of root FlowBlocks to trace from
   vector<BranchPoint *> branchlist;	///< Current set of BranchPoints that have been traced
