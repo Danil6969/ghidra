@@ -311,10 +311,11 @@ void FlowBlock::setBreakBranch(int4 i)
 
   if (isInteriorGotoTarget()) return;
   if (!getFlipPath()) return;
-  if (outofthis[i].point->getFlipPath()) return;
-
   if (getType() != t_copy) return;
+
+  if (outofthis[i].point->getFlipPath()) return;
   if (outofthis[i].point->getType() != t_copy) return;
+  if (outofthis[i].point->sizeIn() != 2) return;
   outofthis[i].point->flags |= f_interior_breakin;
 }
 
