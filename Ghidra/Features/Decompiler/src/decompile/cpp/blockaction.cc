@@ -1711,30 +1711,6 @@ bool CollapseStructure::needsIfNoExitFirst(FlowBlock *bl)
   return true;
 }
 
-bool CollapseStructure::isLabelTargetBlock(FlowBlock *targetbl)
-
-{
-  if (!graph.labelBreakContinueAllowed) return false;
-  if (targetbl->sizeIn() != 1) return false;
-  FlowBlock *throughbl = targetbl->getIn(0);
-  if (throughbl->getType() == FlowBlock::t_labelclause) return false;
-  if (throughbl->sizeOut() != 1) return false;
-  if (throughbl->sizeIn() != 1) return false;
-  FlowBlock *loopbl = throughbl->getIn(0);
-  if (loopbl->sizeOut() != 2) return false;
-  if (loopbl->getOut(1) != throughbl) return false;
-  //
-  if (loopbl->sizeIn() == 1) {
-    //
-    return true;
-  }
-  if (loopbl->sizeIn() == 2) {
-    //
-    return true;
-  }
-  return false;
-}
-
 /// Try to find a switch structure, starting with the given FlowBlock.
 /// \param bl is the given FlowBlock
 /// \return \b true if the structure was applied
