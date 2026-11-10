@@ -311,8 +311,9 @@ void FlowBlock::setGotoBranch(int4 i)
   flags |= f_interior_gotoout; // Mark that there is a goto out of this block
   
   outofthis[i].point->flags |= f_interior_gotoin;
-  if (intothis.size() == 2 && outofthis.size() == 2 && i == 0) {
-    outofthis[i].point->flags |= f_interior_breakin;
+  if (intothis.size() == 2 && outofthis.size() == 2) {
+    if ((flags&f_interior_gotoin)==0)
+      outofthis[i].point->flags |= f_interior_breakin;
   }
 }
 
