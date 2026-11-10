@@ -300,6 +300,25 @@ bool FlowBlock::negateCondition(bool toporbottom)
 }
 
 /// This is the main entry point for marking a branch
+/// from one block to another as break.
+/// \param i is the index of the outgoing edge to mark
+void FlowBlock::setBreakBranch(int4 i)
+
+{
+  if (i!=0) return;
+  if (sizeIn() != 2) return;
+  if (sizeOut() != 2) return;
+
+  if (isInteriorGotoTarget()) return;
+  if (!getFlipPath()) return;
+  if (outofthis[i].point->getFlipPath()) return;
+
+  if (getType() != t_copy) return;
+  if (outofthis[i].point->getType() != t_copy) return;
+  outofthis[i].point->flags |= f_interior_breakin;
+}
+
+/// This is the main entry point for marking a branch
 /// from one block to another as unstructured.
 /// \param i is the index of the outgoing edge to mark
 void FlowBlock::setGotoBranch(int4 i)
@@ -311,10 +330,7 @@ void FlowBlock::setGotoBranch(int4 i)
   flags |= f_interior_gotoout; // Mark that there is a goto out of this block
   
   outofthis[i].point->flags |= f_interior_gotoin;
-  if (intothis.size() == 2 && outofthis.size() == 2) {
-    if ((flags&f_interior_gotoin)==0 && getFlipPath())
-      outofthis[i].point->flags |= f_interior_breakin;
-  }
+  setBreakBranch(i);
 }
 
 /// The switch can have exactly 1 default edge, so we make sure other edges are not marked.
