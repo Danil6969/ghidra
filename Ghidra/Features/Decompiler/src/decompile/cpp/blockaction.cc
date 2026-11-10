@@ -1310,9 +1310,7 @@ bool CollapseStructure::ruleBlockCat(FlowBlock *bl)
   if (outblock->sizeIn() != 1) return false; // Nothing else can hit outblock
   if (!bl->isDecisionOut(0)) return false; // Not a goto or a loopbottom
   if (outblock->isSwitchOut()) return false; // Switch must be resolved first
-  if (graph.labelBreakContinueAllowed) {
-    if (outblock->isInteriorBreakTarget()) return false;
-  }
+  if (outblock->isInteriorBreakTarget()) return false;
 
   vector<FlowBlock *> nodes;
   nodes.push_back(bl);		// The first two blocks being concatenated
