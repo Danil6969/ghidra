@@ -320,7 +320,7 @@ public:
   bool isLabelBumpUp(void) const { return ((flags & f_label_bumpup)!=0); }	///< Are labels for \b this printed by the parent
   bool isUnstructuredTarget(void) const { return ((flags & f_unstructured_targ)!=0); }	///< Is \b this the target of an unstructured goto
   bool isInteriorGotoTarget(void) const { return ((flags & f_interior_gotoin)!=0); }	///< Is there an unstructured goto to \b this block's interior
-  bool isInteriorBreakTarget(void) const { return ((flags & f_interior_breakin)!=0); }	///< Is there an unstructured goto to \b this block's interior
+  bool isInteriorBreakTarget(void) const { return ((flags & f_interior_breakin)!=0); }	///< Is there a break goto to \b this block's interior
   bool hasInteriorGoto(void) const { return ((flags & f_interior_gotoout)!=0); }	///< Is there an unstructured goto out of \b this block's interior
   bool isEntryPoint(void) const { return ((flags&f_entry_point)!=0); }			///< Is the entry point of the function
   bool isSwitchOut(void) const { return ((flags&f_switch_out)!=0); }			///< Is \b this a switch block
