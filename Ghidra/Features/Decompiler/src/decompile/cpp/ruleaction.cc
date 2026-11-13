@@ -6898,7 +6898,6 @@ bool RuleCancelOutPtrAdd::checkPointerUsages(PcodeOp *op)
 
   Varnode *invn0 = (Varnode *)0;
   Varnode *invn1 = (Varnode *)0;
-  Varnode *invn2 = (Varnode *)0;
   PcodeOp *inop0 = (PcodeOp *)0;
   PcodeOp *inop1 = (PcodeOp *)0;
 
