@@ -1287,6 +1287,7 @@ FlowBlock *CollapseStructure::findLabelBranchBlock(ghidra::FlowBlock *headbl)
   FlowBlock *branchbl = ((BlockList *)compbl)->getBlock(0);
   if (branchbl->getType() == FlowBlock::t_if) {
     if (((BlockIf *)branchbl)->getSize() != 1) return (FlowBlock *)0;
+    if (!((BlockIf *)branchbl)->getGotoTarget()->isInteriorBreakTarget()) return (FlowBlock *)0;
     return branchbl;
   }
   return (FlowBlock *)0;
