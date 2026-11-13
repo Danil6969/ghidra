@@ -305,17 +305,33 @@ bool FlowBlock::negateCondition(bool toporbottom)
 void FlowBlock::setBreakBranch(int4 i)
 
 {
-  if (i!=0) return;
   if (sizeIn() != 2) return;
-  if (sizeOut() != 2) return;
 
   if (isInteriorGotoTarget()) return;
-  if (!getFlipPath()) return;
   if (getType() != t_copy) return;
 
-  if (outofthis[i].point->getFlipPath()) return;
-  if (outofthis[i].point->getType() != t_copy) return;
-  if (outofthis[i].point->sizeIn() != 2) return;
+  FlowBlock *loopbl,*targetbl;
+  if (sizeOut() != 2) return;
+  if (getFlipPath()) {
+    if (i!=0) return;
+    targetbl = outofthis[0].point;
+    loopbl = outofthis[1].point;
+  }
+  else {
+    if (i!=1) return;
+    loopbl = outofthis[0].point;
+    targetbl = outofthis[1].point;
+  }
+
+  if (loopbl->getFlipPath()) {
+    if (loopbl->outofthis[0].point != this) return;
+  }
+  else {
+    if (loopbl->outofthis[1].point != this) return;
+  }
+  if (targetbl->getFlipPath()) return;
+  if (targetbl->getType() != t_copy) return;
+  if (targetbl->sizeIn() != 2) return;
   outofthis[i].point->flags |= f_interior_breakin;
 }
 
