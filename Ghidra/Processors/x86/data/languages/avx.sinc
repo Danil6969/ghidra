@@ -215,6 +215,7 @@ define pcodeop vblendvpd_avx ;
 }
 
 # BLENDVPS 3-85 PAGE 655 LINE 35793
+define pcodeop vblendvps_avx ;
 :VBLENDVPS YmmReg1, vexVVVV_YmmReg, YmmReg2_m256, Ymm_imm8_7_4 is $(VEX_NDS) & $(VEX_L256) & $(VEX_PRE_66) & $(VEX_0F3A) & $(VEX_W0) & vexVVVV_YmmReg; byte=0x4A; (YmmReg1 & ZmmReg1) ... & YmmReg2_m256; Ymm_imm8_7_4
 {
 	local tmp:32 = vblendvps_avx( vexVVVV_YmmReg, YmmReg2_m256, Ymm_imm8_7_4 );
