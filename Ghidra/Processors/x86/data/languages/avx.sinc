@@ -200,10 +200,17 @@ define pcodeop vblendvpd_avx ;
 }
 
 # BLENDVPS 3-85 PAGE 655 LINE 35789
-define pcodeop vblendvps_avx ;
 :VBLENDVPS XmmReg1, vexVVVV_XmmReg, XmmReg2_m128, Xmm_imm8_7_4 is $(VEX_NDS) & $(VEX_L128) & $(VEX_PRE_66) & $(VEX_0F3A) & $(VEX_W0) & vexVVVV_XmmReg; byte=0x4A; (XmmReg1 & ZmmReg1) ... & XmmReg2_m128; Xmm_imm8_7_4
 {
-	local tmp:16 = vblendvps_avx( vexVVVV_XmmReg, XmmReg2_m128, Xmm_imm8_7_4 );
+	local b0:1 = (Xmm_imm8_7_4[0,32] >> 31) != 0;
+	local b1:1 = (Xmm_imm8_7_4[32,32] >> 31) != 0;
+	local b2:1 = (Xmm_imm8_7_4[64,32] >> 31) != 0;
+	local b3:1 = (Xmm_imm8_7_4[96,32] >> 31) != 0;
+	conditionalAssign(XmmReg1[0,32],b0,XmmReg2_m128[0,32],vexVVVV_XmmReg[0,32]);
+	conditionalAssign(XmmReg1[32,32],b1,XmmReg2_m128[32,32],vexVVVV_XmmReg[32,32]);
+	conditionalAssign(XmmReg1[64,32],b2,XmmReg2_m128[64,32],vexVVVV_XmmReg[64,32]);
+	conditionalAssign(XmmReg1[96,32],b3,XmmReg2_m128[96,32],vexVVVV_XmmReg[96,32]);
+	tmp:16 = XmmReg1;
 	ZmmReg1 = zext(tmp);
 }
 
@@ -450,78 +457,87 @@ define pcodeop vcmpsd_avx ;
 	ZmmReg1 = zext(tmp);
 }
 
-# CMPSS 3-177 PAGE 747 LINE 40390
-VCMPSS_mon: "VCMPEQSS" is imm8=0x0 { }
-VCMPSS_op: "" is imm8=0x0 { export 0x0:1; }
-VCMPSS_mon: "VCMPLTSS" is imm8=0x1 { }
-VCMPSS_op: "" is imm8=0x1 { export 0x1:1; }
-VCMPSS_mon: "VCMPLESS" is imm8=0x2 { }
-VCMPSS_op: "" is imm8=0x2 { export 0x2:1; }
-VCMPSS_mon: "VCMPUNORDSS" is imm8=0x3 { }
-VCMPSS_op: "" is imm8=0x3 { export 0x3:1; }
-VCMPSS_mon: "VCMPNEQSS" is imm8=0x4 { }
-VCMPSS_op: "" is imm8=0x4 { export 0x4:1; }
-VCMPSS_mon: "VCMPNLTSS" is imm8=0x5 { }
-VCMPSS_op: "" is imm8=0x5 { export 0x5:1; }
-VCMPSS_mon: "VCMPNLESS" is imm8=0x6 { }
-VCMPSS_op: "" is imm8=0x6 { export 0x6:1; }
-VCMPSS_mon: "VCMPORDSS" is imm8=0x7 { }
-VCMPSS_op: "" is imm8=0x7 { export 0x7:1; }
-VCMPSS_mon: "VCMPEQ_UQSS" is imm8=0x8 { }
-VCMPSS_op: "" is imm8=0x8 { export 0x8:1; }
-VCMPSS_mon: "VCMPNGESS" is imm8=0x9 { }
-VCMPSS_op: "" is imm8=0x9 { export 0x9:1; }
-VCMPSS_mon: "VCMPNGTSS" is imm8=0xa { }
-VCMPSS_op: "" is imm8=0xa { export 0xa:1; }
-VCMPSS_mon: "VCMPFALSESS" is imm8=0xb { }
-VCMPSS_op: "" is imm8=0xb { export 0xb:1; }
-VCMPSS_mon: "VCMPNEQ_OQSS" is imm8=0xc { }
-VCMPSS_op: "" is imm8=0xc { export 0xc:1; }
-VCMPSS_mon: "VCMPGESS" is imm8=0xd { }
-VCMPSS_op: "" is imm8=0xd { export 0xd:1; }
-VCMPSS_mon: "VCMPGTSS" is imm8=0xe { }
-VCMPSS_op: "" is imm8=0xe { export 0xe:1; }
-VCMPSS_mon: "VCMPTRUESS" is imm8=0xf { }
-VCMPSS_op: "" is imm8=0xf { export 0xf:1; }
-VCMPSS_mon: "VCMPEQ_OSSS" is imm8=0x10 { }
-VCMPSS_op: "" is imm8=0x10 { export 0x10:1; }
-VCMPSS_mon: "VCMPLT_OQSS" is imm8=0x11 { }
-VCMPSS_op: "" is imm8=0x11 { export 0x11:1; }
-VCMPSS_mon: "VCMPLE_OQSS" is imm8=0x12 { }
-VCMPSS_op: "" is imm8=0x12 { export 0x12:1; }
-VCMPSS_mon: "VCMPUNORD_SSS" is imm8=0x13 { }
-VCMPSS_op: "" is imm8=0x13 { export 0x13:1; }
-VCMPSS_mon: "VCMPNEQ_USSS" is imm8=0x14 { }
-VCMPSS_op: "" is imm8=0x14 { export 0x14:1; }
-VCMPSS_mon: "VCMPNLT_UQSS" is imm8=0x15 { }
-VCMPSS_op: "" is imm8=0x15 { export 0x15:1; }
-VCMPSS_mon: "VCMPNLE_UQSS" is imm8=0x16 { }
-VCMPSS_op: "" is imm8=0x16 { export 0x16:1; }
-VCMPSS_mon: "VCMPORD_SSS" is imm8=0x17 { }
-VCMPSS_op: "" is imm8=0x17 { export 0x17:1; }
-VCMPSS_mon: "VCMPEQ_USSS" is imm8=0x18 { }
-VCMPSS_op: "" is imm8=0x18 { export 0x18:1; }
-VCMPSS_mon: "VCMPNGE_UQSS" is imm8=0x19 { }
-VCMPSS_op: "" is imm8=0x19 { export 0x19:1; }
-VCMPSS_mon: "VCMPNGT_UQSS" is imm8=0x1a { }
-VCMPSS_op: "" is imm8=0x1a { export 0x1a:1; }
-VCMPSS_mon: "VCMPFALSE_OSSS" is imm8=0x1b { }
-VCMPSS_op: "" is imm8=0x1b { export 0x1b:1; }
-VCMPSS_mon: "VCMPNEQ_OSSS" is imm8=0x1c { }
-VCMPSS_op: "" is imm8=0x1c { export 0x1c:1; }
-VCMPSS_mon: "VCMPGE_OQSS" is imm8=0x1d { }
-VCMPSS_op: "" is imm8=0x1d { export 0x1d:1; }
-VCMPSS_mon: "VCMPGT_OQSS" is imm8=0x1e { }
-VCMPSS_op: "" is imm8=0x1e { export 0x1e:1; }
-VCMPSS_mon: "VCMPTRUE_USSS" is imm8=0x1f { }
-VCMPSS_op: "" is imm8=0x1f { export 0x1f:1; }
-VCMPSS_mon: "VCMPSS" is imm8 { }
-VCMPSS_op: ", "^imm8 is imm8 { export *[const]:1 imm8; }
 define pcodeop vcmpss_avx ;
+# CMPSS 3-177 PAGE 747 LINE 40390
+VCMPSS_mon: "VCMPEQSS" is imm8=0x0 { vcmpss_avx(xmmTmp2,xmmTmp1,0x0:1); }
+VCMPSS_op: "" is imm8=0x0 { export 0x0:1; }
+VCMPSS_mon: "VCMPLTSS" is imm8=0x1 {
+# TODO handling of NAN
+xmmTmp1[0,32] = zext(xmmTmp2[0,32] f< xmmTmp1[0,32]) * 0xFFFFFFFF:4;
+xmmTmp1[32,32] = xmmTmp2[32,32];
+xmmTmp1[64,32] = xmmTmp2[64,32];
+xmmTmp1[96,32] = xmmTmp2[96,32];
+}
+VCMPSS_op: "" is imm8=0x1 { export 0x1:1; }
+VCMPSS_mon: "VCMPLESS" is imm8=0x2 { vcmpss_avx(xmmTmp2,xmmTmp1,0x2:1); }
+VCMPSS_op: "" is imm8=0x2 { export 0x2:1; }
+VCMPSS_mon: "VCMPUNORDSS" is imm8=0x3 { vcmpss_avx(xmmTmp2,xmmTmp1,0x3:1); }
+VCMPSS_op: "" is imm8=0x3 { export 0x3:1; }
+VCMPSS_mon: "VCMPNEQSS" is imm8=0x4 { vcmpss_avx(xmmTmp2,xmmTmp1,0x4:1); }
+VCMPSS_op: "" is imm8=0x4 { export 0x4:1; }
+VCMPSS_mon: "VCMPNLTSS" is imm8=0x5 { vcmpss_avx(xmmTmp2,xmmTmp1,0x5:1); }
+VCMPSS_op: "" is imm8=0x5 { export 0x5:1; }
+VCMPSS_mon: "VCMPNLESS" is imm8=0x6 { vcmpss_avx(xmmTmp2,xmmTmp1,0x6:1); }
+VCMPSS_op: "" is imm8=0x6 { export 0x6:1; }
+VCMPSS_mon: "VCMPORDSS" is imm8=0x7 { vcmpss_avx(xmmTmp2,xmmTmp1,0x7:1); }
+VCMPSS_op: "" is imm8=0x7 { export 0x7:1; }
+VCMPSS_mon: "VCMPEQ_UQSS" is imm8=0x8 { vcmpss_avx(xmmTmp2,xmmTmp1,0x8:1); }
+VCMPSS_op: "" is imm8=0x8 { export 0x8:1; }
+VCMPSS_mon: "VCMPNGESS" is imm8=0x9 { vcmpss_avx(xmmTmp2,xmmTmp1,0x9:1); }
+VCMPSS_op: "" is imm8=0x9 { export 0x9:1; }
+VCMPSS_mon: "VCMPNGTSS" is imm8=0xa { vcmpss_avx(xmmTmp2,xmmTmp1,0xa:1); }
+VCMPSS_op: "" is imm8=0xa { export 0xa:1; }
+VCMPSS_mon: "VCMPFALSESS" is imm8=0xb { vcmpss_avx(xmmTmp2,xmmTmp1,0xb:1); }
+VCMPSS_op: "" is imm8=0xb { export 0xb:1; }
+VCMPSS_mon: "VCMPNEQ_OQSS" is imm8=0xc { vcmpss_avx(xmmTmp2,xmmTmp1,0xc:1); }
+VCMPSS_op: "" is imm8=0xc { export 0xc:1; }
+VCMPSS_mon: "VCMPGESS" is imm8=0xd { vcmpss_avx(xmmTmp2,xmmTmp1,0xd:1); }
+VCMPSS_op: "" is imm8=0xd { export 0xd:1; }
+VCMPSS_mon: "VCMPGTSS" is imm8=0xe { vcmpss_avx(xmmTmp2,xmmTmp1,0xe:1); }
+VCMPSS_op: "" is imm8=0xe { export 0xe:1; }
+VCMPSS_mon: "VCMPTRUESS" is imm8=0xf { vcmpss_avx(xmmTmp2,xmmTmp1,0xf:1); }
+VCMPSS_op: "" is imm8=0xf { export 0xf:1; }
+VCMPSS_mon: "VCMPEQ_OSSS" is imm8=0x10 { vcmpss_avx(xmmTmp2,xmmTmp1,0x10:1); }
+VCMPSS_op: "" is imm8=0x10 { export 0x10:1; }
+VCMPSS_mon: "VCMPLT_OQSS" is imm8=0x11 { vcmpss_avx(xmmTmp2,xmmTmp1,0x11:1); }
+VCMPSS_op: "" is imm8=0x11 { export 0x11:1; }
+VCMPSS_mon: "VCMPLE_OQSS" is imm8=0x12 { vcmpss_avx(xmmTmp2,xmmTmp1,0x12:1); }
+VCMPSS_op: "" is imm8=0x12 { export 0x12:1; }
+VCMPSS_mon: "VCMPUNORD_SSS" is imm8=0x13 { vcmpss_avx(xmmTmp2,xmmTmp1,0x13:1); }
+VCMPSS_op: "" is imm8=0x13 { export 0x13:1; }
+VCMPSS_mon: "VCMPNEQ_USSS" is imm8=0x14 { vcmpss_avx(xmmTmp2,xmmTmp1,0x14:1); }
+VCMPSS_op: "" is imm8=0x14 { export 0x14:1; }
+VCMPSS_mon: "VCMPNLT_UQSS" is imm8=0x15 { vcmpss_avx(xmmTmp2,xmmTmp1,0x15:1); }
+VCMPSS_op: "" is imm8=0x15 { export 0x15:1; }
+VCMPSS_mon: "VCMPNLE_UQSS" is imm8=0x16 { vcmpss_avx(xmmTmp2,xmmTmp1,0x16:1); }
+VCMPSS_op: "" is imm8=0x16 { export 0x16:1; }
+VCMPSS_mon: "VCMPORD_SSS" is imm8=0x17 { vcmpss_avx(xmmTmp2,xmmTmp1,0x17:1); }
+VCMPSS_op: "" is imm8=0x17 { export 0x17:1; }
+VCMPSS_mon: "VCMPEQ_USSS" is imm8=0x18 { vcmpss_avx(xmmTmp2,xmmTmp1,0x18:1); }
+VCMPSS_op: "" is imm8=0x18 { export 0x18:1; }
+VCMPSS_mon: "VCMPNGE_UQSS" is imm8=0x19 { vcmpss_avx(xmmTmp2,xmmTmp1,0x19:1); }
+VCMPSS_op: "" is imm8=0x19 { export 0x19:1; }
+VCMPSS_mon: "VCMPNGT_UQSS" is imm8=0x1a { vcmpss_avx(xmmTmp2,xmmTmp1,0x1a:1); }
+VCMPSS_op: "" is imm8=0x1a { export 0x1a:1; }
+VCMPSS_mon: "VCMPFALSE_OSSS" is imm8=0x1b { vcmpss_avx(xmmTmp2,xmmTmp1,0x1b:1); }
+VCMPSS_op: "" is imm8=0x1b { export 0x1b:1; }
+VCMPSS_mon: "VCMPNEQ_OSSS" is imm8=0x1c { vcmpss_avx(xmmTmp2,xmmTmp1,0x1c:1); }
+VCMPSS_op: "" is imm8=0x1c { export 0x1c:1; }
+VCMPSS_mon: "VCMPGE_OQSS" is imm8=0x1d { vcmpss_avx(xmmTmp2,xmmTmp1,0x1d:1); }
+VCMPSS_op: "" is imm8=0x1d { export 0x1d:1; }
+VCMPSS_mon: "VCMPGT_OQSS" is imm8=0x1e { vcmpss_avx(xmmTmp2,xmmTmp1,0x1e:1); }
+VCMPSS_op: "" is imm8=0x1e { export 0x1e:1; }
+VCMPSS_mon: "VCMPTRUE_USSS" is imm8=0x1f { vcmpss_avx(xmmTmp2,xmmTmp1,0x1f:1); }
+VCMPSS_op: "" is imm8=0x1f { export 0x1f:1; }
+VCMPSS_mon: "VCMPSS" is imm8 { vcmpss_avx(xmmTmp2,xmmTmp1,imm8:1); }
+VCMPSS_op: ", "^imm8 is imm8 { export *[const]:1 imm8; }
 :^VCMPSS_mon XmmReg1, vexVVVV_XmmReg, XmmReg2_m32^VCMPSS_op is $(VEX_NDS) & $(VEX_L128) & $(VEX_PRE_F3) & $(VEX_0F) & $(VEX_WIG) & vexVVVV_XmmReg; byte=0xC2; (XmmReg1 & ZmmReg1) ... & XmmReg2_m32; VCMPSS_mon & VCMPSS_op
 {
-	local tmp:16 = vcmpss_avx( vexVVVV_XmmReg, XmmReg2_m32, VCMPSS_op );
-	ZmmReg1 = zext(tmp);
+	xmmTmp1 = XmmReg2_m32;
+	xmmTmp2 = vexVVVV_XmmReg;
+	build VCMPSS_mon;
+	XmmReg1 = xmmTmp1;
+	ZmmReg1 = zext(XmmReg1);
 }
 
 # COMISD 3-186 PAGE 756 LINE 40860
@@ -2573,7 +2589,10 @@ define pcodeop vroundps_avx ;
 
 # ROUNDSD 4-570 PAGE 1690 LINE 88058
 define pcodeop vroundsd_avx ;
-VROUNDSD_mon: "VROUNDSD_DOWN" is imm8=0x1 { xmmTmp1[0,64] = floor(xmmTmp1[0,64]); xmmTmp1[64,64] = xmmTmp2[0,64]; }
+VROUNDSD_mon: "VROUNDSD_DOWN" is imm8=0x1 {
+xmmTmp1[0,64] = floor(xmmTmp1[0,64]);
+xmmTmp1[64,64] = xmmTmp2[0,64];
+}
 VROUNDSD_mon: "VROUNDSD_"^imm8 is imm8 { vroundsd_avx( xmmTmp2, xmmTmp1, imm8:1 ); }
 :^VROUNDSD_mon XmmReg1, vexVVVV_XmmReg, XmmReg2_m64 is $(VEX_NDS) & $(VEX_LIG) & $(VEX_PRE_66) & $(VEX_0F3A) & $(VEX_WIG) & vexVVVV_XmmReg; byte=0x0B; (XmmReg1 & ZmmReg1) ... & XmmReg2_m64; VROUNDSD_mon
 {
