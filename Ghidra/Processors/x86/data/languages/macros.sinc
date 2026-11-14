@@ -1,3 +1,9 @@
 macro conditionalAssign(dest, cond, trueVal, falseVal) {
-    dest = zext(cond) * trueVal | zext(!cond) * falseVal;	
+    #dest = zext(cond) * trueVal | zext(!cond) * falseVal;
+    if (cond) goto <condAssign1>;
+    dest = falseVal;
+    goto <condAssign2>;
+<condAssign1>
+    dest = trueVal;
+<condAssign2>
 }
