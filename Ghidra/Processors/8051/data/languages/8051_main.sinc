@@ -741,9 +741,9 @@ BankAddr: PSW is b_0002 & PSW { tmp:3 = zext((($(RS1) << 1) + $(RS0)) * 8 + b_00
 :DJNZ Direct,Rel8 is $(GROUP1) & ophi=13 & oplo=5; Direct; Rel8	 { Direct = Direct - 1; if (Direct!=0) goto Rel8; }
 
 :INC Areg    is $(GROUP1) & ophi=0 & oplo=4 & Areg		{ ACC = ACC + 1; }
-:INC rn      is $(GROUP2) & ophi=0 & rnfill=1 & rn & BankAddr	{
+:INC rn      is $(GROUP2) & ophi=0 & rnfill=1 & rn		{
 rn = rn + 1;
-BankAddr = rn;
+#BankAddr = rn;
 }
 :INC Direct  is $(GROUP1) & ophi=0 & oplo=5; Direct		{ Direct = Direct + 1; }
 @if defined(DUAL_DPTR) && defined(DPS_REG_NUM)
@@ -800,9 +800,9 @@ BankAddr = rn;
 :MOV Areg,Direct    is $(GROUP1) & ophi=14 & oplo=5 & Areg; Direct		 { ACC = Direct; }
 :MOV Areg,Ri        is $(GROUP2) & ophi=14 & Areg & rifill=3 & Ri					 { ACC = Ri; }
 :MOV Areg,Data      is $(GROUP1) & ophi=7 & oplo=4 & Areg; Data	         { ACC = Data; }
-:MOV rn,Areg        is $(GROUP2) & ophi=15 & rnfill=1 & rn & Areg & BankAddr	{
+:MOV rn,Areg        is $(GROUP2) & ophi=15 & rnfill=1 & rn & Areg	        {
 rn = ACC;
-BankAddr = rn;
+#BankAddr = rn;
 }
 :MOV rn,Direct      is $(GROUP2) & ophi=10 & rnfill=1 & rn; Direct				     { rn = Direct; }
 :MOV rn,Data        is $(GROUP2) & ophi=7 & rnfill=1 & rn; Data				 { rn = Data; }
