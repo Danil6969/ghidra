@@ -800,7 +800,7 @@ rn = rn + 1;
 :MOV Areg,Direct    is $(GROUP1) & ophi=14 & oplo=5 & Areg; Direct		 { ACC = Direct; }
 :MOV Areg,Ri        is $(GROUP2) & ophi=14 & Areg & rifill=3 & Ri					 { ACC = Ri; }
 :MOV Areg,Data      is $(GROUP1) & ophi=7 & oplo=4 & Areg; Data	         { ACC = Data; }
-:MOV rn,Areg        is $(GROUP2) & ophi=15 & rnfill=1 & rn & Areg	        {
+:MOV rn,Areg        is $(GROUP2) & ophi=15 & rnfill=1 & rn & Areg					 {
 rn = ACC;
 #BankAddr = rn;
 }
