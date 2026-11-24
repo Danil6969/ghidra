@@ -2050,7 +2050,7 @@ bool SplitDatatype::testDatatypeCompatibility(Datatype *inBase,Datatype *outBase
     bool isstring = false;
     if (outBase->getMetatype() == TYPE_ARRAY) {
       Datatype *outSub = ((TypeArray *)outBase)->getBase();
-      if (outSub->isCharPrint())
+      if (outSub->isCharPrint() && cachereadonly)
       	isstring = true;
     }
     if (!isstring)
@@ -2300,7 +2300,7 @@ void SplitDatatype::buildInSubpieces(Varnode *rootVn,PcodeOp *followOp,vector<Va
     int4 off = dataTypePieces[i].offset;
     Address addr = baseAddr + off;
     addr.renormalize(dt->getSize());
-    if (rootVn->isReadOnly() && dt->getSize() <= sizeof(uintb)) {
+    if (cachereadonly && rootVn->isReadOnly() && dt->getSize() <= sizeof(uintb)) {
       MemoryImage mem(rootVn->getSpace(),4,16,data.getArch()->loader);
       uintb res = mem.getValue(addr.getOffset(),dt->getSize());
       Varnode *cvn = data.newConstant(dt->getSize(),res);
@@ -2519,6 +2519,7 @@ SplitDatatype::SplitDatatype(Funcdata &func)
   types = glb->types;
   splitStructures = (glb->split_datatype_config & OptionSplitDatatypes::option_struct) != 0;
   splitArrays = (glb->split_datatype_config & OptionSplitDatatypes::option_array) != 0;
+  cachereadonly = glb->readonlypropagate;
   isLoadStore = false;
 }
 
