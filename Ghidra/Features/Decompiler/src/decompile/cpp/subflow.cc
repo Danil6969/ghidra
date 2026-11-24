@@ -2046,8 +2046,16 @@ bool SplitDatatype::testDatatypeCompatibility(Datatype *inBase,Datatype *outBase
     return false;	// Don't split array pointer writing into primitive
   if (isLoadStore && inCategory == 2 && !inConstant && outCategory == 1)
     return false;	// Don't split primitive into an array pointer, TODO: We could check if primitive is defined by PIECE
-  if (isLoadStore && inCategory == 1 && outCategory == 1 && !inConstant)
-    return false;	// Don't split copies between arrays
+  if (isLoadStore && inCategory == 1 && outCategory == 1 && !inConstant) {
+    bool isstring = false;
+    if (outBase->getMetatype() == TYPE_ARRAY) {
+      Datatype *outSub = ((TypeArray *)outBase)->getBase();
+      if (outSub->isCharPrint())
+      	isstring = true;
+    }
+    if (!isstring)
+      return false;	// Don't split copies between arrays
+  }
   bool inHole;
   bool outHole;
   int4 curOff = 0;
@@ -2292,6 +2300,13 @@ void SplitDatatype::buildInSubpieces(Varnode *rootVn,PcodeOp *followOp,vector<Va
     int4 off = dataTypePieces[i].offset;
     Address addr = baseAddr + off;
     addr.renormalize(dt->getSize());
+    if (rootVn->isReadOnly() && dt->getSize() <= sizeof(uintb)) {
+      MemoryImage mem(rootVn->getSpace(),4,16,data.getArch()->loader);
+      uintb res = mem.getValue(addr.getOffset(),dt->getSize());
+      Varnode *cvn = data.newConstant(dt->getSize(),res);
+      inVarnodes.push_back(cvn);
+      continue;
+    }
     if (addr.isBigEndian())
       off = rootVn->getSize() - off - dt->getSize();
     Varnode *outVn = getPieceInputVarnode(rootVn, off, dt->getSize());
