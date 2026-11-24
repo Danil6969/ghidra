@@ -187,6 +187,7 @@ class SplitDatatype {
   vector<Component> dataTypePieces;	///< Sequence of all data-type pairs being copied
   bool splitStructures;			///< Whether or not structures should be split
   bool splitArrays;			///< Whether or not arrays should be split
+  bool cachereadonly;			///< Whether or not read only data should be split
   bool isLoadStore;			///< True if trying to split LOAD or STORE
   Datatype *getComponent(Datatype *ct,int4 offset,bool &isHole);
   int4 categorizeDatatype(Datatype *ct);	///< Categorize if and how data-type should be split
