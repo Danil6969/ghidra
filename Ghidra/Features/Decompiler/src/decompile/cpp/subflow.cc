@@ -2029,7 +2029,7 @@ int4 SplitDatatype::categorizeDatatype(Datatype *ct)
 /// \param outBase is the data-type coming out of the operation
 /// \param inConstant is \b true if the incoming data-type labels a constant
 /// \return \b true if the data-types have compatible components, \b false otherwise
-bool SplitDatatype::testDatatypeCompatibility(Datatype *inBase,Datatype *outBase,bool inConstant)
+bool SplitDatatype::testDatatypeCompatibility(Datatype *inBase,Datatype *outBase,bool inConstant,bool inReadonly)
 
 {
   int4 inCategory = categorizeDatatype(inBase);
@@ -2050,7 +2050,7 @@ bool SplitDatatype::testDatatypeCompatibility(Datatype *inBase,Datatype *outBase
     bool isstring = false;
     if (outBase->getMetatype() == TYPE_ARRAY) {
       Datatype *outSub = ((TypeArray *)outBase)->getBase();
-      if (outSub->isCharPrint() && cachereadonly)
+      if (outSub->isCharPrint() && cachereadonly && inReadonly)
       	isstring = true;
     }
     if (!isstring)
@@ -2535,7 +2535,7 @@ bool SplitDatatype::splitCopy(PcodeOp *copyOp,Datatype *inType,Datatype *outType
   if (!testCopyConstraints(copyOp))
     return false;
   Varnode *inVn = copyOp->getIn(0);
-  if (!testDatatypeCompatibility(inType, outType, inVn->isConstant()))
+  if (!testDatatypeCompatibility(inType, outType, inVn->isConstant(), false))
     return false;
   if (isArithmeticOutput(inVn))		// Sanity check on input
     return false;
@@ -2601,7 +2601,7 @@ bool SplitDatatype::splitLoad(PcodeOp *loadOp,Datatype *inType)
   if (copyOp != (PcodeOp *)0)
     outVn = copyOp->getOut();
   Datatype *outType = outVn->getTypeDefFacing();
-  if (!testDatatypeCompatibility(inType, outType, false))
+  if (!testDatatypeCompatibility(inType, outType, false, false))
     return false;
   if (isArithmeticInput(outVn))			// Sanity check on output
     return false;
@@ -2652,13 +2652,13 @@ bool SplitDatatype::splitStore(PcodeOp *storeOp,Datatype *outType)
   if (inType == (Datatype *)0) {
     inType = inVn->getTypeReadFacing(storeOp);
   }
-  if (!testDatatypeCompatibility(inType, outType, inVn->isConstant())) {
+  if (!testDatatypeCompatibility(inType, outType, inVn->isConstant(), inVn->isReadOnly())) {
     if (loadOp != (PcodeOp *)0) {
       // If not compatible while considering the LOAD, check again, but without the LOAD
       loadOp = (PcodeOp *)0;
       inType = inVn->getTypeReadFacing(storeOp);
       dataTypePieces.clear();
-      if (!testDatatypeCompatibility(inType, outType, inVn->isConstant()))
+      if (!testDatatypeCompatibility(inType, outType, inVn->isConstant(), inVn->isReadOnly()))
 	return false;
     }
     else
