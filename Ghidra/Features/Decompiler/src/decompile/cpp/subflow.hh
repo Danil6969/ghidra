@@ -191,7 +191,7 @@ class SplitDatatype {
   bool isLoadStore;			///< True if trying to split LOAD or STORE
   Datatype *getComponent(Datatype *ct,int4 offset,bool &isHole);
   int4 categorizeDatatype(Datatype *ct);	///< Categorize if and how data-type should be split
-  bool testDatatypeCompatibility(Datatype *inBase,Datatype *outBase,bool inConstant);
+  bool testDatatypeCompatibility(Datatype *inBase,Datatype *outBase,bool inConstant,bool inReadonly);
   bool testCopyConstraints(PcodeOp *copyOp);
   bool generateConstants(Varnode *vn,vector<Varnode *> &inVarnodes);
   Varnode *getPieceInputVarnode(Varnode *pieceVn,int4 offset,int4 size);
