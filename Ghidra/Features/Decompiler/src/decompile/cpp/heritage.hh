@@ -306,6 +306,7 @@ class Heritage {
   void refineWrite(Varnode *vn,const Address &addr,const vector<int4> &refine,vector<Varnode *> &newvn);
   void refineInput(Varnode *vn,const Address &addr,const vector<int4> &refine,vector<Varnode *> &newvn);
   void remove13Refinement(vector<int4> &refine);
+  void remove26Refinement(vector<int4> &refine);
   TaskList::iterator refinement(TaskList::iterator memiter,const vector<Varnode *> &readvars,
 				const vector<Varnode *> &writevars,const vector<Varnode *> &inputvars);
   void visitIncr(FlowBlock *qnode,FlowBlock *vnode);
