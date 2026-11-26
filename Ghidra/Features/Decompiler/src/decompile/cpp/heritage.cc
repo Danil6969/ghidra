@@ -1947,6 +1947,42 @@ void Heritage::remove13Refinement(vector<int4> &refine)
   
 }
 
+/// \brief If we see 2-6 or 6-2 pieces in the partition, replace with a 8
+///
+/// A refinement of a 8-byte range into a 2-byte and 6-byte cover is highly likely
+/// to be artificial, so we eliminate this configuration.
+///
+/// The \e refinement array is an array of integers, one for each byte in the
+/// given range. Any non-zero entry is the size of a particular element of the
+/// refinement starting at that corresponding byte in the range. I.e. the array
+/// [8,0,0,0,8,0,0,0] indicates the address range is 16-bytes long covered by
+/// two elements of length 8, starting at offsets 0 and 8 respectively.
+/// \param refine is the refinement array
+void Heritage::remove26Refinement(vector<int4> &refine)
+
+{
+  if (refine.empty()) return;
+  int4 pos = 0;
+  int4 lastsize = refine[pos];
+  int4 cursize;
+
+  pos += lastsize;
+  while(pos < refine.size()) {
+    cursize = refine[pos];
+    if (cursize == 0) break;
+    if (((lastsize==2)&&(cursize==6))||((lastsize==6)&&(cursize==2))) {
+      refine[pos-lastsize] = 8;
+      lastsize = 8;
+      pos += cursize;
+    }
+    else {
+      lastsize = cursize;
+      pos += lastsize;
+    }
+  }
+
+}
+
 /// \brief Find the common refinement of all reads and writes in the address range
 ///
 /// Split the reads and writes so they match the refinement.
@@ -1975,6 +2011,7 @@ TaskList::iterator Heritage::refinement(TaskList::iterator memiter,const vector<
   if (lastpos == 0) return disjoint.end(); // No non-trivial refinements
   refine[lastpos] = size-lastpos;
   remove13Refinement(refine);
+  remove26Refinement(refine);
   vector<Varnode *> newvn;
   for(uint4 i=0;i<readvars.size();++i)
     refineRead(readvars[i],addr,refine,newvn);
