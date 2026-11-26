@@ -325,8 +325,10 @@ void FlowBlock::setBreakBranch(int4 i)
 
   if (loopbl->getFlipPath()) {
     if (loopbl->outofthis[0].point != this) return;
+    if (loopbl->outofthis[1].point == targetbl) return;
   }
   else {
+    if (loopbl->outofthis[0].point == targetbl) return;
     if (loopbl->outofthis[1].point != this) return;
   }
   if (targetbl->getFlipPath()) return;
